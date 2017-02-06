@@ -10,14 +10,10 @@ int main(int argc, char *argv[]) {
     /* TODO: parse_args() for flag arguments, while keeping positionals. */
 
     // Declare args and setup some defaults.
-    char textarg[MAX_TEXT_LEN + 1];
-    strncpy(textarg, "-", MAX_TEXT_LEN -1);
-    char forearg[MAX_ARG_LEN + 1];
-    strncpy(forearg, "reset", MAX_ARG_LEN -1);
-    char backarg[MAX_ARG_LEN];
-    strncpy(backarg, "reset", MAX_ARG_LEN -1);
-    char stylearg[MAX_ARG_LEN];
-    strncpy(stylearg, "reset", MAX_ARG_LEN -1);
+    char textarg[MAX_TEXT_LEN + 1] = "-";
+    char forearg[MAX_ARG_LEN + 1] = "reset";
+    char backarg[MAX_ARG_LEN + 1] = "reset";
+    char stylearg[MAX_ARG_LEN + 1] = "reset";
 
     switch (argc) {
         case 5: strncpy(stylearg, argv[4], MAX_ARG_LEN - 1);
@@ -35,10 +31,14 @@ int main(int argc, char *argv[]) {
             return 1;
     }
 
-    if (streq(textarg, "256")) {
-        print_256(colorext);
+    if (streq(textarg, "basic")) {
+        print_basic();
+    } else if streq(textarg, "rainbow") {
+        print_rainbow_fore();
+    } else if (streq(textarg, "256")) {
+        print_256(colrforex);
     } else if (streq(textarg, "b256") || streq(textarg, "256b")) {
-        print_256(colorextbg);
+        print_256(colrbgx);
     } else {
         if (streq(textarg, "-")) {
             // Read from stdin.
@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
         if (!validate_color_arg("back", back, backarg)) return 1;
         if (!validate_style_arg(stylecode, stylearg)) return 1;
         char colorized[MAX_TEXT_LEN + COLOR_LEN];
-        colorstyle(colorized, fore, back, stylecode, textarg);
+        colrize(colorized, textarg, fore, back, stylecode);
         printf("%s\n", colorized);
     }
     return 0;
@@ -80,7 +80,7 @@ print_256(colorext_func func) {
     char text[4 + COLOR_LEN];
     for (int i = 0; i < 56; i++) {
         snprintf(num, 4, "%03d", i);
-        func(text, i, num);
+        func(text, num, i);
         if (i < 16) {
             printf("%s ", text);
             if ((i == 7) || (i == 15)) puts("\n");
@@ -90,7 +90,7 @@ print_256(colorext_func func) {
             for (int k=0; k < 5; k++) {
                 j = j + 36;
                 snprintf(num, 4, "%03d", j);
-                func(text, j, num);
+                func(text, num, j);
                 printf("%s ", text);
             }
             puts("\n");
@@ -98,10 +98,54 @@ print_256(colorext_func func) {
     }
     for (int i = 232; i < 256; i++) {
         snprintf(num, 4, "%03d", i);
-        func(text, i, num);
+        func(text, num, i);
         printf("%s ", text);
     }
     puts("\n");
+}
+
+void
+print_basic() {
+    /* Print basic color names and escape codes. */
+    char name[COLOR_LEN + 12];
+    print_fore_color(BLACK);
+    print_fore_color(RED);
+    print_fore_color(GREEN);
+    print_fore_color(YELLOW);
+    print_fore_color(BLUE);
+    print_fore_color(MAGENTA);
+    print_fore_color(CYAN);
+    print_fore_color(WHITE);
+    print_fore_color(UNUSED);
+    print_fore_color(RESET);
+    puts("\n");
+    print_fore_color(XRED);
+    print_fore_color(XGREEN);
+    print_fore_color(XYELLOW);
+    print_fore_color(XBLUE);
+    print_fore_color(XMAGENTA);
+    print_fore_color(XCYAN);
+    print_fore_color(XNORMAL);
+    puts("\n");
+    print_fore_color(LIGHTRED);
+    print_fore_color(LIGHTGREEN);
+    print_fore_color(LIGHTYELLOW);
+    print_fore_color(LIGHTBLUE);
+    print_fore_color(LIGHTMAGENTA);
+    print_fore_color(LIGHTCYAN);
+    print_fore_color(LIGHTNORMAL);
+    puts("\n");
+}
+
+void
+print_rainbow_fore() {
+    /* Demo the rainbow method. */
+    char text[] = "This is a demo of the rainbow function.";
+    size_t textlen = strlen(text);
+    size_t rainbowlen = textlen + 1 + (textlen * CODE_RGB_LEN);
+    char textfmt[rainbowlen];
+    colrforerainbow(textfmt, text, 0.1, 30);
+    printf("%s\n", textfmt);
 }
 
 void

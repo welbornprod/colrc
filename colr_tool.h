@@ -37,9 +37,16 @@
     #define PRINTD(...) ((void)0)
 #endif
 
-typedef void (*colorext_func)(char*, unsigned char, char*);
+// Assumes memory allocated in a variable named `name`.
+#define print_fore_color(codename) \
+    colrfore(name, #codename, codename); \
+    printf("%s ", name);
+
+typedef void (*colorext_func)(char*, char*, unsigned char);
 void debug_args(char*, char*, char*, char*);
 void print_256(colorext_func);
+void print_basic(void);
+void print_rainbow_fore(void);
 void print_unrecognized_arg(const char*);
 void print_usage(const char*);
 void print_usage_full(void);

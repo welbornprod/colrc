@@ -3,11 +3,12 @@ CC=gcc
 CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
        -Wmissing-include-dirs -Wnull-dereference -Wpedantic -Wshadow \
        -Wstrict-prototypes -Wunused-macros -std=c11
+LIBS=-lm
 binary=colr
 source=colr.c
 
 all: colr.o
-	$(CC) -o $(binary) $(CFLAGS) *.o
+	$(CC) -o $(binary) $(CFLAGS) *.o $(LIBS)
 
 debug: CFLAGS+=-g3 -DDEBUG
 debug: all
@@ -21,7 +22,7 @@ release: all
 	fi;
 
 colr.o: $(source)
-	$(CC) -c $(source) $(CFLAGS)
+	$(CC) -c $(source) $(CFLAGS) $(LIBS)
 
 .PHONY: clean, cleanmake, makeclean, targets
 clean:
