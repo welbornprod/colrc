@@ -5,9 +5,10 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
        -Wstrict-prototypes -Wunused-macros -std=c11
 LIBS=-lm
 binary=colr
-source=colr.c
+source=colr_tool.c
+objects=colr_tool.o
 
-all: colr.o
+all: $(objects)
 	$(CC) -o $(binary) $(CFLAGS) *.o $(LIBS)
 
 debug: CFLAGS+=-g3 -DDEBUG
@@ -21,7 +22,7 @@ release: all
 		printf "\nError stripping executable: %s\n" "$(binary)" 1>&2;\
 	fi;
 
-colr.o: $(source)
+$(objects): $(source)
 	$(CC) -c $(source) $(CFLAGS) $(LIBS)
 
 .PHONY: clean, cleanmake, makeclean, targets

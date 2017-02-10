@@ -45,6 +45,10 @@ int main(int argc, char *argv[]) {
             char *textargp = textarg;
             read_stdin_arg(textargp, MAX_TEXT_LEN);
         }
+        /* TODO: colorname_to_color (and colrize) are only for basic codes.
+                 This tool should show colrizex and colrforergb.
+                 See TODOS in colr.h, still need colrizergb() implementation.
+        */
         Colors fore = colorname_to_color(forearg);
         Colors back = colorname_to_color(backarg);
         Styles stylecode = stylename_to_style(stylearg);

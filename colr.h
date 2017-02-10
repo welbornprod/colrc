@@ -350,6 +350,8 @@ acolrize(char *s, Colors fore, Colors back, Styles style) {
 	return out;
 }
 
+/* TODO: colrizergb, to set the fore/back using rgb codes. Style is the same.
+*/
 
 void
 colrizex(
