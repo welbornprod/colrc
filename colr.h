@@ -7,11 +7,11 @@
 #define _GNU_SOURCE
 #endif
 
-#define COLR_VERSION "0.2.0"
+#define COLR_VERSION "0.2.1"
 
 #include <ctype.h>
 #include <malloc.h>
-#include <math.h>
+#include <math.h>  /* Must include `-lm` in compiler args or Makefile LIBS! */
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
