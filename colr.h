@@ -89,10 +89,10 @@ const size_t CODEX_LEN = 15;
 // Maximum length for a style escape code, including '\0'.
 const size_t STYLE_LEN = 8;
 
-// Maximum length in chars for any combination of basic escape codes.
-// Should be (9 * 3) + STYLE_LEN, but leaving extra room.
+// Maximum length in chars for any combination of basic/extended escape codes.
+// Should be (CODEX_LEN * 2) + STYLE_LEN.
 // Allocating for a string that will be colorized must account for this.
-const size_t COLOR_LEN = 37;
+const size_t COLOR_LEN = 40;
 
 // Maximum length in chars for an RGB fore/back escape code.
 const size_t CODE_RGB_LEN = 23;
@@ -123,10 +123,10 @@ colrbg(char *out, char *s, Colors back) {
 				   *Must be null-terminated.
 			back : `Colors` code to use.
 	*/
-	char backcode[CODE_LEN];
+	char backcode[CODEX_LEN];
 	format_bg(backcode, back);
 	size_t oldlen = strlen(s);
-	size_t codeslen = CODE_LEN + STYLE_LEN;
+	size_t codeslen = CODEX_LEN + STYLE_LEN;
 	snprintf(
 		out,
 		oldlen + codeslen,
@@ -195,10 +195,10 @@ colrfore(char *out, char *s, Colors fore) {
 				   *Must be null-terminated.
 			fore : `Colors` code to use.
 	*/
-	char forecode[CODE_LEN];
+	char forecode[CODEX_LEN];
 	format_fore(forecode, fore);
 	size_t oldlen = strlen(s);
-	size_t codeslen = CODE_LEN + STYLE_LEN;
+	size_t codeslen = CODEX_LEN + STYLE_LEN;
 	snprintf(
 		out,
 		oldlen + codeslen,
@@ -299,27 +299,25 @@ colrize(char *out, char *s, Colors fore, Colors back, Styles style) {
 	*/
 
 	// Build forecolor only.
-	size_t forebackcodelen = 10;
-	char forecode[forebackcodelen];
+	char forecode[CODEX_LEN];
 	format_fore(forecode, fore);
 	// Build backcolor only.
-	char backcode[forebackcodelen];
+	char backcode[CODEX_LEN];
 	format_bg(backcode, back);
 	// Build style only.
-	size_t stylelen = 8;
-	char stylecode[stylelen];
+	char stylecode[STYLE_LEN];
 	format_style(stylecode, style);
 
 	// Seperate reset codes from other codes by making sure normal codes
 	// are used last.
-	size_t codeslen = forebackcodelen + stylelen;
+	size_t codeslen = COLOR_LEN;
 	char frontcodes[codeslen];
 	frontcodes[0] = '\0';
 	char endcodes[codeslen];
 	endcodes[0] = '\0';
-	strncat(fore == RESET ? frontcodes: endcodes, forecode, codeslen);
-	strncat(back == RESET ? frontcodes: endcodes, backcode, codeslen);
-	strncat(style == RESET_ALL ? frontcodes: endcodes, stylecode, codeslen);
+	strncat(fore == RESET ? frontcodes: endcodes, forecode, CODEX_LEN);
+	strncat(back == RESET ? frontcodes: endcodes, backcode, CODEX_LEN);
+	strncat(style == RESET_ALL ? frontcodes: endcodes, stylecode, STYLE_LEN);
 
 	size_t oldlen = strlen(s);
 	codeslen =  strlen(frontcodes) + strlen(endcodes) + STYLE_LEN;
@@ -382,14 +380,18 @@ colrizex(
 
 	// Seperate reset codes from other codes by making sure normal codes
 	// are used last.
-	size_t codeslen = CODEX_LEN + STYLE_LEN;
+	size_t codeslen = COLOR_LEN;
 	char frontcodes[codeslen];
 	frontcodes[0] = '\0';
 	char endcodes[codeslen];
 	endcodes[0] = '\0';
-	strncat(frontcodes, forecode, codeslen);
-	strncat(frontcodes, backcode, codeslen);
-	strncat(style == RESET_ALL ? frontcodes: endcodes, stylecodes, codeslen);
+	strncat(frontcodes, forecode, CODEX_LEN);
+	strncat(frontcodes, backcode, CODEX_LEN);
+	strncat(
+		(style == RESET_ALL ? frontcodes: endcodes),
+		stylecodes,
+		STYLE_LEN
+	);
 
 	size_t oldlen = strlen(s);
 	codeslen =  strlen(frontcodes) + strlen(endcodes) + STYLE_LEN;
@@ -471,7 +473,7 @@ format_bg(char *out, Colors value) {
 	/*  Create an escape code for a background color.
 		Arguments:
 			out   : Memory allocated for the escape code string.
-				    *Must have enough room for `CODE_LEN`.
+				    *Must have enough room for `CODEX_LEN`.
 		    value : Colors value to use for background.
 	*/
 	if (value > 9) {
@@ -510,7 +512,7 @@ format_fore(char *out, Colors value) {
 	/*  Create an escape code for a fore color.
 		Arguments:
 			out   : Memory allocated for the escape code string.
-				    *Must have enough room for `CODE_LEN`.
+				    *Must have enough room for `CODEX_LEN`.
 		    value : Colors value to use for fore.
 	*/
 	if (value > 9) {
