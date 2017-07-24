@@ -4,6 +4,12 @@
     -Christopher Welborn 02-05-2017
 */
 #include "colr_tool.h"
+#define return_on_null(x) do { \
+    if (!(x)) { \
+        printferr("Failed to allocate memory for arguments!\n"); \
+        return 1; \
+    } \
+    } while (0)
 
 int main(int argc, char *argv[]) {
 
@@ -16,21 +22,21 @@ int main(int argc, char *argv[]) {
     char stylearg[MAX_ARG_LEN + 1] = "reset";
 
     switch (argc) {
-        case 5: strncpy(stylearg, argv[4], MAX_ARG_LEN - 1);
-        case 4: strncpy(backarg, argv[3], MAX_ARG_LEN - 1);
-        case 3: strncpy(forearg, argv[2], MAX_ARG_LEN - 1);
+        case 5: return_on_null(str_copy(stylearg, argv[4], MAX_ARG_LEN - 1));
+        case 4: return_on_null(str_copy(backarg, argv[3], MAX_ARG_LEN - 1));
+        case 3: return_on_null(str_copy(forearg, argv[2], MAX_ARG_LEN - 1));
         case 2:
-            strncpy(textarg, argv[1], MAX_TEXT_LEN - 1);
+            return_on_null(str_copy(textarg, argv[1], MAX_TEXT_LEN - 1));
             break;
         case 1:
             // No arguments.
-            strncpy(textarg, "-", MAX_TEXT_LEN - 1);
+            return_on_null(str_copy(textarg, "-", MAX_TEXT_LEN - 1));
             break;
         default:
             print_usage("Too many arguments!");
             return 1;
     }
-    if (streq(textarg, "-h") || streq(textarg, "--help")) {
+    if (argeq(textarg, "-h", "--help")) {
         print_usage_full();
     } else if (streq(textarg, "-basic")) {
         print_basic();
@@ -38,7 +44,7 @@ int main(int argc, char *argv[]) {
         example_color_build();
     } else if streq(textarg, "-rainbow") {
         print_rainbow_fore();
-    } else if (streq(textarg, "-256")) {
+    } else if (streq(textarg, "-256") || streq(textarg, "-rgb")) {
         print_256(colrforex);
     } else if (streq(textarg, "-b256") || streq(textarg, "-256b")) {
         print_256(colrbgx);
@@ -102,6 +108,8 @@ example_color_build(void) {
     colrizecharcat(s, '.', LIGHTCYAN, RESET, NORMAL);
     printf("\n%s\n", s);
     debug("\nFinal string length was: %ld\n", strlen(s));
+
+    free(s);
 }
 
 void
