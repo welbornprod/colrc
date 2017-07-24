@@ -30,8 +30,9 @@ int main(int argc, char *argv[]) {
             print_usage("Too many arguments!");
             return 1;
     }
-
-    if (streq(textarg, "basic")) {
+    if (streq(textarg, "-h") || streq(textarg, "--help")) {
+        print_usage_full();
+    } else if (streq(textarg, "basic")) {
         print_basic();
     } else if streq(textarg, "rainbow") {
         print_rainbow_fore();
@@ -111,7 +112,9 @@ print_256(colorext_func func) {
 void
 print_basic() {
     /* Print basic color names and escape codes. */
-    char name[COLOR_LEN + 12];
+    // Allocate memory for an extended fore code string, and it's color name.
+    size_t max_color_name_len = 12;
+    char *name = calloc(COLOR_LEN + max_color_name_len, sizeof(char));
     print_fore_color(BLACK);
     print_fore_color(RED);
     print_fore_color(GREEN);
@@ -139,6 +142,7 @@ print_basic() {
     print_fore_color(LIGHTCYAN);
     print_fore_color(LIGHTNORMAL);
     puts("\n");
+    free(name);
 }
 
 void
@@ -174,6 +178,7 @@ print_usage(const char *reason) {
     printf("%s v. %s\n\
     Usage:\n\
         colr -h | -v\n\
+        colr basic | 256 | b256 | 256b | rainbow\n\
         colr [TEXT] [FORE] [BACK] [STYLE]\n\
     ", NAME, VERSION);
 }
@@ -184,6 +189,12 @@ print_usage_full() {
     /* Print the usage string. */
     print_usage(NULL);
     printf("\
+\n\
+    Commands:\n\
+        basic             : Print all basic color names and colors.\n\
+        256               : Print all extended color names and colors.\n\
+        256b, b256        : Print all extended back color names and colors.\n\
+        rainbow           : Print a rainbow example.\n\
 \n\
     Options:\n\
         TEXT              : Text to colorize.\n\
