@@ -65,8 +65,8 @@ typedef enum Styles_t {
 	ITALIC = 3,
 	UNDERLINE = 4,
 	FLASH = 5,
-	HIGHLIGHT = 6,
-	NORMAL = 7
+	HIGHLIGHT = 7,
+	NORMAL = 22
 } Styles;
 
 union Codes {
@@ -96,9 +96,11 @@ const size_t COLOR_LEN = 40;
 
 // Maximum length in chars for an RGB fore/back escape code.
 const size_t CODE_RGB_LEN = 23;
-
+// Maximum length in chars for any possible escape code mixture.
+// (basically CODE_RGB_LEN * 3 since rgb codes are the longest).
+const size_t CODE_ANY_LEN = 69;
 // Maximim string length for a fore, back, or style name.
-const size_t MAX_NAME_LEN = 10;
+const size_t MAX_COLOR_NAME_LEN = 12;
 
 void format_fore(char*, Colors);
 void format_forex(char*, unsigned char);
@@ -132,6 +134,25 @@ colrbg(char *out, char *s, Colors back) {
 		oldlen + codeslen,
 		"%s%s%s", backcode, s, STYLE_RESET_ALL
 	);
+}
+
+char*
+colrbgcat(char *dest, char *text, Colors back) {
+	/*  Build a string using a back color and `text`, and concatenate it to
+		`dest`.
+
+		Returns the pointer from `strncat`.
+
+		Arguments:
+			dest  : Destination string (passed to `strncat`).
+			text  : Text to colorize.
+			back  : Back color from `Colors` to use.
+	*/
+	size_t textlen = strlen(text);
+	size_t outlen = textlen + COLOR_LEN;
+	char out[outlen];
+	colrbg(out, text, back);
+	return strncat(dest, out, outlen);
 }
 
 void
@@ -204,6 +225,34 @@ colrfore(char *out, char *s, Colors fore) {
 		oldlen + codeslen,
 		"%s%s%s", forecode, s, STYLE_RESET_ALL
 	);
+}
+
+char*
+colrforecat(char *dest, char *text, Colors fore) {
+	/*  Build a string using a fore color and `text`, and concatenate it to
+		`dest`.
+
+		Returns the pointer from `strncat`.
+
+		Arguments:
+			dest  : Destination string (passed to `strncat`).
+			text  : Text to colorize.
+			fore  : Fore color from `Colors` to use.
+	*/
+	size_t textlen = strlen(text);
+	size_t outlen = textlen + COLOR_LEN;
+	char out[outlen];
+	colrfore(out, text, fore);
+	return strncat(dest, out, outlen);
+}
+
+void
+colrforechar(char *out, char c, Colors fore) {
+	/*  Build a colorized string, from a single character.
+	*/
+	char s[2] = "\0\0";
+	s[0] = c;
+	colrfore(out, s, fore);
 }
 
 void
@@ -317,7 +366,11 @@ colrize(char *out, char *s, Colors fore, Colors back, Styles style) {
 	endcodes[0] = '\0';
 	strncat(fore == RESET ? frontcodes: endcodes, forecode, CODEX_LEN);
 	strncat(back == RESET ? frontcodes: endcodes, backcode, CODEX_LEN);
-	strncat(style == RESET_ALL ? frontcodes: endcodes, stylecode, STYLE_LEN);
+	if (style == RESET_ALL || style == NORMAL) {
+			strncat(frontcodes, stylecode, STYLE_LEN);
+	} else {
+			strncat(endcodes, stylecode, STYLE_LEN);
+	}
 
 	size_t oldlen = strlen(s);
 	codeslen =  strlen(frontcodes) + strlen(endcodes) + STYLE_LEN;
@@ -327,6 +380,66 @@ colrize(char *out, char *s, Colors fore, Colors back, Styles style) {
 		"%s%s%s%s",
 		frontcodes, endcodes, s, STYLE_RESET_ALL
 	);
+}
+
+char*
+colrizecat(char *dest, char *s, Colors fore, Colors back, Styles style) {
+	/*  Build a string using `colrize`, and concatenate it to the `dest`
+		string using `strncat`.
+
+		Returns the pointer from `strncat`.
+
+		Arguments:
+			dest  : Destination string (passed to `strncat`).
+					*Must have room for `strlen(s) + COLOR_LEN`.
+			s     : String to colorize.
+					*Must be null-terminated.
+		    fore  : Colors value to use for fore.
+		    back  : Colors value to use for background.
+		    style : Styles value to use.
+	*/
+	size_t textlen = strlen(s);
+	size_t outlen = textlen + COLOR_LEN;
+	char out[outlen];
+	colrize(out, s, fore, back, style);
+	return strncat(dest, out, outlen);
+}
+
+void
+colrizechar(char *out, char c, Colors fore, Colors back, Styles style) {
+	/*  Prepends escape codes for fore, back, and style to a character (`c`)
+		and copies the result into `out`.
+		Arguments:
+			out       : Allocated memory to copy the result to.
+				        *Must have enough room for `strlen(s) + COLOR_LEN`.
+		    c         : Character to colorize.
+		    fore      : Colors value to use for fore.
+		    back      : Colors value to use for background.
+		    style : Styles value to use.
+	*/
+	char s[2] = "\0\0";
+	s[0] = c;
+	colrize(out, s, fore, back, style);
+}
+
+char*
+colrizecharcat(char *dest, char c, Colors fore, Colors back, Styles style) {
+	/*  Builds a string using `colrizechar`, and concatenates it to the `dest`
+		string using `strncat`.
+
+		Returns the pointer from `strncat`.
+
+		Arguments:
+			dest  : Destination string (passed to `strncat`).
+					*Must have room for `strlen(s) + COLOR_LEN`.
+		    c     : Character to colorize.
+		    fore  : Colors value to use for fore.
+		    back  : Colors value to use for background.
+		    style : Styles value to use.
+	*/
+	char s[2] = "\0\0";
+	s[0] = c;
+	return colrizecat(dest, s, fore, back, style);
 }
 
 char*
@@ -345,6 +458,24 @@ acolrize(char *s, Colors fore, Colors back, Styles style) {
 	*/
 	char *out = malloc(sizeof(char) * (strlen(s) + COLOR_LEN));
 	colrize(out, s, fore, back, style);
+	return out;
+}
+
+char*
+acolrizechar(char c, Colors fore, Colors back, Styles style) {
+	/*  Prepends escape codes for fore, back, and style to a character (`c`)
+		and copies the result into an allocated string.
+		The string must be freed by the caller.
+		Arguments:
+			out   : Allocated memory to copy the result to.
+				    *Must have enough room for `strlen(s) + COLOR_LEN`.
+		    c     : The character to colorize.
+		    fore  : Colors value to use for fore.
+		    back  : Colors value to use for background.
+		    style : Styles value to use.
+	*/
+	char *out = malloc((COLOR_LEN + 2) * sizeof(char));
+	colrizechar(out, c, fore, back, style);
 	return out;
 }
 
@@ -427,7 +558,7 @@ colorname_to_color(char *arg) {
     /*  Convert named argument to actual Colors enum value.
         Returns a Colors value on success, or COLOR_INVALID on error.
     */
-    char arglower[MAX_NAME_LEN];
+    char arglower[MAX_COLOR_NAME_LEN];
     str_tolower(arglower, arg);
 
     if (!strcmp(arglower, "none")) return COLOR_NONE;
@@ -440,6 +571,21 @@ colorname_to_color(char *arg) {
     if (!strcmp(arglower, "cyan")) return CYAN;
     if (!strcmp(arglower, "white")) return WHITE;
     if (!strcmp(arglower, "reset")) return RESET;
+	if (!strcmp(arglower, "xred")) return XRED;
+	if (!strcmp(arglower, "xgreen")) return XGREEN;
+	if (!strcmp(arglower, "xyellow")) return XYELLOW;
+	if (!strcmp(arglower, "xblue")) return XBLUE;
+	if (!strcmp(arglower, "xmagenta")) return XMAGENTA;
+	if (!strcmp(arglower, "xcyan")) return XCYAN;
+	if (!strcmp(arglower, "xnormal")) return XNORMAL;
+	if (!strcmp(arglower, "lightred")) return LIGHTRED;
+	if (!strcmp(arglower, "lightgreen")) return LIGHTGREEN;
+	if (!strcmp(arglower, "lightyellow")) return LIGHTYELLOW;
+	if (!strcmp(arglower, "lightblue")) return LIGHTBLUE;
+	if (!strcmp(arglower, "lightmagenta")) return LIGHTMAGENTA;
+	if (!strcmp(arglower, "lightcyan")) return LIGHTCYAN;
+	if (!strcmp(arglower, "lightnormal")) return LIGHTNORMAL;
+
     return COLOR_INVALID;
 }
 
@@ -592,7 +738,7 @@ stylename_to_style(char *arg) {
     /*  Convert named argument to actual Styles enum value.
         Returns a Styles value on success, or STYLE_INVALID on error.
     */
-    char arglower[MAX_NAME_LEN];
+    char arglower[MAX_COLOR_NAME_LEN];
     str_tolower(arglower, arg);
 
     if (!strcmp(arglower, "none")) return STYLE_NONE;
