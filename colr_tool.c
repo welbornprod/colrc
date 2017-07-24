@@ -32,13 +32,15 @@ int main(int argc, char *argv[]) {
     }
     if (streq(textarg, "-h") || streq(textarg, "--help")) {
         print_usage_full();
-    } else if (streq(textarg, "basic")) {
+    } else if (streq(textarg, "-basic")) {
         print_basic();
-    } else if streq(textarg, "rainbow") {
+    } else if (streq(textarg, "-build")) {
+        example_color_build();
+    } else if streq(textarg, "-rainbow") {
         print_rainbow_fore();
-    } else if (streq(textarg, "256")) {
+    } else if (streq(textarg, "-256")) {
         print_256(colrforex);
-    } else if (streq(textarg, "b256") || streq(textarg, "256b")) {
+    } else if (streq(textarg, "-b256") || streq(textarg, "-256b")) {
         print_256(colrbgx);
     } else {
         if (streq(textarg, "-")) {
@@ -74,6 +76,32 @@ debug_args(char *text, char *fore, char *back, char *style) {
     Back: %s\n\
     Style: %s\n\n", text, fore, back, style
     );
+}
+
+void
+example_color_build(void) {
+    /* Example colr.h usage, building a string from a mixture of color codes.
+    */
+    size_t length = 15; // strlen("This is a test.")
+    size_t wordlen = 5; // 5 seperate colorized strings.
+    // Allow enough space for color codes.
+    size_t finallen = length + (wordlen * COLOR_LEN);
+    char *s = (char*)calloc(finallen, sizeof(char));
+    debug(
+        "Building string of %ld characters for color building.\n",
+        finallen
+    );
+    colrforecat(s, "This ", RED);
+    printf("\n%s\n", s);
+    colrizecat(s, "is ", BLUE, WHITE, BRIGHT);
+    printf("\n%s\n", s);
+    colrbgcat(s, "a ", MAGENTA);
+    printf("\n%s\n", s);
+    colrforecat(s, "test", GREEN);
+    printf("\n%s\n", s);
+    colrizecharcat(s, '.', LIGHTCYAN, RESET, NORMAL);
+    printf("\n%s\n", s);
+    debug("\nFinal string length was: %ld\n", strlen(s));
 }
 
 void
@@ -178,7 +206,7 @@ print_usage(const char *reason) {
     printf("%s v. %s\n\
     Usage:\n\
         colr -h | -v\n\
-        colr basic | 256 | b256 | 256b | rainbow\n\
+        colr -basic | -build | -256 | -b256 | -256b | -rainbow\n\
         colr [TEXT] [FORE] [BACK] [STYLE]\n\
     ", NAME, VERSION);
 }
@@ -191,10 +219,11 @@ print_usage_full() {
     printf("\
 \n\
     Commands:\n\
-        basic             : Print all basic color names and colors.\n\
-        256               : Print all extended color names and colors.\n\
-        256b, b256        : Print all extended back color names and colors.\n\
-        rainbow           : Print a rainbow example.\n\
+        -basic            : Print all basic color names and colors.\n\
+        -build            : Run color building example.\n\
+        -256              : Print all extended color names and colors.\n\
+        -256b, b256       : Print all extended back color names and colors.\n\
+        -rainbow          : Print a rainbow example.\n\
 \n\
     Options:\n\
         TEXT              : Text to colorize.\n\

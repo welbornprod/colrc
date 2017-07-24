@@ -31,10 +31,10 @@
 
 #ifdef DEBUG
     // Debug printer.
-    #define PRINTD(...) fprintf(stderr, __VA_ARGS__)
+    #define debug(...) fprintf(stderr, __VA_ARGS__)
 #else
     // No-op debug print.
-    #define PRINTD(...) ((void)0)
+    #define debug(...) ((void)0)
 #endif
 
 // Assumes memory allocated in a variable named `name`.
@@ -44,6 +44,7 @@
 
 typedef void (*colorext_func)(char*, char*, unsigned char);
 void debug_args(char*, char*, char*, char*);
+void example_color_build(void);
 void print_256(colorext_func);
 void print_basic(void);
 void print_rainbow_fore(void);
