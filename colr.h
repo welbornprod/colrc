@@ -21,11 +21,21 @@
     #define M_PI (3.14159265358979323846)
 #endif
 
-/* TODO: The extended colors should be easier to mix with regular colors.
-         e.g.: color(RED, colorbg(BLUE, style(BRIGHT, "test")))
-           or: color("test", RED || 255, BLUE || 255, BRIGHT)
+/*  TODO: The extended colors should be easier to mix with regular colors.
+          e.g.: color(RED, colorbg(BLUE, style(BRIGHT, "test")))
+            or: color("test", RED || 255, BLUE || 255, BRIGHT)
+
+    TODO: Possibly a function that accepts user args (strings), or some other
+          way to determine which color type is needed, and then concatenate
+          the correct code types.
+
+    TODO: Need forecat(out, forecode), forexcat(out, forecode), etc.
+          To concatenate *just a code* to a string, with no text.
 */
+
 typedef enum Colors_t {
+    /*  Basic color values, with a few convenience values for extended colors.
+    */
     COLOR_INVALID = -2,
     COLOR_NONE = -1,
     BLACK = 0,
@@ -57,6 +67,8 @@ typedef enum Colors_t {
 } Colors;
 
 typedef enum Styles_t {
+    /*  Style values.
+    */
     STYLE_INVALID = -2,
     STYLE_NONE = -1,
     RESET_ALL = 0,
@@ -69,10 +81,20 @@ typedef enum Styles_t {
     NORMAL = 22
 } Styles;
 
-union Codes {
-    Colors colors;
-    unsigned char num;
-};
+typedef enum ColorNameType_t {
+    /*  Color code name types. Used with `colorname_type()`.
+    */
+    COLORNAME_INVALID_EXTENDED_RANGE = -4,
+    COLORNAME_INVALID_RGB_RANGE = -3,
+    COLORNAME_INVALID = -2,
+    COLORNAME_BASIC = 0,
+    COLORNAME_EXTENDED = 1,
+    COLORNAME_RGB = 2,
+} ColorNameType;
+
+// Returned from colorname_to_color* for invalid values.
+const int COLORVAL_INVALID = -2;
+const int COLORVAL_INVALID_RANGE = -1;
 
 // Style code to reset all styling.
 extern const char *STYLE_RESET_ALL;
@@ -110,9 +132,148 @@ void format_bgx(char*, unsigned char);
 void format_bg_rgb(char*, unsigned char, unsigned char, unsigned char);
 void format_rainbow_fore(char*, double, size_t);
 void format_style(char*, Styles);
-void str_tolower(char *out, char *s);
+void str_tolower(char *out, const char *s);
 
 /* ------------------------------- Functions ------------------------------ */
+
+Colors
+colorname_to_color(const char *arg) {
+    /*  Convert named argument to actual Colors enum value.
+        Returns a Colors value on success, or COLOR_INVALID on error.
+    */
+    char arglower[MAX_COLOR_NAME_LEN];
+    str_tolower(arglower, arg);
+
+    if (!strcmp(arglower, "none")) return COLOR_NONE;
+    if (!strcmp(arglower, "black")) return BLACK;
+    if (!strcmp(arglower, "red")) return RED;
+    if (!strcmp(arglower, "green")) return GREEN;
+    if (!strcmp(arglower, "yellow")) return YELLOW;
+    if (!strcmp(arglower, "blue")) return BLUE;
+    if (!strcmp(arglower, "magenta")) return MAGENTA;
+    if (!strcmp(arglower, "cyan")) return CYAN;
+    if (!strcmp(arglower, "white")) return WHITE;
+    if (!strcmp(arglower, "reset")) return RESET;
+    if (!strcmp(arglower, "xred")) return XRED;
+    if (!strcmp(arglower, "xgreen")) return XGREEN;
+    if (!strcmp(arglower, "xyellow")) return XYELLOW;
+    if (!strcmp(arglower, "xblue")) return XBLUE;
+    if (!strcmp(arglower, "xmagenta")) return XMAGENTA;
+    if (!strcmp(arglower, "xcyan")) return XCYAN;
+    if (!strcmp(arglower, "xnormal")) return XNORMAL;
+    if (!strcmp(arglower, "lightred")) return LIGHTRED;
+    if (!strcmp(arglower, "lightgreen")) return LIGHTGREEN;
+    if (!strcmp(arglower, "lightyellow")) return LIGHTYELLOW;
+    if (!strcmp(arglower, "lightblue")) return LIGHTBLUE;
+    if (!strcmp(arglower, "lightmagenta")) return LIGHTMAGENTA;
+    if (!strcmp(arglower, "lightcyan")) return LIGHTCYAN;
+    if (!strcmp(arglower, "lightnormal")) return LIGHTNORMAL;
+
+    return COLOR_INVALID;
+}
+
+int
+colorname_to_colorx(const char *arg) {
+    /*  Converts an integer string (0-255) into a number suitable
+        for the colrx functions.
+        Returns a value between 0 and 255 on success.
+        Returns `COLORVAL_INVALID` on error or bad values.
+    */
+    // Using `long` to combat easy overflow.
+    long usernum;
+    if (!sscanf(arg, "%ld", &usernum)) {
+        // Not a number.
+        return COLORVAL_INVALID;
+    }
+    if (usernum < 0 || usernum > 255) {
+        return COLORVAL_INVALID_RANGE;
+    }
+    return (int)usernum;
+}
+
+int
+colorname_to_color_rgb(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b) {
+    /*  Convert an RGB string into red,green,blue values suitable for the
+        colr*rgb functions.
+
+        The format for RGB strings can be one of:
+            "RED,GREEN,BLUE"
+            "RED GREEN BLUE"
+            "RED:GREEN:BLUE"
+
+        Returns 0 on success.
+        Returns either COLORVAL_INVALID, or COLORVAL_INVALID_RANGE on error.
+
+        Arguments:
+            arg  : String to check for RGB values.
+            r    : Pointer to an unsigned char for red value on success.
+            g    : Pointer to an unsigned char for green value on success.
+            b    : Pointer to an unsigned char for blue value on success.
+
+    */
+    const char *formats[4] = {
+        "%ld,%ld,%ld",
+        "%ld %ld %ld",
+        "%ld:%ld:%ld",
+        NULL
+    };
+    long userred, usergreen, userblue;
+    int i = 0;
+    while (formats[i]) {
+        if (sscanf(arg, formats[i], &userred, &usergreen, &userblue) == 3) {
+            // Found a match.
+            if (userred < 0 || userred > 255) return COLORVAL_INVALID_RANGE;
+            if (usergreen < 0 || usergreen > 255) return COLORVAL_INVALID_RANGE;
+            if (userblue < 0 || userblue > 255) return COLORVAL_INVALID_RANGE;
+            // Valid ranges, set values for out parameters.
+            *r = (unsigned char)userred;
+            *g = (unsigned char)usergreen;
+            *b = (unsigned char)userblue;
+            return 0;
+        }
+        i++;
+    }
+    return COLORVAL_INVALID;
+}
+
+ColorNameType
+colorname_type(const char *arg) {
+    /*  Determine which type of color value is desired by name.
+        Example:
+            "red" == COLORNAME_BASIC
+            "253" == COLORNAME_EXTENDED
+            "123,55,67" == COLORNAME_RGB
+
+        Returns a ColorNameType value on success.
+        On error, returns one of:
+            COLORNAME_INVALID
+            COLORNAME_INVALID_EXTENDED_RANGE
+            COLORNAME_INVALID_RGB_RANGE
+    */
+    if (!arg) {
+        return COLORNAME_INVALID;
+    }
+    // Try rgb first.
+    unsigned char r, g, b;
+    int rgb_ret = colorname_to_color_rgb(arg, &r, &g, &b);
+    if (rgb_ret == COLORVAL_INVALID_RANGE) {
+        return COLORNAME_INVALID_RGB_RANGE;
+    } else if (rgb_ret != COLORNAME_INVALID) {
+        return COLORNAME_RGB;
+    }
+    // Try basic colors.
+    if (colorname_to_color(arg) != COLOR_INVALID) {
+        return COLORNAME_BASIC;
+    }
+    // Extended colors.
+    int x_ret = colorname_to_colorx(arg);
+    if (x_ret == COLORVAL_INVALID_RANGE) {
+        return COLORNAME_INVALID_EXTENDED_RANGE;
+    } else if (x_ret != COLORVAL_INVALID) {
+        return COLORNAME_EXTENDED;
+    }
+    return COLORNAME_INVALID;
+}
 
 void
 colrbg(char *out, char *s, Colors back) {
@@ -230,6 +391,25 @@ colrfore(char *out, char *s, Colors fore) {
 }
 
 char*
+acolrfore(char *s, Colors fore) {
+    /*  Like `colrfore`, except it allocates the string for you, with enough
+        room to fit the string and any escape codes needed.
+
+        Returns the allocated/formatted string on success.
+
+        Arguments:
+            out  : Memory allocated for the result.
+                   *Must have enough room for `strlen(s) + COLOR_LEN`.
+            s    : The string to colorize.
+                   *Must be null-terminated.
+            fore : `Colors` code to use.
+    */
+    char *out = (char*)calloc(strlen(s) + COLOR_LEN, sizeof(char));
+    colrfore(out, s, fore);
+    return out;
+}
+
+char*
 colrforecat(char *dest, char *text, Colors fore) {
     /*  Build a string using a fore color and `text`, and concatenate it to
         `dest`.
@@ -294,6 +474,25 @@ colrforerainbow(char *out, char *s, double freq, size_t offset) {
     strncat(out, STYLE_RESET_ALL, STYLE_LEN);
 }
 
+char*
+acolrforerainbow(char *s, double freq, size_t offset) {
+    /*  Like `colrforerainbow`, except it allocates the string for you, with
+        enough room to fit the string and any escape codes needed.
+
+        Returns the allocated/formatted string on success.
+
+        Arguments:
+            s      : The string to colorize.
+                     *Must be null-terminated.
+            freq   : Frequency ("tightness") for the colors.
+            offset : Starting offset in the rainbow.
+    */
+    size_t oldlen = strlen(s);
+    char *out = (char*)calloc(oldlen + (CODE_RGB_LEN * oldlen), sizeof(char));
+    colrforerainbow(out, s, freq, offset);
+    return out;
+}
+
 void
 colrforergb(char *out, char *s, unsigned char red, unsigned char green, unsigned char blue) {
     /*  Colorize a string using true color, rgb fore colors and copy the
@@ -320,6 +519,25 @@ colrforergb(char *out, char *s, unsigned char red, unsigned char green, unsigned
     );
 }
 
+char*
+acolrforergb(char *s, unsigned char red, unsigned char green, unsigned char blue) {
+    /*  Like `colrforergb`, except it allocates the string for you, with
+        enough room to fit the string and any escape codes needed.
+
+        Returns the allocated/formatted string on success.
+
+        Arguments:
+            s     : String to colorize.
+                    *Must be null-terminated.
+            red   : Value for red.
+            green : Value for green.
+            blue  : Value for blue.
+    */
+    char *out = (char*)calloc(strlen(s) + COLOR_LEN, sizeof(char));
+    colrforergb(out, s, red, green, blue);
+    return out;
+}
+
 void
 colrforex(char *out, char *s, unsigned char num) {
     /*  Colorize a string using extended, 256 colors, and copy the
@@ -343,6 +561,23 @@ colrforex(char *out, char *s, unsigned char num) {
         "%s%s%s",
         forecode, s, STYLE_RESET_ALL
     );
+}
+
+char*
+acolrforex(char *s, unsigned char num) {
+    /*  Like `colrforergb`, except it allocates the string for you, with
+        enough room to fit the string and any escape codes needed.
+
+        Returns the allocated/formatted string on success.
+
+        Arguments:
+            s    : String to colorize.
+                   *Must be null-terminated.
+            num  : Code number, 0-255 inclusive.
+    */
+    char *out = (char*)calloc(strlen(s) + COLOR_LEN, sizeof(char));
+    colrforex(out, s, num);
+    return out;
 }
 
 void
@@ -376,13 +611,13 @@ colrize(char *out, char *s, Colors fore, Colors back, Styles style) {
     frontcodes[0] = '\0';
     char endcodes[codeslen];
     endcodes[0] = '\0';
-    strncat(fore == RESET ? frontcodes: endcodes, forecode, CODEX_LEN);
-    strncat(back == RESET ? frontcodes: endcodes, backcode, CODEX_LEN);
     if (style == RESET_ALL || style == NORMAL) {
             strncat(frontcodes, stylecode, STYLE_LEN);
     } else {
             strncat(endcodes, stylecode, STYLE_LEN);
     }
+    strncat(fore == RESET ? frontcodes: endcodes, forecode, CODEX_LEN);
+    strncat(back == RESET ? frontcodes: endcodes, backcode, CODEX_LEN);
 
     size_t oldlen = strlen(s);
     codeslen =  strlen(frontcodes) + strlen(endcodes) + STYLE_LEN;
@@ -461,15 +696,13 @@ acolrize(char *s, Colors fore, Colors back, Styles style) {
         the result into an allocated string.
         The string must be freed by the caller.
         Arguments:
-            out   : Allocated memory to copy the result to.
-                    *Must have enough room for `strlen(s) + COLOR_LEN`.
             s     : String to colorize.
             	    *Must be null-terminated.
             fore  : Colors value to use for fore.
             back  : Colors value to use for background.
             style : Styles value to use.
     */
-    char *out = calloc(strlen(s) + COLOR_LEN, sizeof(char));
+    char *out = (char*)calloc(strlen(s) + COLOR_LEN, sizeof(char));
     colrize(out, s, fore, back, style);
     return out;
 }
@@ -480,14 +713,12 @@ acolrizechar(char c, Colors fore, Colors back, Styles style) {
         and copies the result into an allocated string.
         The string must be freed by the caller.
         Arguments:
-            out   : Allocated memory to copy the result to.
-                    *Must have enough room for `strlen(s) + COLOR_LEN`.
             c     : The character to colorize.
             fore  : Colors value to use for fore.
             back  : Colors value to use for background.
             style : Styles value to use.
     */
-    char *out = calloc(COLOR_LEN + 2, sizeof(char));
+    char *out = (char*)calloc(COLOR_LEN + 2, sizeof(char));
     colrizechar(out, c, fore, back, style);
     return out;
 }
@@ -498,7 +729,7 @@ acolrizechar(char c, Colors fore, Colors back, Styles style) {
 void
 colrizex(
     char *out,
-    char *s,
+    const char *s,
     unsigned char forenum, unsigned char backnum, Styles style) {
     /*  Prepends escape codes for extended fore, back, and style to `s` and
         copies the result into an allocated string.
@@ -529,13 +760,13 @@ colrizex(
     frontcodes[0] = '\0';
     char endcodes[codeslen];
     endcodes[0] = '\0';
-    strncat(frontcodes, forecode, CODEX_LEN);
-    strncat(frontcodes, backcode, CODEX_LEN);
     strncat(
         (style == RESET_ALL ? frontcodes: endcodes),
         stylecodes,
         STYLE_LEN
     );
+    strncat(frontcodes, forecode, CODEX_LEN);
+    strncat(frontcodes, backcode, CODEX_LEN);
 
     size_t oldlen = strlen(s);
     codeslen =  strlen(frontcodes) + strlen(endcodes) + STYLE_LEN;
@@ -549,7 +780,7 @@ colrizex(
 
 char*
 acolrizex(
-        char *s,
+        const char *s,
         unsigned char forenum, unsigned char backnum, Styles stylecode) {
     /*  Prepends escape codes for extended fore, back, and style to `s` and
         copies the result into an allocated string.
@@ -561,49 +792,13 @@ acolrizex(
             back      : Colors value to use for background.
             stylecode : Styles value to use.
     */
-    char *out = calloc(strlen(s) + COLOR_LEN, sizeof(char));
+    char *out = (char*)calloc(strlen(s) + COLOR_LEN, sizeof(char));
     colrizex(out, s, forenum, backnum, stylecode);
     return out;
 }
 
-Colors
-colorname_to_color(char *arg) {
-    /*  Convert named argument to actual Colors enum value.
-        Returns a Colors value on success, or COLOR_INVALID on error.
-    */
-    char arglower[MAX_COLOR_NAME_LEN];
-    str_tolower(arglower, arg);
-
-    if (!strcmp(arglower, "none")) return COLOR_NONE;
-    if (!strcmp(arglower, "black")) return BLACK;
-    if (!strcmp(arglower, "red")) return RED;
-    if (!strcmp(arglower, "green")) return GREEN;
-    if (!strcmp(arglower, "yellow")) return YELLOW;
-    if (!strcmp(arglower, "blue")) return BLUE;
-    if (!strcmp(arglower, "magenta")) return MAGENTA;
-    if (!strcmp(arglower, "cyan")) return CYAN;
-    if (!strcmp(arglower, "white")) return WHITE;
-    if (!strcmp(arglower, "reset")) return RESET;
-    if (!strcmp(arglower, "xred")) return XRED;
-    if (!strcmp(arglower, "xgreen")) return XGREEN;
-    if (!strcmp(arglower, "xyellow")) return XYELLOW;
-    if (!strcmp(arglower, "xblue")) return XBLUE;
-    if (!strcmp(arglower, "xmagenta")) return XMAGENTA;
-    if (!strcmp(arglower, "xcyan")) return XCYAN;
-    if (!strcmp(arglower, "xnormal")) return XNORMAL;
-    if (!strcmp(arglower, "lightred")) return LIGHTRED;
-    if (!strcmp(arglower, "lightgreen")) return LIGHTGREEN;
-    if (!strcmp(arglower, "lightyellow")) return LIGHTYELLOW;
-    if (!strcmp(arglower, "lightblue")) return LIGHTBLUE;
-    if (!strcmp(arglower, "lightmagenta")) return LIGHTMAGENTA;
-    if (!strcmp(arglower, "lightcyan")) return LIGHTCYAN;
-    if (!strcmp(arglower, "lightnormal")) return LIGHTNORMAL;
-
-    return COLOR_INVALID;
-}
-
 void
-colrstyle(char *out, Styles style, char *s) {
+colrstyle(char *out, const char *s, Styles style) {
     /*  Prepend style codes to a string, and copy the result into `out`.
         The STYLE_RESET_ALL code is already appended to the result.
         Arguments:
@@ -625,6 +820,22 @@ colrstyle(char *out, Styles style, char *s) {
         "%s%s%s",
         stylecode, s, STYLE_RESET_ALL
     );
+}
+
+char*
+acolrstyle(const char *s, Styles style) {
+    /*  Prepend style codes to a string, and copy the result into `out`.
+        The STYLE_RESET_ALL code is already appended to the result.
+        Arguments:
+            out   : Memory allocated for the result.
+                    *Must have enough room for `strlen(s) + COLOR_LEN`.
+            s     : The string to colorize.
+                    *Must be null-terminated.
+            style : `Styles` code to use.
+    */
+    char *out = (char*)calloc(strlen(s) + STYLE_LEN, sizeof(char));
+    colrstyle(out, s, style);
+    return out;
 }
 
 inline void
@@ -705,7 +916,7 @@ format_fore_rgb(char *out, unsigned char red, unsigned char green, unsigned char
     snprintf(out, CODE_RGB_LEN, "\033[38;2;%d;%d;%dm", red, green, blue);
 }
 
-void
+inline void
 format_rainbow_fore(char *out, double freq, size_t step) {
     /*  A single step in rainbow-izing a string.
         Arguments:
@@ -768,7 +979,7 @@ str_copy(char *dest, const char *src, size_t length) {
 }
 
 void
-str_tolower(char *out, char *s) {
+str_tolower(char *out, const char *s) {
     int length = 0;
     for (int i = 0; s[i]; i++) {
         length++;
@@ -778,7 +989,7 @@ str_tolower(char *out, char *s) {
 }
 
 Styles
-stylename_to_style(char *arg) {
+stylename_to_style(const char *arg) {
     /*  Convert named argument to actual Styles enum value.
         Returns a Styles value on success, or STYLE_INVALID on error.
     */
