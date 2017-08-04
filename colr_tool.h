@@ -52,6 +52,7 @@ void print_unrecognized_arg(const char*);
 void print_usage(const char*);
 void print_usage_full(void);
 void read_stdin_arg(char*, size_t);
-bool validate_color_arg(char*, Colors, char*);
+bool validate_color_arg_OLD(char*, Colors, char*);
+bool validate_color_arg(const char*, ColorNameType, const char*);
 bool validate_style_arg(Styles, char*);
 #endif // _COLR_TOOL_H

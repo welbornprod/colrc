@@ -58,15 +58,31 @@ int main(int argc, char *argv[]) {
                  This tool should show colrizex and colrforergb.
                  See TODOS in colr.h, still need colrizergb() implementation.
         */
-        Colors fore = colorname_to_color(forearg);
-        Colors back = colorname_to_color(backarg);
         Styles stylecode = stylename_to_style(stylearg);
-        if (!validate_color_arg("fore", fore, forearg)) return 1;
-        if (!validate_color_arg("back", back, backarg)) return 1;
         if (!validate_style_arg(stylecode, stylearg)) return 1;
-        char colorized[MAX_TEXT_LEN + COLOR_LEN];
-        colrize(colorized, textarg, fore, back, stylecode);
-        printf("%s\n", colorized);
+
+        ColorNameType forenametype = colorname_type(forearg);
+        if (!validate_color_arg("fore", forenametype, forearg)) return 1;
+        ColorNameType backnametype = colorname_type(backarg);
+        if (!validate_color_arg("back", backnametype, backarg)) return 1;
+
+        /*  TODO: Should be able to mix basic and extended codes for fore and
+                  back colors.
+        */
+        if (forenametype == COLORNAME_BASIC && backnametype == COLORNAME_BASIC) {
+            Colors fore = colorname_to_color(forearg);
+            Colors back = colorname_to_color(backarg);
+            char *colorized = acolrize(textarg, fore, back, stylecode);
+            printf("%s\n", colorized);
+        } else if (forenametype == COLORNAME_EXTENDED && backnametype == COLORNAME_EXTENDED) {
+            unsigned char forex = colorname_to_colorx(forearg);
+            unsigned char backx = colorname_to_colorx(backarg);
+            char *colorizedx = acolrizex(textarg, forex, backx, stylecode);
+            printf("%s\n", colorizedx);
+        } else {
+            printferr("Cannot mix color types for fore/back!\n");
+            return 1;
+        }
     }
     return 0;
 }
@@ -256,6 +272,7 @@ read_stdin_arg(char *textarg, size_t length) {
     textarg[0] = '\0';
     size_t totallen = 0;
     char line[length];
+    debug("\nReading from stdin until EOF (Ctrl + D)...\n");
     while (totallen <= length) {
         if (fgets(line, length - totallen, stdin) == NULL) {
             // Never happens if len(stdin_data) > length
@@ -276,18 +293,47 @@ read_stdin_arg(char *textarg, size_t length) {
 }
 
 bool
-validate_color_arg(char *type, Colors code, char *name) {
+validate_color_arg_OLD(char *type, Colors code, char *name) {
     /*  Checks `code` for COLOR_INVALID, and prints the usage string with a
         warning message if it is invalid.
         If the code is not invalid, it simply returns true.
     */
     if (code == COLOR_INVALID) {
-        char errmsg[255];
+        char errmsg[MAX_ERR_LEN];
         snprintf(errmsg, MAX_ERR_LEN, "Invalid %s color name: %s", type, name);
         print_usage(errmsg);
         return false;
     }
     return true;
+}
+
+
+bool
+validate_color_arg(const char *type, ColorNameType nametype, const char *name) {
+    /*  Checks `nametype` for COLORNAME_INVALID*, and prints the usage string
+        with a warning message if it is invalid.
+        If the code is not invalid, it simply returns `true`.
+    */
+    char errmsg[MAX_ERR_LEN];
+    switch (nametype) {
+        case COLORNAME_INVALID_RGB_RANGE:
+            snprintf(errmsg, MAX_ERR_LEN, "Invalid range (0-255) for %s RGB color: %s", type, name);
+            break;
+        case COLORNAME_INVALID_EXTENDED_RANGE:
+            snprintf(errmsg, MAX_ERR_LEN, "Invalid range (0-255) for extended %s color: %s", type, name);
+            break;
+        case COLORNAME_INVALID:
+            snprintf(errmsg, MAX_ERR_LEN, "Invalid %s color name: %s", type, name);
+            break;
+        default:
+            // Valid color arg passed.
+            debug("Valid color arg passed for %s: %s\n", type, name);
+            return true;
+    }
+
+    // Print the error message that was built.
+    print_usage(errmsg);
+    return false;
 }
 
 bool
