@@ -42,7 +42,7 @@
     colrfore(name, #codename, codename); \
     printf("%s ", name);
 
-typedef void (*colorext_func)(char*, char*, unsigned char);
+typedef void (*colorext_func)(char*, const char*, unsigned char);
 void debug_args(char*, char*, char*, char*);
 void example_color_build(void);
 void print_256(colorext_func);

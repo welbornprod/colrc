@@ -9,6 +9,7 @@
         printferr("Failed to allocate memory for arguments!\n"); \
         return 1; \
     } \
+    break; \
     } while (0)
 
 int main(int argc, char *argv[]) {

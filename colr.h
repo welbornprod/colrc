@@ -143,7 +143,7 @@ colorname_to_color(const char *arg) {
     */
     char arglower[MAX_COLOR_NAME_LEN];
     str_tolower(arglower, arg);
-
+    // TODO: Just use a switch here.
     if (!strcmp(arglower, "none")) return COLOR_NONE;
     if (!strcmp(arglower, "black")) return BLACK;
     if (!strcmp(arglower, "red")) return RED;
@@ -276,7 +276,7 @@ colorname_type(const char *arg) {
 }
 
 void
-colrbg(char *out, char *s, Colors back) {
+colrbg(char *out, const char *s, Colors back) {
     /*  Prepend back color codes to a string, and copy the result into `out`.
         The STYLE_RESET_ALL code is already appended to the result.
         Arguments:
@@ -298,7 +298,7 @@ colrbg(char *out, char *s, Colors back) {
 }
 
 char*
-colrbgcat(char *dest, char *text, Colors back) {
+colrbgcat(char *dest, const char *text, Colors back) {
     /*  Build a string using a back color and `text`, and concatenate it to
         `dest`.
 
@@ -319,7 +319,7 @@ colrbgcat(char *dest, char *text, Colors back) {
 }
 
 void
-colrbgrgb(char *out, char *s, unsigned char red, unsigned char green, unsigned char blue) {
+colrbgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue) {
     /*  Colorize a string using true color, rgb back colors and copy the
         result into `out`.
         The Styles.RESET_ALL code is already appended to the result.
@@ -345,7 +345,7 @@ colrbgrgb(char *out, char *s, unsigned char red, unsigned char green, unsigned c
 }
 
 void
-colrbgx(char *out, char *s, unsigned char num) {
+colrbgx(char *out, const char *s, unsigned char num) {
     /*  Colorize a string using extended, 256, bg colors, and copy the
         result into `out`.
         The STYLE_RESET_ALL code is already appended to the result.
@@ -369,7 +369,7 @@ colrbgx(char *out, char *s, unsigned char num) {
 }
 
 void
-colrfore(char *out, char *s, Colors fore) {
+colrfore(char *out, const char *s, Colors fore) {
     /*  Prepend fore color codes to a string, and copy the result into `out`.
         The STYLE_RESET_ALL code is already appended to the result.
         Arguments:
@@ -391,15 +391,13 @@ colrfore(char *out, char *s, Colors fore) {
 }
 
 char*
-acolrfore(char *s, Colors fore) {
+acolrfore(const char *s, Colors fore) {
     /*  Like `colrfore`, except it allocates the string for you, with enough
         room to fit the string and any escape codes needed.
 
         Returns the allocated/formatted string on success.
 
         Arguments:
-            out  : Memory allocated for the result.
-                   *Must have enough room for `strlen(s) + COLOR_LEN`.
             s    : The string to colorize.
                    *Must be null-terminated.
             fore : `Colors` code to use.
@@ -410,7 +408,7 @@ acolrfore(char *s, Colors fore) {
 }
 
 char*
-colrforecat(char *dest, char *text, Colors fore) {
+colrforecat(char *dest, const char *text, Colors fore) {
     /*  Build a string using a fore color and `text`, and concatenate it to
         `dest`.
 
@@ -432,7 +430,7 @@ colrforecat(char *dest, char *text, Colors fore) {
 }
 
 void
-colrforechar(char *out, char c, Colors fore) {
+colrforechar(char *out, const char c, Colors fore) {
     /*  Build a colorized string, from a single character.
 
         Arguments:
@@ -447,7 +445,7 @@ colrforechar(char *out, char c, Colors fore) {
 }
 
 void
-colrforerainbow(char *out, char *s, double freq, size_t offset) {
+colrforerainbow(char *out, const char *s, double freq, size_t offset) {
     /*  Rainbow-ize some text using rgb fore colors, lolcat style.
         The STYLE_RESET_ALL code is already appended to the result.
         Arguments:
@@ -475,7 +473,7 @@ colrforerainbow(char *out, char *s, double freq, size_t offset) {
 }
 
 char*
-acolrforerainbow(char *s, double freq, size_t offset) {
+acolrforerainbow(const char *s, double freq, size_t offset) {
     /*  Like `colrforerainbow`, except it allocates the string for you, with
         enough room to fit the string and any escape codes needed.
 
@@ -494,7 +492,7 @@ acolrforerainbow(char *s, double freq, size_t offset) {
 }
 
 void
-colrforergb(char *out, char *s, unsigned char red, unsigned char green, unsigned char blue) {
+colrforergb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue) {
     /*  Colorize a string using true color, rgb fore colors and copy the
         result into `out`.
         The Styles.RESET_ALL code is already appended to the result.
@@ -520,7 +518,7 @@ colrforergb(char *out, char *s, unsigned char red, unsigned char green, unsigned
 }
 
 char*
-acolrforergb(char *s, unsigned char red, unsigned char green, unsigned char blue) {
+acolrforergb(const char *s, unsigned char red, unsigned char green, unsigned char blue) {
     /*  Like `colrforergb`, except it allocates the string for you, with
         enough room to fit the string and any escape codes needed.
 
@@ -539,7 +537,7 @@ acolrforergb(char *s, unsigned char red, unsigned char green, unsigned char blue
 }
 
 void
-colrforex(char *out, char *s, unsigned char num) {
+colrforex(char *out, const char *s, unsigned char num) {
     /*  Colorize a string using extended, 256 colors, and copy the
         result into `out`.
         The Styles.RESET_ALL code is already appended to the result.
@@ -564,7 +562,7 @@ colrforex(char *out, char *s, unsigned char num) {
 }
 
 char*
-acolrforex(char *s, unsigned char num) {
+acolrforex(const char *s, unsigned char num) {
     /*  Like `colrforergb`, except it allocates the string for you, with
         enough room to fit the string and any escape codes needed.
 
@@ -581,7 +579,7 @@ acolrforex(char *s, unsigned char num) {
 }
 
 void
-colrize(char *out, char *s, Colors fore, Colors back, Styles style) {
+colrize(char *out, const char *s, Colors fore, Colors back, Styles style) {
     /*  Prepends escape codes for fore, back, and style to `s` and copies
         the result into `out`.
         Arguments:
@@ -630,7 +628,7 @@ colrize(char *out, char *s, Colors fore, Colors back, Styles style) {
 }
 
 char*
-colrizecat(char *dest, char *s, Colors fore, Colors back, Styles style) {
+colrizecat(char *dest, const char *s, Colors fore, Colors back, Styles style) {
     /*  Build a string using `colrize`, and concatenate it to the `dest`
         string using `strncat`.
 
@@ -671,7 +669,7 @@ colrizechar(char *out, char c, Colors fore, Colors back, Styles style) {
 }
 
 char*
-colrizecharcat(char *dest, char c, Colors fore, Colors back, Styles style) {
+colrizecharcat(char *dest, const char c, Colors fore, Colors back, Styles style) {
     /*  Builds a string using `colrizechar`, and concatenates it to the `dest`
         string using `strncat`.
 
@@ -691,7 +689,7 @@ colrizecharcat(char *dest, char c, Colors fore, Colors back, Styles style) {
 }
 
 char*
-acolrize(char *s, Colors fore, Colors back, Styles style) {
+acolrize(const char *s, Colors fore, Colors back, Styles style) {
     /*  Prepends escape codes for fore, back, and style to `s` and copies
         the result into an allocated string.
         The string must be freed by the caller.
@@ -708,7 +706,7 @@ acolrize(char *s, Colors fore, Colors back, Styles style) {
 }
 
 char*
-acolrizechar(char c, Colors fore, Colors back, Styles style) {
+acolrizechar(const char c, Colors fore, Colors back, Styles style) {
     /*  Prepends escape codes for fore, back, and style to a character (`c`)
         and copies the result into an allocated string.
         The string must be freed by the caller.
@@ -827,8 +825,6 @@ acolrstyle(const char *s, Styles style) {
     /*  Prepend style codes to a string, and copy the result into `out`.
         The STYLE_RESET_ALL code is already appended to the result.
         Arguments:
-            out   : Memory allocated for the result.
-                    *Must have enough room for `strlen(s) + COLOR_LEN`.
             s     : The string to colorize.
                     *Must be null-terminated.
             style : `Styles` code to use.
