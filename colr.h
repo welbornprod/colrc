@@ -92,6 +92,59 @@ typedef enum ColorNameType_t {
     COLORNAME_RGB = 2,
 } ColorNameType;
 
+struct ColorNamesList {
+    /* List of color names to Colors value. */
+    char *name;
+    Colors color;
+} color_names[] = {
+    {"none", COLOR_NONE},
+    {"black", BLACK},
+    {"blue", BLUE},
+    {"cyan", CYAN},
+    {"green", GREEN},
+    {"magenta", MAGENTA},
+    {"red", RED},
+    {"reset", RESET},
+    {"yellow", YELLOW},
+    {"white", WHITE},
+    {"lightblue", LIGHTBLUE},
+    {"lightcyan", LIGHTCYAN},
+    {"lightgreen", LIGHTGREEN},
+    {"lightmagenta", LIGHTMAGENTA},
+    {"lightnormal", LIGHTNORMAL},
+    {"lightred", LIGHTRED},
+    {"lightyellow", LIGHTYELLOW},
+    {"xblue", XBLUE},
+    {"xcyan", XCYAN},
+    {"xgreen", XGREEN},
+    {"xmagenta", XMAGENTA},
+    {"xnormal", XNORMAL},
+    {"xred", XRED},
+    {"xyellow", XYELLOW},
+};
+
+// Length of color_names.
+size_t color_names_len = sizeof color_names / sizeof (struct ColorNamesList);
+
+struct StyleNamesList {
+    char *name;
+    Styles style;
+} style_names[] = {
+    {"none", STYLE_NONE},
+    {"reset", RESET_ALL},
+    {"bold", BRIGHT},
+    {"bright", BRIGHT},
+    {"dim", DIM},
+    {"italic", ITALIC},
+    {"underline", UNDERLINE},
+    {"flash", FLASH},
+    {"highlight", HIGHLIGHT},
+    {"normal", NORMAL},
+};
+
+// Length of style_names.
+size_t style_names_len = sizeof style_names / sizeof (struct StyleNamesList);
+
 // Returned from colorname_to_color* for invalid values.
 const int COLORVAL_INVALID = -2;
 const int COLORVAL_INVALID_RANGE = -1;
@@ -143,31 +196,11 @@ colorname_to_color(const char *arg) {
     */
     char arglower[MAX_COLOR_NAME_LEN];
     str_tolower(arglower, arg);
-    // TODO: Just use a switch here.
-    if (!strcmp(arglower, "none")) return COLOR_NONE;
-    if (!strcmp(arglower, "black")) return BLACK;
-    if (!strcmp(arglower, "red")) return RED;
-    if (!strcmp(arglower, "green")) return GREEN;
-    if (!strcmp(arglower, "yellow")) return YELLOW;
-    if (!strcmp(arglower, "blue")) return BLUE;
-    if (!strcmp(arglower, "magenta")) return MAGENTA;
-    if (!strcmp(arglower, "cyan")) return CYAN;
-    if (!strcmp(arglower, "white")) return WHITE;
-    if (!strcmp(arglower, "reset")) return RESET;
-    if (!strcmp(arglower, "xred")) return XRED;
-    if (!strcmp(arglower, "xgreen")) return XGREEN;
-    if (!strcmp(arglower, "xyellow")) return XYELLOW;
-    if (!strcmp(arglower, "xblue")) return XBLUE;
-    if (!strcmp(arglower, "xmagenta")) return XMAGENTA;
-    if (!strcmp(arglower, "xcyan")) return XCYAN;
-    if (!strcmp(arglower, "xnormal")) return XNORMAL;
-    if (!strcmp(arglower, "lightred")) return LIGHTRED;
-    if (!strcmp(arglower, "lightgreen")) return LIGHTGREEN;
-    if (!strcmp(arglower, "lightyellow")) return LIGHTYELLOW;
-    if (!strcmp(arglower, "lightblue")) return LIGHTBLUE;
-    if (!strcmp(arglower, "lightmagenta")) return LIGHTMAGENTA;
-    if (!strcmp(arglower, "lightcyan")) return LIGHTCYAN;
-    if (!strcmp(arglower, "lightnormal")) return LIGHTNORMAL;
+    for (size_t i=0; i < color_names_len; i++) {
+        if (!strcmp(arglower, color_names[i].name)) {
+            return color_names[i].color;
+        }
+    }
 
     return COLOR_INVALID;
 }
@@ -992,15 +1025,11 @@ stylename_to_style(const char *arg) {
     char arglower[MAX_COLOR_NAME_LEN];
     str_tolower(arglower, arg);
 
-    if (!strcmp(arglower, "none")) return STYLE_NONE;
-    if (!strcmp(arglower, "reset")) return RESET_ALL;
-    if (!strcmp(arglower, "bright")) return BRIGHT;
-    if (!strcmp(arglower, "dim")) return DIM;
-    if (!strcmp(arglower, "italic")) return ITALIC;
-    if (!strcmp(arglower, "underline")) return UNDERLINE;
-    if (!strcmp(arglower, "flash")) return FLASH;
-    if (!strcmp(arglower, "highlight")) return HIGHLIGHT;
-    if (!strcmp(arglower, "normal")) return NORMAL;
+    for (size_t i=0; i < style_names_len; i++) {
+        if (!strcmp(arglower, style_names[i].name)) {
+            return style_names[i].style;
+        }
+    }
     return STYLE_INVALID;
 }
 #endif // _COLORS_H

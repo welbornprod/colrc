@@ -328,7 +328,7 @@ validate_color_arg(const char *type, ColorNameType nametype, const char *name) {
             break;
         default:
             // Valid color arg passed.
-            debug("Valid color arg passed for %s: %s\n", type, name);
+            // debug("Valid color arg passed for %s: %s\n", type, name);
             return true;
     }
 
