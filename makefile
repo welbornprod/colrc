@@ -5,8 +5,10 @@ SHELL=bash
 CC=gcc
 CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
        -Wmissing-include-dirs -Wnull-dereference -Wpedantic -Wshadow \
-       -Wstrict-prototypes -Wunused-macros -std=c11 \
-       -D_GNU_SOURCE
+       -Wstrict-prototypes -Wunused-macros \
+       -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 \
+       -D_GNU_SOURCE \
+       -std=c11
 LIBS=-lm
 
 binary=colr
