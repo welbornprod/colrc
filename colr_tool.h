@@ -9,17 +9,8 @@
 #pragma GCC diagnostic ignored "-Wunused-macros"
 #define _COLR_TOOL_H
 
-#ifndef _POSIX_C_SOURCE
-    // Using `fileno` in colr_tool.c (`read_stdin_arg()`).
-    #define _POSIX_C_SOURCE 1
-#endif
-
-#include <ctype.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include "colr.h"
 
 #define NAME "Colr"

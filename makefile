@@ -5,7 +5,8 @@ SHELL=bash
 CC=gcc
 CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
        -Wmissing-include-dirs -Wnull-dereference -Wpedantic -Wshadow \
-       -Wstrict-prototypes -Wunused-macros -std=c11
+       -Wstrict-prototypes -Wunused-macros -std=c11 \
+       -D_GNU_SOURCE
 LIBS=-lm
 
 binary=colr
