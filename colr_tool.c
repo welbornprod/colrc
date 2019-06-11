@@ -64,6 +64,13 @@ int main(int argc, char *argv[]) {
             char *textargp = textarg;
             read_stdin_arg(textargp, MAX_TEXT_LEN);
         }
+        // Rainbowize the text arg.
+        if (streq(forearg, "rainbow")) {
+            char *rainbowized = acolrforerainbow(textarg, 0.1, 3.0);
+            printf("%s\n", rainbowized);
+            free(rainbowized);
+            return 0;
+        }
         /* TODO: colorname_to_color (and colrize) are only for basic codes.
                  This tool should show colrizex and colrforergb.
                  See TODOS in colr.h, still need colrizergb() implementation.
@@ -211,11 +218,9 @@ void
 print_rainbow_fore() {
     /* Demo the rainbow method. */
     char text[] = "This is a demo of the rainbow function.";
-    size_t textlen = strlen(text);
-    size_t rainbowlen = textlen + 1 + (textlen * CODE_RGB_LEN);
-    char textfmt[rainbowlen];
-    colrforerainbow(textfmt, text, 0.1, 30);
+    char *textfmt = acolrforerainbow(text, 0.1, 30);
     printf("%s\n", textfmt);
+    free(textfmt);
 }
 
 void
@@ -268,7 +273,7 @@ print_usage(const char *reason) {
     printf("%s v. %s\n\
     Usage:\n\
         colr -h | -v\n\
-        colr -basic | -build | -256 | -b256 | -256b | -rainbow\n\
+        colr -basic | -build | -256 | -b256 | -256b | -rainbow | -rgb | -brgb\n\
         colr [TEXT] [FORE] [BACK] [STYLE]\n\
     ", NAME, VERSION);
 }
@@ -286,11 +291,14 @@ print_usage_full() {
         -256              : Print all extended color names and colors.\n\
         -256b, b256       : Print all extended back color names and colors.\n\
         -rainbow          : Print a rainbow example.\n\
+        -rgb              : Print some rgb codes.\n\
+        -brgb, -rgbb      : Print some rgb back codes.\n\
 \n\
     Options:\n\
         TEXT              : Text to colorize.\n\
                             Default: stdin\n\
         FORE              : Fore color for text.\n\
+                            If set to 'rainbow', the text will be rainbowized.\n\
                             Default: reset\n\
         BACK              : Back color for text.\n\
                             Default: reset\n\
@@ -310,7 +318,9 @@ read_stdin_arg(char *textarg, size_t length) {
     textarg[0] = '\0';
     size_t totallen = 0;
     char line[length];
-    debug("\nReading from stdin until EOF (Ctrl + D)...\n");
+    if (isatty(fileno(stdin)) && isatty(fileno(stderr))) {
+        debug("\nReading from stdin until EOF (Ctrl + D)...\n");
+    }
     while (totallen <= length) {
         if (fgets(line, length - totallen, stdin) == NULL) {
             // Never happens if len(stdin_data) > length
