@@ -29,12 +29,14 @@
 // Maximum length for TEXT argument.
 #define MAX_TEXT_LEN 1024
 
-#ifdef DEBUG
-    // Debug printer.
-    #define debug(...) fprintf(stderr, __VA_ARGS__)
-#else
-    // No-op debug print.
-    #define debug(...) ((void)0)
+#ifndef debug
+    #ifdef DEBUG
+        // Debug printer.
+        #define debug(...) fprintf(stderr, __VA_ARGS__)
+    #else
+        // No-op debug print.
+        #define debug(...) ((void)0)
+    #endif
 #endif
 
 // Assumes memory allocated in a variable named `name`.
@@ -43,11 +45,13 @@
     printf("%s ", name);
 
 typedef void (*colorext_func)(char*, const char*, unsigned char);
+typedef void (*colorrgb_func)(char*, const char*, RGB*);
 void debug_args(char*, char*, char*, char*);
 void example_color_build(void);
 void print_256(colorext_func);
 void print_basic(void);
 void print_rainbow_fore(void);
+void print_rgb(colorrgb_func);
 void print_unrecognized_arg(const char*);
 void print_usage(const char*);
 void print_usage_full(void);

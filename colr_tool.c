@@ -9,7 +9,6 @@
         printferr("Failed to allocate memory for arguments!\n"); \
         return 1; \
     } \
-    break; \
     } while (0)
 
 int main(int argc, char *argv[]) {
@@ -23,9 +22,15 @@ int main(int argc, char *argv[]) {
     char stylearg[MAX_ARG_LEN + 1] = "reset";
 
     switch (argc) {
-        case 5: return_on_null(str_copy(stylearg, argv[4], MAX_ARG_LEN - 1));
-        case 4: return_on_null(str_copy(backarg, argv[3], MAX_ARG_LEN - 1));
-        case 3: return_on_null(str_copy(forearg, argv[2], MAX_ARG_LEN - 1));
+        case 5:
+            return_on_null(str_copy(stylearg, argv[4], MAX_ARG_LEN - 1));
+            break;
+        case 4:
+            return_on_null(str_copy(backarg, argv[3], MAX_ARG_LEN - 1));
+            break;
+        case 3:
+            return_on_null(str_copy(forearg, argv[2], MAX_ARG_LEN - 1));
+            break;
         case 2:
             return_on_null(str_copy(textarg, argv[1], MAX_TEXT_LEN - 1));
             break;
@@ -45,8 +50,12 @@ int main(int argc, char *argv[]) {
         example_color_build();
     } else if streq(textarg, "-rainbow") {
         print_rainbow_fore();
-    } else if (streq(textarg, "-256") || streq(textarg, "-rgb")) {
+    } else if (streq(textarg, "-256")) {
         print_256(colrforex);
+    } else if (streq(textarg, "-rgb")) {
+        print_rgb(colrforeRGB);
+    } else if (streq(textarg, "-brgb") || streq(textarg, "-rgbb")) {
+        print_rgb(colrbgRGB);
     } else if (streq(textarg, "-b256") || streq(textarg, "-256b")) {
         print_256(colrbgx);
     } else {
@@ -131,7 +140,7 @@ example_color_build(void) {
 
 void
 print_256(colorext_func func) {
-    /*  Print the 256 color range using either colorext or colorextbg.
+    /*  Print the 256 color range using either colrforex or colorbgx.
         The function choice is passed as an argument.
     */
     char num[4];
@@ -207,6 +216,34 @@ print_rainbow_fore() {
     char textfmt[rainbowlen];
     colrforerainbow(textfmt, text, 0.1, 30);
     printf("%s\n", textfmt);
+}
+
+void
+print_rgb(colorrgb_func func) {
+    /*  Print part of the RGB range using either colrforergb, or .
+        The function choice is passed as an argument.
+    */
+    char num[12];
+    char text[14 + COLOR_RGB_LEN];
+    int count = 0;
+    for (int r = 0; r < 256; r = r + 32) {
+        for (int g = 0; g < 256; g = g + 32) {
+            for (int b = 0; b < 256; b = b + 64) {
+                // Make the rgb text.
+                snprintf(num, 12, "%03d;%03d;%03d", r, g, b);
+                // Colorize it.
+                RGB vals = {r, g, b};
+                func(text, num, &vals);
+                count++;
+                printf("%s ", text);
+                if (count > 3) {
+                    puts("\n");
+                    count = 0;
+                }
+            }
+        }
+    }
+    puts("\n");
 }
 
 void

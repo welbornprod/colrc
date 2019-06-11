@@ -7,7 +7,7 @@
 #define _GNU_SOURCE
 #endif
 
-#define COLR_VERSION "0.2.1"
+#define COLR_VERSION "0.2.2"
 
 #include <ctype.h>
 #include <malloc.h>
@@ -19,6 +19,18 @@
 #ifndef M_PI
     // For the rainbow functions.
     #define M_PI (3.14159265358979323846)
+#endif
+
+#ifndef debug
+    #ifdef DEBUG
+        // Debug printer.
+        #include <stdio.h>
+        #include <stdarg.h>
+        #define debug(...) fprintf(stderr, __VA_ARGS__)
+    #else
+        // No-op debug print.
+        #define debug(...) ((void)0)
+    #endif
 #endif
 
 /*  TODO: The extended colors should be easier to mix with regular colors.
@@ -65,6 +77,14 @@ typedef enum Colors_t {
     LIGHTNORMAL = 23
 
 } Colors;
+
+typedef struct RGB_t {
+    /* RGB value container.
+    */
+    unsigned char red;
+    unsigned char blue;
+    unsigned char green;
+} RGB;
 
 typedef enum Styles_t {
     /*  Style values.
@@ -171,15 +191,30 @@ const size_t COLOR_LEN = 40;
 
 // Maximum length in chars for an RGB fore/back escape code.
 const size_t CODE_RGB_LEN = 23;
+// Maximum length in chars added to a rgb colorized string.
+// Should be CODE_RGB_LEN + STYLE_LEN
+// Allocating for a string that will be colorized with rgb values must account
+// for this.
+const size_t COLOR_RGB_LEN = 32;
 // Maximum length in chars for any possible escape code mixture.
 // (basically CODE_RGB_LEN * 3 since rgb codes are the longest).
 const size_t CODE_ANY_LEN = 69;
 // Maximim string length for a fore, back, or style name.
 const size_t MAX_COLOR_NAME_LEN = 12;
 
+// Allocate `str_len` + enough for a basic code with reset appended.
+#define alloc_with_code(str_len) (char*)calloc(str_len + CODEX_LEN, sizeof(char))
+// Allocate `str_len` + enough for a mixture of fore/basic codes.
+#define alloc_with_codes(str_len) (char*)calloc(str_len + COLOR_LEN, sizeof(char))
+// Allocate `str_len` + enough for an rgb code with reset appended.
+#define alloc_with_rgb(str_len) (char*)calloc(str_len + COLOR_RGB_LEN, sizeof(char))
+// Allocate `str_len` + enough for a style code with reset appended.
+#define alloc_with_style(str_len) (char*)calloc(str_len + STYLE_LEN, sizeof(char))
+
 void format_fore(char*, Colors);
 void format_forex(char*, unsigned char);
 void format_fore_rgb(char*, unsigned char, unsigned char, unsigned char);
+void format_fore_RGB(char*, RGB*);
 void format_bg(char*, Colors);
 void format_bgx(char*, unsigned char);
 void format_bg_rgb(char*, unsigned char, unsigned char, unsigned char);
@@ -331,6 +366,23 @@ colrbg(char *out, const char *s, Colors back) {
 }
 
 char*
+acolrbg(const char *s, Colors fore) {
+    /*  Like `colrbg`, except it allocates the string for you, with enough
+        room to fit the string and any escape codes needed.
+
+        Returns the allocated/formatted string on success.
+
+        Arguments:
+            s    : The string to colorize.
+                   *Must be null-terminated.
+            fore : `Colors` code to use.
+    */
+    char *out = alloc_with_code(strlen(s));
+    colrbg(out, s, fore);
+    return out;
+}
+
+char*
 colrbgcat(char *dest, const char *text, Colors back) {
     /*  Build a string using a back color and `text`, and concatenate it to
         `dest`.
@@ -365,16 +417,31 @@ colrbgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsi
             green : Value for green.
             blue  : Value for blue.
     */
-    char forecode[CODE_RGB_LEN];
-    format_bg_rgb(out, red, green, blue);
+    char backcode[CODE_RGB_LEN];
+    format_bg_rgb(backcode, red, green, blue);
     size_t oldlen = strlen(s);
-    size_t codeslen = strlen(forecode) + STYLE_LEN;
+    size_t codeslen = strlen(backcode) + STYLE_LEN;
     snprintf(
         out,
         oldlen + codeslen,
         "%s%s%s",
-        forecode, s, STYLE_RESET_ALL
+        backcode, s, STYLE_RESET_ALL
     );
+}
+
+void
+colrbgRGB(char *out, const char *s, RGB *rgb) {
+    /*  Colorize a string using true color, rgb back colors and copy the
+        result into `out`.
+        The Styles.RESET_ALL code is already appended to the result.
+        Arguments:
+            out   : Allocated memory to copy the result to.
+                    *Must have enough room for `strlen(s) + COLOR_LEN`.
+            s     : String to colorize.
+                    *Must be null-terminated.
+            rgb   : Pointer to an RGB struct to get the r, g, and b values.
+    */
+    colrbgrgb(out, s, rgb->red, rgb->blue, rgb->green);
 }
 
 void
@@ -399,6 +466,23 @@ colrbgx(char *out, const char *s, unsigned char num) {
         "%s%s%s",
         backcode, s, STYLE_RESET_ALL
     );
+}
+
+char*
+acolrbgx(const char *s, unsigned char num) {
+    /*  Like `colrbgx`, except it allocates the string for you, with
+        enough room to fit the string and any escape codes needed.
+
+        Returns the allocated/formatted string on success.
+
+        Arguments:
+            s    : String to colorize.
+                   *Must be null-terminated.
+            num  : Code number, 0-255 inclusive.
+    */
+    char *out = alloc_with_code(strlen(s));
+    colrbgx(out, s, num);
+    return out;
 }
 
 void
@@ -435,7 +519,7 @@ acolrfore(const char *s, Colors fore) {
                    *Must be null-terminated.
             fore : `Colors` code to use.
     */
-    char *out = (char*)calloc(strlen(s) + COLOR_LEN, sizeof(char));
+    char *out = alloc_with_code(strlen(s));
     colrfore(out, s, fore);
     return out;
 }
@@ -531,7 +615,7 @@ colrforergb(char *out, const char *s, unsigned char red, unsigned char green, un
         The Styles.RESET_ALL code is already appended to the result.
         Arguments:
             out   : Allocated memory to copy the result to.
-                    *Must have enough room for `strlen(s) + COLOR_LEN`.
+                    *Must have enough room for `strlen(s) + COLOR_RGB_LEN`.
             s     : String to colorize.
             	    *Must be null-terminated.
             red   : Value for red.
@@ -539,7 +623,7 @@ colrforergb(char *out, const char *s, unsigned char red, unsigned char green, un
             blue  : Value for blue.
     */
     char forecode[CODE_RGB_LEN];
-    format_fore_rgb(out, red, green, blue);
+    format_fore_rgb(forecode, red, green, blue);
     size_t oldlen = strlen(s);
     size_t codeslen = strlen(forecode) + STYLE_LEN;
     snprintf(
@@ -548,6 +632,19 @@ colrforergb(char *out, const char *s, unsigned char red, unsigned char green, un
         "%s%s%s",
         forecode, s, STYLE_RESET_ALL
     );
+}
+
+void
+colrforeRGB(char *out, const char *s, RGB *rgb) {
+    /*  Colorize a string using true color, rgb fore colors and copy the
+        result into `out`.
+        The Styles.RESET_ALL code is already appended to the result.
+        Arguments:
+            out  : Allocated memory to copy the result to.
+                   *Must have enough room for `strlen(s) + COLOR_RGB_LEN`.
+            rgb  : Pointer to an RGB struct to use for r, g, and b values.
+    */
+    colrforergb(out, s, rgb->red, rgb->blue, rgb->green);
 }
 
 char*
@@ -564,9 +661,24 @@ acolrforergb(const char *s, unsigned char red, unsigned char green, unsigned cha
             green : Value for green.
             blue  : Value for blue.
     */
-    char *out = (char*)calloc(strlen(s) + COLOR_LEN, sizeof(char));
+    char *out = alloc_with_rgb(strlen(s));
     colrforergb(out, s, red, green, blue);
     return out;
+}
+
+char*
+acolrforeRGB(const char *s, RGB *rgb) {
+    /*  Like `colrforeRGB`, except it allocates the string for you, with
+        enough room to fit the string and any escape codes needed.
+
+        Returns the allocated/formatted string on success.
+
+        Arguments:
+            s    : String to colorize.
+                   *Must be null-terminated.
+            rgb  : Pointer to an RGB struct to use for r, g, and b values.
+    */
+    return acolrforergb(s, rgb->red, rgb->green, rgb->blue);
 }
 
 void
@@ -606,7 +718,7 @@ acolrforex(const char *s, unsigned char num) {
                    *Must be null-terminated.
             num  : Code number, 0-255 inclusive.
     */
-    char *out = (char*)calloc(strlen(s) + COLOR_LEN, sizeof(char));
+    char *out = alloc_with_code(strlen(s));
     colrforex(out, s, num);
     return out;
 }
@@ -733,7 +845,7 @@ acolrize(const char *s, Colors fore, Colors back, Styles style) {
             back  : Colors value to use for background.
             style : Styles value to use.
     */
-    char *out = (char*)calloc(strlen(s) + COLOR_LEN, sizeof(char));
+    char *out = alloc_with_codes(strlen(s));
     colrize(out, s, fore, back, style);
     return out;
 }
@@ -823,7 +935,7 @@ acolrizex(
             back      : Colors value to use for background.
             stylecode : Styles value to use.
     */
-    char *out = (char*)calloc(strlen(s) + COLOR_LEN, sizeof(char));
+    char *out = alloc_with_codes(strlen(s));
     colrizex(out, s, forenum, backnum, stylecode);
     return out;
 }
@@ -862,7 +974,7 @@ acolrstyle(const char *s, Styles style) {
                     *Must be null-terminated.
             style : `Styles` code to use.
     */
-    char *out = (char*)calloc(strlen(s) + STYLE_LEN, sizeof(char));
+    char *out = alloc_with_style(strlen(s));
     colrstyle(out, s, style);
     return out;
 }
@@ -943,6 +1055,17 @@ format_fore_rgb(char *out, unsigned char red, unsigned char green, unsigned char
             blue  : Value for blue.
     */
     snprintf(out, CODE_RGB_LEN, "\033[38;2;%d;%d;%dm", red, green, blue);
+}
+
+inline void
+format_fore_RGB(char *out, RGB *rgb) {
+    /*  Create an escape code for a true color (rgb) fore color using an
+        RGB struct's values.
+        Arguments:
+            out  : Memory allocated for the escape code string.
+            rgb  : Pointer to an RGB struct.
+    */
+    format_fore_rgb(out, rgb->red, rgb->green, rgb->blue);
 }
 
 inline void
