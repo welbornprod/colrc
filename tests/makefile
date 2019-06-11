@@ -1,4 +1,4 @@
-# Makefile for colr_tool
+# Makefile for test_colr
 # -Christopher Welborn  06-10-2019
 
 SHELL=bash
@@ -7,13 +7,11 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
        -Wmissing-include-dirs -Wnull-dereference -Wpedantic -Wshadow \
        -Wstrict-prototypes -Wunused-macros \
        -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 \
-       -D_GNU_SOURCE \
        -std=c11
-LIBS=-lm
+LIBS=-lcmocka
 
-binary=colr
-source=colr_tool.c
-headers=colr.h colr_tool.h
+binary=test_colr
+source=test_colr.c
 objects:=$(source:.c=.o)
 
 .PHONY: all, debug, release
@@ -29,7 +27,7 @@ release: $(binary)
 $(binary): $(objects)
 	$(CC) -o $(binary) $(CFLAGS) $(objects) $(LIBS)
 
-%.o: %.c %.h
+%.o: %.c
 	$(CC) -c $< $(CFLAGS) $(LIBS)
 
 .PHONY: clean
@@ -67,7 +65,7 @@ strip:
 .PHONY: tags
 tags:
 	-@printf "Building ctags...\n";
-	ctags $(source) $(headers);
+	ctags -R $(source);
 
 .PHONY: targets
 targets:
