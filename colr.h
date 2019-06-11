@@ -197,8 +197,8 @@ const size_t CODE_RGB_LEN = 23;
 // for this.
 const size_t COLOR_RGB_LEN = 32;
 // Maximum length in chars for any possible escape code mixture.
-// (basically CODE_RGB_LEN * 3 since rgb codes are the longest).
-const size_t CODE_ANY_LEN = 69;
+// (basically (CODE_RGB_LEN * 2) + STYLE_LEN since rgb codes are the longest).
+const size_t CODE_ANY_LEN = 54;
 // Maximim string length for a fore, back, or style name.
 const size_t MAX_COLOR_NAME_LEN = 12;
 

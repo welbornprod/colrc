@@ -24,13 +24,13 @@ int main(int argc, char *argv[]) {
     switch (argc) {
         case 5:
             return_on_null(str_copy(stylearg, argv[4], MAX_ARG_LEN - 1));
-            break;
+            __attribute__((fallthrough));
         case 4:
             return_on_null(str_copy(backarg, argv[3], MAX_ARG_LEN - 1));
-            break;
+            __attribute__((fallthrough));
         case 3:
             return_on_null(str_copy(forearg, argv[2], MAX_ARG_LEN - 1));
-            break;
+            __attribute__((fallthrough));
         case 2:
             return_on_null(str_copy(textarg, argv[1], MAX_TEXT_LEN - 1));
             break;
