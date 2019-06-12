@@ -69,6 +69,18 @@ def parse_failure_elem(failure, indent=0):
     return FailureLineInfo(lineinfo, code=code, indent=indent)
 
 
+def parse_xml_suites(s):
+    """ Parse an XML doc with multiple <testsuites> elements,
+        and yield each individual <testsuites> element.
+    """
+    lines = []
+    for line in s.split('\n'):
+        lines.append(line)
+        if '</testsuites>' in line:
+            yield '\n'.join(lines)
+            lines = []
+
+
 def print_err(*args, **kwargs):
     """ A wrapper for print() that uses stderr by default.
         Colorizes messages, unless a Colr itself is passed in.
@@ -117,20 +129,22 @@ def run_test_exe(style='XML', raw=False):
         if stderr:
             print(stderr.decode())
         return 0
-    root = ElementTree.fromstring(stdout.decode())
-    allcounts = SuiteCounts('All')
-    for suite in root.findall('testsuite'):
-        counts = SuiteCounts.from_suite_elem(suite)
-        allcounts += counts
-        print(C(counts))
-        for testcase in suite.findall('testcase'):
-            name = testcase.attrib['name']
-            failure = testcase.find('failure')
-            if failure is None:
-                print('    {}'.format(C(name, 'green')))
-                continue
-            print('    {}'.format(C(name, 'red')))
-            print(C(parse_failure_elem(failure, indent=8)))
+
+    allcounts = SuiteCounts('All', name_args={'fore': 'blue', 'style': 'bold'})
+    for suite_str in parse_xml_suites(stdout.decode()):
+        root = ElementTree.fromstring(suite_str)
+        for suite in root.findall('testsuite'):
+            counts = SuiteCounts.from_suite_elem(suite)
+            allcounts += counts
+            print(f'\n{C(counts)}')
+            for testcase in suite.findall('testcase'):
+                name = testcase.attrib['name']
+                failure = testcase.find('failure')
+                if failure is None:
+                    print('    {}'.format(C(name, 'green')))
+                    continue
+                print('    {}'.format(C(name, 'red')))
+                print(C(parse_failure_elem(failure, indent=8)))
 
     print(f'\n{C(allcounts)}')
     if stderr:
@@ -179,8 +193,11 @@ class FailureLineInfo(object):
 class SuiteCounts(object):
     """ Holds test/failure/error/skipped counts from a <testsuite> element.
     """
-    def __init__(self, name, tests=0, failures=0, errors=0, skipped=0):
+    def __init__(
+            self, name, tests=0, failures=0, errors=0, skipped=0,
+            name_args=None):
         self.name = name or ''
+        self.name_args = name_args or {'fore': 'blue'}
         self.tests = tests or 0
         self.failures = failures or 0
         self.errors = errors or 0
@@ -203,7 +220,7 @@ class SuiteCounts(object):
 
     def __colr__(self):
         pcs = [
-            f'{C(self.name):[blue]}',
+            C(self.name, **self.name_args),
             self.colr_counts(),
         ]
         return C(' ').join(pcs)

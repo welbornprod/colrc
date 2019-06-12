@@ -129,6 +129,8 @@ main	test_colr.c	/^int main(int argc, char *argv[]) {$/;"	f
 name	../colr.h	/^    char *name;$/;"	m	struct:ColorNamesList
 name	../colr.h	/^    char *name;$/;"	m	struct:StyleNamesList
 red	../colr.h	/^    unsigned char red;$/;"	m	struct:RGB
+run_format_bg_tests	test_colr.c	/^int run_format_bg_tests(void) {$/;"	f
+run_format_fore_tests	test_colr.c	/^int run_format_fore_tests(void) {$/;"	f
 str_copy	../colr.h	/^str_copy(char *dest, const char *src, size_t length) {$/;"	f
 str_tolower	../colr.h	/^str_tolower(char *out, const char *s) {$/;"	f
 style	../colr.h	/^    Styles style;$/;"	m	struct:StyleNamesList
@@ -139,3 +141,4 @@ test_format_bg	test_colr.c	/^static void test_format_bg(void **state) {$/;"	f	fi
 test_format_bg_RGB	test_colr.c	/^static void test_format_bg_RGB(void **state) {$/;"	f	file:
 test_format_bg_rgb	test_colr.c	/^static void test_format_bg_rgb(void **state) {$/;"	f	file:
 test_format_bgx	test_colr.c	/^static void test_format_bgx(void **state) {$/;"	f	file:
+test_format_fore	test_colr.c	/^static void test_format_fore(void **state) {$/;"	f	file:

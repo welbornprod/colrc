@@ -52,9 +52,16 @@ static void test_format_bg_RGB(void **state) {
     assert_true(strlen(codeonly) > 30);
 }
 
-int main(int argc, char *argv[]) {
-    (void)argc; // <- To silence linters when not using argc.
-    (void)argv; // <- To silence linters when not using argv.
+static void test_format_fore(void **state) {
+    /*  Tests basic format_fore usage.
+    */
+    (void)state; // Unused (no setup/teardown function used.)
+    char codeonly[CODE_LEN];
+    format_fore(codeonly, RED);
+    assert_true(strlen(codeonly) > 3);
+}
+
+int run_format_bg_tests(void) {
     const struct CMUnitTest format_bg_tests[] = {
         cmocka_unit_test(test_format_bg),
         cmocka_unit_test(test_format_bgx),
@@ -62,4 +69,19 @@ int main(int argc, char *argv[]) {
         cmocka_unit_test(test_format_bg_RGB),
     };
     return cmocka_run_group_tests_name("Format BG Functions", format_bg_tests, NULL, NULL);
+}
+
+int run_format_fore_tests(void) {
+    const struct CMUnitTest format_fore_tests[] = {
+        cmocka_unit_test(test_format_fore),
+    };
+    return cmocka_run_group_tests_name("Format Fore Functions", format_fore_tests, NULL, NULL);
+}
+
+int main(int argc, char *argv[]) {
+    (void)argc; // <- To silence linters when not using argc.
+    (void)argv; // <- To silence linters when not using argv.
+    int errs = run_format_bg_tests();
+    errs += run_format_fore_tests();
+    return errs;
 }
