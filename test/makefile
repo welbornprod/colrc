@@ -7,11 +7,14 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
        -Wmissing-include-dirs -Wnull-dereference -Wpedantic -Wshadow \
        -Wstrict-prototypes -Wunused-macros \
        -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 \
+       -D_GNU_SOURCE \
        -std=c11
-LIBS=-lcmocka
+INCLUDES=-iquote../
+LIBS=-lcmocka -lm
 
 binary=test_colr
 source=test_colr.c
+headers=../colr.h
 objects:=$(source:.c=.o)
 
 .PHONY: all, debug, release
@@ -25,10 +28,10 @@ release: CFLAGS+=-O3 -DNDEBUG
 release: $(binary)
 
 $(binary): $(objects)
-	$(CC) -o $(binary) $(CFLAGS) $(objects) $(LIBS)
+	$(CC) -o $(binary) $(CFLAGS) $(objects) $(LIBS) $(INCLUDES)
 
-%.o: %.c
-	$(CC) -c $< $(CFLAGS) $(LIBS)
+%.o: %.c %.h
+	$(CC) -c $< $(CFLAGS) $(LIBS) $(INCLUDES)
 
 .PHONY: clean
 clean:
@@ -65,7 +68,7 @@ strip:
 .PHONY: tags
 tags:
 	-@printf "Building ctags...\n";
-	ctags -R $(source);
+	ctags $(source) $(headers);
 
 .PHONY: targets
 targets:

@@ -4,7 +4,7 @@
 #define _COLORS_H_
 
 #ifndef _GNU_SOURCE
-#define _GNU_SOURCE
+    #define _GNU_SOURCE
 #endif
 
 #define COLR_VERSION "0.2.2"
@@ -78,13 +78,13 @@ typedef enum Colors_t {
 
 } Colors;
 
-typedef struct RGB_t {
+struct RGB {
     /* RGB value container.
     */
     unsigned char red;
     unsigned char blue;
     unsigned char green;
-} RGB;
+};
 
 typedef enum Styles_t {
     /*  Style values.
@@ -211,19 +211,183 @@ const size_t MAX_COLOR_NAME_LEN = 12;
 // Allocate `str_len` + enough for a style code with reset appended.
 #define alloc_with_style(str_len) (char*)calloc(str_len + STYLE_LEN, sizeof(char))
 
-void format_fore(char*, Colors);
-void format_forex(char*, unsigned char);
-void format_fore_rgb(char*, unsigned char, unsigned char, unsigned char);
-void format_fore_RGB(char*, RGB*);
-void format_bg(char*, Colors);
-void format_bgx(char*, unsigned char);
-void format_bg_rgb(char*, unsigned char, unsigned char, unsigned char);
-void format_rainbow_fore(char*, double, size_t);
-void format_style(char*, Styles);
-void str_tolower(char *out, const char *s);
 
 /* ------------------------------- Functions ------------------------------ */
 
+static inline void
+format_bgx(char *out, unsigned char num) {
+    /*  Create an escape code for an extended background color.
+        Arguments:
+            out   : Memory allocated for the escape code string.
+                    *Must have enough room for `CODEX_LEN`.
+            value : Value to use for background.
+    */
+    snprintf(out, CODEX_LEN, "\033[48;5;%dm", num);
+}
+
+static inline void
+format_bg(char *out, Colors value) {
+    /*  Create an escape code for a background color.
+        Arguments:
+            out   : Memory allocated for the escape code string.
+                    *Must have enough room for `CODEX_LEN`.
+            value : Colors value to use for background.
+    */
+    if (value > 9) {
+        format_bgx(out, value - (value > 16 ? 8: 9));
+    } else {
+        snprintf(out, CODE_LEN, "\033[%dm", (value < 0 ? RESET: value) + 40);
+    }
+}
+
+static inline void
+format_bg_rgb(char *out, unsigned char red, unsigned char green, unsigned char blue) {
+    /*  Create an escape code for a true color (rgb) background color.
+        Arguments:
+            out   : Memory allocated for the escape code string.
+                    *Must have enough room for `CODE_RGB_LEN`.
+            red   : Value for red.
+            green : Value for green.
+            blue  : Value for blue.
+    */
+    snprintf(out, CODE_RGB_LEN, "\033[48;2;%d;%d;%dm", red, green, blue);
+}
+
+static inline void
+format_bg_RGB(char *out, struct RGB *rgb) {
+    /*  Create an escape code for a true color (rgb) background color
+        using values from an RGB struct.
+        Arguments:
+            out   : Memory allocated for the escape code string.
+                    *Must have enough room for `CODE_RGB_LEN`.
+            rgb   : RGB struct to get red, blue, and green values from.
+    */
+    format_bg_rgb(out, rgb->red, rgb->green, rgb->blue);
+}
+
+static inline void
+format_forex(char *out, unsigned char num) {
+    /*  Create an escape code for an extended fore color.
+        Arguments:
+            out   : Memory allocated for the escape code string.
+                    *Must have enough room for `CODEX_LEN`.
+            value : Value to use for fore.
+    */
+    snprintf(out, CODEX_LEN, "\033[38;5;%dm", num);
+}
+
+static inline void
+format_fore(char *out, Colors value) {
+    /*  Create an escape code for a fore color.
+        Arguments:
+            out   : Memory allocated for the escape code string.
+                    *Must have enough room for `CODEX_LEN`.
+            value : Colors value to use for fore.
+    */
+    if (value > 9) {
+        format_forex(out, value - (value > 16 ? 8: 9));
+    } else {
+        snprintf(out, CODE_LEN, "\033[%dm", (value < 0 ? RESET: value) + 30);
+    }
+}
+
+static inline void
+format_fore_rgb(char *out, unsigned char red, unsigned char green, unsigned char blue) {
+    /*  Create an escape code for a true color (rgb) fore color.
+        Arguments:
+            out   : Memory allocated for the escape code string.
+                    *Must have enough room for `CODE_RGB_LEN`.
+            red   : Value for red.
+            green : Value for green.
+            blue  : Value for blue.
+    */
+    snprintf(out, CODE_RGB_LEN, "\033[38;2;%d;%d;%dm", red, green, blue);
+}
+
+static inline void
+format_fore_RGB(char *out, struct RGB *rgb) {
+    /*  Create an escape code for a true color (rgb) fore color using an
+        RGB struct's values.
+        Arguments:
+            out  : Memory allocated for the escape code string.
+            rgb  : Pointer to an RGB struct.
+    */
+    format_fore_rgb(out, rgb->red, rgb->green, rgb->blue);
+}
+
+static inline void
+format_rainbow_fore(char *out, double freq, size_t step) {
+    /*  A single step in rainbow-izing a string.
+        Arguments:
+            out  : Memory allocated for the escape code string.
+            freq : Frequency ("tightness") of the colors.
+            step : Offset from the start of the rainbow.
+                   Usually an index into a string.
+    */
+    double red = sin(freq * step + 0) * 127 + 128;
+    double green = sin(freq * step + 2 * M_PI / 3) * 127 + 128;
+    double blue = sin(freq * step + 4 * M_PI / 3) * 127 + 128;
+    format_fore_rgb(
+        out,
+        (unsigned char)red,
+        (unsigned char)green,
+        (unsigned char)blue
+    );
+}
+
+static inline void
+format_style(char *out, Styles style) {
+    /*  Create an escape code for a style.
+        Arguments:
+            out   : Memory allocated for the escape code string.
+                    *Must have enough room for `STYLE_LEN`.
+            style : Styles value to use for style.
+    */
+    snprintf(out, STYLE_LEN, "\033[%dm", style < 0 ? RESET_ALL: style);
+}
+
+char*
+str_copy(char *dest, const char *src, size_t length) {
+    /*  Like `strncopy`, but ensures null-termination.
+
+        If `src` is NULL, or `dest` is NULL, NULL is returned.
+        On success, a pointer to `dest` is returned.
+
+        *Warning: If `src` does not contain a null-terminator, this function
+         will truncate at `length` characters.
+
+        A null-terminator is always appended to `dest`.
+
+        Arguments:
+            dest    : Memory allocated for new string.
+                      *Must have room for `strlen(src)`.
+            src     : Source string to copy.
+            length  : Maximum characters to copy, if `src` is not
+                      null-terminated.
+    */
+    if (!(src && dest)) {
+        return NULL;
+    }
+    size_t pos;
+    size_t maxchars = length - 1;
+    for (pos=0; pos < maxchars && src[pos] != '\0'; pos++) {
+        dest[pos] = src[pos];
+    }
+    dest[pos] = '\0';
+    return dest;
+}
+
+void
+str_tolower(char *out, const char *s) {
+    int length = 0;
+    for (int i = 0; s[i]; i++) {
+        length++;
+        out[i] = tolower(s[i]);
+    }
+    out[length] = '\0';
+}
+
+/* ---------------------------- Colr Functions ---------------------------- */
 Colors
 colorname_to_color(const char *arg) {
     /*  Convert named argument to actual Colors enum value.
@@ -302,6 +466,37 @@ colorname_to_color_rgb(const char *arg, unsigned char *r, unsigned char *g, unsi
         i++;
     }
     return COLORVAL_INVALID;
+}
+
+int
+colorname_to_color_RGB(const char *arg, struct RGB *rgb) {
+    /*  Convert an RGB string into a RGB struct suitable for the
+        colr*RGB functions.
+
+        The format for RGB strings can be one of:
+            "RED,GREEN,BLUE"
+            "RED GREEN BLUE"
+            "RED:GREEN:BLUE"
+
+        Returns 0 on success.
+        Returns either COLORVAL_INVALID, or COLORVAL_INVALID_RANGE on error.
+
+        Arguments:
+            arg  : String to check for RGB values.
+            rgb  : Pointer to an RGB struct to fill in the values for.
+    */
+    unsigned char r = 0;
+    unsigned char g = 0;
+    unsigned char b = 0;
+    int ret = colorname_to_color_rgb(arg, &r, &g, &b);
+    if (ret) {
+        // An error occurred.
+        return ret;
+    }
+    rgb->red = r;
+    rgb->green = g;
+    rgb->blue = b;
+    return 0;
 }
 
 ColorNameType
@@ -430,7 +625,7 @@ colrbgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsi
 }
 
 void
-colrbgRGB(char *out, const char *s, RGB *rgb) {
+colrbgRGB(char *out, const char *s, struct RGB *rgb) {
     /*  Colorize a string using true color, rgb back colors and copy the
         result into `out`.
         The Styles.RESET_ALL code is already appended to the result.
@@ -635,7 +830,7 @@ colrforergb(char *out, const char *s, unsigned char red, unsigned char green, un
 }
 
 void
-colrforeRGB(char *out, const char *s, RGB *rgb) {
+colrforeRGB(char *out, const char *s, struct RGB *rgb) {
     /*  Colorize a string using true color, rgb fore colors and copy the
         result into `out`.
         The Styles.RESET_ALL code is already appended to the result.
@@ -667,7 +862,7 @@ acolrforergb(const char *s, unsigned char red, unsigned char green, unsigned cha
 }
 
 char*
-acolrforeRGB(const char *s, RGB *rgb) {
+acolrforeRGB(const char *s, struct RGB *rgb) {
     /*  Like `colrforeRGB`, except it allocates the string for you, with
         enough room to fit the string and any escape codes needed.
 
@@ -977,167 +1172,6 @@ acolrstyle(const char *s, Styles style) {
     char *out = alloc_with_style(strlen(s));
     colrstyle(out, s, style);
     return out;
-}
-
-inline void
-format_bg(char *out, Colors value) {
-    /*  Create an escape code for a background color.
-        Arguments:
-            out   : Memory allocated for the escape code string.
-                    *Must have enough room for `CODEX_LEN`.
-            value : Colors value to use for background.
-    */
-    if (value > 9) {
-        format_bgx(out, value - (value > 16 ? 8: 9));
-    } else {
-        snprintf(out, CODE_LEN, "\033[%dm", (value < 0 ? RESET: value) + 40);
-    }
-}
-
-inline void
-format_bgx(char *out, unsigned char num) {
-    /*  Create an escape code for an extended background color.
-        Arguments:
-            out   : Memory allocated for the escape code string.
-                    *Must have enough room for `CODEX_LEN`.
-            value : Value to use for background.
-    */
-    snprintf(out, CODEX_LEN, "\033[48;5;%dm", num);
-}
-
-inline void
-format_bg_rgb(char *out, unsigned char red, unsigned char green, unsigned char blue) {
-    /*  Create an escape code for a true color (rgb) background color.
-        Arguments:
-            out   : Memory allocated for the escape code string.
-                    *Must have enough room for `CODE_RGB_LEN`.
-            red   : Value for red.
-            green : Value for green.
-            blue  : Value for blue.
-    */
-    snprintf(out, CODE_RGB_LEN, "\033[48;2;%d;%d;%dm", red, green, blue);
-}
-
-inline void
-format_fore(char *out, Colors value) {
-    /*  Create an escape code for a fore color.
-        Arguments:
-            out   : Memory allocated for the escape code string.
-                    *Must have enough room for `CODEX_LEN`.
-            value : Colors value to use for fore.
-    */
-    if (value > 9) {
-        format_forex(out, value - (value > 16 ? 8: 9));
-    } else {
-        snprintf(out, CODE_LEN, "\033[%dm", (value < 0 ? RESET: value) + 30);
-    }
-}
-
-inline void
-format_forex(char *out, unsigned char num) {
-    /*  Create an escape code for an extended fore color.
-        Arguments:
-            out   : Memory allocated for the escape code string.
-                    *Must have enough room for `CODEX_LEN`.
-            value : Value to use for fore.
-    */
-    snprintf(out, CODEX_LEN, "\033[38;5;%dm", num);
-}
-
-inline void
-format_fore_rgb(char *out, unsigned char red, unsigned char green, unsigned char blue) {
-    /*  Create an escape code for a true color (rgb) fore color.
-        Arguments:
-            out   : Memory allocated for the escape code string.
-                    *Must have enough room for `CODE_RGB_LEN`.
-            red   : Value for red.
-            green : Value for green.
-            blue  : Value for blue.
-    */
-    snprintf(out, CODE_RGB_LEN, "\033[38;2;%d;%d;%dm", red, green, blue);
-}
-
-inline void
-format_fore_RGB(char *out, RGB *rgb) {
-    /*  Create an escape code for a true color (rgb) fore color using an
-        RGB struct's values.
-        Arguments:
-            out  : Memory allocated for the escape code string.
-            rgb  : Pointer to an RGB struct.
-    */
-    format_fore_rgb(out, rgb->red, rgb->green, rgb->blue);
-}
-
-inline void
-format_rainbow_fore(char *out, double freq, size_t step) {
-    /*  A single step in rainbow-izing a string.
-        Arguments:
-            out  : Memory allocated for the escape code string.
-            freq : Frequency ("tightness") of the colors.
-            step : Offset from the start of the rainbow.
-                   Usually an index into a string.
-    */
-    double red = sin(freq * step + 0) * 127 + 128;
-    double green = sin(freq * step + 2 * M_PI / 3) * 127 + 128;
-    double blue = sin(freq * step + 4 * M_PI / 3) * 127 + 128;
-    format_fore_rgb(
-    	out,
-    	(unsigned char)red,
-    	(unsigned char)green,
-    	(unsigned char)blue
-    );
-}
-
-inline void
-format_style(char *out, Styles style) {
-    /*  Create an escape code for a style.
-        Arguments:
-            out   : Memory allocated for the escape code string.
-                    *Must have enough room for `STYLE_LEN`.
-            style : Styles value to use for style.
-    */
-    snprintf(out, STYLE_LEN, "\033[%dm", style < 0 ? RESET_ALL: style);
-}
-
-char*
-str_copy(char *dest, const char *src, size_t length) {
-    /*  Like `strncopy`, but ensures null-termination.
-
-        If `src` is NULL, or `dest` is NULL, NULL is returned.
-        On success, a pointer to `dest` is returned.
-
-        *Warning: If `src` does not contain a null-terminator, this function
-         will truncate at `length` characters.
-
-        A null-terminator is always appended to `dest`.
-
-        Arguments:
-            dest    : Memory allocated for new string.
-                      *Must have room for `strlen(src)`.
-            src     : Source string to copy.
-            length  : Maximum characters to copy, if `src` is not
-                      null-terminated.
-    */
-    if (!(src && dest)) {
-        return NULL;
-    }
-    size_t pos;
-    size_t maxchars = length - 1;
-    for (pos=0; pos < maxchars && src[pos] != '\0'; pos++) {
-        dest[pos] = src[pos];
-    }
-    dest[pos] = '\0';
-    return dest;
-}
-
-void
-str_tolower(char *out, const char *s) {
-    int length = 0;
-    for (int i = 0; s[i]; i++) {
-        length++;
-        out[i] = tolower(s[i]);
-    }
-    out[length] = '\0';
 }
 
 Styles
