@@ -19,8 +19,8 @@ objects:=$(source:.c=.o)
 .PHONY: all, debug, release
 all: debug
 
-debug: CFLAGS+=-g3 -DDEBUG
 debug: tags
+debug: CFLAGS+=-g3 -DDEBUG
 debug: $(binary)
 
 release: CFLAGS+=-O3 -DNDEBUG
@@ -31,6 +31,10 @@ $(binary): $(objects)
 
 %.o: %.c %.h
 	$(CC) -c $< $(CFLAGS) $(LIBS)
+
+tags: $(source) $(headers)
+	-@printf "Building ctags...\n";
+	ctags $(source) $(headers);
 
 .PHONY: clean
 clean:
@@ -64,11 +68,6 @@ strip:
 		printf "\nError stripping executable: %s\n" "$(binary)" 1>&2;\
 	fi;
 
-.PHONY: tags
-tags:
-	-@printf "Building ctags...\n";
-	ctags $(source) $(headers);
-
 .PHONY: targets
 targets:
 	-@printf "Make targets available:\n\
@@ -81,3 +80,10 @@ targets:
 	strip     : Run \`strip\` on the executable.\n\
 	tags      : Build tags for this project using \`ctags\`.\n\
 	";
+
+.PHONY: cleantest, test
+cleantest:
+	-@make --no-print-directory clean debug && { cd test; make --no-print-directory cleantest; };
+
+test:
+	-@make --no-print-directory debug && { cd test; make --no-print-directory test; };

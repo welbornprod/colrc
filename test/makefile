@@ -17,11 +17,11 @@ source=test_colr.c
 headers=../colr.h
 objects:=$(source:.c=.o)
 
-.PHONY: all, debug, release
+.PHONY: all, debug, debugnotags, release
 all: debug
 
-debug: CFLAGS+=-g3 -DDEBUG
 debug: tags
+debug: CFLAGS+=-g3 -DDEBUG
 debug: $(binary)
 
 release: CFLAGS+=-O3 -DNDEBUG
@@ -32,6 +32,11 @@ $(binary): $(objects)
 
 %.o: %.c %.h
 	$(CC) -c $< $(CFLAGS) $(LIBS) $(INCLUDES)
+
+
+tags: $(source) $(headers)
+	-@printf "Building ctags...\n";
+	ctags $(source) $(headers);
 
 .PHONY: clean
 clean:
@@ -65,20 +70,25 @@ strip:
 		printf "\nError stripping executable: %s\n" "$(binary)" 1>&2;\
 	fi;
 
-.PHONY: tags
-tags:
-	-@printf "Building ctags...\n";
-	ctags $(source) $(headers);
-
 .PHONY: targets
 targets:
 	-@printf "Make targets available:\n\
 	all       : Build with no optimization or debug symbols.\n\
 	clean     : Delete previous build files.\n\
 	cleanmake : Run \`make clean && make\`\n\
+	cleantest : Delete previous build files, then build and run the tests.\n\
 	makeclean : Alias for \`cleanmake\`\n\
 	debug     : Build the executable with debug symbols.\n\
 	release   : Build the executable with optimization, and strip it.\n\
 	strip     : Run \`strip\` on the executable.\n\
 	tags      : Build tags for this project using \`ctags\`.\n\
+	test      : Make debug (if needed) and then run the tests.\
 	";
+
+.PHONY: cleantest, test
+cleantest:
+	-@make clean debug && ./run_tests.py;
+
+test:
+	-@make debug && ./run_tests.py;
+
