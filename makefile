@@ -25,6 +25,7 @@ debug: $(binary)
 
 release: CFLAGS+=-O3 -DNDEBUG
 release: $(binary)
+release: strip
 
 $(binary): $(objects)
 	$(CC) -o $(binary) $(CFLAGS) $(objects) $(LIBS)
@@ -56,10 +57,6 @@ clean:
 		printf "    %s\n" $(objects);\
 	fi;
 
-.PHONY: cleanmake, makeclean
-cleanmake makeclean:
-	@make --no-print-directory clean && make --no-print-directory;
-
 .PHONY: strip
 strip:
 	@if strip $(binary); then\
@@ -68,17 +65,19 @@ strip:
 		printf "\nError stripping executable: %s\n" "$(binary)" 1>&2;\
 	fi;
 
-.PHONY: targets
-targets:
+.PHONY: help, targets
+help targets:
 	-@printf "Make targets available:\n\
-	all       : Build with no optimization or debug symbols.\n\
-	clean     : Delete previous build files.\n\
-	cleanmake : Run \`make clean && make\`\n\
-	makeclean : Alias for \`cleanmake\`\n\
-	debug     : Build the executable with debug symbols.\n\
-	release   : Build the executable with optimization, and strip it.\n\
-	strip     : Run \`strip\` on the executable.\n\
-	tags      : Build tags for this project using \`ctags\`.\n\
+    all       : Build with no optimization or debug symbols.\n\
+    clean     : Delete previous build files.\n\
+    cleantest : Delete previous build files, build the binary and test binary,\n\
+                and run the tests.\n\
+    debug     : Build the executable with debug symbols.\n\
+    release   : Build the executable with optimization, and strip it.\n\
+    strip     : Run \`strip\` on the executable.\n\
+    tags      : Build tags for this project using \`ctags\`.\n\
+    test      : Build debug (if needed), build the test debug (if needed),\n\
+                and run the tests.\n\
 	";
 
 .PHONY: cleantest, test
