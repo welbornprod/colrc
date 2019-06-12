@@ -82,8 +82,8 @@ help targets:
 
 .PHONY: cleantest, test
 cleantest:
-	-@make clean debug && ./run_tests.py;
+	-@make --no-print-directory clean debug && ./run_tests.py;
 
 test:
-	-@make debug && ./run_tests.py;
+	-@make --no-print-directory debug && ./run_tests.py;
 
