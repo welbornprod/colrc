@@ -25,9 +25,9 @@ COLOR_NONE	../colr.h	/^    COLOR_NONE = -1,$/;"	e	enum:Colors_t
 COLOR_RGB_LEN	../colr.h	/^const size_t COLOR_RGB_LEN = 32;$/;"	v
 COLR_VERSION	../colr.h	10;"	d
 CYAN	../colr.h	/^    CYAN = 6,$/;"	e	enum:Colors_t
+ColorInfo	../colr.h	/^struct ColorInfo {$/;"	s
 ColorNameType	../colr.h	/^} ColorNameType;$/;"	t	typeref:enum:ColorNameType_t
 ColorNameType_t	../colr.h	/^typedef enum ColorNameType_t {$/;"	g
-ColorNamesList	../colr.h	/^struct ColorNamesList {$/;"	s
 Colors	../colr.h	/^} Colors;$/;"	t	typeref:enum:Colors_t
 Colors_t	../colr.h	/^typedef enum Colors_t {$/;"	g
 DIM	../colr.h	/^    DIM = 2,$/;"	e	enum:Styles_t
@@ -54,7 +54,7 @@ STYLE_INVALID	../colr.h	/^    STYLE_INVALID = -2,$/;"	e	enum:Styles_t
 STYLE_LEN	../colr.h	/^const size_t STYLE_LEN = 8;$/;"	v
 STYLE_NONE	../colr.h	/^    STYLE_NONE = -1,$/;"	e	enum:Styles_t
 STYLE_RESET_ALL	../colr.h	/^const char *STYLE_RESET_ALL = "\\033[0m";$/;"	v
-StyleNamesList	../colr.h	/^struct StyleNamesList {$/;"	s
+StyleInfo	../colr.h	/^struct StyleInfo {$/;"	s
 Styles	../colr.h	/^} Styles;$/;"	t	typeref:enum:Styles_t
 Styles_t	../colr.h	/^typedef enum Styles_t {$/;"	g
 UNDERLINE	../colr.h	/^    UNDERLINE = 4,$/;"	e	enum:Styles_t
@@ -86,9 +86,9 @@ alloc_with_codes	../colr.h	208;"	d
 alloc_with_rgb	../colr.h	210;"	d
 alloc_with_style	../colr.h	212;"	d
 blue	../colr.h	/^    unsigned char blue;$/;"	m	struct:RGB
-color	../colr.h	/^    Colors color;$/;"	m	struct:ColorNamesList
-color_names	../colr.h	/^} color_names[] = {$/;"	v	typeref:struct:ColorNamesList
-color_names_len	../colr.h	/^size_t color_names_len = sizeof color_names \/ sizeof (struct ColorNamesList);$/;"	v
+color	../colr.h	/^    Colors color;$/;"	m	struct:ColorInfo
+color_names	../colr.h	/^} color_names[] = {$/;"	v	typeref:struct:ColorInfo
+color_names_len	../colr.h	/^size_t color_names_len = sizeof color_names \/ sizeof (struct ColorInfo);$/;"	v
 colorname_to_color	../colr.h	/^colorname_to_color(const char *arg) {$/;"	f
 colorname_to_color_RGB	../colr.h	/^colorname_to_color_RGB(const char *arg, struct RGB *rgb) {$/;"	f
 colorname_to_color_rgb	../colr.h	/^colorname_to_color_rgb(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b) {$/;"	f
@@ -126,17 +126,19 @@ format_rainbow_fore	../colr.h	/^format_rainbow_fore(char *out, double freq, size
 format_style	../colr.h	/^format_style(char *out, Styles style) {$/;"	f
 green	../colr.h	/^    unsigned char green;$/;"	m	struct:RGB
 main	test_colr.c	/^int main(int argc, char *argv[]) {$/;"	f
-name	../colr.h	/^    char *name;$/;"	m	struct:ColorNamesList
-name	../colr.h	/^    char *name;$/;"	m	struct:StyleNamesList
+name	../colr.h	/^    char *name;$/;"	m	struct:ColorInfo
+name	../colr.h	/^    char *name;$/;"	m	struct:StyleInfo
 red	../colr.h	/^    unsigned char red;$/;"	m	struct:RGB
+run_colorname_tests	test_colr.c	/^int run_colorname_tests(void) {$/;"	f
 run_format_bg_tests	test_colr.c	/^int run_format_bg_tests(void) {$/;"	f
 run_format_fore_tests	test_colr.c	/^int run_format_fore_tests(void) {$/;"	f
 str_copy	../colr.h	/^str_copy(char *dest, const char *src, size_t length) {$/;"	f
 str_tolower	../colr.h	/^str_tolower(char *out, const char *s) {$/;"	f
-style	../colr.h	/^    Styles style;$/;"	m	struct:StyleNamesList
-style_names	../colr.h	/^} style_names[] = {$/;"	v	typeref:struct:StyleNamesList
-style_names_len	../colr.h	/^size_t style_names_len = sizeof style_names \/ sizeof (struct StyleNamesList);$/;"	v
+style	../colr.h	/^    Styles style;$/;"	m	struct:StyleInfo
+style_names	../colr.h	/^} style_names[] = {$/;"	v	typeref:struct:StyleInfo
+style_names_len	../colr.h	/^size_t style_names_len = sizeof style_names \/ sizeof (struct StyleInfo);$/;"	v
 stylename_to_style	../colr.h	/^stylename_to_style(const char *arg) {$/;"	f
+test_colorname_to_color	test_colr.c	/^static void test_colorname_to_color(void **state) {$/;"	f	file:
 test_format_bg	test_colr.c	/^static void test_format_bg(void **state) {$/;"	f	file:
 test_format_bg_RGB	test_colr.c	/^static void test_format_bg_RGB(void **state) {$/;"	f	file:
 test_format_bg_rgb	test_colr.c	/^static void test_format_bg_rgb(void **state) {$/;"	f	file:

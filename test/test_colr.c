@@ -12,6 +12,13 @@
 #include <cmocka.h>
 #include "../colr.h"
 
+static void test_colorname_to_color(void **state) {
+    /*  Tests colorname_to_color basic usage.
+    */
+    (void)state; // Unused (no setup/teardown function used.)
+    assert_true(colorname_to_color("NOTACOLOR") == COLOR_INVALID);
+}
+
 static void test_format_bg(void **state) {
     /*  Tests basic format_bg usage.
     */
@@ -61,6 +68,13 @@ static void test_format_fore(void **state) {
     assert_true(strlen(codeonly) > 3);
 }
 
+int run_colorname_tests(void) {
+    const struct CMUnitTest colorname_tests[] = {
+        cmocka_unit_test(test_colorname_to_color),
+    };
+    return cmocka_run_group_tests_name("colorname_tests", colorname_tests, NULL, NULL);
+}
+
 int run_format_bg_tests(void) {
     const struct CMUnitTest format_bg_tests[] = {
         cmocka_unit_test(test_format_bg),
@@ -81,7 +95,9 @@ int run_format_fore_tests(void) {
 int main(int argc, char *argv[]) {
     (void)argc; // <- To silence linters when not using argc.
     (void)argv; // <- To silence linters when not using argv.
-    int errs = run_format_bg_tests();
+    int errs = 0;
+    errs += run_colorname_tests();
+    errs += run_format_bg_tests();
     errs += run_format_fore_tests();
     return errs;
 }

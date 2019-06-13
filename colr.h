@@ -112,7 +112,7 @@ typedef enum ColorNameType_t {
     COLORNAME_RGB = 2,
 } ColorNameType;
 
-struct ColorNamesList {
+struct ColorInfo {
     /* List of color names to Colors value. */
     char *name;
     Colors color;
@@ -144,9 +144,9 @@ struct ColorNamesList {
 };
 
 // Length of color_names.
-size_t color_names_len = sizeof color_names / sizeof (struct ColorNamesList);
+size_t color_names_len = sizeof color_names / sizeof (struct ColorInfo);
 
-struct StyleNamesList {
+struct StyleInfo {
     char *name;
     Styles style;
 } style_names[] = {
@@ -163,7 +163,7 @@ struct StyleNamesList {
 };
 
 // Length of style_names.
-size_t style_names_len = sizeof style_names / sizeof (struct StyleNamesList);
+size_t style_names_len = sizeof style_names / sizeof (struct StyleInfo);
 
 // Returned from colorname_to_color* for invalid values.
 const int COLORVAL_INVALID = -2;
@@ -390,7 +390,7 @@ str_tolower(char *out, const char *s) {
 /* ---------------------------- Colr Functions ---------------------------- */
 Colors
 colorname_to_color(const char *arg) {
-    /*  Convert named argument to actual Colors enum value.
+    /*  Convert named argument to an actual Colors enum value.
         Returns a Colors value on success, or COLOR_INVALID on error.
     */
     char arglower[MAX_COLOR_NAME_LEN];
