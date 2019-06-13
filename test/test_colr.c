@@ -68,14 +68,14 @@ int run_format_bg_tests(void) {
         cmocka_unit_test(test_format_bg_rgb),
         cmocka_unit_test(test_format_bg_RGB),
     };
-    return cmocka_run_group_tests_name("Format BG Functions", format_bg_tests, NULL, NULL);
+    return cmocka_run_group_tests_name("format_bg_tests", format_bg_tests, NULL, NULL);
 }
 
 int run_format_fore_tests(void) {
     const struct CMUnitTest format_fore_tests[] = {
         cmocka_unit_test(test_format_fore),
     };
-    return cmocka_run_group_tests_name("Format Fore Functions", format_fore_tests, NULL, NULL);
+    return cmocka_run_group_tests_name("format_fore_tests", format_fore_tests, NULL, NULL);
 }
 
 int main(int argc, char *argv[]) {

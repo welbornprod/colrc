@@ -18,9 +18,15 @@ from colr import (
     auto_disable as colr_auto_disable,
     docopt,
 )
+from printdebug import DebugColrPrinter
+
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import Terminal256Formatter
+
+debugprinter = DebugColrPrinter()
+debugprinter.enable(('-D' in sys.argv) or ('--debug' in sys.argv))
+debug = debugprinter.debug
 
 pyg_lexer = get_lexer_by_name('c')
 pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
@@ -29,6 +35,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 # Need 'XML' to parse, but can be set to any other valid value to just print
 # the output.
 cmocka_var = 'CMOCKA_MESSAGE_OUTPUT'
+cmocka_file_var = 'CMOCKA_XML_FILE'
 
 colr_auto_disable()
 
@@ -38,21 +45,38 @@ VERSIONSTR = '{} v. {}'.format(NAME, VERSION)
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
 
+DEFAULT_FILE_FMT = 'cm_%g.xml'
 DEFAULT_TEST_EXE = os.path.join(SCRIPTDIR, 'test_colr')
 
 USAGESTR = f"""{VERSIONSTR}
     Usage:
         {SCRIPT} -h | -v
-        {SCRIPT} [-n | -p | -s | -t | -x]
+        {SCRIPT} [-p | -S | -s | -t | -x] [TEST_EXE] [-D]
+        {SCRIPT} -X [FMT] [TEST_EXE] [-D]
+        {SCRIPT} -f FILE... [-p] [-D]
 
     Options:
-        -h,--help     : Show this help message.
-        -n,--normal   : Show normal CMocka stdout-style output.
-        -p,--pyrepr   : Show python repr() for the TestSuites object.
-        -s,--subunit  : Show subunit-style CMocka output.
-        -t,--tap      : Show tap-style CMocka output.
-        -v,--version  : Show version.
-        -x,--xml      : Show raw XML from the test executable.
+        FILE               : One or more XML files to parse.
+                             If '-' is used, stdin will be read.
+        FMT                : File name to generate with -f.
+                             '%g' will be replaced with the test group name
+                             if groups were used.
+                             Default: {DEFAULT_FILE_FMT!r}
+        TEST_EXE           : Cmocka-based test executable to run.
+                             Default: {DEFAULT_TEST_EXE}
+        -D,--debug         : Print some more info to stderr while running.
+        -f,--file          : Treat arguments as CMocka XML files to parse.
+        -h,--help          : Show this help message.
+        -S,--stdout        : Show normal CMocka stdout-style output.
+                             This is the same as running the test exe itself.
+        -p,--pyrepr        : Show python repr() for the TestSuites object.
+        -s,--subunit       : Show subunit-style CMocka output.
+        -t,--tap           : Show tap-style CMocka output.
+        -v,--version       : Show version.
+        -X,--xmlfile       : Use {cmocka_file_var} to generate XML files,
+                             instead of printing the test results.
+                             See FMT.
+        -x,--xml           : Show raw XML from the test executable.
 
     The {cmocka_var} environment variable will be honored. For pure XML output,
     you must use the --xml flag.
@@ -62,12 +86,60 @@ USAGESTR = f"""{VERSIONSTR}
 def main(argd):
     """ Main entry point, expects docopt arg dict as argd. """
     style = OutputStyle.from_argd(argd)
-    return run_test_exe(style=style)
+    debug(f'Arg output style: {C(style)}')
+    if argd['--file']:
+        return parse_files(argd['FILE'], style=style)
+    return run_test_exe(
+        argd['TEST_EXE'] or DEFAULT_TEST_EXE,
+        file_fmt=(argd['FMT'] or DEFAULT_FILE_FMT),
+        style=style,
+    )
 
 
 def highlight_c(s):
     """ Syntax highlight some C code. """
     return highlight(s, pyg_lexer, pyg_fmter).strip()
+
+
+def parse_files(filepaths, style=None):
+    debug('Parsing xml files...')
+    errs = 0
+    for filepath in filepaths:
+        if filepath == '-':
+            # Do stdin.
+            errs += print_output(read_stdin(), style=style)
+            continue
+        # Actual file path.
+        try:
+            with open(filepath, 'r') as f:
+                errs += print_output(f.read(), style=style)
+        except FileNotFoundError:
+            print_err(C(': ').join(
+                C('File not found', 'red'),
+                C(filepath, 'blue')
+            ))
+            errs += 1
+        except EnvironmentError as ex:
+            print_err(C('\n').join(
+                C(': ').join(
+                    C('Unable to read file', 'red'),
+                    C(filepath, 'blue'),
+                ),
+                f'    {ex}'
+            ))
+            errs += 1
+    return errs
+
+
+def print_output(output, style=None):
+    """ Parse and print XML output in the preferred style. """
+    suites = TestSuites.from_output(output)
+    # Pick output formatter and print the result.
+    if style is None:
+        style = OutputStyle.color
+    formatter = style.formatter()
+    print(formatter(suites))
+    return suites.failures
 
 
 def print_err(*args, **kwargs):
@@ -94,23 +166,66 @@ def print_err(*args, **kwargs):
     print(msg, **kwargs)
 
 
-def run_test_exe(style=None):
-    """ Run the test executable and parse it's output. """
-    if not os.path.exists(DEFAULT_TEST_EXE):
-        print_err(f'Test executable does not exist: {DEFAULT_TEST_EXE}')
-        return 1
-    if style is None:
-        style = OutputStyle.color
+def read_stdin():
+    if read_stdin.already_done:
+        raise InvalidArg('already read from stdin once.')
+    if sys.stdin.isatty() and sys.stdout.isatty():
+        print('\nReading from stdin until end of file (Ctrl + D)...\n')
+    data = sys.stdin.read()
+    read_stdin.already_done = True
+    return data
 
-    # Set cmock env var if not already set.
-    cmocka_style = os.environ.get(
-        cmocka_var,
-        style.cmocka_value()
-    ).strip().upper()
-    os.environ[cmocka_var] = cmocka_style
 
+# Set when the function successfully reads from stdin the first time.
+read_stdin.already_done = False
+
+
+def run_file_mode(exe, file_fmt=None):
+    """ Run the test executable in CMocka's file mode.
+        Returns an exit status code.
+    """
+    # Set the file format before running the exe.
+    os.environ[cmocka_file_var] = os.environ.get(
+        cmocka_file_var,
+        file_fmt or DEFAULT_FILE_FMT,
+    )
+    debug('Running in file-mode...', end=' ')
+    debug(f'Format: {C(os.environ[cmocka_file_var]):[blue]}')
     proc = subprocess.Popen(
-        DEFAULT_TEST_EXE,
+        exe,
+        env=os.environ,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    stdout, stderr = proc.communicate()
+    exitcode = proc.wait()
+
+    print(C(' ').join(C(exe, 'blue'), 'completed, '), end='')
+    if exitcode:
+        print(C('there were errors', 'red'), '.', sep='')
+    else:
+        print(C('no errors', 'green'), '.', sep='')
+    if stderr:
+        print_err(stderr.decode())
+    return exitcode
+
+
+def run_no_parse(exe):
+    """ Run the test executable, and print it's output. """
+    debug('Running in no-parse mode...')
+    proc = subprocess.Popen(
+        exe,
+        env=os.environ,
+    )
+    exitcode = proc.wait()
+    return exitcode
+
+
+def run_parse(exe, style=None):
+    """ Run the test executable, parse it's output, and format it. """
+    debug('Running in parse-mode...')
+    proc = subprocess.Popen(
+        exe,
         env=os.environ,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -118,24 +233,42 @@ def run_test_exe(style=None):
     stdout, stderr = proc.communicate()
     exitcode = proc.wait()
     if not stdout:
-        if not stderr:
+        if stderr:
+            print_err(stderr.decode())
+        else:
             print_err(f'No output from the test exe!')
         return 1
 
-    # Check to see if we need to parse the resulting XML, just print it if not.
-    if (os.environ[cmocka_var] != 'XML') or (style == OutputStyle.xml):
-        # No use parsing anything, it's not xml.
-        print(stdout.decode())
-        if stderr:
-            print(stderr.decode())
-        return 0
-
-    suites = TestSuites.from_output(stdout.decode())
-
-    # Pick output formatter and print the result.
-    formatter = style.formatter()
-    print(formatter(suites))
+    print_output(stdout.decode(), style=style)
     return exitcode
+
+
+def run_test_exe(exe, file_fmt=None, style=None):
+    """ Run the test executable and parse it's output. """
+    if not os.path.exists(exe):
+        print_err(f'Test executable does not exist: {exe}')
+        return 1
+    if style is None:
+        style = OutputStyle.color
+        debug(f'Set default style: {C(style):[blue]}')
+    if os.environ.get(cmocka_file_var, None):
+        # Detected CMOCKA_XML_FILE, set file mode.
+        style = OutputStyle.xmlfile
+        debug(f'Set style for {cmocka_file_var}: {C(style):[blue]}')
+    # Set cmocka output var if not already set.
+    cmocka_style = os.environ.get(
+        cmocka_var,
+        style.cmocka_value()
+    ).strip().upper()
+    os.environ[cmocka_var] = cmocka_style
+    debug('Set style var:', end=' ')
+    debug(f'{C(os.environ[cmocka_var]):[blue]}')
+    if style == OutputStyle.xmlfile:
+        return run_file_mode(exe, file_fmt=file_fmt)
+    elif (not style.needs_parsing()) or (os.environ[cmocka_var] != 'XML'):
+        return run_no_parse(exe)
+    # The style and output mode says we need to parse the XML.
+    return run_parse(exe, style=style)
 
 
 class InvalidArg(ValueError):
@@ -211,12 +344,13 @@ class FailureLineInfo(object):
 
 class OutputStyle(Enum):
     """ Enum for the different output styles this runner supports. """
-    normal = 0
     color = 1
-    xml = 2
-    pyrepr = 3
+    pyrepr = 2
+    stdout = 3
     subunit = 4
     tap = 5
+    xml = 6
+    xmlfile = 7
 
     def __colr__(self):
         return C(str(self), 'blue', style='bold')
@@ -224,50 +358,63 @@ class OutputStyle(Enum):
     def __str__(self):
         """ Enhanced representation for console. """
         return {
-            OutputStyle.normal.value: 'normal',
             OutputStyle.color.value: 'color',
-            OutputStyle.xml.value: 'xml',
             OutputStyle.pyrepr.value: 'pyrepr',
+            OutputStyle.stdout.value: 'stdout',
             OutputStyle.subunit.value: 'subunit',
             OutputStyle.tap.value: 'tap',
+            OutputStyle.xml.value: 'xml',
+            OutputStyle.xmlfile.value: 'xmlfile',
         }.get(self.value, 'unknown')
 
     def cmocka_value(self):
         """ Return the proper CMOCKA_MESSAGE_OUTPUT setting for this value. """
-        return {
-            'normal': 'STDOUT',
-            'color': 'XML',
-            'xml': 'XML',
-            'pyrepr': 'XML',
-            'subunit': 'SUBUNIT',
-            'tap': 'TAP',
-        }.get(str(self), 'XML')
+        return self.outputs().get(str(self), 'XML')
 
     def formatter(self):
         """ Return the proper formatting function for this value. """
+        # Some of these values require no XML parsing, so they don't need
+        # a formatter.
         return {
-            'normal': str,
             'color': C,
-            'xml': str,
             'pyrepr': repr,
-            'subunit': str,
-            'tap': str,
-        }.get(str(self), C)
+        }.get(str(self), str)
 
     @classmethod
     def from_argd(cls, argd):
-        flagattrs = (
-            #  'color', There is no flag for color, it is the default.
-            'normal',
-            'xml',
-            'pyrepr',
-            'subunit',
-            'tap',
-        )
-        for flag in flagattrs:
+        # color has no flag, it's the default output method.
+        for flag in cls.names(ignore=('color', )):
             if argd[f'--{flag}']:
                 return getattr(cls, flag)
         return cls.color
+
+    @classmethod
+    def names(cls, ignore=None):
+        ignored = set(ignore or '')
+        return [
+            name
+            for name in cls.outputs()
+            if name not in ignored
+        ]
+
+    def needs_parsing(self):
+        """ Return True if this output value requires parsing the XML output.
+        """
+        return str(self) in ('color', 'pyrepr')
+
+    @classmethod
+    def outputs(cls):
+        """ Return a map of {name: cmocka_output_style} for all values.
+        """
+        return {
+            'color': 'XML',
+            'pyrepr': 'XML',
+            'stdout': 'STDOUT',
+            'subunit': 'SUBUNIT',
+            'tap': 'TAP',
+            'xml': 'XML',
+            'xmlfile': 'XML',
+        }
 
 
 class TestCase(object):
