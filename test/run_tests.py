@@ -9,6 +9,8 @@
 import os
 import subprocess
 import sys
+from collections import UserList
+from enum import Enum
 from xml.etree import ElementTree
 
 from colr import (
@@ -23,6 +25,11 @@ from pygments.formatters import Terminal256Formatter
 pyg_lexer = get_lexer_by_name('c')
 pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 
+# Environment variable to change CMocka output style.
+# Need 'XML' to parse, but can be set to any other valid value to just print
+# the output.
+cmocka_var = 'CMOCKA_MESSAGE_OUTPUT'
+
 colr_auto_disable()
 
 NAME = 'Colr Test Runner'
@@ -33,52 +40,34 @@ SCRIPTDIR = os.path.abspath(sys.path[0])
 
 DEFAULT_TEST_EXE = os.path.join(SCRIPTDIR, 'test_colr')
 
-USAGESTR = """{versionstr}
+USAGESTR = f"""{VERSIONSTR}
     Usage:
-        {script} -h | -v
-        {script} [-n | -x]
+        {SCRIPT} -h | -v
+        {SCRIPT} [-n | -p | -s | -t | -x]
 
     Options:
         -h,--help     : Show this help message.
-        -n,--normal   : Show normal CMocka output, with no color.
+        -n,--normal   : Show normal CMocka stdout-style output.
+        -p,--pyrepr   : Show python repr() for the TestSuites object.
+        -s,--subunit  : Show subunit-style CMocka output.
+        -t,--tap      : Show tap-style CMocka output.
         -v,--version  : Show version.
         -x,--xml      : Show raw XML from the test executable.
-""".format(script=SCRIPT, versionstr=VERSIONSTR)
+
+    The {cmocka_var} environment variable will be honored. For pure XML output,
+    you must use the --xml flag.
+"""
 
 
 def main(argd):
     """ Main entry point, expects docopt arg dict as argd. """
-    style = None if argd['--normal'] else 'XML'
-    return run_test_exe(style=style, raw=argd['--xml'])
+    style = OutputStyle.from_argd(argd)
+    return run_test_exe(style=style)
 
 
 def highlight_c(s):
     """ Syntax highlight some C code. """
     return highlight(s, pyg_lexer, pyg_fmter).strip()
-
-
-def parse_failure_elem(failure, indent=0):
-    """ Parse a <failure> element and return either a FailureLineInfo, or
-        a FailureMessage.
-    """
-    try:
-        code, lineinfo = failure.text.split('\n')
-    except ValueError:
-        # Just line info.
-        return FailureLineInfo(failure.text, code=None, indent=indent)
-    return FailureLineInfo(lineinfo, code=code, indent=indent)
-
-
-def parse_xml_suites(s):
-    """ Parse an XML doc with multiple <testsuites> elements,
-        and yield each individual <testsuites> element.
-    """
-    lines = []
-    for line in s.split('\n'):
-        lines.append(line)
-        if '</testsuites>' in line:
-            yield '\n'.join(lines)
-            lines = []
 
 
 def print_err(*args, **kwargs):
@@ -105,52 +94,48 @@ def print_err(*args, **kwargs):
     print(msg, **kwargs)
 
 
-def run_test_exe(style='XML', raw=False):
+def run_test_exe(style=None):
     """ Run the test executable and parse it's output. """
     if not os.path.exists(DEFAULT_TEST_EXE):
         print_err(f'Test executable does not exist: {DEFAULT_TEST_EXE}')
         return 1
-    env = {'CMOCKA_MESSAGE_OUTPUT': style} if style else None
+    if style is None:
+        style = OutputStyle.color
+
+    # Set cmock env var if not already set.
+    cmocka_style = os.environ.get(
+        cmocka_var,
+        style.cmocka_value()
+    ).strip().upper()
+    os.environ[cmocka_var] = cmocka_style
+
     proc = subprocess.Popen(
         DEFAULT_TEST_EXE,
-        env=env,
+        env=os.environ,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
     stdout, stderr = proc.communicate()
-
+    exitcode = proc.wait()
     if not stdout:
         if not stderr:
             print_err(f'No output from the test exe!')
         return 1
-    if raw or (style != 'XML'):
+
+    # Check to see if we need to parse the resulting XML, just print it if not.
+    if (os.environ[cmocka_var] != 'XML') or (style == OutputStyle.xml):
         # No use parsing anything, it's not xml.
         print(stdout.decode())
         if stderr:
             print(stderr.decode())
         return 0
 
-    allcounts = SuiteCounts('All', name_args={'fore': 'blue', 'style': 'bold'})
-    for suite_str in parse_xml_suites(stdout.decode()):
-        root = ElementTree.fromstring(suite_str)
-        for suite in root.findall('testsuite'):
-            counts = SuiteCounts.from_suite_elem(suite)
-            allcounts += counts
-            print(f'\n{C(counts)}')
-            for testcase in suite.findall('testcase'):
-                name = testcase.attrib['name']
-                failure = testcase.find('failure')
-                if failure is None:
-                    print('    {}'.format(C(name, 'green')))
-                    continue
-                print('    {}'.format(C(name, 'red')))
-                print(C(parse_failure_elem(failure, indent=8)))
+    suites = TestSuites.from_output(stdout.decode())
 
-    print(f'\n{C(allcounts)}')
-    if stderr:
-        print_err(f'\n{stderr.decode()}')
-
-    return 0
+    # Pick output formatter and print the result.
+    formatter = style.formatter()
+    print(formatter(suites))
+    return exitcode
 
 
 class InvalidArg(ValueError):
@@ -160,19 +145,33 @@ class InvalidArg(ValueError):
 
     def __str__(self):
         if self.msg:
-            return 'Invalid argument, {}'.format(self.msg)
+            return f'Invalid argument, {self.msg}'
         return 'Invalid argument!'
+
+
+class InvalidXML(InvalidArg):
+    """ Raised when the test runner emits non-xml data. """
+    def __str__(self):
+        if self.msg:
+            return f'Test executable output was invalid XML: {self.msg}'
+        return 'Test executable output was invalid XML!'
 
 
 class FailureLineInfo(object):
     """ A formatted failure string. """
-    def __init__(self, lineinfo, code=None, indent=0):
+    indent = 8
+
+    def __init__(self, lineinfo, code=None):
         self.code = code
         self.file, self.line, self.msg = lineinfo.split(':', 2)
         self.msg = self.msg.strip()
-        self.indent = indent or 0
+
+    def __bool__(self):
+        # Being explicit, even though this is the default python behavior.
+        return True
 
     def __colr__(self):
+        """ Default Colr instance, when wrapped in a plain `Colr()` call. """
         spaces = ' ' * self.indent
 
         # Append line info.
@@ -189,46 +188,180 @@ class FailureLineInfo(object):
         lines = C(f'\n{spaces}').join(pcs)
         return C(f'{spaces}{lines}')
 
+    def __repr__(self):
+        tname = type(self).__name__
+        return ''.join((
+            f'{tname}(code={self.code!r}',
+            f', file={self.file!r}',
+            f', msg={self.msg!r}',
+            ')',
+        ))
 
-class SuiteCounts(object):
-    """ Holds test/failure/error/skipped counts from a <testsuite> element.
-    """
-    def __init__(
-            self, name, tests=0, failures=0, errors=0, skipped=0,
-            name_args=None):
-        self.name = name or ''
-        self.name_args = name_args or {'fore': 'blue'}
-        self.tests = tests or 0
-        self.failures = failures or 0
-        self.errors = errors or 0
-        self.skipped = skipped or 0
-        self.testcolr = 'blue' if (self.failures or self.errors) else 'green'
+    @classmethod
+    def from_elem(cls, failelem):
+        """ Build a FailureLineInfo from a <failure> ElementTree element. """
+        try:
+            code, lineinfo = failelem.text.split('\n')
+        except ValueError:
+            # Just line info.
+            lineinfo = failelem.text
+            code = None
+        return cls(lineinfo, code=code)
 
-    def __add__(self, other):
-        """ Add one SuiteCounts totals to another, without changing this one's
-            name.
-        """
-        if not isinstance(other, self.__class__):
-            raise TypeError(
-                f'Expecting {type(self).__name__}, got: {type(other).__name__}'
-            )
-        self.tests += other.tests
-        self.failures += other.failures
-        self.errors += other.errors
-        self.skipped += other.skipped
-        return self
+
+class OutputStyle(Enum):
+    """ Enum for the different output styles this runner supports. """
+    normal = 0
+    color = 1
+    xml = 2
+    pyrepr = 3
+    subunit = 4
+    tap = 5
 
     def __colr__(self):
+        return C(str(self), 'blue', style='bold')
+
+    def __str__(self):
+        """ Enhanced representation for console. """
+        return {
+            OutputStyle.normal.value: 'normal',
+            OutputStyle.color.value: 'color',
+            OutputStyle.xml.value: 'xml',
+            OutputStyle.pyrepr.value: 'pyrepr',
+            OutputStyle.subunit.value: 'subunit',
+            OutputStyle.tap.value: 'tap',
+        }.get(self.value, 'unknown')
+
+    def cmocka_value(self):
+        """ Return the proper CMOCKA_MESSAGE_OUTPUT setting for this value. """
+        return {
+            'normal': 'STDOUT',
+            'color': 'XML',
+            'xml': 'XML',
+            'pyrepr': 'XML',
+            'subunit': 'SUBUNIT',
+            'tap': 'TAP',
+        }.get(str(self), 'XML')
+
+    def formatter(self):
+        """ Return the proper formatting function for this value. """
+        return {
+            'normal': str,
+            'color': C,
+            'xml': str,
+            'pyrepr': repr,
+            'subunit': str,
+            'tap': str,
+        }.get(str(self), C)
+
+    @classmethod
+    def from_argd(cls, argd):
+        flagattrs = (
+            #  'color', There is no flag for color, it is the default.
+            'normal',
+            'xml',
+            'pyrepr',
+            'subunit',
+            'tap',
+        )
+        for flag in flagattrs:
+            if argd[f'--{flag}']:
+                return getattr(cls, flag)
+        return cls.color
+
+
+class TestCase(object):
+    """ Holds info about a single <testcase> element. """
+    indent = 4
+
+    def __init__(self, name, failure=None):
+        self.name = name
+        self.failure = failure
+
+    def __colr__(self):
+        """ Default Colr instance, when wrapped in a plain `Colr()` call. """
         pcs = [
-            C(self.name, **self.name_args),
-            self.colr_counts(),
+            '{}{}'.format(
+                ' ' * self.indent,
+                C(self.name, 'red' if self.failure else 'green'),
+            ),
         ]
-        return C(' ').join(pcs)
+        if self.failure:
+            pcs.append(C(self.failure))
+        return C('\n').join(pcs)
+
+    def __repr__(self):
+        tname = type(self).__name__
+        return '\n'.join((
+            f'{tname}(',
+            f'    name={self.name!r},',
+            f'    failure={self.failure!r}',
+            ')',
+        ))
+
+    @classmethod
+    def from_elem(cls, caseelem):
+        """ Build a TestCase from a <testcase> ElementTree element. """
+        name = caseelem.attrib['name']
+        failelem = caseelem.find('failure')
+        if failelem is None:
+            return cls(name)
+        failure = FailureLineInfo.from_elem(failelem)
+        return cls(name, failure=failure)
+
+
+class TestSuite(UserList):
+    """ Holds info about a single <testsuite> element, which holds info
+        about <testcase> elements.
+    """
+    indent = 0
+
+    def __init__(self, name, cases=None, time=None, errors=None, skipped=None):
+        if cases:
+            super().__init__(cases)
+        self.name = name
+        self.tests = len(self.data)
+        self.time = float(time or 0.0)
+        self.failures = len([c for c in self if c.failure])
+        self.errors = int(errors or 0)
+        self.skipped = int(skipped or 0)
+
+    def __colr__(self):
+        """ Default Colr instance, when wrapped in a plain `Colr()` call. """
+        return C('\n').join(
+            C(' ').join(
+                C(f'\n{self.name.ljust(32)}', 'blue'),
+                self.colr_counts(),
+            ),
+            C('\n').join(C(case) for case in self),
+        )
+
+    def __repr__(self):
+        tname = type(self).__name__
+        cases = '\n        '.join(
+            '{},'.format('\n        '.join(l for l in repr(x).split('\n')))
+            for x in self
+        )
+        return '\n    '.join((
+            f'{tname}(',
+            f'name={self.name!r},',
+            f'tests={self.tests!r},',
+            f'time={self.time!r},',
+            f'failures={self.failures!r},',
+            f'errors={self.errors!r},',
+            f'skipped={self.skipped!r},',
+            f'data=[\n        {cases}\n    ]\n)',
+        ))
+
+    @property
+    def cases(self):
+        return self.data
 
     def colr_counts(self):
         """ Return a string containing only the formatted counts. """
+        testcolr = 'blue' if (self.errors or self.failures) else 'green'
         pcs = [
-            C(': ').join(C('Tests', 'cyan'), C(self.tests, self.testcolr))
+            C(': ').join(C('Tests', 'cyan'), C(self.tests, testcolr))
         ]
         if self.errors:
             pcs.append(
@@ -245,14 +378,164 @@ class SuiteCounts(object):
         return C(' ').join(pcs)
 
     @classmethod
-    def from_suite_elem(cls, suiteelem):
+    def from_elem(cls, suiteelem):
+        """ Build a TestSuite from a <testsuite> ElementTree element. """
+        cases = [
+            TestCase.from_elem(e)
+            for e in suiteelem.findall('testcase')
+        ]
         return cls(
             suiteelem.attrib['name'],
-            tests=int(suiteelem.attrib['tests']),
-            failures=int(suiteelem.attrib['failures']),
-            errors=int(suiteelem.attrib['errors']),
-            skipped=int(suiteelem.attrib['skipped']),
+            cases=cases,
+            time=suiteelem.attrib['time'],
+            errors=suiteelem.attrib['errors'],
+            skipped=suiteelem.attrib['skipped'],
         )
+
+
+class TestSuites(UserList):
+    """ Holds info about a single <testsuites>, which holds info about
+        <testsuite> elements.
+    """
+    def __init__(self, suites=None):
+        if suites:
+            super().__init__(suites)
+        self.time = 0.0
+        self.tests = 0
+        self.failures = 0
+        self.errors = 0
+        self.skipped = 0
+        self.update_counts()
+
+    def __add__(self, other):
+        """ Add another TestSuites elements to this one. """
+        if not isinstance(other, self.__class__):
+            raise TypeError(
+                f'Expecting {type(self).__name__}, got {type(other).__name__}.'
+            )
+        self.data.extend(other.data)
+        self.time += other.time
+        self.tests += other.tests
+        self.failures += other.failures
+        self.errors += other.errors
+        self.skipped += other.skipped
+        return self
+
+    def __colr__(self):
+        """ Default Colr instance, when wrapped in a plain `Colr()` call. """
+        return C('\n').join(
+            C('\n').join(C(st) for st in self),
+            C(' ').join(
+                C('\nAll', 'blue', style='bold'),
+                self.colr_counts(),
+            ),
+        )
+
+    def __iadd__(self, other):
+        # __add__ already does an in-place addition.
+        return self.__add__(other)
+
+    def __repr__(self):
+        tname = type(self).__name__
+        indent = ' ' * 4
+        suiteindent = indent * 2
+        suites = f'\n{suiteindent}'.join(
+            '{},'.format(
+                f'\n{suiteindent}'.join(l for l in repr(x).split('\n'))
+            )
+            for x in self
+        )
+        return '\n    '.join((
+            f'{tname}(',
+            f'tests={self.tests!r},',
+            f'time={self.time!r},',
+            f'failures={self.failures!r},',
+            f'errors={self.errors!r},',
+            f'skipped={self.skipped!r},',
+            f'data=[\n{suiteindent}{suites}\n{indent}]\n)',
+        ))
+
+    def colr_counts(self):
+        """ Return a string containing only the formatted counts. """
+        testcolr = 'blue' if (self.errors or self.failures) else 'green'
+        pcs = [
+            C(': ').join(C('Tests', 'cyan'), C(self.tests, testcolr))
+        ]
+        if self.errors:
+            pcs.append(
+                C(': ').join(C('Errors', 'cyan'), C(self.errors, 'red'))
+            )
+        if self.failures:
+            pcs.append(
+                C(': ').join(C('Failed', 'cyan'), C(self.failures, 'red'))
+            )
+        if self.skipped:
+            pcs.append(
+                C(': ').join(C('Skipped', 'cyan'), C(self.skipped, 'blue'))
+            )
+        return C(' ').join(pcs)
+
+    @classmethod
+    def from_output(cls, output):
+        """ Parse the test runner's XML output and build a TestSuites object,
+            even if the output contains multiple <testsuites> elements.
+        """
+        suites = None
+        for suite_str in cls.parse_runner_xml(output):
+            if suites is None:
+                suites = cls.from_xml(suite_str)
+                continue
+            suites += cls.from_xml(suite_str)
+        return suites
+
+    @classmethod
+    def from_xml(cls, xml):
+        """ Parse a <testsuites> element string into an actual TestSuite
+            with TestCase elements.
+        """
+        try:
+            root = ElementTree.fromstring(xml)
+        except ElementTree.ParseError as ex:
+            raise InvalidXML(str(ex))
+
+        suiteslist = []
+        for suiteelem in root.findall('testsuite'):
+            suite = TestSuite.from_elem(suiteelem)
+            suiteslist.append(suite)
+        return cls(suites=suiteslist)
+
+    @staticmethod
+    def parse_runner_xml(s):
+        """ Parse an XML doc with multiple <testsuites> elements,
+            and yield each individual <testsuites> element.
+        """
+        lines = []
+        for line in s.split('\n'):
+            lines.append(line)
+            if '</testsuites>' in line:
+                yield '\n'.join(lines)
+                lines = []
+
+    @property
+    def suites(self):
+        return self.data
+
+    def update_counts(self):
+        """ Update the `time`, `tests`, `failures`, `errors`, and `skipped`
+            attributes based on each TestSuite in self.data.
+        """
+        self.time = 0.0
+        self.tests = 0
+        self.failures = 0
+        self.errors = 0
+        self.skipped = 0
+        for suite in self:
+            self.time += suite.time
+            self.tests += suite.tests
+            self.failures += suite.failures
+            self.errors += suite.errors
+            self.skipped += suite.skipped
+        return self
 
 
 if __name__ == '__main__':
