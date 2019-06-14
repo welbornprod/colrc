@@ -1,3 +1,4 @@
 colr.o
 colr
 colr_tool.o
+*.o
