@@ -56,7 +56,7 @@ static void test_format_bg_RGB(void **state) {
     char codeonly[CODE_RGB_LEN];
     struct RGB rgb = {25, 35, 45};
     format_bg_RGB(codeonly, &rgb);
-    assert_true(strlen(codeonly) > 30);
+    assert_true(strlen(codeonly) < 30);
 }
 
 static void test_format_fore(void **state) {

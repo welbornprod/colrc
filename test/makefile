@@ -4,8 +4,9 @@
 SHELL=bash
 CC=gcc
 CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
+       -Wimplicit-fallthrough -Wlogical-not-parentheses \
        -Wmissing-include-dirs -Wnull-dereference -Wpedantic -Wshadow \
-       -Wstrict-prototypes -Wunused-macros \
+       -Wstrict-prototypes -Wunused \
        -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 \
        -D_GNU_SOURCE \
        -std=c11
@@ -39,6 +40,11 @@ tags: $(source) $(headers)
 	-@printf "Building ctags...\n";
 	ctags $(source) $(headers);
 
+.PHONY: clang, clangrelease
+clang: CC=clang
+clang: CFLAGS+=-Wno-unknown-warning-option -Wliblto
+clang: debug
+
 .PHONY: clean
 clean:
 	-@if [[ -e $(binary) ]]; then\
@@ -71,6 +77,8 @@ strip:
 help targets:
 	-@printf "Make targets available:\n\
     all       : Build with no optimization or debug symbols.\n\
+    clang        : Use \`clang\` to build the default target.\n\
+    clangrelease : Use \`clang\` to build the release target.\n\
     clean     : Delete previous build files.\n\
     cleantest : Delete previous build files, then build and run the tests.\n\
     debug     : Build the executable with debug symbols.\n\

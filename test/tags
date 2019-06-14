@@ -7,10 +7,10 @@
 BLACK	../colr.h	/^    BLACK = 0,$/;"	e	enum:Colors_t
 BLUE	../colr.h	/^    BLUE = 4,$/;"	e	enum:Colors_t
 BRIGHT	../colr.h	/^    BRIGHT = 1,$/;"	e	enum:Styles_t
-CODEX_LEN	../colr.h	/^const size_t CODEX_LEN = 15;$/;"	v
-CODE_ANY_LEN	../colr.h	/^const size_t CODE_ANY_LEN = 54;$/;"	v
-CODE_LEN	../colr.h	/^const size_t CODE_LEN = 10;$/;"	v
-CODE_RGB_LEN	../colr.h	/^const size_t CODE_RGB_LEN = 23;$/;"	v
+CODEX_LEN	../colr.h	182;"	d
+CODE_ANY_LEN	../colr.h	201;"	d
+CODE_LEN	../colr.h	180;"	d
+CODE_RGB_LEN	../colr.h	193;"	d
 COLORNAME_BASIC	../colr.h	/^    COLORNAME_BASIC = 0,$/;"	e	enum:ColorNameType_t
 COLORNAME_EXTENDED	../colr.h	/^    COLORNAME_EXTENDED = 1,$/;"	e	enum:ColorNameType_t
 COLORNAME_INVALID	../colr.h	/^    COLORNAME_INVALID = -2,$/;"	e	enum:ColorNameType_t
@@ -20,9 +20,10 @@ COLORNAME_RGB	../colr.h	/^    COLORNAME_RGB = 2,$/;"	e	enum:ColorNameType_t
 COLORVAL_INVALID	../colr.h	/^const int COLORVAL_INVALID = -2;$/;"	v
 COLORVAL_INVALID_RANGE	../colr.h	/^const int COLORVAL_INVALID_RANGE = -1;$/;"	v
 COLOR_INVALID	../colr.h	/^    COLOR_INVALID = -2,$/;"	e	enum:Colors_t
-COLOR_LEN	../colr.h	/^const size_t COLOR_LEN = 40;$/;"	v
+COLOR_LEN	../colr.h	190;"	d
 COLOR_NONE	../colr.h	/^    COLOR_NONE = -1,$/;"	e	enum:Colors_t
-COLOR_RGB_LEN	../colr.h	/^const size_t COLOR_RGB_LEN = 32;$/;"	v
+COLOR_RGB_LEN	../colr.h	198;"	d
+COLR_H	../colr.h	4;"	d
 COLR_VERSION	../colr.h	10;"	d
 CYAN	../colr.h	/^    CYAN = 6,$/;"	e	enum:Colors_t
 ColorInfo	../colr.h	/^struct ColorInfo {$/;"	s
@@ -43,7 +44,7 @@ LIGHTNORMAL	../colr.h	/^    LIGHTNORMAL = 23$/;"	e	enum:Colors_t
 LIGHTRED	../colr.h	/^    LIGHTRED = 17,$/;"	e	enum:Colors_t
 LIGHTYELLOW	../colr.h	/^    LIGHTYELLOW = 19,$/;"	e	enum:Colors_t
 MAGENTA	../colr.h	/^    MAGENTA = 5,$/;"	e	enum:Colors_t
-MAX_COLOR_NAME_LEN	../colr.h	/^const size_t MAX_COLOR_NAME_LEN = 12;$/;"	v
+MAX_COLOR_NAME_LEN	../colr.h	203;"	d
 M_PI	../colr.h	21;"	d
 NORMAL	../colr.h	/^    NORMAL = 22$/;"	e	enum:Styles_t
 RED	../colr.h	/^    RED = 1,$/;"	e	enum:Colors_t
@@ -51,9 +52,9 @@ RESET	../colr.h	/^    RESET = 9,$/;"	e	enum:Colors_t
 RESET_ALL	../colr.h	/^    RESET_ALL = 0,$/;"	e	enum:Styles_t
 RGB	../colr.h	/^struct RGB {$/;"	s
 STYLE_INVALID	../colr.h	/^    STYLE_INVALID = -2,$/;"	e	enum:Styles_t
-STYLE_LEN	../colr.h	/^const size_t STYLE_LEN = 8;$/;"	v
+STYLE_LEN	../colr.h	185;"	d
 STYLE_NONE	../colr.h	/^    STYLE_NONE = -1,$/;"	e	enum:Styles_t
-STYLE_RESET_ALL	../colr.h	/^const char *STYLE_RESET_ALL = "\\033[0m";$/;"	v
+STYLE_RESET_ALL	../colr.h	177;"	d
 StyleInfo	../colr.h	/^struct StyleInfo {$/;"	s
 Styles	../colr.h	/^} Styles;$/;"	t	typeref:enum:Styles_t
 Styles_t	../colr.h	/^typedef enum Styles_t {$/;"	g
@@ -68,7 +69,6 @@ XNORMAL	../colr.h	/^    XNORMAL = 16,$/;"	e	enum:Colors_t
 XRED	../colr.h	/^    XRED = 10,$/;"	e	enum:Colors_t
 XYELLOW	../colr.h	/^    XYELLOW = 12,$/;"	e	enum:Colors_t
 YELLOW	../colr.h	/^    YELLOW = 3,$/;"	e	enum:Colors_t
-_COLORS_H_	../colr.h	4;"	d
 _GNU_SOURCE	../colr.h	7;"	d
 acolrbg	../colr.h	/^acolrbg(const char *s, Colors fore) {$/;"	f
 acolrbgx	../colr.h	/^acolrbgx(const char *s, unsigned char num) {$/;"	f

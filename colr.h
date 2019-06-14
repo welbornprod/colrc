@@ -1,7 +1,7 @@
-#ifndef _COLORS_H_
+#ifndef COLR_H
 #pragma GCC diagnostic ignored "-Wunused-macros"
 
-#define _COLORS_H_
+#define COLR_H
 
 #ifndef _GNU_SOURCE
     #define _GNU_SOURCE
@@ -170,37 +170,37 @@ const int COLORVAL_INVALID = -2;
 const int COLORVAL_INVALID_RANGE = -1;
 
 // Style code to reset all styling.
-extern const char *STYLE_RESET_ALL;
+//extern const char *STYLE_RESET_ALL;
 
 
 // Convenience const, because this is used a lot.
-const char *STYLE_RESET_ALL = "\033[0m";
+#define STYLE_RESET_ALL "\033[0m"
 
 // Maximum length for a basic fore/back escape code, including '\0'.
-const size_t CODE_LEN = 10;
+#define CODE_LEN 10
 // Maximum length for an extended fore/back escape code, including '\0'.
-const size_t CODEX_LEN = 15;
+#define CODEX_LEN 15
 
 // Maximum length for a style escape code, including '\0'.
-const size_t STYLE_LEN = 8;
+#define STYLE_LEN 8
 
 // Maximum length in chars for any combination of basic/extended escape codes.
 // Should be (CODEX_LEN * 2) + STYLE_LEN.
 // Allocating for a string that will be colorized must account for this.
-const size_t COLOR_LEN = 40;
+#define COLOR_LEN 40
 
 // Maximum length in chars for an RGB fore/back escape code.
-const size_t CODE_RGB_LEN = 23;
+#define CODE_RGB_LEN 23
 // Maximum length in chars added to a rgb colorized string.
 // Should be CODE_RGB_LEN + STYLE_LEN
 // Allocating for a string that will be colorized with rgb values must account
 // for this.
-const size_t COLOR_RGB_LEN = 32;
+#define COLOR_RGB_LEN 32
 // Maximum length in chars for any possible escape code mixture.
 // (basically (CODE_RGB_LEN * 2) + STYLE_LEN since rgb codes are the longest).
-const size_t CODE_ANY_LEN = 54;
+#define CODE_ANY_LEN 54
 // Maximim string length for a fore, back, or style name.
-const size_t MAX_COLOR_NAME_LEN = 12;
+#define MAX_COLOR_NAME_LEN 12
 
 // Allocate `str_len` + enough for a basic code with reset appended.
 #define alloc_with_code(str_len) (char*)calloc(str_len + CODEX_LEN, sizeof(char))
@@ -636,7 +636,16 @@ colrbgRGB(char *out, const char *s, struct RGB *rgb) {
                     *Must be null-terminated.
             rgb   : Pointer to an RGB struct to get the r, g, and b values.
     */
-    colrbgrgb(out, s, rgb->red, rgb->blue, rgb->green);
+    char backcode[CODE_RGB_LEN];
+    format_bg_RGB(backcode, rgb);
+    size_t oldlen = strlen(s);
+    size_t codeslen = strlen(backcode) + STYLE_LEN;
+    snprintf(
+        out,
+        oldlen + codeslen,
+        "%s%s%s",
+        backcode, s, STYLE_RESET_ALL
+    );
 }
 
 void
@@ -839,7 +848,16 @@ colrforeRGB(char *out, const char *s, struct RGB *rgb) {
                    *Must have enough room for `strlen(s) + COLOR_RGB_LEN`.
             rgb  : Pointer to an RGB struct to use for r, g, and b values.
     */
-    colrforergb(out, s, rgb->red, rgb->blue, rgb->green);
+    char forecode[CODE_RGB_LEN];
+    format_fore_RGB(forecode, rgb);
+    size_t oldlen = strlen(s);
+    size_t codeslen = strlen(forecode) + STYLE_LEN;
+    snprintf(
+        out,
+        oldlen + codeslen,
+        "%s%s%s",
+        forecode, s, STYLE_RESET_ALL
+    );
 }
 
 char*
@@ -1189,4 +1207,4 @@ stylename_to_style(const char *arg) {
     }
     return STYLE_INVALID;
 }
-#endif // _COLORS_H
+#endif // COLR_H

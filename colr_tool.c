@@ -12,7 +12,6 @@
     } while (0)
 
 int main(int argc, char *argv[]) {
-
     /* TODO: parse_args() for flag arguments, while keeping positionals. */
 
     // Declare args and setup some defaults.
@@ -24,13 +23,13 @@ int main(int argc, char *argv[]) {
     switch (argc) {
         case 5:
             return_on_null(str_copy(stylearg, argv[4], MAX_ARG_LEN - 1));
-            __attribute__((fallthrough));
+            /* fall through */
         case 4:
             return_on_null(str_copy(backarg, argv[3], MAX_ARG_LEN - 1));
-            __attribute__((fallthrough));
+            /* fall through */
         case 3:
             return_on_null(str_copy(forearg, argv[2], MAX_ARG_LEN - 1));
-            __attribute__((fallthrough));
+            /* fall through */
         case 2:
             return_on_null(str_copy(textarg, argv[1], MAX_TEXT_LEN - 1));
             break;
@@ -91,11 +90,13 @@ int main(int argc, char *argv[]) {
             Colors back = colorname_to_color(backarg);
             char *colorized = acolrize(textarg, fore, back, stylecode);
             printf("%s\n", colorized);
+            free(colorized);
         } else if (forenametype == COLORNAME_EXTENDED && backnametype == COLORNAME_EXTENDED) {
             unsigned char forex = colorname_to_colorx(forearg);
             unsigned char backx = colorname_to_colorx(backarg);
             char *colorizedx = acolrizex(textarg, forex, backx, stylecode);
             printf("%s\n", colorizedx);
+            free(colorizedx);
         } else {
             printferr("Cannot mix color types for fore/back!\n");
             return 1;

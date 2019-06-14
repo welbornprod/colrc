@@ -4,8 +4,9 @@
 SHELL=bash
 CC=gcc
 CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
+       -Wimplicit-fallthrough -Wlogical-not-parentheses \
        -Wmissing-include-dirs -Wnull-dereference -Wpedantic -Wshadow \
-       -Wstrict-prototypes -Wunused-macros \
+       -Wstrict-prototypes -Wunused \
        -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 \
        -D_GNU_SOURCE \
        -std=c11
@@ -31,11 +32,20 @@ $(binary): $(objects)
 	$(CC) -o $(binary) $(CFLAGS) $(objects) $(LIBS)
 
 %.o: %.c %.h
-	$(CC) -c $< $(CFLAGS) $(LIBS)
+	$(CC) -c $< $(CFLAGS)
 
 tags: $(source) $(headers)
 	-@printf "Building ctags...\n";
 	ctags $(source) $(headers);
+
+.PHONY: clang, clangrelease
+clang: CC=clang
+clang: CFLAGS+=-Wno-unknown-warning-option -Wliblto
+clang: debug
+
+clangrelease: CC=clang
+clangrelease: CFLAGS+=-Wno-unknown-warning-option -Wliblto
+clangrelease: release
 
 .PHONY: clean
 clean:
@@ -68,16 +78,18 @@ strip:
 .PHONY: help, targets
 help targets:
 	-@printf "Make targets available:\n\
-    all       : Build with no optimization or debug symbols.\n\
-    clean     : Delete previous build files.\n\
-    cleantest : Delete previous build files, build the binary and test binary,\n\
-                and run the tests.\n\
-    debug     : Build the executable with debug symbols.\n\
-    release   : Build the executable with optimization, and strip it.\n\
-    strip     : Run \`strip\` on the executable.\n\
-    tags      : Build tags for this project using \`ctags\`.\n\
-    test      : Build debug (if needed), build the test debug (if needed),\n\
-                and run the tests.\n\
+    all          : Build with no optimization or debug symbols.\n\
+    clang        : Use \`clang\` to build the default target.\n\
+    clangrelease : Use \`clang\` to build the release target.\n\
+    clean        : Delete previous build files.\n\
+    cleantest    : Delete previous build files, build the binary and the \n\
+                   test binary, and run the tests.\n\
+    debug        : Build the executable with debug symbols.\n\
+    release      : Build the executable with optimization, and strip it.\n\
+    strip        : Run \`strip\` on the executable.\n\
+    tags         : Build tags for this project using \`ctags\`.\n\
+    test         : Build debug (if needed), build the test debug (if needed),\n\
+                   and run the tests.\n\
 	";
 
 .PHONY: cleantest, test
