@@ -1,4 +1,3 @@
-colr.o
 colr
-colr_tool.o
+test_colr
 *.o
