@@ -7,10 +7,10 @@
 BLACK	../colr.h	/^    BLACK = 0,$/;"	e	enum:Colors_t
 BLUE	../colr.h	/^    BLUE = 4,$/;"	e	enum:Colors_t
 BRIGHT	../colr.h	/^    BRIGHT = 1,$/;"	e	enum:Styles_t
-CODEX_LEN	../colr.h	182;"	d
-CODE_ANY_LEN	../colr.h	201;"	d
-CODE_LEN	../colr.h	180;"	d
-CODE_RGB_LEN	../colr.h	193;"	d
+CODEX_LEN	../colr.h	184;"	d
+CODE_ANY_LEN	../colr.h	203;"	d
+CODE_LEN	../colr.h	182;"	d
+CODE_RGB_LEN	../colr.h	195;"	d
 COLORNAME_BASIC	../colr.h	/^    COLORNAME_BASIC = 0,$/;"	e	enum:ColorNameType_t
 COLORNAME_EXTENDED	../colr.h	/^    COLORNAME_EXTENDED = 1,$/;"	e	enum:ColorNameType_t
 COLORNAME_INVALID	../colr.h	/^    COLORNAME_INVALID = -2,$/;"	e	enum:ColorNameType_t
@@ -20,9 +20,9 @@ COLORNAME_RGB	../colr.h	/^    COLORNAME_RGB = 2,$/;"	e	enum:ColorNameType_t
 COLORVAL_INVALID	../colr.h	/^const int COLORVAL_INVALID = -2;$/;"	v
 COLORVAL_INVALID_RANGE	../colr.h	/^const int COLORVAL_INVALID_RANGE = -1;$/;"	v
 COLOR_INVALID	../colr.h	/^    COLOR_INVALID = -2,$/;"	e	enum:Colors_t
-COLOR_LEN	../colr.h	190;"	d
+COLOR_LEN	../colr.h	192;"	d
 COLOR_NONE	../colr.h	/^    COLOR_NONE = -1,$/;"	e	enum:Colors_t
-COLOR_RGB_LEN	../colr.h	198;"	d
+COLOR_RGB_LEN	../colr.h	200;"	d
 COLR_H	../colr.h	4;"	d
 COLR_VERSION	../colr.h	10;"	d
 CYAN	../colr.h	/^    CYAN = 6,$/;"	e	enum:Colors_t
@@ -44,7 +44,7 @@ LIGHTNORMAL	../colr.h	/^    LIGHTNORMAL = 23$/;"	e	enum:Colors_t
 LIGHTRED	../colr.h	/^    LIGHTRED = 17,$/;"	e	enum:Colors_t
 LIGHTYELLOW	../colr.h	/^    LIGHTYELLOW = 19,$/;"	e	enum:Colors_t
 MAGENTA	../colr.h	/^    MAGENTA = 5,$/;"	e	enum:Colors_t
-MAX_COLOR_NAME_LEN	../colr.h	203;"	d
+MAX_COLOR_NAME_LEN	../colr.h	205;"	d
 M_PI	../colr.h	21;"	d
 NORMAL	../colr.h	/^    NORMAL = 22$/;"	e	enum:Styles_t
 RED	../colr.h	/^    RED = 1,$/;"	e	enum:Colors_t
@@ -52,9 +52,9 @@ RESET	../colr.h	/^    RESET = 9,$/;"	e	enum:Colors_t
 RESET_ALL	../colr.h	/^    RESET_ALL = 0,$/;"	e	enum:Styles_t
 RGB	../colr.h	/^struct RGB {$/;"	s
 STYLE_INVALID	../colr.h	/^    STYLE_INVALID = -2,$/;"	e	enum:Styles_t
-STYLE_LEN	../colr.h	185;"	d
+STYLE_LEN	../colr.h	187;"	d
 STYLE_NONE	../colr.h	/^    STYLE_NONE = -1,$/;"	e	enum:Styles_t
-STYLE_RESET_ALL	../colr.h	177;"	d
+STYLE_RESET_ALL	../colr.h	179;"	d
 StyleInfo	../colr.h	/^struct StyleInfo {$/;"	s
 Styles	../colr.h	/^} Styles;$/;"	t	typeref:enum:Styles_t
 Styles_t	../colr.h	/^typedef enum Styles_t {$/;"	g
@@ -81,10 +81,10 @@ acolrize	../colr.h	/^acolrize(const char *s, Colors fore, Colors back, Styles st
 acolrizechar	../colr.h	/^acolrizechar(const char c, Colors fore, Colors back, Styles style) {$/;"	f
 acolrizex	../colr.h	/^acolrizex($/;"	f
 acolrstyle	../colr.h	/^acolrstyle(const char *s, Styles style) {$/;"	f
-alloc_with_code	../colr.h	206;"	d
-alloc_with_codes	../colr.h	208;"	d
-alloc_with_rgb	../colr.h	210;"	d
-alloc_with_style	../colr.h	212;"	d
+alloc_with_code	../colr.h	208;"	d
+alloc_with_codes	../colr.h	210;"	d
+alloc_with_rgb	../colr.h	212;"	d
+alloc_with_style	../colr.h	214;"	d
 blue	../colr.h	/^    unsigned char blue;$/;"	m	struct:RGB
 color	../colr.h	/^    Colors color;$/;"	m	struct:ColorInfo
 color_names	../colr.h	/^} color_names[] = {$/;"	v	typeref:struct:ColorInfo
@@ -134,11 +134,13 @@ run_format_bg_tests	test_colr.c	/^int run_format_bg_tests(void) {$/;"	f
 run_format_fore_tests	test_colr.c	/^int run_format_fore_tests(void) {$/;"	f
 str_copy	../colr.h	/^str_copy(char *dest, const char *src, size_t length) {$/;"	f
 str_tolower	../colr.h	/^str_tolower(char *out, const char *s) {$/;"	f
+streq	../colr.h	36;"	d
 style	../colr.h	/^    Styles style;$/;"	m	struct:StyleInfo
 style_names	../colr.h	/^} style_names[] = {$/;"	v	typeref:struct:StyleInfo
 style_names_len	../colr.h	/^size_t style_names_len = sizeof style_names \/ sizeof (struct StyleInfo);$/;"	v
 stylename_to_style	../colr.h	/^stylename_to_style(const char *arg) {$/;"	f
 test_colorname_to_color	test_colr.c	/^static void test_colorname_to_color(void **state) {$/;"	f	file:
+test_colorname_type	test_colr.c	/^static void test_colorname_type(void **state) {$/;"	f	file:
 test_format_bg	test_colr.c	/^static void test_format_bg(void **state) {$/;"	f	file:
 test_format_bg_RGB	test_colr.c	/^static void test_format_bg_RGB(void **state) {$/;"	f	file:
 test_format_bg_rgb	test_colr.c	/^static void test_format_bg_rgb(void **state) {$/;"	f	file:

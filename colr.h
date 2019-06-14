@@ -33,6 +33,8 @@
     #endif
 #endif
 
+#define streq(s1, s2) (!strcmp(s1, s2))
+
 /*  TODO: The extended colors should be easier to mix with regular colors.
           e.g.: color(RED, colorbg(BLUE, style(BRIGHT, "test")))
             or: color("test", RED || 255, BLUE || 255, BRIGHT)
@@ -411,6 +413,21 @@ colorname_to_colorx(const char *arg) {
         Returns a value between 0 and 255 on success.
         Returns `COLORVAL_INVALID` on error or bad values.
     */
+    if (streq(arg, "xred")) return XRED;
+    if (streq(arg, "xgreen")) return XGREEN;
+    if (streq(arg, "xyellow")) return XYELLOW;
+    if (streq(arg, "xblue")) return XBLUE;
+    if (streq(arg, "xmagenta")) return XMAGENTA;
+    if (streq(arg, "xcyan")) return XCYAN;
+    if (streq(arg, "xnormal")) return XNORMAL;
+    if (streq(arg, "lightred")) return LIGHTRED;
+    if (streq(arg, "lightgreen")) return LIGHTGREEN;
+    if (streq(arg, "lightyellow")) return LIGHTYELLOW;
+    if (streq(arg, "lightblue")) return LIGHTBLUE;
+    if (streq(arg, "lightmagenta")) return LIGHTMAGENTA;
+    if (streq(arg, "lightcyan")) return LIGHTCYAN;
+    if (streq(arg, "lightnormal")) return LIGHTNORMAL;
+
     // Using `long` to combat easy overflow.
     long usernum;
     if (!sscanf(arg, "%ld", &usernum)) {
@@ -524,16 +541,16 @@ colorname_type(const char *arg) {
     } else if (rgb_ret != COLORNAME_INVALID) {
         return COLORNAME_RGB;
     }
-    // Try basic colors.
-    if (colorname_to_color(arg) != COLOR_INVALID) {
-        return COLORNAME_BASIC;
-    }
     // Extended colors.
     int x_ret = colorname_to_colorx(arg);
     if (x_ret == COLORVAL_INVALID_RANGE) {
         return COLORNAME_INVALID_EXTENDED_RANGE;
     } else if (x_ret != COLORVAL_INVALID) {
         return COLORNAME_EXTENDED;
+    }
+    // Try basic colors.
+    if (colorname_to_color(arg) != COLOR_INVALID) {
+        return COLORNAME_BASIC;
     }
     return COLORNAME_INVALID;
 }

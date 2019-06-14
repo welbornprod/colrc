@@ -19,6 +19,28 @@ static void test_colorname_to_color(void **state) {
     assert_true(colorname_to_color("NOTACOLOR") == COLOR_INVALID);
 }
 
+static void test_colorname_type(void **state) {
+    /*  Tests colorname_to_color basic usage.
+    */
+    (void)state; // Unused (no setup/teardown function used.)
+    struct TestItems {
+        const char* arg;
+        ColorNameType ret;
+    } test_items[] = {
+        {"NOTACOLOR", COLORNAME_INVALID},
+        {"red", COLORNAME_BASIC},
+        {"lightblue", COLORNAME_EXTENDED},
+        {"234,234,234", COLORNAME_RGB},
+        {"355,255,255", COLORNAME_INVALID_RGB_RANGE},
+    };
+    size_t test_item_len = sizeof(test_items) / sizeof(struct TestItems);
+    for (size_t i = 0; i < test_item_len; i++) {
+        const char *arg = test_items[i].arg;
+        ColorNameType ret = test_items[i].ret;
+        assert_true(colorname_type(arg) == ret);
+    }
+}
+
 static void test_format_bg(void **state) {
     /*  Tests basic format_bg usage.
     */
@@ -71,6 +93,7 @@ static void test_format_fore(void **state) {
 int run_colorname_tests(void) {
     const struct CMUnitTest colorname_tests[] = {
         cmocka_unit_test(test_colorname_to_color),
+        cmocka_unit_test(test_colorname_type),
     };
     return cmocka_run_group_tests_name("colorname_tests", colorname_tests, NULL, NULL);
 }

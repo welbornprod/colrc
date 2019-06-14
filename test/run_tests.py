@@ -240,6 +240,8 @@ def run_parse(exe, style=None):
         return 1
 
     print_output(stdout.decode(), style=style)
+    if stderr:
+        print_err(stderr.decode())
     return exitcode
 
 

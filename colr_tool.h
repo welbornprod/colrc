@@ -15,7 +15,9 @@
 
 #define NAME "Colr"
 #define VERSION COLR_VERSION
-#define streq(s1, s2) (!strcmp(s1, s2))
+#ifndef streq
+    #define streq(s1, s2) (!strcmp(s1, s2))
+#endif
 #define argeq(arg, s1, s2) (!strcmp(arg, s1)) || (!strcmp(arg, s2))
 #define printferr(...) fprintf(stderr, __VA_ARGS__)
 
