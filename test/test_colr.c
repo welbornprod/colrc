@@ -39,6 +39,15 @@ static void test_colorname_type(void **state) {
         ColorNameType ret = test_items[i].ret;
         assert_true(colorname_type(arg) == ret);
     }
+
+    for (size_t i = 0; i < color_names_len; i++) {
+        char *name = color_names[i].name;
+        if (str_startswith(name, "light") || str_startswith(name, "x")) {
+            assert_true(colorname_type(name) == COLORNAME_EXTENDED);
+        } else {
+            assert_true(colorname_type(name) == COLORNAME_BASIC);
+        }
+    }
 }
 
 static void test_format_bg(void **state) {
@@ -90,6 +99,25 @@ static void test_format_fore(void **state) {
     assert_true(strlen(codeonly) > 3);
 }
 
+static void test_str_startswith(void **state) {
+    /*  Tests str_startswith.
+    */
+    (void)state; // Unused.
+    // Common uses.
+    assert_true(str_startswith("lightblue", "light"));
+    assert_true(str_startswith("xred", "x"));
+    assert_true(str_startswith("yellow", "yel"));
+    assert_true(str_startswith("!@#$^&*", "!@"));
+    assert_true(str_startswith("    test", "    "));
+    // Should not trigger a match.
+    assert_false(str_startswith("test", "a"));
+    assert_false(str_startswith(" test", "test"));
+    assert_false(str_startswith("t", "apple"));
+    assert_false(str_startswith(NULL, "a"));
+    assert_false(str_startswith("test", NULL));
+    assert_false(str_startswith(NULL, NULL));
+}
+
 int run_colorname_tests(void) {
     const struct CMUnitTest colorname_tests[] = {
         cmocka_unit_test(test_colorname_to_color),
@@ -115,10 +143,18 @@ int run_format_fore_tests(void) {
     return cmocka_run_group_tests_name("format_fore_tests", format_fore_tests, NULL, NULL);
 }
 
+int run_helper_tests(void) {
+    const struct CMUnitTest helper_tests[] = {
+        cmocka_unit_test(test_str_startswith),
+    };
+    return cmocka_run_group_tests_name("helper_tests", helper_tests, NULL, NULL);
+}
+
 int main(int argc, char *argv[]) {
     (void)argc; // <- To silence linters when not using argc.
     (void)argv; // <- To silence linters when not using argv.
     int errs = 0;
+    errs += run_helper_tests();
     errs += run_colorname_tests();
     errs += run_format_bg_tests();
     errs += run_format_fore_tests();

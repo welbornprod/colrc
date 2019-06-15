@@ -132,7 +132,9 @@ red	../colr.h	/^    unsigned char red;$/;"	m	struct:RGB
 run_colorname_tests	test_colr.c	/^int run_colorname_tests(void) {$/;"	f
 run_format_bg_tests	test_colr.c	/^int run_format_bg_tests(void) {$/;"	f
 run_format_fore_tests	test_colr.c	/^int run_format_fore_tests(void) {$/;"	f
+run_helper_tests	test_colr.c	/^int run_helper_tests(void) {$/;"	f
 str_copy	../colr.h	/^str_copy(char *dest, const char *src, size_t length) {$/;"	f
+str_startswith	../colr.h	/^str_startswith(const char *s, const char *prefix) {$/;"	f
 str_tolower	../colr.h	/^str_tolower(char *out, const char *s) {$/;"	f
 streq	../colr.h	36;"	d
 style	../colr.h	/^    Styles style;$/;"	m	struct:StyleInfo
@@ -146,3 +148,4 @@ test_format_bg_RGB	test_colr.c	/^static void test_format_bg_RGB(void **state) {$
 test_format_bg_rgb	test_colr.c	/^static void test_format_bg_rgb(void **state) {$/;"	f	file:
 test_format_bgx	test_colr.c	/^static void test_format_bgx(void **state) {$/;"	f	file:
 test_format_fore	test_colr.c	/^static void test_format_fore(void **state) {$/;"	f	file:
+test_str_startswith	test_colr.c	/^static void test_str_startswith(void **state) {$/;"	f	file:

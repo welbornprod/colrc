@@ -379,6 +379,35 @@ str_copy(char *dest, const char *src, size_t length) {
     return dest;
 }
 
+int
+str_startswith(const char *s, const char *prefix) {
+    /*  Returns non-zero if the string `s` starts with `prefix`.
+        Returns 0 if one of the strings is null, or the prefix isn't found.
+
+        *Warning: `prefix` must be null-terminated.
+
+        Arguments:
+            s      : The string to check.
+            prefix : The prefix string to look for.
+    */
+    if (!s || !prefix) {
+        // One of the strings is null.
+        return 0;
+    }
+    size_t pre_len = strlen(prefix);
+    for (size_t i = 0; i < pre_len; i++) {
+        if (s[i] == '\0') {
+            // Reached the end of `s` before the end of `prefix`.
+            return 0;
+        }
+        if (prefix[i] != s[i]) {
+            // Character differs from the prefix.
+            return 0;
+        }
+    }
+    return 1;
+}
+
 void
 str_tolower(char *out, const char *s) {
     int length = 0;

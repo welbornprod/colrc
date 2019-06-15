@@ -154,6 +154,7 @@ read_stdin_arg	colr_tool.c	/^read_stdin_arg(char *textarg, size_t length) {$/;"	
 red	colr.h	/^    unsigned char red;$/;"	m	struct:RGB
 return_on_null	colr_tool.c	7;"	d	file:
 str_copy	colr.h	/^str_copy(char *dest, const char *src, size_t length) {$/;"	f
+str_startswith	colr.h	/^str_startswith(const char *s, const char *prefix) {$/;"	f
 str_tolower	colr.h	/^str_tolower(char *out, const char *s) {$/;"	f
 streq	colr.h	36;"	d
 streq	colr_tool.h	19;"	d
