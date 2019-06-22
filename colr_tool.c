@@ -45,8 +45,6 @@ int main(int argc, char *argv[]) {
         print_usage_full();
     } else if (streq(textarg, "-basic")) {
         print_basic();
-    } else if (streq(textarg, "-build")) {
-        example_color_build();
     } else if streq(textarg, "-rainbow") {
         print_rainbow_fore();
     } else if (streq(textarg, "-256")) {
@@ -74,7 +72,7 @@ int main(int argc, char *argv[]) {
                  This tool should show colrizex and colrforergb.
                  See TODOS in colr.h, still need colrizergb() implementation.
         */
-        Styles stylecode = stylename_to_style(stylearg);
+        StyleValue stylecode = stylename_to_style(stylearg);
         if (!validate_style_arg(stylecode, stylearg)) return 1;
 
         ColorNameType forenametype = colorname_type(forearg);
@@ -86,15 +84,17 @@ int main(int argc, char *argv[]) {
                   back colors.
         */
         if (forenametype == COLORNAME_BASIC && backnametype == COLORNAME_BASIC) {
-            Colors fore = colorname_to_color(forearg);
-            Colors back = colorname_to_color(backarg);
-            char *colorized = acolrize(textarg, fore, back, stylecode);
+            BasicValue fore = colorname_to_color(forearg);
+            BasicValue back = colorname_to_color(backarg);
+            char *colorized = alloc_with_codes(strlen(textarg));
+            colrize(colorized, textarg, fore, back, stylecode);
             printf("%s\n", colorized);
             free(colorized);
         } else if (forenametype == COLORNAME_EXTENDED && backnametype == COLORNAME_EXTENDED) {
             unsigned char forex = colorname_to_colorx(forearg);
             unsigned char backx = colorname_to_colorx(backarg);
-            char *colorizedx = acolrizex(textarg, forex, backx, stylecode);
+            char *colorizedx = alloc_with_codes(strlen(textarg));
+            colrizex(colorizedx, textarg, forex, backx, stylecode);
             printf("%s\n", colorizedx);
             free(colorizedx);
         } else {
@@ -118,33 +118,6 @@ debug_args(char *text, char *fore, char *back, char *style) {
     );
 }
 
-void
-example_color_build(void) {
-    /* Example colr.h usage, building a string from a mixture of color codes.
-    */
-    size_t length = 15; // strlen("This is a test.")
-    size_t wordlen = 5; // 5 seperate colorized strings.
-    // Allow enough space for color codes.
-    size_t finallen = length + (wordlen * COLOR_LEN);
-    char *s = (char*)calloc(finallen, sizeof(char));
-    debug(
-        "Building string of %ld characters for color building.\n",
-        finallen
-    );
-    colrforecat(s, "This ", RED);
-    printf("\n%s\n", s);
-    colrizecat(s, "is ", BLUE, WHITE, BRIGHT);
-    printf("\n%s\n", s);
-    colrbgcat(s, "a ", MAGENTA);
-    printf("\n%s\n", s);
-    colrforecat(s, "test", GREEN);
-    printf("\n%s\n", s);
-    colrizecharcat(s, '.', LIGHTCYAN, RESET, NORMAL);
-    printf("\n%s\n", s);
-    debug("\nFinal string length was: %ld\n", strlen(s));
-
-    free(s);
-}
 
 void
 print_256(colorext_func func) {
@@ -238,7 +211,7 @@ print_rgb(colorrgb_func func) {
                 // Make the rgb text.
                 snprintf(num, 12, "%03d;%03d;%03d", r, g, b);
                 // Colorize it.
-                struct RGB vals = {r, g, b};
+                RGB vals = {r, g, b};
                 func(text, num, &vals);
                 count++;
                 printf("%s ", text);
@@ -288,7 +261,6 @@ print_usage_full() {
 \n\
     Commands:\n\
         -basic            : Print all basic color names and colors.\n\
-        -build            : Run color building example.\n\
         -256              : Print all extended color names and colors.\n\
         -256b, b256       : Print all extended back color names and colors.\n\
         -rainbow          : Print a rainbow example.\n\
@@ -341,21 +313,6 @@ read_stdin_arg(char *textarg, size_t length) {
     }
 }
 
-bool
-validate_color_arg_OLD(char *type, Colors code, char *name) {
-    /*  Checks `code` for COLOR_INVALID, and prints the usage string with a
-        warning message if it is invalid.
-        If the code is not invalid, it simply returns true.
-    */
-    if (code == COLOR_INVALID) {
-        char errmsg[MAX_ERR_LEN];
-        snprintf(errmsg, MAX_ERR_LEN, "Invalid %s color name: %s", type, name);
-        print_usage(errmsg);
-        return false;
-    }
-    return true;
-}
-
 
 bool
 validate_color_arg(const char *type, ColorNameType nametype, const char *name) {
@@ -386,7 +343,7 @@ validate_color_arg(const char *type, ColorNameType nametype, const char *name) {
 }
 
 bool
-validate_style_arg(Styles code, char *name) {
+validate_style_arg(StyleValue code, char *name) {
     /*  Checks `code` for STYLE_INVALID, and prints the usage string with a
         warning message if it is invalid.
         If the code is not invalid, it simply returns true.
