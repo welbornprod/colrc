@@ -19,7 +19,12 @@ int main(int argc, char *argv[]) {
     char forearg[MAX_ARG_LEN + 1] = "reset";
     char backarg[MAX_ARG_LEN + 1] = "reset";
     char stylearg[MAX_ARG_LEN + 1] = "reset";
-
+    // -------------------------------------------------------
+    char mine[CODE_ANY_LEN];
+    format_all(mine, rgb(232, 0, 100), ext(232), (StyleValue)NORMAL);
+    printf("%sTesting this out.%s\n", mine, STYLE_RESET_ALL);
+    return 1;
+    // -------------------------------------------------------
     switch (argc) {
         case 5:
             return_on_null(str_copy(stylearg, argv[4], MAX_ARG_LEN - 1));
@@ -48,9 +53,9 @@ int main(int argc, char *argv[]) {
     } else if streq(textarg, "-rainbow") {
         print_rainbow_fore();
     } else if (streq(textarg, "-256")) {
-        print_256(colrforex);
+        print_256(colrfgx);
     } else if (streq(textarg, "-rgb")) {
-        print_rgb(colrforeRGB);
+        print_rgb(colrfgRGB);
     } else if (streq(textarg, "-brgb") || streq(textarg, "-rgbb")) {
         print_rgb(colrbgRGB);
     } else if (streq(textarg, "-b256") || streq(textarg, "-256b")) {
@@ -63,13 +68,13 @@ int main(int argc, char *argv[]) {
         }
         // Rainbowize the text arg.
         if (streq(forearg, "rainbow")) {
-            char *rainbowized = acolrforerainbow(textarg, 0.1, 3.0);
+            char *rainbowized = acolrfgrainbow(textarg, 0.1, 3.0);
             printf("%s\n", rainbowized);
             free(rainbowized);
             return 0;
         }
         /* TODO: colorname_to_color (and colrize) are only for basic codes.
-                 This tool should show colrizex and colrforergb.
+                 This tool should show colrizex and colrfgrgb.
                  See TODOS in colr.h, still need colrizergb() implementation.
         */
         StyleValue stylecode = stylename_to_style(stylearg);
@@ -121,7 +126,7 @@ debug_args(char *text, char *fore, char *back, char *style) {
 
 void
 print_256(colorext_func func) {
-    /*  Print the 256 color range using either colrforex or colorbgx.
+    /*  Print the 256 color range using either colrfgx or colorbgx.
         The function choice is passed as an argument.
     */
     char num[4];
@@ -192,14 +197,14 @@ void
 print_rainbow_fore() {
     /* Demo the rainbow method. */
     char text[] = "This is a demo of the rainbow function.";
-    char *textfmt = acolrforerainbow(text, 0.1, 30);
+    char *textfmt = acolrfgrainbow(text, 0.1, 30);
     printf("%s\n", textfmt);
     free(textfmt);
 }
 
 void
 print_rgb(colorrgb_func func) {
-    /*  Print part of the RGB range using either colrforergb, or .
+    /*  Print part of the RGB range using either colrfgrgb, or .
         The function choice is passed as an argument.
     */
     char num[12];
@@ -212,7 +217,7 @@ print_rgb(colorrgb_func func) {
                 snprintf(num, 12, "%03d;%03d;%03d", r, g, b);
                 // Colorize it.
                 RGB vals = {r, g, b};
-                func(text, num, &vals);
+                func(text, num, vals);
                 count++;
                 printf("%s ", text);
                 if (count > 3) {

@@ -86,16 +86,16 @@ static void test_format_bg_RGB(void **state) {
     (void)state; // Unused (no setup/teardown function used.)
     char codeonly[CODE_RGB_LEN];
     RGB rgb = {25, 35, 45};
-    format_bg_RGB(codeonly, &rgb);
+    format_bg_RGB(codeonly, rgb);
     assert_true(strlen(codeonly) < 30);
 }
 
-static void test_format_fore(void **state) {
-    /*  Tests basic format_fore usage.
+static void test_format_fg(void **state) {
+    /*  Tests basic format_fg usage.
     */
     (void)state; // Unused (no setup/teardown function used.)
     char codeonly[CODE_LEN];
-    format_fore(codeonly, RED);
+    format_fg(codeonly, RED);
     assert_true(strlen(codeonly) > 3);
 }
 
@@ -136,11 +136,11 @@ int run_format_bg_tests(void) {
     return cmocka_run_group_tests_name("format_bg_tests", format_bg_tests, NULL, NULL);
 }
 
-int run_format_fore_tests(void) {
-    const struct CMUnitTest format_fore_tests[] = {
-        cmocka_unit_test(test_format_fore),
+int run_format_fg_tests(void) {
+    const struct CMUnitTest format_fg_tests[] = {
+        cmocka_unit_test(test_format_fg),
     };
-    return cmocka_run_group_tests_name("format_fore_tests", format_fore_tests, NULL, NULL);
+    return cmocka_run_group_tests_name("format_fg_tests", format_fg_tests, NULL, NULL);
 }
 
 int run_helper_tests(void) {
@@ -157,6 +157,6 @@ int main(int argc, char *argv[]) {
     errs += run_helper_tests();
     errs += run_colorname_tests();
     errs += run_format_bg_tests();
-    errs += run_format_fore_tests();
+    errs += run_format_fg_tests();
     return errs;
 }

@@ -35,11 +35,11 @@
 
 // Assumes memory allocated in a variable named `name`.
 #define print_fore_color(codename) \
-    colrfore(name, #codename, codename); \
+    colrfg(name, #codename, codename); \
     printf("%s ", name);
 
 typedef void (*colorext_func)(char*, const char*, unsigned char);
-typedef void (*colorrgb_func)(char*, const char*, RGB*);
+typedef void (*colorrgb_func)(char*, const char*, RGB);
 void debug_args(char*, char*, char*, char*);
 void example_color_build(void);
 void print_256(colorext_func);

@@ -38,6 +38,59 @@
 #define argeq(arg, s1, s2) (!strcmp(arg, s1)) || (!strcmp(arg, s2))
 #define printferr(...) fprintf(stderr, __VA_ARGS__)
 
+/* Uses the correct format_fg* function according to the type of it's first
+   argument.
+   Arguments:
+        out  : char* with memory allocated for the escape code string.
+        x    : BasicValue, Extended (unsigned char), or RGB value for fore color.
+*/
+#define format_fore(out, x) \
+    _Generic( \
+        (x), \
+        RGB: format_fg_RGB, \
+        BasicValue: format_fg, \
+        unsigned char: format_fgx \
+    )(out, x)
+
+/* Uses the correct format_bg* function according to the type of it's first
+   argument.
+   Arguments:
+        out  : char* with memory allocated for the escape code string.
+        x    : BasicValue, ExtendedValue, or RGB value for back color.
+*/
+#define format_back(out, x) \
+    _Generic( \
+        (x), \
+        RGB: format_bg_RGB, \
+        BasicValue: format_bg, \
+        unsigned char: format_bgx \
+    )(out, x)
+
+/* Uses the format_fore/back macros, along with format_style, to build a
+   style (string of escape codes).
+   Arguments:
+        out   : char *buffer, must have a size of at least CODE_ANY_LEN.
+        fore  : BasicValue, ExtendedValue, or RGB for fore color.
+        back  : BasicValue, ExtendedValue, or RGB for back color.
+        style : StyleValue for style.
+*/
+#define format_all(out, fore, back, style) \
+    do { \
+        char _fa_fore[CODE_RGB_LEN]; \
+        format_fore(_fa_fore, fore); \
+        char _fa_back[CODE_RGB_LEN]; \
+        format_back(_fa_back, back); \
+        char _fa_style[STYLE_LEN]; \
+        format_style(_fa_style, style); \
+        sprintf(out, "%s%s%s", _fa_style, _fa_fore, _fa_back); \
+    } while (0)
+
+/*  Creates an anonymous RGB struct for use in function calls.
+*/
+#define rgb(r, g, b) ((RGB){r, g, b})
+/* Casts to ExtendedValue (unsigned char).
+*/
+#define ext(x) (ExtendedValue)(x)
 
 /*  TODO: The extended colors should be easier to mix with regular colors.
           e.g.: color(RED, colorbg(BLUE, style(BRIGHT, "test")))
@@ -80,6 +133,8 @@ typedef enum BasicValue_t {
     LIGHTNORMAL = 23
 
 } BasicValue;
+
+typedef unsigned char ExtendedValue;
 
 typedef struct RGB_t {
     /* RGB value container.
@@ -256,7 +311,7 @@ format_bg_rgb(char *out, unsigned char red, unsigned char green, unsigned char b
 }
 
 void
-format_bg_RGB(char *out, RGB *rgb) {
+format_bg_RGB(char *out, RGB rgb) {
     /*  Create an escape code for a true color (rgb) background color
         using values from an RGB struct.
         Arguments:
@@ -264,11 +319,11 @@ format_bg_RGB(char *out, RGB *rgb) {
                     *Must have enough room for `CODE_RGB_LEN`.
             rgb   : RGB struct to get red, blue, and green values from.
     */
-    format_bg_rgb(out, rgb->red, rgb->green, rgb->blue);
+    format_bg_rgb(out, rgb.red, rgb.green, rgb.blue);
 }
 
 void
-format_forex(char *out, unsigned char num) {
+format_fgx(char *out, unsigned char num) {
     /*  Create an escape code for an extended fore color.
         Arguments:
             out   : Memory allocated for the escape code string.
@@ -279,7 +334,7 @@ format_forex(char *out, unsigned char num) {
 }
 
 void
-format_fore(char *out, BasicValue value) {
+format_fg(char *out, BasicValue value) {
     /*  Create an escape code for a fore color.
         Arguments:
             out   : Memory allocated for the escape code string.
@@ -287,14 +342,14 @@ format_fore(char *out, BasicValue value) {
             value : BasicValue value to use for fore.
     */
     if (value > 9) {
-        format_forex(out, value - (value > 16 ? 8: 9));
+        format_fgx(out, value - (value > 16 ? 8: 9));
     } else {
         snprintf(out, CODE_LEN, "\033[%dm", (value < 0 ? RESET: value) + 30);
     }
 }
 
 void
-format_fore_rgb(char *out, unsigned char red, unsigned char green, unsigned char blue) {
+format_fg_rgb(char *out, unsigned char red, unsigned char green, unsigned char blue) {
     /*  Create an escape code for a true color (rgb) fore color.
         Arguments:
             out   : Memory allocated for the escape code string.
@@ -307,14 +362,14 @@ format_fore_rgb(char *out, unsigned char red, unsigned char green, unsigned char
 }
 
 void
-format_fore_RGB(char *out, RGB *rgb) {
+format_fg_RGB(char *out, RGB rgb) {
     /*  Create an escape code for a true color (rgb) fore color using an
         RGB struct's values.
         Arguments:
             out  : Memory allocated for the escape code string.
             rgb  : Pointer to an RGB struct.
     */
-    format_fore_rgb(out, rgb->red, rgb->green, rgb->blue);
+    format_fg_rgb(out, rgb.red, rgb.green, rgb.blue);
 }
 
 void
@@ -329,7 +384,7 @@ format_rainbow_fore(char *out, double freq, size_t step) {
     double red = sin(freq * step + 0) * 127 + 128;
     double green = sin(freq * step + 2 * M_PI / 3) * 127 + 128;
     double blue = sin(freq * step + 4 * M_PI / 3) * 127 + 128;
-    format_fore_rgb(
+    format_fg_rgb(
         out,
         (unsigned char)red,
         (unsigned char)green,
@@ -634,7 +689,7 @@ colrbgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsi
 }
 
 void
-colrbgRGB(char *out, const char *s, RGB *rgb) {
+colrbgRGB(char *out, const char *s, RGB rgb) {
     /*  Colorize a string using true color, rgb back colors and copy the
         result into `out`.
         The StyleValue.RESET_ALL code is already appended to the result.
@@ -682,7 +737,7 @@ colrbgx(char *out, const char *s, unsigned char num) {
 }
 
 void
-colrfore(char *out, const char *s, BasicValue fore) {
+colrfg(char *out, const char *s, BasicValue fore) {
     /*  Prepend fore color codes to a string, and copy the result into `out`.
         The STYLE_RESET_ALL code is already appended to the result.
         Arguments:
@@ -693,7 +748,7 @@ colrfore(char *out, const char *s, BasicValue fore) {
             fore : `BasicValue` code to use.
     */
     char forecode[CODEX_LEN];
-    format_fore(forecode, fore);
+    format_fg(forecode, fore);
     size_t oldlen = strlen(s);
     size_t codeslen = CODEX_LEN + STYLE_LEN;
     snprintf(
@@ -704,7 +759,7 @@ colrfore(char *out, const char *s, BasicValue fore) {
 }
 
 void
-colrforechar(char *out, const char c, BasicValue fore) {
+colrfgchar(char *out, const char c, BasicValue fore) {
     /*  Build a colorized string, from a single character.
 
         Arguments:
@@ -715,11 +770,11 @@ colrforechar(char *out, const char c, BasicValue fore) {
     */
     char s[2] = "\0\0";
     s[0] = c;
-    colrfore(out, s, fore);
+    colrfg(out, s, fore);
 }
 
 void
-colrforerainbow(char *out, const char *s, double freq, size_t offset) {
+colrfgrainbow(char *out, const char *s, double freq, size_t offset) {
     /*  Rainbow-ize some text using rgb fore colors, lolcat style.
         The STYLE_RESET_ALL code is already appended to the result.
         Arguments:
@@ -747,8 +802,8 @@ colrforerainbow(char *out, const char *s, double freq, size_t offset) {
 }
 
 char *
-acolrforerainbow(const char *s, double freq, size_t offset) {
-    /*  Like `colrforerainbow`, except it allocates the string for you, with
+acolrfgrainbow(const char *s, double freq, size_t offset) {
+    /*  Like `colrfgrainbow`, except it allocates the string for you, with
      enough room to fit the string and any escape codes needed.
 
      Returns the allocated/formatted string on success.
@@ -761,12 +816,12 @@ acolrforerainbow(const char *s, double freq, size_t offset) {
     */
     size_t oldlen = strlen(s);
     char *out = (char*)calloc(oldlen + (CODE_RGB_LEN * oldlen), sizeof(char));
-    colrforerainbow(out, s, freq, offset);
+    colrfgrainbow(out, s, freq, offset);
     return out;
 }
 
 void
-colrforergb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue) {
+colrfgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue) {
     /*  Colorize a string using true color, rgb fore colors and copy the
         result into `out`.
         The StyleValue.RESET_ALL code is already appended to the result.
@@ -780,7 +835,7 @@ colrforergb(char *out, const char *s, unsigned char red, unsigned char green, un
             blue  : Value for blue.
     */
     char forecode[CODE_RGB_LEN];
-    format_fore_rgb(forecode, red, green, blue);
+    format_fg_rgb(forecode, red, green, blue);
     size_t oldlen = strlen(s);
     size_t codeslen = strlen(forecode) + STYLE_LEN;
     snprintf(
@@ -792,7 +847,7 @@ colrforergb(char *out, const char *s, unsigned char red, unsigned char green, un
 }
 
 void
-colrforeRGB(char *out, const char *s, RGB *rgb) {
+colrfgRGB(char *out, const char *s, RGB rgb) {
     /*  Colorize a string using true color, rgb fore colors and copy the
         result into `out`.
         The StyleValue.RESET_ALL code is already appended to the result.
@@ -802,7 +857,7 @@ colrforeRGB(char *out, const char *s, RGB *rgb) {
             rgb  : Pointer to an RGB struct to use for r, g, and b values.
     */
     char forecode[CODE_RGB_LEN];
-    format_fore_RGB(forecode, rgb);
+    format_fg_RGB(forecode, rgb);
     size_t oldlen = strlen(s);
     size_t codeslen = strlen(forecode) + STYLE_LEN;
     snprintf(
@@ -814,7 +869,7 @@ colrforeRGB(char *out, const char *s, RGB *rgb) {
 }
 
 void
-colrforex(char *out, const char *s, unsigned char num) {
+colrfgx(char *out, const char *s, unsigned char num) {
     /*  Colorize a string using extended, 256 colors, and copy the
         result into `out`.
         The StyleValue.RESET_ALL code is already appended to the result.
@@ -826,7 +881,7 @@ colrforex(char *out, const char *s, unsigned char num) {
             num  : Code number, 0-255 inclusive.
     */
     char forecode[CODEX_LEN];
-    format_forex(forecode, num);
+    format_fgx(forecode, num);
     size_t oldlen = strlen(s);
     size_t codeslen = strlen(forecode) + STYLE_LEN;
 
@@ -855,7 +910,7 @@ colrize(char *out, const char *s, BasicValue fore, BasicValue back, StyleValue s
 
     // Build forecolor only.
     char forecode[CODEX_LEN];
-    format_fore(forecode, fore);
+    format_fg(forecode, fore);
     // Build backcolor only.
     char backcode[CODEX_LEN];
     format_bg(backcode, back);
@@ -924,7 +979,7 @@ colrizex(
     */
     // Build forecolor only.
     char forecode[CODEX_LEN];
-    format_forex(forecode, forenum);
+    format_fgx(forecode, forenum);
     // Build backcolor only.
     char backcode[CODEX_LEN];
     format_bgx(backcode, backnum);
