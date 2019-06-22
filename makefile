@@ -13,8 +13,8 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
 LIBS=-lm
 
 binary=colr
-source=colr_tool.c
-headers=colr.h colr_tool.h
+source=colr_tool.c colr.c
+headers=colr.h colr_tool.h dbug.h
 objects:=$(source:.c=.o)
 
 .PHONY: all, debug, release

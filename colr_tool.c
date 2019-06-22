@@ -5,10 +5,10 @@
 */
 #include "colr_tool.h"
 #define return_on_null(x) do { \
-    if (!(x)) { \
-        printferr("Failed to allocate memory for arguments!\n"); \
-        return 1; \
-    } \
+        if (!(x)) { \
+            printferr("Failed to allocate memory for arguments!\n"); \
+            return 1; \
+        } \
     } while (0)
 
 int main(int argc, char *argv[]) {
