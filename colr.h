@@ -1,5 +1,12 @@
 #ifndef COLR_H
 #define COLR_H
+//! \file
+
+/*! \mainpage
+    Documentation for ColrC.
+
+    \tableofcontents
+*/
 #ifndef _GNU_SOURCE
     #define _GNU_SOURCE
 #endif
@@ -27,64 +34,87 @@
     // For the rainbow functions.
     #define M_PI (3.14159265358979323846)
 #endif
-/** Convenience definition, because this is used a lot. */
+//! Convenience definition, because this is used a lot.
 #define STYLE_RESET_ALL "\033[0m"
 
-/** Maximum length for a basic fore/back escape code, including `'\0'`. */
+//! Maximum length for a basic fore/back escape code, including `'\0'`.
 #define CODE_LEN 10
-/** Maximum length for an extended fore/back escape code, including `'\0'`. */
+//! Maximum length for an extended fore/back escape code, including `'\0'`.
 #define CODEX_LEN 15
 
-/** Maximum length for a style escape code, including `'\0'`. */
+//! Maximum length for a style escape code, including `'\0'`.
 #define STYLE_LEN 8
 
-/** Maximum length in chars for any combination of basic/extended escape codes.
+/*! Maximum length in chars for any combination of basic/extended escape codes.
+
     Should be `(CODEX_LEN * 2) + STYLE_LEN`.
     Allocating for a string that will be colorized must account for this.
 */
 #define COLOR_LEN 40
 
-/** Maximum length in chars for an RGB fore/back escape code. */
+/*! Maximum length in chars for an RGB fore/back escape code. */
 #define CODE_RGB_LEN 23
-/** Maximum length in chars added to a rgb colorized string.
+/*! Maximum length in chars added to a rgb colorized string.
+
     Should be `CODE_RGB_LEN + STYLE_LEN`
     Allocating for a string that will be colorized with rgb values must account
     for this.
 */
 #define COLOR_RGB_LEN 32
-/** Maximum length in chars for any possible escape code mixture.
+/*! Maximum length in chars for any possible escape code mixture.
+
     (basically `(CODE_RGB_LEN * 2) + STYLE_LEN` since rgb codes are the longest).
 */
 #define CODE_ANY_LEN 54
-/** Maximim string length for a fore, back, or style name. */
+/*! Maximim string length for a fore, back, or style name. */
 #define MAX_COLOR_NAME_LEN 12
 
-/** Allocate `str_len` + enough for a basic code with reset appended.
+/*! Allocate `str_len` + enough for a basic code with reset appended.
+
     \param str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_code(str_len) (char*)calloc(str_len + CODEX_LEN, sizeof(char))
-/** Allocate `str_len` + enough for a mixture of fore/basic codes.
+/*! Allocate `str_len` + enough for a mixture of fore/basic codes.
     \param str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_codes(str_len) (char*)calloc(str_len + COLOR_LEN, sizeof(char))
-/** Allocate `str_len` + enough for an rgb code with reset appended.
+/*! Allocate `str_len` + enough for an rgb code with reset appended.
     \param str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_rgb(str_len) (char*)calloc(str_len + COLOR_RGB_LEN, sizeof(char))
-/** Allocate `str_len` + enough for a style code with reset appended.
+/*! Allocate `str_len` + enough for a style code with reset appended.
     \param str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_style(str_len) (char*)calloc(str_len + STYLE_LEN, sizeof(char))
 
+/*! Convenience macro for `!strcmp(s1, s2)`.
+
+    \param s1 The first string to compare.
+    \param s2 The second string to compare.
+
+    \return 0 if equal, 1 if \p s1 is greater, and -1 if \p s1 is less than.
+*/
 #define streq(s1, s2) (!strcmp(s1, s2))
+
+/*! Convenience macro for `!strcmp(arg, s1) || !strcmp(arg, s2)`
+
+    \param arg String to check.
+    \param s1  First string to compare against.
+    \param s2  Second string to compare against.
+
+    \return Non-zero if \p arg matches either \p s1 or \p s2, otherwise `0`.
+*/
 #define argeq(arg, s1, s2) (!strcmp(arg, s1)) || (!strcmp(arg, s2))
+
+/*! Convenience macro for `fprintf(stderr, ...)`.
+*/
 #define printferr(...) fprintf(stderr, __VA_ARGS__)
 
-/** Uses the correct format_fg* function according to the type of it's first
+/*! Uses the correct format_fg* function according to the type of it's first
     argument.
 
     \param out `char*` with memory allocated for the escape code string.
@@ -98,7 +128,7 @@
         unsigned char: format_fgx \
     )(out, x)
 
-/** Uses the correct format_bg* function according to the type of it's first
+/*! Uses the correct format_bg* function according to the type of it's first
    argument.
 
     \param out `char*` with memory allocated for the escape code string.
@@ -112,7 +142,7 @@
         unsigned char: format_bgx \
     )(out, x)
 
-/** Uses the format_fore/back macros, along with format_style, to build a
+/*! Uses the format_fore/back macros, along with format_style, to build a
    style (string of escape codes).
 
         \param out   char *buffer, must have a size of at least CODE_ANY_LEN.
@@ -131,7 +161,7 @@
         sprintf(out, "%s%s%s", _fa_style, _fa_fore, _fa_back); \
     } while (0)
 
-/** Creates an anonymous RGB struct for use in function calls.
+/*! Creates an anonymous RGB struct for use in function calls.
 
     \param r `unsigned char` Red value.
     \param g `unsigned char` Blue value.
@@ -139,15 +169,15 @@
 
 */
 #define rgb(r, g, b) ((RGB){r, g, b})
-/** Casts to ExtendedValue (unsigned char).
+
+/*! Casts to ExtendedValue (unsigned char).
 
     \param x Value to cast to `unsigned char`/`ExtendedValue`.
 */
 #define ext(x) (ExtendedValue)(x)
 
 
-/**  Basic color values, with a few convenience values for extended colors.
-*/
+//!  Basic color values, with a few convenience values for extended colors.
 typedef enum BasicValue_t {
     COLOR_INVALID = -2,
     COLOR_NONE = -1,
@@ -161,7 +191,7 @@ typedef enum BasicValue_t {
     WHITE = 7,
     UNUSED = 8,
     RESET = 9,
-    /** The following colors trigger extended color code use. */
+    // The following colors trigger extended color code use.
     XRED = 10,
     XGREEN = 11,
     XYELLOW = 12,
@@ -178,19 +208,17 @@ typedef enum BasicValue_t {
     LIGHTNORMAL = 23
 } BasicValue;
 
-/** Convenience `typedef` for clarity. */
+//! Convenience `typedef` for clarity. */
 typedef unsigned char ExtendedValue;
 
-/** Container for RGB values.
-*/
+//! Container for RGB values.
 typedef struct RGB_t {
     unsigned char red;
     unsigned char blue;
     unsigned char green;
 } RGB;
 
-/**  Style values.
-*/
+//!  Style values.
 typedef enum StyleValue_t {
     STYLE_INVALID = -2,
     STYLE_NONE = -1,
@@ -205,8 +233,7 @@ typedef enum StyleValue_t {
 } StyleValue;
 
 
-/**  Color code name types. Used with `colorname_type()`.
-*/
+//!  Color code name types. Used with `colorname_type()`.
 typedef enum ColorNameType_t {
     COLORNAME_INVALID_EXTENDED_RANGE = -4,
     COLORNAME_INVALID_RGB_RANGE = -3,
@@ -216,8 +243,8 @@ typedef enum ColorNameType_t {
     COLORNAME_RGB = 2,
 } ColorNameType;
 
-/** Holds a known color name and it's `BasicValue`.
-    This is used for the `color_names` array.
+//! Holds a known color name and it's `BasicValue`.
+/*! This is used for the `color_names` array.
 */
 struct ColorInfo {
     // TODO: Map these, like Colr.py.

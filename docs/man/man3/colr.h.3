@@ -1,0 +1,496 @@
+.TH "colr.h" 3 "Sat Jun 22 2019" "ColrC" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+colr.h
+.SH SYNOPSIS
+.br
+.PP
+\fC#include <ctype\&.h>\fP
+.br
+\fC#include <malloc\&.h>\fP
+.br
+\fC#include <math\&.h>\fP
+.br
+\fC#include <stdarg\&.h>\fP
+.br
+\fC#include <stdio\&.h>\fP
+.br
+\fC#include <string\&.h>\fP
+.br
+\fC#include <unistd\&.h>\fP
+.br
+\fC#include 'dbug\&.h'\fP
+.br
+
+.SS "Data Structures"
+
+.in +1c
+.ti -1c
+.RI "struct \fBRGB_t\fP"
+.br
+.RI "Container for RGB values\&. "
+.ti -1c
+.RI "struct \fBColorInfo\fP"
+.br
+.RI "Holds a known color name and it's \fCBasicValue\fP\&. "
+.ti -1c
+.RI "struct \fBStyleInfo\fP"
+.br
+.in -1c
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fB_GNU_SOURCE\fP"
+.br
+.ti -1c
+.RI "#define \fBCOLR_VERSION\fP   '0\&.2\&.2'"
+.br
+.ti -1c
+.RI "#define \fBM_PI\fP   (3\&.14159265358979323846)"
+.br
+.ti -1c
+.RI "#define \fBSTYLE_RESET_ALL\fP   '\\033[0m'"
+.br
+.RI "Convenience definition, because this is used a lot\&. "
+.ti -1c
+.RI "#define \fBCODE_LEN\fP   10"
+.br
+.RI "Maximum length for a basic fore/back escape code, including `'\\0'`\&. "
+.ti -1c
+.RI "#define \fBCODEX_LEN\fP   15"
+.br
+.RI "Maximum length for an extended fore/back escape code, including `'\\0'`\&. "
+.ti -1c
+.RI "#define \fBSTYLE_LEN\fP   8"
+.br
+.RI "Maximum length for a style escape code, including `'\\0'`\&. "
+.ti -1c
+.RI "#define \fBCOLOR_LEN\fP   40"
+.br
+.ti -1c
+.RI "#define \fBCODE_RGB_LEN\fP   23"
+.br
+.ti -1c
+.RI "#define \fBCOLOR_RGB_LEN\fP   32"
+.br
+.ti -1c
+.RI "#define \fBCODE_ANY_LEN\fP   54"
+.br
+.ti -1c
+.RI "#define \fBMAX_COLOR_NAME_LEN\fP   12"
+.br
+.ti -1c
+.RI "#define \fBalloc_with_code\fP(str_len)   (char*)calloc(str_len + \fBCODEX_LEN\fP, sizeof(char))"
+.br
+.ti -1c
+.RI "#define \fBalloc_with_codes\fP(str_len)   (char*)calloc(str_len + \fBCOLOR_LEN\fP, sizeof(char))"
+.br
+.ti -1c
+.RI "#define \fBalloc_with_rgb\fP(str_len)   (char*)calloc(str_len + \fBCOLOR_RGB_LEN\fP, sizeof(char))"
+.br
+.ti -1c
+.RI "#define \fBalloc_with_style\fP(str_len)   (char*)calloc(str_len + \fBSTYLE_LEN\fP, sizeof(char))"
+.br
+.ti -1c
+.RI "#define \fBstreq\fP(s1,  s2)   (!strcmp(s1, s2))"
+.br
+.ti -1c
+.RI "#define \fBargeq\fP(arg,  s1,  s2)   (!strcmp(arg, s1)) || (!strcmp(arg, s2))"
+.br
+.ti -1c
+.RI "#define \fBprintferr\fP(\&.\&.\&.)   fprintf(stderr, __VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBformat_fore\fP(out,  x)"
+.br
+.ti -1c
+.RI "#define \fBformat_back\fP(out,  x)"
+.br
+.ti -1c
+.RI "#define \fBformat_all\fP(out,  fore,  back,  style)"
+.br
+.ti -1c
+.RI "#define \fBrgb\fP(r,  g,  b)   ((\fBRGB\fP){r, g, b})"
+.br
+.ti -1c
+.RI "#define \fBext\fP(x)   (\fBExtendedValue\fP)(x)"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef enum \fBBasicValue_t\fP \fBBasicValue\fP"
+.br
+.RI "Basic color values, with a few convenience values for extended colors\&. "
+.ti -1c
+.RI "typedef unsigned char \fBExtendedValue\fP"
+.br
+.RI "Convenience \fCtypedef\fP for clarity\&. */\&. "
+.ti -1c
+.RI "typedef struct \fBRGB_t\fP \fBRGB\fP"
+.br
+.RI "Container for RGB values\&. "
+.ti -1c
+.RI "typedef enum \fBStyleValue_t\fP \fBStyleValue\fP"
+.br
+.RI "Style values\&. "
+.ti -1c
+.RI "typedef enum \fBColorNameType_t\fP \fBColorNameType\fP"
+.br
+.RI "Color code name types\&. Used with \fCcolorname_type()\fP\&. "
+.in -1c
+.SS "Enumerations"
+
+.in +1c
+.ti -1c
+.RI "enum \fBBasicValue_t\fP { \fBCOLOR_INVALID\fP = -2, \fBCOLOR_NONE\fP = -1, \fBBLACK\fP = 0, \fBRED\fP = 1, \fBGREEN\fP = 2, \fBYELLOW\fP = 3, \fBBLUE\fP = 4, \fBMAGENTA\fP = 5, \fBCYAN\fP = 6, \fBWHITE\fP = 7, \fBUNUSED\fP = 8, \fBRESET\fP = 9, \fBXRED\fP = 10, \fBXGREEN\fP = 11, \fBXYELLOW\fP = 12, \fBXBLUE\fP = 13, \fBXMAGENTA\fP = 14, \fBXCYAN\fP = 15, \fBXNORMAL\fP = 16, \fBLIGHTRED\fP = 17, \fBLIGHTGREEN\fP = 18, \fBLIGHTYELLOW\fP = 19, \fBLIGHTBLUE\fP = 20, \fBLIGHTMAGENTA\fP = 21, \fBLIGHTCYAN\fP = 22, \fBLIGHTNORMAL\fP = 23 }
+.RI "Basic color values, with a few convenience values for extended colors\&. ""
+.br
+.ti -1c
+.RI "enum \fBStyleValue_t\fP { \fBSTYLE_INVALID\fP = -2, \fBSTYLE_NONE\fP = -1, \fBRESET_ALL\fP = 0, \fBBRIGHT\fP = 1, \fBDIM\fP = 2, \fBITALIC\fP = 3, \fBUNDERLINE\fP = 4, \fBFLASH\fP = 5, \fBHIGHLIGHT\fP = 7, \fBNORMAL\fP = 22 }
+.RI "Style values\&. ""
+.br
+.ti -1c
+.RI "enum \fBColorNameType_t\fP { \fBCOLORNAME_INVALID_EXTENDED_RANGE\fP = -4, \fBCOLORNAME_INVALID_RGB_RANGE\fP = -3, \fBCOLORNAME_INVALID\fP = -2, \fBCOLORNAME_BASIC\fP = 0, \fBCOLORNAME_EXTENDED\fP = 1, \fBCOLORNAME_RGB\fP = 2 }
+.RI "Color code name types\&. Used with \fCcolorname_type()\fP\&. ""
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBformat_bgx\fP (char *out, unsigned char num)"
+.br
+.ti -1c
+.RI "void \fBformat_bg\fP (char *out, \fBBasicValue\fP value)"
+.br
+.ti -1c
+.RI "void \fBformat_bg_rgb\fP (char *out, unsigned char red, unsigned char green, unsigned char blue)"
+.br
+.ti -1c
+.RI "void \fBformat_bg_RGB\fP (char *out, \fBRGB\fP \fBrgb\fP)"
+.br
+.ti -1c
+.RI "void \fBformat_fgx\fP (char *out, unsigned char num)"
+.br
+.ti -1c
+.RI "void \fBformat_fg\fP (char *out, \fBBasicValue\fP value)"
+.br
+.ti -1c
+.RI "void \fBformat_fg_rgb\fP (char *out, unsigned char red, unsigned char green, unsigned char blue)"
+.br
+.ti -1c
+.RI "void \fBformat_fg_RGB\fP (char *out, \fBRGB\fP \fBrgb\fP)"
+.br
+.ti -1c
+.RI "void \fBformat_rainbow_fore\fP (char *out, double freq, size_t step)"
+.br
+.ti -1c
+.RI "void \fBformat_style\fP (char *out, \fBStyleValue\fP style)"
+.br
+.ti -1c
+.RI "char * \fBstr_copy\fP (char *dest, const char *src, size_t length)"
+.br
+.ti -1c
+.RI "int \fBstr_startswith\fP (const char *s, const char *prefix)"
+.br
+.ti -1c
+.RI "void \fBstr_tolower\fP (char *out, const char *s)"
+.br
+.ti -1c
+.RI "\fBBasicValue\fP \fBcolorname_to_color\fP (const char *arg)"
+.br
+.ti -1c
+.RI "int \fBcolorname_to_colorx\fP (const char *arg)"
+.br
+.ti -1c
+.RI "int \fBcolorname_to_color_rgb\fP (const char *arg, unsigned char *r, unsigned char *g, unsigned char *b)"
+.br
+.ti -1c
+.RI "int \fBcolorname_to_color_RGB\fP (const char *arg, \fBRGB\fP *\fBrgb\fP)"
+.br
+.ti -1c
+.RI "\fBColorNameType\fP \fBcolorname_type\fP (const char *arg)"
+.br
+.ti -1c
+.RI "void \fBcolrbg\fP (char *out, const char *s, \fBBasicValue\fP back)"
+.br
+.ti -1c
+.RI "void \fBcolrbgrgb\fP (char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue)"
+.br
+.ti -1c
+.RI "void \fBcolrbgRGB\fP (char *out, const char *s, \fBRGB\fP \fBrgb\fP)"
+.br
+.ti -1c
+.RI "void \fBcolrbgx\fP (char *out, const char *s, unsigned char num)"
+.br
+.ti -1c
+.RI "void \fBcolrfg\fP (char *out, const char *s, \fBBasicValue\fP fore)"
+.br
+.ti -1c
+.RI "void \fBcolrfgchar\fP (char *out, const char c, \fBBasicValue\fP fore)"
+.br
+.ti -1c
+.RI "void \fBcolrfgrainbow\fP (char *out, const char *s, double freq, size_t offset)"
+.br
+.ti -1c
+.RI "char * \fBacolrfgrainbow\fP (const char *s, double freq, size_t offset)"
+.br
+.ti -1c
+.RI "void \fBcolrfgrgb\fP (char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue)"
+.br
+.ti -1c
+.RI "void \fBcolrfgRGB\fP (char *out, const char *s, \fBRGB\fP \fBrgb\fP)"
+.br
+.ti -1c
+.RI "void \fBcolrfgx\fP (char *out, const char *s, unsigned char num)"
+.br
+.ti -1c
+.RI "void \fBcolrize\fP (char *out, const char *s, \fBBasicValue\fP fore, \fBBasicValue\fP back, \fBStyleValue\fP style)"
+.br
+.ti -1c
+.RI "void \fBcolrizechar\fP (char *out, char c, \fBBasicValue\fP fore, \fBBasicValue\fP back, \fBStyleValue\fP style)"
+.br
+.ti -1c
+.RI "void \fBcolrizex\fP (char *out, const char *s, unsigned char forenum, unsigned char backnum, \fBStyleValue\fP style)"
+.br
+.ti -1c
+.RI "void \fBcolrstyle\fP (char *out, const char *s, \fBStyleValue\fP style)"
+.br
+.ti -1c
+.RI "\fBStyleValue\fP \fBstylename_to_style\fP (const char *arg)"
+.br
+.in -1c
+.SS "Variables"
+
+.in +1c
+.ti -1c
+.RI "struct \fBColorInfo\fP \fBcolor_names\fP []"
+.br
+.RI "A list of \fC\fBColorInfo\fP\fP items, used with \fCcolorname_to_color()\fP\&. "
+.ti -1c
+.RI "size_t \fBcolor_names_len\fP"
+.br
+.RI "Length of \fCcolor_names\fP\&. "
+.ti -1c
+.RI "struct \fBStyleInfo\fP \fBstyle_names\fP []"
+.br
+.RI "A list of \fC\fBStyleInfo\fP\fP items, used with \fCstylename_to_style()\fP\&. "
+.ti -1c
+.RI "size_t \fBstyle_names_len\fP"
+.br
+.RI "Length of \fCstyle_names\fP\&. "
+.ti -1c
+.RI "const int \fBCOLORVAL_INVALID\fP"
+.br
+.ti -1c
+.RI "const int \fBCOLORVAL_INVALID_RANGE\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Implements everything in ColrC\&.
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define alloc_with_code(str_len)   (char*)calloc(str_len + \fBCODEX_LEN\fP, sizeof(char))"
+Allocate \fCstr_len\fP + enough for a basic code with reset appended\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIstr_len\fP Extra room to allocate for text\&. 
+.RE
+.PP
+\fBReturns:\fP
+.RS 4
+Pointer to the allocated string, or NULL on error\&. 
+.RE
+.PP
+
+.SS "#define alloc_with_codes(str_len)   (char*)calloc(str_len + \fBCOLOR_LEN\fP, sizeof(char))"
+Allocate \fCstr_len\fP + enough for a mixture of fore/basic codes\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIstr_len\fP Extra room to allocate for text\&. 
+.RE
+.PP
+\fBReturns:\fP
+.RS 4
+Pointer to the allocated string, or NULL on error\&. 
+.RE
+.PP
+
+.SS "#define alloc_with_rgb(str_len)   (char*)calloc(str_len + \fBCOLOR_RGB_LEN\fP, sizeof(char))"
+Allocate \fCstr_len\fP + enough for an rgb code with reset appended\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIstr_len\fP Extra room to allocate for text\&. 
+.RE
+.PP
+\fBReturns:\fP
+.RS 4
+Pointer to the allocated string, or NULL on error\&. 
+.RE
+.PP
+
+.SS "#define alloc_with_style(str_len)   (char*)calloc(str_len + \fBSTYLE_LEN\fP, sizeof(char))"
+Allocate \fCstr_len\fP + enough for a style code with reset appended\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIstr_len\fP Extra room to allocate for text\&. 
+.RE
+.PP
+\fBReturns:\fP
+.RS 4
+Pointer to the allocated string, or NULL on error\&. 
+.RE
+.PP
+
+.SS "#define argeq(arg, s1, s2)   (!strcmp(arg, s1)) || (!strcmp(arg, s2))"
+Convenience macro for \fC!strcmp(arg, s1) || !strcmp(arg, s2)\fP
+.PP
+\fBParameters:\fP
+.RS 4
+\fIarg\fP String to check\&. 
+.br
+\fIs1\fP First string to compare against\&. 
+.br
+\fIs2\fP Second string to compare against\&.
+.RE
+.PP
+\fBReturns:\fP
+.RS 4
+Non-zero if \fCarg\fP matches either \fCs1\fP or \fCs2\fP, otherwise \fC0\fP\&. 
+.RE
+.PP
+
+.SS "#define CODE_ANY_LEN   54"
+Maximum length in chars for any possible escape code mixture\&.
+.PP
+(basically \fC(CODE_RGB_LEN * 2) + STYLE_LEN\fP since rgb codes are the longest)\&. 
+.SS "#define CODE_RGB_LEN   23"
+Maximum length in chars for an RGB fore/back escape code\&. 
+.SS "#define COLOR_LEN   40"
+Maximum length in chars for any combination of basic/extended escape codes\&.
+.PP
+Should be \fC(CODEX_LEN * 2) + STYLE_LEN\fP\&. Allocating for a string that will be colorized must account for this\&. 
+.SS "#define COLOR_RGB_LEN   32"
+Maximum length in chars added to a rgb colorized string\&.
+.PP
+Should be \fCCODE_RGB_LEN + STYLE_LEN\fP Allocating for a string that will be colorized with rgb values must account for this\&. 
+.SS "#define ext(x)   (\fBExtendedValue\fP)(x)"
+Casts to ExtendedValue (unsigned char)\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIx\fP Value to cast to \fCunsigned char\fP/\fCExtendedValue\fP\&. 
+.RE
+.PP
+
+.SS "#define format_all(out, fore, back, style)"
+\fBValue:\fP
+.PP
+.nf
+do { \
+        char _fa_fore[CODE_RGB_LEN]; \
+        format_fore(_fa_fore, fore); \
+        char _fa_back[CODE_RGB_LEN]; \
+        format_back(_fa_back, back); \
+        char _fa_style[STYLE_LEN]; \
+        format_style(_fa_style, style); \
+        sprintf(out, "%s%s%s", _fa_style, _fa_fore, _fa_back); \
+    } while (0)
+.fi
+Uses the format_fore/back macros, along with format_style, to build a style (string of escape codes)\&. 
+.PP
+.nf
+ \param out   char *buffer, must have a size of at least CODE_ANY_LEN.
+ \param fore  BasicValue, ExtendedValue, or RGB for fore color.
+ \param back  BasicValue, ExtendedValue, or RGB for back color.
+ \param style StyleValue for style.
+.fi
+.PP
+ 
+.SS "#define format_back(out, x)"
+\fBValue:\fP
+.PP
+.nf
+_Generic( \
+        (x), \
+        RGB: format_bg_RGB, \
+        BasicValue: format_bg, \
+        unsigned char: format_bgx \
+    )(out, x)
+.fi
+Uses the correct format_bg* function according to the type of it's first argument\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIout\fP \fCchar*\fP with memory allocated for the escape code string\&. 
+.br
+\fIx\fP \fCBasicValue\fP, \fCExtended\fP\fC(unsigned char), or\fPRGB` value for fore color\&. 
+.RE
+.PP
+
+.SS "#define format_fore(out, x)"
+\fBValue:\fP
+.PP
+.nf
+_Generic( \
+        (x), \
+        RGB: format_fg_RGB, \
+        BasicValue: format_fg, \
+        unsigned char: format_fgx \
+    )(out, x)
+.fi
+Uses the correct format_fg* function according to the type of it's first argument\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIout\fP \fCchar*\fP with memory allocated for the escape code string\&. 
+.br
+\fIx\fP \fCBasicValue\fP, \fCExtended\fP\fC(unsigned char), or\fPRGB` value for fore color\&. 
+.RE
+.PP
+
+.SS "#define MAX_COLOR_NAME_LEN   12"
+Maximim string length for a fore, back, or style name\&. 
+.SS "#define printferr( \&.\&.\&.)   fprintf(stderr, __VA_ARGS__)"
+Convenience macro for \fCfprintf(stderr, \&.\&.\&.)\fP\&. 
+.SS "#define rgb(r, g, b)   ((\fBRGB\fP){r, g, b})"
+Creates an anonymous RGB struct for use in function calls\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIr\fP \fCunsigned char\fP Red value\&. 
+.br
+\fIg\fP \fCunsigned char\fP Blue value\&. 
+.br
+\fIb\fP \fCunsigned char\fP Green value\&. 
+.RE
+.PP
+
+.SS "#define streq(s1, s2)   (!strcmp(s1, s2))"
+Convenience macro for \fC!strcmp(s1, s2)\fP\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIs1\fP The first string to compare\&. 
+.br
+\fIs2\fP The second string to compare\&.
+.RE
+.PP
+\fBReturns:\fP
+.RS 4
+0 if equal, 1 if \fCs1\fP is greater, and -1 if \fCs1\fP is less than\&. 
+.RE
+.PP
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for ColrC from the source code\&.
