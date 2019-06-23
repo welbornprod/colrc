@@ -72,8 +72,7 @@ NORMAL	colr.h	/^    NORMAL = 22$/;"	e	enum:StyleValue_t
 RED	colr.h	/^    RED = 1,$/;"	e	enum:BasicValue_t
 RESET	colr.h	/^    RESET = 9,$/;"	e	enum:BasicValue_t
 RESET_ALL	colr.h	/^    RESET_ALL = 0,$/;"	e	enum:StyleValue_t
-RGB	colr.h	/^} RGB;$/;"	t	typeref:struct:RGB_t
-RGB_t	colr.h	/^typedef struct RGB_t {$/;"	s
+RGB	colr.h	/^struct RGB {$/;"	s
 STYLE_INVALID	colr.h	/^    STYLE_INVALID = -2,$/;"	e	enum:StyleValue_t
 STYLE_LEN	colr.h	49;"	d
 STYLE_NONE	colr.h	/^    STYLE_NONE = -1,$/;"	e	enum:StyleValue_t
@@ -100,23 +99,23 @@ alloc_with_codes	colr.h	85;"	d
 alloc_with_rgb	colr.h	91;"	d
 alloc_with_style	colr.h	97;"	d
 argeq	colr.h	116;"	d
-blue	colr.h	/^    unsigned char blue;$/;"	m	struct:RGB_t
+blue	colr.h	/^    unsigned char blue;$/;"	m	struct:RGB
 color	colr.h	/^    BasicValue color;$/;"	m	struct:ColorInfo
 color_names	colr.c	/^struct ColorInfo color_names[] = {$/;"	v	typeref:struct:ColorInfo
 color_names_len	colr.c	/^size_t color_names_len = sizeof color_names \/ sizeof (struct ColorInfo);$/;"	v
 colorext_func	colr_tool.h	/^typedef void (*colorext_func)(char*, const char*, unsigned char);$/;"	t
 colorname_to_color	colr.c	/^colorname_to_color(const char *arg) {$/;"	f
-colorname_to_color_RGB	colr.c	/^colorname_to_color_RGB(const char *arg, RGB *rgb) {$/;"	f
+colorname_to_color_RGB	colr.c	/^colorname_to_color_RGB(const char *arg, struct RGB *rgb) {$/;"	f
 colorname_to_color_rgb	colr.c	/^colorname_to_color_rgb(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b) {$/;"	f
 colorname_to_colorx	colr.c	/^colorname_to_colorx(const char *arg) {$/;"	f
 colorname_type	colr.c	/^colorname_type(const char *arg) {$/;"	f
-colorrgb_func	colr_tool.h	/^typedef void (*colorrgb_func)(char*, const char*, RGB);$/;"	t
+colorrgb_func	colr_tool.h	/^typedef void (*colorrgb_func)(char*, const char*, struct RGB);$/;"	t
 colrbg	colr.c	/^colrbg(char *out, const char *s, BasicValue back) {$/;"	f
-colrbgRGB	colr.c	/^colrbgRGB(char *out, const char *s, RGB rgb) {$/;"	f
+colrbgRGB	colr.c	/^colrbgRGB(char *out, const char *s, struct RGB rgb) {$/;"	f
 colrbgrgb	colr.c	/^colrbgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue) {$/;"	f
 colrbgx	colr.c	/^colrbgx(char *out, const char *s, unsigned char num) {$/;"	f
 colrfg	colr.c	/^colrfg(char *out, const char *s, BasicValue fore) {$/;"	f
-colrfgRGB	colr.c	/^colrfgRGB(char *out, const char *s, RGB rgb) {$/;"	f
+colrfgRGB	colr.c	/^colrfgRGB(char *out, const char *s, struct RGB rgb) {$/;"	f
 colrfgchar	colr.c	/^colrfgchar(char *out, const char c, BasicValue fore) {$/;"	f
 colrfgrainbow	colr.c	/^colrfgrainbow(char *out, const char *s, double freq, size_t offset) {$/;"	f
 colrfgrgb	colr.c	/^colrfgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue) {$/;"	f
@@ -142,17 +141,17 @@ ext	colr.h	181;"	d
 format_all	colr.h	157;"	d
 format_back	colr.h	141;"	d
 format_bg	colr.c	/^format_bg(char *out, BasicValue value) {$/;"	f
-format_bg_RGB	colr.c	/^format_bg_RGB(char *out, RGB rgb) {$/;"	f
+format_bg_RGB	colr.c	/^format_bg_RGB(char *out, struct RGB rgb) {$/;"	f
 format_bg_rgb	colr.c	/^format_bg_rgb(char *out, unsigned char red, unsigned char green, unsigned char blue) {$/;"	f
 format_bgx	colr.c	/^format_bgx(char *out, unsigned char num) {$/;"	f
 format_fg	colr.c	/^format_fg(char *out, BasicValue value) {$/;"	f
-format_fg_RGB	colr.c	/^format_fg_RGB(char *out, RGB rgb) {$/;"	f
+format_fg_RGB	colr.c	/^format_fg_RGB(char *out, struct RGB rgb) {$/;"	f
 format_fg_rgb	colr.c	/^format_fg_rgb(char *out, unsigned char red, unsigned char green, unsigned char blue) {$/;"	f
 format_fgx	colr.c	/^format_fgx(char *out, unsigned char num) {$/;"	f
 format_fore	colr.h	127;"	d
 format_rainbow_fore	colr.c	/^format_rainbow_fore(char *out, double freq, size_t step) {$/;"	f
 format_style	colr.c	/^format_style(char *out, StyleValue style) {$/;"	f
-green	colr.h	/^    unsigned char green;$/;"	m	struct:RGB_t
+green	colr.h	/^    unsigned char green;$/;"	m	struct:RGB
 main	colr_tool.c	/^int main(int argc, char *argv[]) {$/;"	f
 name	colr.h	/^    char *name;$/;"	m	struct:ColorInfo
 name	colr.h	/^    char *name;$/;"	m	struct:StyleInfo
@@ -166,7 +165,7 @@ print_usage	colr_tool.c	/^print_usage(const char *reason) {$/;"	f
 print_usage_full	colr_tool.c	/^print_usage_full() {$/;"	f
 printferr	colr.h	119;"	d
 read_stdin_arg	colr_tool.c	/^read_stdin_arg(char *textarg, size_t length) {$/;"	f
-red	colr.h	/^    unsigned char red;$/;"	m	struct:RGB_t
+red	colr.h	/^    unsigned char red;$/;"	m	struct:RGB
 return_on_null	colr_tool.c	7;"	d	file:
 rgb	colr.h	175;"	d
 str_copy	colr.c	/^str_copy(char *dest, const char *src, size_t length) {$/;"	f

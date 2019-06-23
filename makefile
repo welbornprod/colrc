@@ -16,15 +16,17 @@ binary=colr
 source=colr_tool.c colr.c
 headers=colr.h colr_tool.h dbug.h
 docsconfig=Doxyfile
+docsdir=docs
+docsmainfile=$(docsdir)/html/index.html
 objects:=$(source:.c=.o)
 
 .PHONY: all, debug, release
 all: debug
 
-debug: docs
 debug: tags
 debug: CFLAGS+=-g3 -DDEBUG
 debug: $(binary)
+debug: docs
 
 release: CFLAGS+=-O3 -DNDEBUG
 release: $(binary)
@@ -36,7 +38,10 @@ $(binary): $(objects)
 %.o: %.c %.h
 	$(CC) -c $< $(CFLAGS)
 
-docs: $(source) $(headers) $(docsconfig)
+
+
+$(docsmainfile): $(source) $(headers) $(docsconfig)
+docs: $(source) $(headers) $(docsconfig) $(docsmainfile)
 	doxygen $(docsconfig);
 
 tags: $(source) $(headers)
@@ -72,6 +77,18 @@ clean:
 		printf "    %s\n" $(objects);\
 	fi;
 
+.PHONY: cleandocs
+cleandocs:
+	-@if [[ "$(docsdir)x" != "x" ]] && [[ -e "$(docsmainfile)" ]]; then\
+		if rm -r $(docsdir)/*; then\
+			printf "Docs cleaned:\n";\
+			printf "    %s\n" "$(docsdir)/*";\
+		fi;\
+	else\
+		printf "Docs already clean:\n";\
+		printf "    %s\n" "$(docsdir)/*";\
+	fi;
+
 .PHONY: strip
 strip:
 	@if strip $(binary); then\
@@ -87,9 +104,11 @@ help targets:
     clang        : Use \`clang\` to build the default target.\n\
     clangrelease : Use \`clang\` to build the release target.\n\
     clean        : Delete previous build files.\n\
+    cleandocs    : Delete Doxygen docs from ./$(docsdir).\n\
     cleantest    : Delete previous build files, build the binary and the \n\
                    test binary, and run the tests.\n\
     debug        : Build the executable with debug symbols.\n\
+    docs         : Build the Doxygen docs.\n\
     release      : Build the executable with optimization, and strip it.\n\
     strip        : Run \`strip\` on the executable.\n\
     tags         : Build tags for this project using \`ctags\`.\n\

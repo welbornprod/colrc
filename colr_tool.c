@@ -211,7 +211,7 @@ print_rgb(colorrgb_func func) {
                 // Make the rgb text.
                 snprintf(num, 12, "%03d;%03d;%03d", r, g, b);
                 // Colorize it.
-                RGB vals = {r, g, b};
+                struct RGB vals = {r, g, b};
                 func(text, num, vals);
                 count++;
                 printf("%s ", text);

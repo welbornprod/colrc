@@ -216,11 +216,11 @@ typedef enum BasicValue_t {
 typedef unsigned char ExtendedValue;
 
 //! Container for RGB values.
-typedef struct RGB_t {
+struct RGB {
     unsigned char red;
     unsigned char blue;
     unsigned char green;
-} RGB;
+};
 
 //!  Style values.
 typedef enum StyleValue_t {
@@ -271,11 +271,11 @@ struct StyleInfo {
 void format_bgx(char *out, unsigned char num);
 void format_bg(char *out, BasicValue value);
 void format_bg_rgb(char *out, unsigned char red, unsigned char green, unsigned char blue);
-void format_bg_RGB(char *out, RGB rgb);
+void format_bg_RGB(char *out, struct RGB rgb);
 void format_fgx(char *out, unsigned char num);
 void format_fg(char *out, BasicValue value);
 void format_fg_rgb(char *out, unsigned char red, unsigned char green, unsigned char blue);
-void format_fg_RGB(char *out, RGB rgb);
+void format_fg_RGB(char *out, struct RGB rgb);
 void format_rainbow_fore(char *out, double freq, size_t step);
 void format_style(char *out, StyleValue style);
 
@@ -285,18 +285,18 @@ void str_tolower(char *out, const char *s);
 BasicValue colorname_to_color(const char *arg);
 int colorname_to_colorx(const char *arg);
 int colorname_to_color_rgb(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b);
-int colorname_to_color_RGB(const char *arg, RGB *rgb);
+int colorname_to_color_RGB(const char *arg, struct RGB *rgb);
 ColorNameType colorname_type(const char *arg);
 void colrbg(char *out, const char *s, BasicValue back);
 void colrbgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue);
-void colrbgRGB(char *out, const char *s, RGB rgb);
+void colrbgRGB(char *out, const char *s, struct RGB rgb);
 void colrbgx(char *out, const char *s, unsigned char num);
 void colrfg(char *out, const char *s, BasicValue fore);
 void colrfgchar(char *out, const char c, BasicValue fore);
 void colrfgrainbow(char *out, const char *s, double freq, size_t offset);
 char *acolrfgrainbow(const char *s, double freq, size_t offset);
 void colrfgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue);
-void colrfgRGB(char *out, const char *s, RGB rgb);
+void colrfgRGB(char *out, const char *s, struct RGB rgb);
 void colrfgx(char *out, const char *s, unsigned char num);
 void colrize(char *out, const char *s, BasicValue fore, BasicValue back, StyleValue style);
 void colrizechar(char *out, char c, BasicValue fore, BasicValue back, StyleValue style);

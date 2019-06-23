@@ -107,7 +107,7 @@ format_bg_rgb(char *out, unsigned char red, unsigned char green, unsigned char b
 }
 
 void
-format_bg_RGB(char *out, RGB rgb) {
+format_bg_RGB(char *out, struct RGB rgb) {
     /*  Create an escape code for a true color (rgb) background color
         using values from an RGB struct.
         Arguments:
@@ -158,7 +158,7 @@ format_fg_rgb(char *out, unsigned char red, unsigned char green, unsigned char b
 }
 
 void
-format_fg_RGB(char *out, RGB rgb) {
+format_fg_RGB(char *out, struct RGB rgb) {
     /*  Create an escape code for a true color (rgb) fore color using an
         RGB struct's values.
         Arguments:
@@ -367,7 +367,7 @@ colorname_to_color_rgb(const char *arg, unsigned char *r, unsigned char *g, unsi
 }
 
 int
-colorname_to_color_RGB(const char *arg, RGB *rgb) {
+colorname_to_color_RGB(const char *arg, struct RGB *rgb) {
     /*  Convert an RGB string into a RGB struct suitable for the
         colr*RGB functions.
 
@@ -485,7 +485,7 @@ colrbgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsi
 }
 
 void
-colrbgRGB(char *out, const char *s, RGB rgb) {
+colrbgRGB(char *out, const char *s, struct RGB rgb) {
     /*  Colorize a string using true color, rgb back colors and copy the
         result into `out`.
         The StyleValue.RESET_ALL code is already appended to the result.
@@ -643,7 +643,7 @@ colrfgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsi
 }
 
 void
-colrfgRGB(char *out, const char *s, RGB rgb) {
+colrfgRGB(char *out, const char *s, struct RGB rgb) {
     /*  Colorize a string using true color, rgb fore colors and copy the
         result into `out`.
         The StyleValue.RESET_ALL code is already appended to the result.
