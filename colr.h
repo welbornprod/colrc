@@ -5,6 +5,11 @@
 /*! \mainpage
     Documentation for ColrC.
 
+    Files:
+    - colr.h
+    - colr.c
+    - dbug.h
+
     \tableofcontents
 */
 #ifndef _GNU_SOURCE
@@ -45,53 +50,55 @@
 //! Maximum length for a style escape code, including `'\0'`.
 #define STYLE_LEN 8
 
-/*! Maximum length in chars for any combination of basic/extended escape codes.
+/*! \brief Maximum length in chars for any combination of basic/extended escape codes.
 
     Should be `(CODEX_LEN * 2) + STYLE_LEN`.
     Allocating for a string that will be colorized must account for this.
 */
 #define COLOR_LEN 40
 
-/*! Maximum length in chars for an RGB fore/back escape code. */
+//! Maximum length in chars for an RGB fore/back escape code.
 #define CODE_RGB_LEN 23
-/*! Maximum length in chars added to a rgb colorized string.
+/*! \brief Maximum length in chars added to a rgb colorized string.
 
     Should be `CODE_RGB_LEN + STYLE_LEN`
     Allocating for a string that will be colorized with rgb values must account
     for this.
 */
 #define COLOR_RGB_LEN 32
-/*! Maximum length in chars for any possible escape code mixture.
+/*! \brief Maximum length in chars for any possible escape code mixture.
 
     (basically `(CODE_RGB_LEN * 2) + STYLE_LEN` since rgb codes are the longest).
 */
 #define CODE_ANY_LEN 54
-/*! Maximim string length for a fore, back, or style name. */
+//! Maximim string length for a fore, back, or style name.
 #define MAX_COLOR_NAME_LEN 12
 
-/*! Allocate `str_len` + enough for a basic code with reset appended.
+/*! \brief Allocate `str_len` + enough for a basic code with reset appended.
 
     \param str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_code(str_len) (char*)calloc(str_len + CODEX_LEN, sizeof(char))
-/*! Allocate `str_len` + enough for a mixture of fore/basic codes.
+/*! \brief Allocate `str_len` + enough for a mixture of fore/basic codes.
     \param str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_codes(str_len) (char*)calloc(str_len + COLOR_LEN, sizeof(char))
-/*! Allocate `str_len` + enough for an rgb code with reset appended.
+/*! \brief Allocate `str_len` + enough for an rgb code with reset appended.
+
     \param str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_rgb(str_len) (char*)calloc(str_len + COLOR_RGB_LEN, sizeof(char))
-/*! Allocate `str_len` + enough for a style code with reset appended.
+/*! \brief Allocate `str_len` + enough for a style code with reset appended.
+
     \param str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_style(str_len) (char*)calloc(str_len + STYLE_LEN, sizeof(char))
 
-/*! Convenience macro for `!strcmp(s1, s2)`.
+/*! \brief Convenience macro for `!strcmp(s1, s2)`.
 
     \param s1 The first string to compare.
     \param s2 The second string to compare.
@@ -100,7 +107,7 @@
 */
 #define streq(s1, s2) (!strcmp(s1, s2))
 
-/*! Convenience macro for `!strcmp(arg, s1) || !strcmp(arg, s2)`
+/*! \brief Convenience macro for `!strcmp(arg, s1) || !strcmp(arg, s2)`
 
     \param arg String to check.
     \param s1  First string to compare against.
@@ -110,12 +117,11 @@
 */
 #define argeq(arg, s1, s2) (!strcmp(arg, s1)) || (!strcmp(arg, s2))
 
-/*! Convenience macro for `fprintf(stderr, ...)`.
-*/
+//! Convenience macro for `fprintf(stderr, ...)`.
 #define printferr(...) fprintf(stderr, __VA_ARGS__)
 
-/*! Uses the correct format_fg* function according to the type of it's first
-    argument.
+/*! \brief Uses the correct format_fg* function according to the type of it's first
+    \brief argument.
 
     \param out `char*` with memory allocated for the escape code string.
     \param x   `BasicValue`, `Extended`` (unsigned char), or `RGB` value for fore color.
@@ -128,8 +134,8 @@
         unsigned char: format_fgx \
     )(out, x)
 
-/*! Uses the correct format_bg* function according to the type of it's first
-   argument.
+/*! \brief Uses the correct format_bg* function according to the type of it's first
+    \brief argument.
 
     \param out `char*` with memory allocated for the escape code string.
     \param x   `BasicValue`, `Extended`` (unsigned char), or `RGB` value for fore color.
@@ -142,8 +148,8 @@
         unsigned char: format_bgx \
     )(out, x)
 
-/*! Uses the format_fore/back macros, along with format_style, to build a
-   style (string of escape codes).
+/*! \brief Uses the format_fore/back macros, along with format_style, to build a
+    \brief style (string of escape codes).
 
         \param out   char *buffer, must have a size of at least CODE_ANY_LEN.
         \param fore  BasicValue, ExtendedValue, or RGB for fore color.
@@ -161,7 +167,7 @@
         sprintf(out, "%s%s%s", _fa_style, _fa_fore, _fa_back); \
     } while (0)
 
-/*! Creates an anonymous RGB struct for use in function calls.
+/*! \brief Creates an anonymous RGB struct for use in function calls.
 
     \param r `unsigned char` Red value.
     \param g `unsigned char` Blue value.
@@ -170,7 +176,7 @@
 */
 #define rgb(r, g, b) ((RGB){r, g, b})
 
-/*! Casts to ExtendedValue (unsigned char).
+/*! \brief Casts to ExtendedValue (unsigned char).
 
     \param x Value to cast to `unsigned char`/`ExtendedValue`.
 */
@@ -208,7 +214,7 @@ typedef enum BasicValue_t {
     LIGHTNORMAL = 23
 } BasicValue;
 
-//! Convenience `typedef` for clarity. */
+//! Convenience `typedef` for clarity.
 typedef unsigned char ExtendedValue;
 
 //! Container for RGB values.
@@ -243,31 +249,55 @@ typedef enum ColorNameType_t {
     COLORNAME_RGB = 2,
 } ColorNameType;
 
-//! Holds a known color name and it's `BasicValue`.
-/*! This is used for the `color_names` array.
+/*! \struct ColorInfo
+    Holds a known color name and it's `BasicValue`.
+
+    This is used for the `color_names` array in colr.c.
 */
 struct ColorInfo {
     // TODO: Map these, like Colr.py.
     char *name;
     BasicValue color;
 };
+/*! \brief List of `ColorInfo` items.
+
+    Initialized in colr.c.
+*/
 extern struct ColorInfo color_names[];
 
-// Length of color_names.
+/*! \brief Length of `color_names`.
+
+    Initialized in colr.c.
+*/
 extern size_t color_names_len;
 
+/*! \struct StyleInfo
+    Holds a known style name and it's `StyleValue`.
+
+    This is used for the `style_names` array in colr.c.
+*/
 struct StyleInfo {
     // TODO: Map these, like Colr.py.
     char *name;
     StyleValue style;
 };
+/*! \brief A list of `StyleInfo`.
+
+    Initialized in colr.c.
+*/
 extern struct StyleInfo style_names[];
 
-// Length of style_names.
+/*! \brief Length of style_names.
+
+    Initialized in colr.c.
+*/
 extern size_t style_names_len;
 
-// Returned from colorname_to_color* for invalid values.
+/*! \brief Returned from the `colorname_to_color*` functions for invalid values.
+*/
 extern const int COLORVAL_INVALID;
+/*! \brief Returned from `colorname_to_colorx()` and `colorname_to_color_rgb()` for invalid values.
+*/
 extern const int COLORVAL_INVALID_RANGE;
 
 void format_bgx(char *out, unsigned char num);

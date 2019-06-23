@@ -15,11 +15,13 @@ LIBS=-lm
 binary=colr
 source=colr_tool.c colr.c
 headers=colr.h colr_tool.h dbug.h
+docsconfig=Doxyfile
 objects:=$(source:.c=.o)
 
 .PHONY: all, debug, release
 all: debug
 
+debug: docs
 debug: tags
 debug: CFLAGS+=-g3 -DDEBUG
 debug: $(binary)
@@ -33,6 +35,9 @@ $(binary): $(objects)
 
 %.o: %.c %.h
 	$(CC) -c $< $(CFLAGS)
+
+docs: $(source) $(headers) $(docsconfig)
+	doxygen $(docsconfig);
 
 tags: $(source) $(headers)
 	-@printf "Building ctags...\n";
