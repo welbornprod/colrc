@@ -7,18 +7,15 @@
     Implements everything in the colr.h header.
 */
 #include "colr.h"
-/*! \file colr.h
-    \brief Possible error return value for `colorname_to_color()`, `colorname_to_colorx()`,
+/*! \brief Possible error return value for `colorname_to_color()`, `colorname_to_colorx()`,
     \brief and `colorname_to_rgb()`.
 */
 const int COLORVAL_INVALID = -2;
-/*! \file colr.h
-    \brief Possible error return value for `colorname_to_rgb()`.
+/*! \brief Possible error return value for `colorname_to_rgb()`.
 */
 const int COLORVAL_INVALID_RANGE = -1;
 
-/*! \file colr.h
-    \brief A list of `ColorInfo` items, used with `colorname_to_color()`.
+/*! \brief A list of `ColorInfo` items, used with `colorname_to_color()`.
 */
 struct ColorInfo color_names[] = {
     {"none", COLOR_NONE},
@@ -47,13 +44,11 @@ struct ColorInfo color_names[] = {
     {"xyellow", XYELLOW},
 };
 
-/*! \file colr.h
-    \brief Length of `color_names`.
+/*! \brief Length of `color_names`.
 */
 size_t color_names_len = sizeof color_names / sizeof (struct ColorInfo);
 
-/*! \file colr.h
-    \brief A list of `StyleInfo` items, used with `stylename_to_style()`.
+/*! \brief A list of `StyleInfo` items, used with `stylename_to_style()`.
 */
 struct StyleInfo style_names[] = {
     {"none", STYLE_NONE},
@@ -68,8 +63,7 @@ struct StyleInfo style_names[] = {
     {"normal", NORMAL},
 };
 
-/*! \file colr.h
-    \brief Length of `style_names`.
+/*! \brief Length of `style_names`.
 */
 size_t style_names_len = sizeof style_names / sizeof (struct StyleInfo);
 

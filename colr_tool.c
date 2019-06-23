@@ -19,12 +19,7 @@ int main(int argc, char *argv[]) {
     char forearg[MAX_ARG_LEN + 1] = "reset";
     char backarg[MAX_ARG_LEN + 1] = "reset";
     char stylearg[MAX_ARG_LEN + 1] = "reset";
-    // -------------------------------------------------------
-    char mine[CODE_ANY_LEN];
-    format_all(mine, rgb(232, 0, 100), ext(232), (StyleValue)NORMAL);
-    printf("%sTesting this out.%s\n", mine, STYLE_RESET_ALL);
-    return 1;
-    // -------------------------------------------------------
+
     switch (argc) {
         case 5:
             return_on_null(str_copy(stylearg, argv[4], MAX_ARG_LEN - 1));

@@ -9,8 +9,6 @@
     - colr.h
     - colr.c
     - dbug.h
-
-    \tableofcontents
 */
 #ifndef _GNU_SOURCE
     #define _GNU_SOURCE
@@ -259,18 +257,6 @@ struct ColorInfo {
     char *name;
     BasicValue color;
 };
-/*! \brief List of `ColorInfo` items.
-
-    Initialized in colr.c.
-*/
-extern struct ColorInfo color_names[];
-
-/*! \brief Length of `color_names`.
-
-    Initialized in colr.c.
-*/
-extern size_t color_names_len;
-
 /*! \struct StyleInfo
     Holds a known style name and it's `StyleValue`.
 
@@ -281,24 +267,6 @@ struct StyleInfo {
     char *name;
     StyleValue style;
 };
-/*! \brief A list of `StyleInfo`.
-
-    Initialized in colr.c.
-*/
-extern struct StyleInfo style_names[];
-
-/*! \brief Length of style_names.
-
-    Initialized in colr.c.
-*/
-extern size_t style_names_len;
-
-/*! \brief Returned from the `colorname_to_color*` functions for invalid values.
-*/
-extern const int COLORVAL_INVALID;
-/*! \brief Returned from `colorname_to_colorx()` and `colorname_to_color_rgb()` for invalid values.
-*/
-extern const int COLORVAL_INVALID_RANGE;
 
 void format_bgx(char *out, unsigned char num);
 void format_bg(char *out, BasicValue value);
