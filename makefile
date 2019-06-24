@@ -18,6 +18,7 @@ headers=colr.h colr_tool.h dbug.h
 docsconfig=Doxyfile
 docsdir=docs
 docsmainfile=$(docsdir)/html/index.html
+docsreadme=README.md
 objects:=$(source:.c=.o)
 
 .PHONY: all, debug, release
@@ -26,7 +27,6 @@ all: debug
 debug: tags
 debug: CFLAGS+=-g3 -DDEBUG
 debug: $(binary)
-debug: docs
 
 release: CFLAGS+=-O3 -DNDEBUG
 release: $(binary)
@@ -38,10 +38,8 @@ $(binary): $(objects)
 %.o: %.c %.h
 	$(CC) -c $< $(CFLAGS)
 
-
-
-$(docsmainfile): $(source) $(headers) $(docsconfig)
-docs: $(source) $(headers) $(docsconfig) $(docsmainfile)
+$(docsmainfile): $(source) $(headers) $(docsconfig) $(docsreadme)
+docs: $(source) $(headers) $(docsconfig) $(docsmainfile) $(docsreadme)
 	doxygen $(docsconfig);
 
 tags: $(source) $(headers)

@@ -1,14 +1,15 @@
-/* dbug.h
+/*! \file dbug.h
+    Debug macros, disabled and cost-free in release builds.
+
+    \details
     Debug print macro, for when building with DEBUG.
     These macros should cost nothing when building without DEBUG.
-    -Christopher Welborn 11-12-2017
-*/
 
+    \author Christopher Welborn
+    \date 11-12-2017
+*/
 #ifndef DBUG_H
 #define DBUG_H
-/*! \file
-    Documentation for dbug.h.
-*/
 
 /* Tell gcc to ignore this unused inclusion macro. */
 #pragma GCC diagnostic ignored "-Wunused-macros"
@@ -68,46 +69,46 @@
             ,DBUG_FUNCLEN, __func__ \
             ,DBUG_COLOR_NONE \
         );
-    /*! \brief Macro for printing a regular message.
+    /*! Macro for printing a regular message.
 
+        /details
         Writes a debug message with no line information, and no newline.
 
-        \param fmt Format string, like \c printf format strings.
-        \param ... All other arguments to satisfy the format string.
+        \pi ... Format string and all other arguments to satisfy the format string.
     */
     #define debug_msg(...) \
         fprintf(stderr, "%s", DBUG_COLOR_GREEN); \
         fprintf(stderr, __VA_ARGS__); \
         fprintf(stderr, "%s", DBUG_COLOR_NONE);
 
-    /*! \brief Macro for printing an error message.
+    /*! Macro for printing an error message.
 
+        /details
         File and line information will be included.
 
-        \param fmt Format string, like \c printf format strings.
-        \param ... All other arguments to satisfy the format string.
+        \pi ... Format string and all other arguments to satisfy the format string.
     */
     #define debug_msg_err(...) \
         fprintf(stderr, "%s", DBUG_COLOR_RED); \
         fprintf(stderr, __VA_ARGS__); \
         fprintf(stderr, "%s", DBUG_COLOR_NONE);
 
-    /*! \brief Macro for printing debug information.
+    /*! Macro for printing debug information.
 
+        /details
         File and line information will be included.
 
-        \param fmt Format string, like \c printf format strings.
-        \param ... All other arguments to satisfy the format string.
+        \pi ... Format string and all other arguments to satisfy the format string.
     */
     #define debug(...) \
         debug_lineinfo(); \
         debug_msg(__VA_ARGS__);
-    /*! \brief Macro for printing debug error information.
+    /*! Macro for printing debug error information.
 
+        /details
         File and line information will be included.
 
-        \param fmt Format string, like \c printf format strings.
-        \param ... All other arguments to satisfy the format string.
+        \pi ... Format string and all other arguments to satisfy the format string.
     */
     #define debugerr(...) \
         debug_lineinfo(); \

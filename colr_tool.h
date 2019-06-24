@@ -1,7 +1,13 @@
-/* colr_tool.h
-    Header for colr.h example implementation.
+#ifndef DOXYGEN_SKIP
+//! \file
+
+/*! Header for colr.h example implementation.
+
+    /details
     This is not required for using colr.h.
-    -Christopher Welborn 02-05-2017
+
+    \author Christopher Welborn
+    \date 02-05-2017
 */
 
 
@@ -51,6 +57,7 @@ void print_usage(const char*);
 void print_usage_full(void);
 void read_stdin_arg(char*, size_t);
 bool validate_color_arg_OLD(char*, BasicValue, char*);
-bool validate_color_arg(const char*, ColorNameType, const char*);
+bool validate_color_arg(const char*, ColorType, const char*);
 bool validate_style_arg(StyleValue, char*);
 #endif // COLR_TOOL_H
+#endif // DOXYGEN_SKIP

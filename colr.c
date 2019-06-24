@@ -1,22 +1,18 @@
-/*  colr.c
-    Colr implementations.
-
-    -Christopher Welborn 06-22-2019
-*/
-/*! \file
+/*! \file colr.c
     Implements everything in the colr.h header.
+
+    \author Christopher Welborn
+    \date 06-22-2019
 */
 #include "colr.h"
-/*! \brief Possible error return value for `colorname_to_color()`, `colorname_to_colorx()`,
-    \brief and `colorname_to_rgb()`.
+/*! Possible error return value for BasicValue_from_str(), ExtendedValue_from_str(),
+    and colorname_to_rgb().
 */
 const int COLORVAL_INVALID = -2;
-/*! \brief Possible error return value for `colorname_to_rgb()`.
-*/
+//! Possible error return value for rgb_from_str() and RGB_from_str().
 const int COLORVAL_INVALID_RANGE = -1;
 
-/*! \brief A list of `ColorInfo` items, used with `colorname_to_color()`.
-*/
+//! A list of ColorInfo items, used with BasicValue_from_str().
 struct ColorInfo color_names[] = {
     {"none", COLOR_NONE},
     {"black", BLACK},
@@ -44,12 +40,10 @@ struct ColorInfo color_names[] = {
     {"xyellow", XYELLOW},
 };
 
-/*! \brief Length of `color_names`.
-*/
+//! Length of color_names.
 size_t color_names_len = sizeof color_names / sizeof (struct ColorInfo);
 
-/*! \brief A list of `StyleInfo` items, used with `stylename_to_style()`.
-*/
+//! A list of StyleInfo items, used with StyleName_from_str().
 struct StyleInfo style_names[] = {
     {"none", STYLE_NONE},
     {"reset", RESET_ALL},
@@ -63,29 +57,26 @@ struct StyleInfo style_names[] = {
     {"normal", NORMAL},
 };
 
-/*! \brief Length of `style_names`.
-*/
+//! Length of style_names.
 size_t style_names_len = sizeof style_names / sizeof (struct StyleInfo);
 
-void
-format_bgx(char *out, unsigned char num) {
-    /*  Create an escape code for an extended background color.
-        Arguments:
-            out   : Memory allocated for the escape code string.
-                    *Must have enough room for `CODEX_LEN`.
-            value : Value to use for background.
-    */
+/*! Create an escape code for an extended background color.
+
+    \po out Memory allocated for the escape code string.
+            _Must have enough room for `CODEX_LEN`._
+    \pi num Value to use for background.
+*/
+void format_bgx(char *out, unsigned char num) {
     snprintf(out, CODEX_LEN, "\033[48;5;%dm", num);
 }
 
-void
-format_bg(char *out, BasicValue value) {
-    /*  Create an escape code for a background color.
-        Arguments:
-            out   : Memory allocated for the escape code string.
-                    *Must have enough room for `CODEX_LEN`.
-            value : BasicValue value to use for background.
-    */
+/*! Create an escape code for a background color.
+
+    \po out   Memory allocated for the escape code string.
+              _Must have enough room for `CODEX_LEN`._
+    \pi value BasicValue value to use for background.
+*/
+void format_bg(char *out, BasicValue value) {
     if (value > 9) {
         format_bgx(out, value - (value > 16 ? 8: 9));
     } else {
@@ -93,50 +84,69 @@ format_bg(char *out, BasicValue value) {
     }
 }
 
-void
-format_bg_rgb(char *out, unsigned char red, unsigned char green, unsigned char blue) {
-    /*  Create an escape code for a true color (rgb) background color.
-        Arguments:
-            out   : Memory allocated for the escape code string.
-                    *Must have enough room for `CODE_RGB_LEN`.
-            red   : Value for red.
-            green : Value for green.
-            blue  : Value for blue.
-    */
+/*! Create an escape code for a true color (rgb) background color.
+
+    \po out   Memory allocated for the escape code string.
+              _Must have enough room for `CODE_RGB_LEN`._
+    \pi red   Value for red.
+    \pi green Value for green.
+    \pi blue  Value for blue.
+*/
+void format_bg_rgb(char *out, unsigned char red, unsigned char green, unsigned char blue) {
     snprintf(out, CODE_RGB_LEN, "\033[48;2;%d;%d;%dm", red, green, blue);
 }
 
-void
-format_bg_RGB(char *out, struct RGB rgb) {
-    /*  Create an escape code for a true color (rgb) background color
-        using values from an RGB struct.
-        Arguments:
-            out   : Memory allocated for the escape code string.
-                    *Must have enough room for `CODE_RGB_LEN`.
-            rgb   : RGB struct to get red, blue, and green values from.
-    */
+/*! Create an escape code for a true color (rgb) background color
+    using values from an RGB struct.
+
+    \po out Memory allocated for the escape code string.
+            _Must have enough room for `CODE_RGB_LEN`._
+    \pi rgb RGB struct to get red, blue, and green values from.
+*/
+void format_bg_RGB(char *out, struct RGB rgb) {
     format_bg_rgb(out, rgb.red, rgb.green, rgb.blue);
 }
 
-void
-format_fgx(char *out, unsigned char num) {
-    /*  Create an escape code for an extended fore color.
-        Arguments:
-            out   : Memory allocated for the escape code string.
-                    *Must have enough room for `CODEX_LEN`.
-            value : Value to use for fore.
-    */
+/*! Create an escape code for a background color from a ColorArg.
+
+    \po out  Memory allocated for the escape code string.
+             _Must have enough room for `CODE_RGB_LEN`._
+    \pi carg ColorArg value to get the value from.
+*/
+void format_bg_color_arg(char *out, struct ColorArg carg) {
+    switch (carg.type) {
+        case TYPE_BASIC:
+            format_bg(out, carg.basic);
+            break;
+        case TYPE_EXTENDED:
+            format_bgx(out, carg.ext);
+            break;
+        case TYPE_RGB:
+            format_bg_RGB(out, carg.rgb);
+            break;
+        default:
+            // Invalid color or color range.
+            break;
+    }
+}
+
+/*! Create an escape code for an extended fore color.
+
+    \po out Memory allocated for the escape code string.
+            _Must have enough room for `CODEX_LEN`._
+    \pi num Value to use for fore.
+*/
+void format_fgx(char *out, unsigned char num) {
     snprintf(out, CODEX_LEN, "\033[38;5;%dm", num);
 }
 
-void
-format_fg(char *out, BasicValue value) {
-    /*  Create an escape code for a fore color.
-        Arguments:
-            out   : Memory allocated for the escape code string.
-                    *Must have enough room for `CODEX_LEN`.
-            value : BasicValue value to use for fore.
-    */
+/*! Create an escape code for a fore color.
+
+    \po out   Memory allocated for the escape code string.
+              _Must have enough room for `CODEX_LEN`._
+    \pi value BasicValue value to use for fore.
+*/
+void format_fg(char *out, BasicValue value) {
     if (value > 9) {
         format_fgx(out, value - (value > 16 ? 8: 9));
     } else {
@@ -144,39 +154,36 @@ format_fg(char *out, BasicValue value) {
     }
 }
 
-void
-format_fg_rgb(char *out, unsigned char red, unsigned char green, unsigned char blue) {
-    /*  Create an escape code for a true color (rgb) fore color.
-        Arguments:
-            out   : Memory allocated for the escape code string.
-                    *Must have enough room for `CODE_RGB_LEN`.
-            red   : Value for red.
-            green : Value for green.
-            blue  : Value for blue.
-    */
+/*! Create an escape code for a true color (rgb) fore color.
+
+    \po out   Memory allocated for the escape code string.
+              _Must have enough room for `CODE_RGB_LEN`._
+    \pi red   Value for red.
+    \pi green Value for green.
+    \pi blue  Value for blue.
+*/
+void format_fg_rgb(char *out, unsigned char red, unsigned char green, unsigned char blue) {
     snprintf(out, CODE_RGB_LEN, "\033[38;2;%d;%d;%dm", red, green, blue);
 }
 
-void
-format_fg_RGB(char *out, struct RGB rgb) {
-    /*  Create an escape code for a true color (rgb) fore color using an
-        RGB struct's values.
-        Arguments:
-            out  : Memory allocated for the escape code string.
-            rgb  : Pointer to an RGB struct.
-    */
+/*! Create an escape code for a true color (rgb) fore color using an
+    RGB struct's values.
+
+    \po out Memory allocated for the escape code string.
+    \pi rgb Pointer to an RGB struct.
+*/
+void format_fg_RGB(char *out, struct RGB rgb) {
     format_fg_rgb(out, rgb.red, rgb.green, rgb.blue);
 }
 
-void
-format_rainbow_fore(char *out, double freq, size_t step) {
-    /*  A single step in rainbow-izing a string.
-        Arguments:
-            out  : Memory allocated for the escape code string.
-            freq : Frequency ("tightness") of the colors.
-            step : Offset from the start of the rainbow.
-                   Usually an index into a string.
-    */
+/*! A single step in rainbow-izing a string.
+
+    \po out  Memory allocated for the escape code string.
+    \pi freq Frequency ("tightness") of the colors.
+    \pi step Offset from the start of the rainbow.
+             Usually an index into a string.
+*/
+void format_rainbow_fore(char *out, double freq, size_t step) {
     double red = sin(freq * step + 0) * 127 + 128;
     double green = sin(freq * step + 2 * M_PI / 3) * 127 + 128;
     double blue = sin(freq * step + 4 * M_PI / 3) * 127 + 128;
@@ -188,37 +195,33 @@ format_rainbow_fore(char *out, double freq, size_t step) {
     );
 }
 
-void
-format_style(char *out, StyleValue style) {
-    /*  Create an escape code for a style.
-        Arguments:
-            out   : Memory allocated for the escape code string.
-                    *Must have enough room for `STYLE_LEN`.
-            style : StyleValue value to use for style.
-    */
+/*! Create an escape code for a style.
+
+    \po out   Memory allocated for the escape code string.
+              _Must have enough room for `STYLE_LEN`._
+    \pi style StyleValue value to use for style.
+*/
+void format_style(char *out, StyleValue style) {
     snprintf(out, STYLE_LEN, "\033[%dm", style < 0 ? RESET_ALL: style);
 }
 
 
-char*
-str_copy(char *dest, const char *src, size_t length) {
-    /*  Like `strncopy`, but ensures null-termination.
+/*! Like strncopy, but ensures null-termination.
 
-        If `src` is NULL, or `dest` is NULL, NULL is returned.
-        On success, a pointer to `dest` is returned.
+    \details If src is NULL, or dest is NULL, NULL is returned.
+    If src does not contain a null-terminator, _this function
+    will truncate at `length` characters_.
 
-        *Warning: If `src` does not contain a null-terminator, this function
-         will truncate at `length` characters.
+    \details A null-terminator is always appended to dest.
 
-        A null-terminator is always appended to `dest`.
+    \pi dest   Memory allocated for new string.
+               _Must have room for `strlen(src)`._
+    \pi src    Source string to copy.
+    \pi length Maximum characters to copy, if src is not null-terminated.
 
-        Arguments:
-            dest    : Memory allocated for new string.
-                      *Must have room for `strlen(src)`.
-            src     : Source string to copy.
-            length  : Maximum characters to copy, if `src` is not
-                      null-terminated.
-    */
+    \returns On success, a pointer to dest is returned.
+*/
+char *str_copy(char *dest, const char *src, size_t length) {
     if (!(src && dest)) {
         return NULL;
     }
@@ -231,17 +234,30 @@ str_copy(char *dest, const char *src, size_t length) {
     return dest;
 }
 
-int
-str_startswith(const char *s, const char *prefix) {
-    /*  Returns non-zero if the string `s` starts with `prefix`.
-        Returns 0 if one of the strings is null, or the prefix isn't found.
+/*! This is a no-op function that simply returns the pointer it is given.
+    \details
+    It is used in the force_str macro to dynamically ensure it's argument
+    is converted to a string. If a string is passed to force_str it is
+    simply returned as-is.
 
-        *Warning: `prefix` must be null-terminated.
+    \pi s   The string to return.
+    \return The string that was given.
+*/
+char *str_noop(char *s) {
+    return s;
+}
 
-        Arguments:
-            s      : The string to check.
-            prefix : The prefix string to look for.
-    */
+/*! Checks a string for a certain prefix substring.
+
+    \details _`prefix` must be null-terminated._
+
+    \pi s      The string to check.
+    \pi prefix The prefix string to look for.
+
+    \return non-zero if the string `s` starts with prefix.
+    \return 0 if one of the strings is null, or the prefix isn't found.
+*/
+int str_startswith(const char *s, const char *prefix) {
     if (!s || !prefix) {
         // One of the strings is null.
         return 0;
@@ -249,7 +265,7 @@ str_startswith(const char *s, const char *prefix) {
     size_t pre_len = strlen(prefix);
     for (size_t i = 0; i < pre_len; i++) {
         if (s[i] == '\0') {
-            // Reached the end of `s` before the end of `prefix`.
+            // Reached the end of s before the end of prefix.
             return 0;
         }
         if (prefix[i] != s[i]) {
@@ -260,8 +276,14 @@ str_startswith(const char *s, const char *prefix) {
     return 1;
 }
 
-void
-str_tolower(char *out, const char *s) {
+/*! Converts a string into lower case, and copies it into `out`.
+    \details _Input string must be null-terminated._
+
+    \po out Memory allocated for the result.
+            _Must have capacity for `strlen(s) + 1`._
+    \pi s   The input string to convert to lower case.
+*/
+void str_tolower(char *out, const char *s) {
     int length = 0;
     for (int i = 0; s[i]; i++) {
         length++;
@@ -271,11 +293,181 @@ str_tolower(char *out, const char *s) {
 }
 
 /* ---------------------------- Colr Functions ---------------------------- */
-BasicValue
-colorname_to_color(const char *arg) {
-    /*  Convert named argument to an actual BasicValue enum value.
-        Returns a BasicValue value on success, or COLOR_INVALID on error.
-    */
+
+/*! Create a ColorArg from a known color name, or RGB string.
+
+    \pi s    A string to parse the color name from (can be an RGB string).
+    \return  A ColorArg (with no fore/back information, only the color type and value).
+*/
+struct ColorArg ColorArg_from_str(char *s) {
+    if (!s) {
+        return ColorArg_from_value(TYPE_INVALID, NULL);
+    }
+    // Get the actual type, even if it's invalid.
+    ColorType type = ColorType_from_str(s);
+    // Try rgb first.
+    struct RGB rgb;
+    int rgb_ret = RGB_from_str(s, &rgb);
+    if (rgb_ret == COLORVAL_INVALID_RANGE) {
+        return ColorArg_from_value(TYPE_INVALID_RGB_RANGE, NULL);
+    } else if (rgb_ret != TYPE_INVALID) {
+        return ColorArg_from_value(type, &rgb);
+    }
+    // Extended colors.
+    int x_ret = ExtendedValue_from_str(s);
+    if (x_ret == COLORVAL_INVALID_RANGE) {
+        return ColorArg_from_value(TYPE_INVALID_EXTENDED_RANGE, NULL);
+    } else if (x_ret != COLORVAL_INVALID) {
+        // Need to cast back into a real ExtendedValue now that I know it's
+        // not invalid. Also, ColorArg_from_value expects a pointer, to
+        // help with it's "dynamic" uses.
+        ExtendedValue xval = (ExtendedValue)x_ret;
+        return ColorArg_from_value(type, &xval);
+    }
+    // Try basic colors.
+    int b_ret = BasicValue_from_str(s);
+    if ( b_ret != COLOR_INVALID) {
+        BasicValue bval = (BasicValue)b_ret;
+        return ColorArg_from_value(type, &bval);
+    }
+    return ColorArg_from_value(TYPE_INVALID, NULL);
+}
+
+/*! Used with the color_arg macro to dynamically create a ColorArg based
+    on it's argument type.
+
+    \pi type A ColorType value, to mark the type of ColorArg.
+    \pi p    A pointer to either a BasicValue, ExtendedValue, or a struct RGB.
+*/
+struct ColorArg ColorArg_from_value(ColorType type, void *p) {
+    if (
+        type == TYPE_INVALID ||
+        type == TYPE_INVALID_EXTENDED_RANGE ||
+        type == TYPE_INVALID_RGB_RANGE
+        ) {
+        return (struct ColorArg){.type=type};
+    }
+    if (!p) {
+        return (struct ColorArg){.type=TYPE_INVALID};
+    }
+    if (type == TYPE_BASIC) {
+        BasicValue *bval = p;
+        return (struct ColorArg){.type=TYPE_BASIC, .basic=*bval};
+    } else if (type == TYPE_EXTENDED) {
+        ExtendedValue *eval = p;
+        return (struct ColorArg){.type=TYPE_EXTENDED, .ext=*eval};
+    } else if (type == TYPE_RGB) {
+        struct RGB *rgbval = p;
+        return (struct ColorArg){.type=TYPE_RGB, .rgb=*rgbval};
+    }
+    return (struct ColorArg){.type=type};
+}
+
+/*! Creates a string representation of a ColorArg.
+
+    \pi carg    A ColorArg to get the type and value from.
+    \return     A pointer to an allocated string. You must free() it.
+*/
+char *ColorArg_repr(struct ColorArg carg) {
+    char *argstr;
+    switch (carg.type) {
+        case TYPE_RGB:
+            asprintf(
+                &argstr,
+                "struct RGB {.red=%d, .green=%d, .blue=%d}",
+                carg.rgb.red,
+                carg.rgb.green,
+                carg.rgb.blue
+            );
+            break;
+        case TYPE_BASIC:
+            asprintf(&argstr, "(BasicValue) %d", carg.basic);
+            break;
+        case TYPE_EXTENDED:
+            asprintf(&argstr, "(ExtendedValue) %d", carg.ext);
+            break;
+        default:
+            return ColorType_repr(carg.type);
+    }
+    return argstr;
+}
+
+/*! Determine which type of color value is desired by name.
+
+    \details Example:
+        - "red" == TYPE_BASIC
+        - "253" == TYPE_EXTENDED
+        - "123,55,67" == TYPE_RGB
+
+    \pi arg Color name to get the ColorType for.
+    \return ColorType value on success.
+    \return On error, returns one of:
+        - TYPE_INVALID
+        - TYPE_INVALID_EXTENDED_RANGE
+        - TYPE_INVALID_RGB_RANGE
+*/
+ColorType ColorType_from_str(const char *arg) {
+    if (!arg) {
+        return TYPE_INVALID;
+    }
+    // Try rgb first.
+    unsigned char r, g, b;
+    int rgb_ret = rgb_from_str(arg, &r, &g, &b);
+    if (rgb_ret == COLORVAL_INVALID_RANGE) {
+        return TYPE_INVALID_RGB_RANGE;
+    } else if (rgb_ret != TYPE_INVALID) {
+        return TYPE_RGB;
+    }
+    // Extended colors.
+    int x_ret = ExtendedValue_from_str(arg);
+    if (x_ret == COLORVAL_INVALID_RANGE) {
+        return TYPE_INVALID_EXTENDED_RANGE;
+    } else if (x_ret != COLORVAL_INVALID) {
+        return TYPE_EXTENDED;
+    }
+    // Try basic colors.
+    if (BasicValue_from_str(arg) != COLOR_INVALID) {
+        return TYPE_BASIC;
+    }
+    return TYPE_INVALID;
+}
+
+/*! Creates a string representation of a ColorType.
+
+    \pi type A ColorType to get the type from.
+    \return  A pointer to an allocated string. You must free() it.
+*/
+char *ColorType_repr(ColorType type) {
+    char *typestr;
+    switch (type) {
+        case TYPE_BASIC:
+            asprintf(&typestr, "TYPE_BASIC");
+            break;
+        case TYPE_EXTENDED:
+            asprintf(&typestr, "TYPE_EXTENDED");
+            break;
+        case TYPE_RGB:
+            asprintf(&typestr, "TYPE_RGB");
+            break;
+        case TYPE_INVALID:
+            asprintf(&typestr, "TYPE_INVALID");
+            break;
+        case TYPE_INVALID_EXTENDED_RANGE:
+            asprintf(&typestr, "TYPE_INVALID_EXTENDED_RANGE");
+            break;
+        case TYPE_INVALID_RGB_RANGE:
+            asprintf(&typestr, "TYPE_INVALID_RGB_RANGE");
+            break;
+    }
+    return typestr;
+}
+
+/*! Convert named argument to an actual BasicValue enum value.
+
+    \pi arg Color name to find the BasicValue for.
+    \return BasicValue value on success, or COLOR_INVALID on error.
+*/
+BasicValue BasicValue_from_str(const char *arg) {
     char arglower[MAX_COLOR_NAME_LEN];
     str_tolower(arglower, arg);
     for (size_t i=0; i < color_names_len; i++) {
@@ -287,13 +479,15 @@ colorname_to_color(const char *arg) {
     return COLOR_INVALID;
 }
 
-int
-colorname_to_colorx(const char *arg) {
-    /*  Converts an integer string (0-255) into a number suitable
-        for the colrx functions.
-        Returns a value between 0 and 255 on success.
-        Returns `COLORVAL_INVALID` on error or bad values.
-    */
+/*! Converts an integer string (0-255) into an ExtendedValue suitable
+    for the extended-value-based functions.
+
+    \pi arg Color name to find the ExtendedValue for.
+
+    \return A value between 0 and 255 on success.
+    \return COLORVAL_INVALID on error or bad values.
+*/
+int ExtendedValue_from_str(const char *arg) {
     if (streq(arg, "xred")) return XRED;
     if (streq(arg, "xgreen")) return XGREEN;
     if (streq(arg, "xyellow")) return XYELLOW;
@@ -309,7 +503,7 @@ colorname_to_colorx(const char *arg) {
     if (streq(arg, "lightcyan")) return LIGHTCYAN;
     if (streq(arg, "lightnormal")) return LIGHTNORMAL;
 
-    // Using `long` to combat easy overflow.
+    // Using long to combat easy overflow.
     long usernum;
     if (!sscanf(arg, "%ld", &usernum)) {
         // Not a number.
@@ -321,26 +515,22 @@ colorname_to_colorx(const char *arg) {
     return (int)usernum;
 }
 
-int
-colorname_to_color_rgb(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b) {
-    /*  Convert an RGB string into red,green,blue values suitable for the
-        colr*rgb functions.
+/*! Convert an RGB string into separate red, green, blue values.
 
-        The format for RGB strings can be one of:
-            "RED,GREEN,BLUE"
-            "RED GREEN BLUE"
-            "RED:GREEN:BLUE"
+    \details The format for RGB strings can be one of:
+        - "RED,GREEN,BLUE"
+        - "RED GREEN BLUE"
+        - "RED:GREEN:BLUE"
 
-        Returns 0 on success.
-        Returns either COLORVAL_INVALID, or COLORVAL_INVALID_RANGE on error.
+    \pi arg String to check for RGB values.
+    \po r   Pointer to an unsigned char for red value on success.
+    \po g   Pointer to an unsigned char for green value on success.
+    \po b   Pointer to an unsigned char for blue value on success.
 
-        Arguments:
-            arg  : String to check for RGB values.
-            r    : Pointer to an unsigned char for red value on success.
-            g    : Pointer to an unsigned char for green value on success.
-            b    : Pointer to an unsigned char for blue value on success.
-
-    */
+    \return 0 on success.
+    \return COLORVAL_INVALID, or COLORVAL_INVALID_RANGE on error.
+*/
+int rgb_from_str(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b) {
     const char *formats[4] = {
         "%ld,%ld,%ld",
         "%ld %ld %ld",
@@ -366,87 +556,67 @@ colorname_to_color_rgb(const char *arg, unsigned char *r, unsigned char *g, unsi
     return COLORVAL_INVALID;
 }
 
-int
-colorname_to_color_RGB(const char *arg, struct RGB *rgb) {
-    /*  Convert an RGB string into a RGB struct suitable for the
-        colr*RGB functions.
+/*! Convert an RGB string into a RGB struct suitable for the
+    colr*RGB functions.
 
-        The format for RGB strings can be one of:
-            "RED,GREEN,BLUE"
-            "RED GREEN BLUE"
-            "RED:GREEN:BLUE"
+    \details The format for RGB strings can be one of:
+        - "RED,GREEN,BLUE"
+        - "RED GREEN BLUE"
+        - "RED:GREEN:BLUE"
 
-        Returns 0 on success.
-        Returns either COLORVAL_INVALID, or COLORVAL_INVALID_RANGE on error.
+    \details Example:
+    \code
+struct RGB rgbval;
+RGB_from_str("123,0,234", &rgbval)
+    \endcode
 
-        Arguments:
-            arg  : String to check for RGB values.
-            rgb  : Pointer to an RGB struct to fill in the values for.
-    */
+    \pi arg    String to check for RGB values.
+    \po rgbval Pointer to an RGB struct to fill in the values for.
+
+    \return 0 on success.
+    \return COLORVAL_INVALID, or COLORVAL_INVALID_RANGE on error.
+*/
+int RGB_from_str(const char *arg, struct RGB *rgbval) {
     unsigned char r = 0;
     unsigned char g = 0;
     unsigned char b = 0;
-    int ret = colorname_to_color_rgb(arg, &r, &g, &b);
+    int ret = rgb_from_str(arg, &r, &g, &b);
     if (ret) {
         // An error occurred.
         return ret;
     }
-    rgb->red = r;
-    rgb->green = g;
-    rgb->blue = b;
+    rgbval->red = r;
+    rgbval->green = g;
+    rgbval->blue = b;
     return 0;
 }
 
-ColorNameType
-colorname_type(const char *arg) {
-    /*  Determine which type of color value is desired by name.
-        Example:
-            "red" == COLORNAME_BASIC
-            "253" == COLORNAME_EXTENDED
-            "123,55,67" == COLORNAME_RGB
+/*! Convert named argument to actual StyleValue enum value.
 
-        Returns a ColorNameType value on success.
-        On error, returns one of:
-            COLORNAME_INVALID
-            COLORNAME_INVALID_EXTENDED_RANGE
-            COLORNAME_INVALID_RGB_RANGE
-    */
-    if (!arg) {
-        return COLORNAME_INVALID;
+    \return A usable StyleValue value on success, or STYLE_INVALID on error.
+*/
+StyleValue StyleValue_from_str(const char *arg) {
+    char arglower[MAX_COLOR_NAME_LEN];
+    str_tolower(arglower, arg);
+
+    for (size_t i=0; i < style_names_len; i++) {
+        if (!strcmp(arglower, style_names[i].name)) {
+            return style_names[i].style;
+        }
     }
-    // Try rgb first.
-    unsigned char r, g, b;
-    int rgb_ret = colorname_to_color_rgb(arg, &r, &g, &b);
-    if (rgb_ret == COLORVAL_INVALID_RANGE) {
-        return COLORNAME_INVALID_RGB_RANGE;
-    } else if (rgb_ret != COLORNAME_INVALID) {
-        return COLORNAME_RGB;
-    }
-    // Extended colors.
-    int x_ret = colorname_to_colorx(arg);
-    if (x_ret == COLORVAL_INVALID_RANGE) {
-        return COLORNAME_INVALID_EXTENDED_RANGE;
-    } else if (x_ret != COLORVAL_INVALID) {
-        return COLORNAME_EXTENDED;
-    }
-    // Try basic colors.
-    if (colorname_to_color(arg) != COLOR_INVALID) {
-        return COLORNAME_BASIC;
-    }
-    return COLORNAME_INVALID;
+    return STYLE_INVALID;
 }
 
-void
-colrbg(char *out, const char *s, BasicValue back) {
-    /*  Prepend back color codes to a string, and copy the result into `out`.
-        The STYLE_RESET_ALL code is already appended to the result.
-        Arguments:
-            out  : Memory allocated for the result.
-                   *Must have enough room for `strlen(s) + COLOR_LEN`.
-            s    : The string to colorize.
-                   *Must be null-terminated.
-            back : `BasicValue` code to use.
-    */
+/*! Prepend back color codes to a string, and copy the result into out.
+    \details The `STYLE_RESET_ALL` code is already appended to the result.
+
+    \po out  Memory allocated for the result.
+             _Must have enough room for `strlen(s) + COLOR_LEN`._
+    \pi s    The string to colorize.
+             _Must be null-terminated._
+    \pi back BasicValue code to use.
+*/
+void colrbg(char *out, const char *s, BasicValue back) {
     char backcode[CODEX_LEN];
     format_bg(backcode, back);
     size_t oldlen = strlen(s);
@@ -458,20 +628,19 @@ colrbg(char *out, const char *s, BasicValue back) {
     );
 }
 
-void
-colrbgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue) {
-    /*  Colorize a string using true color, rgb back colors and copy the
-        result into `out`.
-        The StyleValue.RESET_ALL code is already appended to the result.
-        Arguments:
-            out   : Allocated memory to copy the result to.
-                    *Must have enough room for `strlen(s) + COLOR_LEN`.
-            s     : String to colorize.
-                    *Must be null-terminated.
-            red   : Value for red.
-            green : Value for green.
-            blue  : Value for blue.
-    */
+/*! Colorize a string using true color, rgb back colors and copy the
+    result into out.
+    \details The `StyleValue.RESET_ALL` code is already appended to the result.
+
+    \po out   Allocated memory to copy the result to.
+              _Must have enough room for `strlen(s) + COLOR_LEN`._
+    \pi s     String to colorize.
+              _Must be null-terminated._
+    \pi red   Value for red.
+    \pi green Value for green.
+    \pi blue  Value for blue.
+*/
+void colrbgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue) {
     char backcode[CODE_RGB_LEN];
     format_bg_rgb(backcode, red, green, blue);
     size_t oldlen = strlen(s);
@@ -484,20 +653,19 @@ colrbgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsi
     );
 }
 
-void
-colrbgRGB(char *out, const char *s, struct RGB rgb) {
-    /*  Colorize a string using true color, rgb back colors and copy the
-        result into `out`.
-        The StyleValue.RESET_ALL code is already appended to the result.
-        Arguments:
-            out   : Allocated memory to copy the result to.
-                    *Must have enough room for `strlen(s) + COLOR_LEN`.
-            s     : String to colorize.
-                    *Must be null-terminated.
-            rgb   : Pointer to an RGB struct to get the r, g, and b values.
-    */
+/*! Colorize a string using true color, rgbval back colors and copy the
+    result into out.
+    \details The `StyleValue.RESET_ALL` code is already appended to the result.
+
+    \po out    Allocated memory to copy the result to.
+               _Must have enough room for `strlen(s) + COLOR_LEN`._
+    \pi s      String to colorize.
+               _Must be null-terminated._
+    \pi rgbval Pointer to an RGB struct to get the r, g, and b values.
+*/
+void colrbgRGB(char *out, const char *s, struct RGB rgbval) {
     char backcode[CODE_RGB_LEN];
-    format_bg_RGB(backcode, rgb);
+    format_bg_RGB(backcode, rgbval);
     size_t oldlen = strlen(s);
     size_t codeslen = strlen(backcode) + STYLE_LEN;
     snprintf(
@@ -508,17 +676,17 @@ colrbgRGB(char *out, const char *s, struct RGB rgb) {
     );
 }
 
-void
-colrbgx(char *out, const char *s, unsigned char num) {
-    /*  Colorize a string using extended, 256, bg colors, and copy the
-        result into `out`.
-        The STYLE_RESET_ALL code is already appended to the result.
-        Arguments:
-            out  : Allocated memory to copy the result to.
-                   *Must have enough room for `strlen(s) + COLOR_LEN`.
-            s    : String to colorize.
-                   *Must be null-terminated.
-    */
+/*! Colorize a string using extended, 256, bg colors, and copy the
+    result into out.
+    \details The `STYLE_RESET_ALL` code is already appended to the result.
+
+    \po out Allocated memory to copy the result to.
+            _Must have enough room for `strlen(s) + COLOR_LEN`._
+    \pi s   String to colorize.
+            _Must be null-terminated._
+    \pi num ExtendedValue to use for the color value.
+*/
+void colrbgx(char *out, const char *s, unsigned char num) {
     char backcode[CODEX_LEN];
     format_bgx(backcode, num);
     size_t oldlen = strlen(s);
@@ -532,17 +700,16 @@ colrbgx(char *out, const char *s, unsigned char num) {
     );
 }
 
-void
-colrfg(char *out, const char *s, BasicValue fore) {
-    /*  Prepend fore color codes to a string, and copy the result into `out`.
-        The STYLE_RESET_ALL code is already appended to the result.
-        Arguments:
-            out  : Memory allocated for the result.
-                   *Must have enough room for `strlen(s) + COLOR_LEN`.
-            s    : The string to colorize.
-                   *Must be null-terminated.
-            fore : `BasicValue` code to use.
-    */
+/*! Prepend fore color codes to a string, and copy the result into out.
+    \details The STYLE_RESET_ALL code is already appended to the result.
+
+    \po out  Memory allocated for the result.
+             _Must have enough room for `strlen(s) + COLOR_LEN`._
+    \pi s    The string to colorize.
+             _Must be null-terminated._
+    \pi fore BasicValue code to use.
+*/
+void colrfg(char *out, const char *s, BasicValue fore) {
     char forecode[CODEX_LEN];
     format_fg(forecode, fore);
     size_t oldlen = strlen(s);
@@ -554,34 +721,30 @@ colrfg(char *out, const char *s, BasicValue fore) {
     );
 }
 
-void
-colrfgchar(char *out, const char c, BasicValue fore) {
-    /*  Build a colorized string, from a single character.
+/*! Build a colorized string, from a single character.
 
-        Arguments:
-            out   : Memory allocated for the resulting string.
-                    *Must have enough room for `COLOR_LEN + 1`.
-            c     : Character to colorize.
-            fore  : Fore color from `BasicValue` to use.
-    */
+    \po out  Memory allocated for the resulting string.
+             _Must have enough room for `COLOR_LEN + 1`._
+    \pi c    Character to colorize.
+    \pi fore Fore color from BasicValue to use.
+*/
+void colrfgchar(char *out, const char c, BasicValue fore) {
     char s[2] = "\0\0";
     s[0] = c;
     colrfg(out, s, fore);
 }
 
-void
-colrfgrainbow(char *out, const char *s, double freq, size_t offset) {
-    /*  Rainbow-ize some text using rgb fore colors, lolcat style.
-        The STYLE_RESET_ALL code is already appended to the result.
-        Arguments:
-            out    : Memory allocated for the result.
-                     *Must have enough room for
-                     `strlen(s) + (CODE_RGB_LEN * strlen(s))`.
-            s      : The string to colorize.
-                     *Must be null-terminated.
-            freq   : Frequency ("tightness") for the colors.
-            offset : Starting offset in the rainbow.
-    */
+/*! Rainbow-ize some text using rgb fore colors, lolcat style.
+    \details The `STYLE_RESET_ALL` code is already appended to the result.
+
+    \po out    Memory allocated for the result.
+               _Must have enough room for `strlen(s) + (CODE_RGB_LEN * strlen(s))`._
+    \pi s      The string to colorize.
+               _Must be null-terminated._
+    \pi freq   Frequency ("tightness") for the colors.
+    \pi offset Starting offset in the rainbow.
+*/
+void colrfgrainbow(char *out, const char *s, double freq, size_t offset) {
     // Enough room for the escape code and one character.
     char codes[CODE_RGB_LEN];
     size_t singlecharlen = CODE_RGB_LEN + 1;
@@ -597,39 +760,35 @@ colrfgrainbow(char *out, const char *s, double freq, size_t offset) {
     strncat(out, STYLE_RESET_ALL, STYLE_LEN);
 }
 
-char *
-acolrfgrainbow(const char *s, double freq, size_t offset) {
-    /*  Like `colrfgrainbow`, except it allocates the string for you, with
-     enough room to fit the string and any escape codes needed.
+/*! Like colrfgrainbow, except it allocates the string for you, with
+    enough room to fit the string and any escape codes needed.
 
-     Returns the allocated/formatted string on success.
-
-     Arguments:
-         s      : The string to colorize.
-                  *Must be null-terminated.
-         freq   : Frequency ("tightness") for the colors.
-         offset : Starting offset in the rainbow.
-    */
+    \pi s      The string to colorize.
+               _Must be null-terminated._
+    \pi freq   Frequency ("tightness") for the colors.
+    \pi offset Starting offset in the rainbow.
+    \return    The allocated/formatted string on success.
+*/
+char * acolrfgrainbow(const char *s, double freq, size_t offset) {
     size_t oldlen = strlen(s);
     char *out = (char*)calloc(oldlen + (CODE_RGB_LEN * oldlen), sizeof(char));
     colrfgrainbow(out, s, freq, offset);
     return out;
 }
 
-void
-colrfgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue) {
-    /*  Colorize a string using true color, rgb fore colors and copy the
-        result into `out`.
-        The StyleValue.RESET_ALL code is already appended to the result.
-        Arguments:
-            out   : Allocated memory to copy the result to.
-                    *Must have enough room for `strlen(s) + COLOR_RGB_LEN`.
-            s     : String to colorize.
-                    *Must be null-terminated.
-            red   : Value for red.
-            green : Value for green.
-            blue  : Value for blue.
-    */
+/*! Colorize a string using true color, rgb fore colors and copy the
+    result into out.
+    \details The `StyleValue.RESET_ALL` code is already appended to the result.
+
+    \po out   Allocated memory to copy the result to.
+              _Must have enough room for `strlen(s) + COLOR_RGB_LEN`._
+    \pi s     String to colorize.
+              _Must be null-terminated._
+    \pi red   Value for red.
+    \pi green Value for green.
+    \pi blue  Value for blue.
+*/
+void colrfgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue) {
     char forecode[CODE_RGB_LEN];
     format_fg_rgb(forecode, red, green, blue);
     size_t oldlen = strlen(s);
@@ -642,18 +801,19 @@ colrfgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsi
     );
 }
 
-void
-colrfgRGB(char *out, const char *s, struct RGB rgb) {
-    /*  Colorize a string using true color, rgb fore colors and copy the
-        result into `out`.
-        The StyleValue.RESET_ALL code is already appended to the result.
-        Arguments:
-            out  : Allocated memory to copy the result to.
-                   *Must have enough room for `strlen(s) + COLOR_RGB_LEN`.
-            rgb  : Pointer to an RGB struct to use for r, g, and b values.
-    */
+/*! Colorize a string using true color, rgb fore colors, and copy the
+    result into `out`.
+    \details The StyleValue.RESET_ALL code is already appended to the result.
+
+    \po out    Allocated memory to copy the result to.
+               _Must have enough room for `strlen(s) + COLOR_RGB_LEN`.
+    \pi s      The string to colorize.
+               _Must be null-terminated._
+    \pi rgbval RGB struct to use for the r, g, and b values.
+*/
+void colrfgRGB(char *out, const char *s, struct RGB rgbval) {
     char forecode[CODE_RGB_LEN];
-    format_fg_RGB(forecode, rgb);
+    format_fg_RGB(forecode, rgbval);
     size_t oldlen = strlen(s);
     size_t codeslen = strlen(forecode) + STYLE_LEN;
     snprintf(
@@ -664,18 +824,17 @@ colrfgRGB(char *out, const char *s, struct RGB rgb) {
     );
 }
 
-void
-colrfgx(char *out, const char *s, unsigned char num) {
-    /*  Colorize a string using extended, 256 colors, and copy the
-        result into `out`.
-        The StyleValue.RESET_ALL code is already appended to the result.
-        Arguments:
-            out  : Allocated memory to copy the result to.
-                   *Must have enough room for `strlen(s) + COLOR_LEN`.
-            s    : String to colorize.
-                   *Must be null-terminated.
-            num  : Code number, 0-255 inclusive.
-    */
+/*!
+    \brief Colorize a string using extended, 256 colors, and copy the result into `out`.
+    \details The `StyleValue.RESET_ALL` code is already appended to the result.
+
+    \po out Allocated memory to copy the result to.
+            _Must have enough room for `strlen(s) + COLOR_LEN`._
+    \pi s   String to colorize.
+            _Must be null-terminated._
+    \pi num Code number, 0-255.
+*/
+void colrfgx(char *out, const char *s, unsigned char num) {
     char forecode[CODEX_LEN];
     format_fgx(forecode, num);
     size_t oldlen = strlen(s);
@@ -690,19 +849,18 @@ colrfgx(char *out, const char *s, unsigned char num) {
 }
 
 
-void
-colrize(char *out, const char *s, BasicValue fore, BasicValue back, StyleValue style) {
-    /*  Prepends escape codes for fore, back, and style to `s` and copies
-        the result into `out`.
-        Arguments:
-            out       : Allocated memory to copy the result to.
-                        *Must have enough room for `strlen(s) + COLOR_LEN`.
-            s         : String to colorize.
-                        *Must be null-terminated.
-            fore      : BasicValue value to use for fore.
-            back      : BasicValue value to use for background.
-            style : StyleValue value to use.
-    */
+/*! Prepends escape codes for fore, back, and style to s and copies
+    the result into out.
+
+    \po out  Allocated memory to copy the result to.
+             _Must have enough room for `strlen(s) + COLOR_LEN`._
+    \pi s    String to colorize.
+             _Must be null-terminated._
+    \pi fore BasicValue value to use for fore.
+    \pi back BasicValue value to use for background.
+    \pi style StyleValue value to use.
+*/
+void colrize(char *out, const char *s, BasicValue fore, BasicValue back, StyleValue style) {
 
     // Build forecolor only.
     char forecode[CODEX_LEN];
@@ -739,46 +897,43 @@ colrize(char *out, const char *s, BasicValue fore, BasicValue back, StyleValue s
     );
 }
 
-void
-colrizechar(char *out, char c, BasicValue fore, BasicValue back, StyleValue style) {
-    /*  Prepends escape codes for fore, back, and style to a character (`c`)
-        and copies the result into `out`.
-        Arguments:
-            out       : Allocated memory to copy the result to.
-                        *Must have enough room for `strlen(s) + COLOR_LEN`.
-            c         : Character to colorize.
-            fore      : BasicValue value to use for fore.
-            back      : BasicValue value to use for background.
-            style : StyleValue value to use.
-    */
+/*! Prepends escape codes for fore, back, and style to a character (c)
+    and copies the result into out.
+
+    \po out   Allocated memory to copy the result to.
+               _Must have enough room for `strlen(s) + COLOR_LEN`._
+    \pi c     Character to colorize.
+    \pi fore  BasicValue value to use for fore.
+    \pi back  BasicValue value to use for background.
+    \pi style StyleValue value to use.
+*/
+void colrizechar(char *out, char c, BasicValue fore, BasicValue back, StyleValue style) {
     char s[2] = "\0\0";
     s[0] = c;
     colrize(out, s, fore, back, style);
 }
 
-void
-colrizex(
+/*! Prepends escape codes for extended fore, back, and style to s and
+    copies the result into an allocated string.
+
+    \pout out   Allocated memory to copy the result to.
+                _Must have enough room for `strlen(s) + COLOR_LEN`._
+    \pi  s     String to colorize.
+                _Must be null-terminated._
+    \pi  fore  ExtendedValue to use for fore.
+    \pi  back  ExtendedValue to use for background.
+    \pi  style StyleValue value to use.
+*/
+void colrizex(
     char *out,
     const char *s,
-    unsigned char forenum, unsigned char backnum, StyleValue style) {
-    /*  Prepends escape codes for extended fore, back, and style to `s` and
-        copies the result into an allocated string.
-        The string must be freed by the caller.
-        Arguments:
-            out       : Allocated memory to copy the result to.
-                        *Must have enough room for `strlen(s) + COLOR_LEN`.
-            s         : String to colorize.
-                        *Must be null-terminated.
-            fore      : BasicValue value to use for fore.
-            back      : BasicValue value to use for background.
-            style : StyleValue value to use.
-    */
+    ExtendedValue fore, ExtendedValue back, StyleValue style) {
     // Build forecolor only.
     char forecode[CODEX_LEN];
-    format_fgx(forecode, forenum);
+    format_fgx(forecode, fore);
     // Build backcolor only.
     char backcode[CODEX_LEN];
-    format_bgx(backcode, backnum);
+    format_bgx(backcode, back);
     // Build style only.
     char stylecodes[STYLE_LEN];
     format_style(stylecodes, style);
@@ -808,17 +963,16 @@ colrizex(
     );
 }
 
-void
-colrstyle(char *out, const char *s, StyleValue style) {
-    /*  Prepend style codes to a string, and copy the result into `out`.
-        The STYLE_RESET_ALL code is already appended to the result.
-        Arguments:
-            out   : Memory allocated for the result.
-                    *Must have enough room for `strlen(s) + COLOR_LEN`.
-            s     : The string to colorize.
-                    *Must be null-terminated.
-            style : `StyleValue` code to use.
-    */
+/*! Prepend style codes to a string, and copy the result into out.
+    \details The STYLE_RESET_ALL code is already appended to the result.
+
+    \po out   Memory allocated for the result.
+              _Must have enough room for `strlen(s) + COLOR_LEN`._
+    \pi s     The string to colorize.
+              _Must be null-terminated._
+    \pi style StyleValue code to use.
+*/
+void colrstyle(char *out, const char *s, StyleValue style) {
     if (style < 0) style = RESET_ALL;
     char stylecode[STYLE_LEN];
     snprintf(stylecode, STYLE_LEN, "\033[%dm", style);
@@ -833,18 +987,3 @@ colrstyle(char *out, const char *s, StyleValue style) {
     );
 }
 
-StyleValue
-stylename_to_style(const char *arg) {
-    /*  Convert named argument to actual StyleValue enum value.
-        Returns a StyleValue value on success, or STYLE_INVALID on error.
-    */
-    char arglower[MAX_COLOR_NAME_LEN];
-    str_tolower(arglower, arg);
-
-    for (size_t i=0; i < style_names_len; i++) {
-        if (!strcmp(arglower, style_names[i].name)) {
-            return style_names[i].style;
-        }
-    }
-    return STYLE_INVALID;
-}

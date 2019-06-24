@@ -1,18 +1,28 @@
+//! \file
+/* Declarations for ColrC functions, enums, structs, etc.
+
+    \details
+    To use ColrC in your project, you will need to include colr.h
+    and compile colr.c with the rest of your files.
+
+    \code{.c}
+    #include "colr.h"
+    // Use ColrC functions/macros/etc.
+    \endcode
+
+    \code{.sh}
+    gcc -c your_program.c colr.c -o myprogram
+    \endcode
+*/
+// TODO: After fleshing out the interface, come back here and show actual
+//       usage in the \code block above.
 #ifndef COLR_H
 #define COLR_H
-//! \file
-
-/*! \mainpage
-    Documentation for ColrC.
-
-    Files:
-    - colr.h
-    - colr.c
-    - dbug.h
-*/
 #ifndef _GNU_SOURCE
     #define _GNU_SOURCE
 #endif
+
+//! Current version for ColrC.
 #define COLR_VERSION "0.2.2"
 
 
@@ -34,7 +44,7 @@
 #pragma clang diagnostic ignored "-Wunused-macros"
 
 #ifndef M_PI
-    // For the rainbow functions.
+    //! Definition of PI for `libm` and the rainbow functions.
     #define M_PI (3.14159265358979323846)
 #endif
 //! Convenience definition, because this is used a lot.
@@ -48,7 +58,7 @@
 //! Maximum length for a style escape code, including `'\0'`.
 #define STYLE_LEN 8
 
-/*! \brief Maximum length in chars for any combination of basic/extended escape codes.
+/*! Maximum length in chars for any combination of basic/extended escape codes.
 
     Should be `(CODEX_LEN * 2) + STYLE_LEN`.
     Allocating for a string that will be colorized must account for this.
@@ -57,14 +67,14 @@
 
 //! Maximum length in chars for an RGB fore/back escape code.
 #define CODE_RGB_LEN 23
-/*! \brief Maximum length in chars added to a rgb colorized string.
+/*! Maximum length in chars added to a rgb colorized string.
 
     Should be `CODE_RGB_LEN + STYLE_LEN`
     Allocating for a string that will be colorized with rgb values must account
     for this.
 */
 #define COLOR_RGB_LEN 32
-/*! \brief Maximum length in chars for any possible escape code mixture.
+/*! Maximum length in chars for any possible escape code mixture.
 
     (basically `(CODE_RGB_LEN * 2) + STYLE_LEN` since rgb codes are the longest).
 */
@@ -72,44 +82,45 @@
 //! Maximim string length for a fore, back, or style name.
 #define MAX_COLOR_NAME_LEN 12
 
-/*! \brief Allocate `str_len` + enough for a basic code with reset appended.
+/*! Allocate `str_len` + enough for a basic code with reset appended.
 
-    \param str_len Extra room to allocate for text.
+    \pi str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_code(str_len) (char*)calloc(str_len + CODEX_LEN, sizeof(char))
-/*! \brief Allocate `str_len` + enough for a mixture of fore/basic codes.
-    \param str_len Extra room to allocate for text.
+/*! Allocate `str_len` + enough for a mixture of fore/basic codes.
+
+    \pi str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_codes(str_len) (char*)calloc(str_len + COLOR_LEN, sizeof(char))
-/*! \brief Allocate `str_len` + enough for an rgb code with reset appended.
+/*! Allocate `str_len` + enough for an rgb code with reset appended.
 
-    \param str_len Extra room to allocate for text.
+    \pi str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_rgb(str_len) (char*)calloc(str_len + COLOR_RGB_LEN, sizeof(char))
-/*! \brief Allocate `str_len` + enough for a style code with reset appended.
+/*! Allocate `str_len` + enough for a style code with reset appended.
 
-    \param str_len Extra room to allocate for text.
+    \pi str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_style(str_len) (char*)calloc(str_len + STYLE_LEN, sizeof(char))
 
-/*! \brief Convenience macro for `!strcmp(s1, s2)`.
+/*! Convenience macro for `!strcmp(s1, s2)`.
 
-    \param s1 The first string to compare.
-    \param s2 The second string to compare.
+    \pi s1 The first string to compare.
+    \pi s2 The second string to compare.
 
     \return 0 if equal, 1 if \p s1 is greater, and -1 if \p s1 is less than.
 */
 #define streq(s1, s2) (!strcmp(s1, s2))
 
-/*! \brief Convenience macro for `!strcmp(arg, s1) || !strcmp(arg, s2)`
+/*! Convenience macro for `!strcmp(arg, s1) || !strcmp(arg, s2)`
 
-    \param arg String to check.
-    \param s1  First string to compare against.
-    \param s2  Second string to compare against.
+    \pi arg String to check.
+    \pi s1  First string to compare against.
+    \pi s2  Second string to compare against.
 
     \return Non-zero if \p arg matches either \p s1 or \p s2, otherwise `0`.
 */
@@ -118,25 +129,43 @@
 //! Convenience macro for `fprintf(stderr, ...)`.
 #define printferr(...) fprintf(stderr, __VA_ARGS__)
 
-/*! \brief Uses the correct format_fg* function according to the type of it's first
-    \brief argument.
+/*! Builds a correct ColorArg struct according to the type of it's first
+    argument.
+    \details Uses `_Generic` (C11 standard) to dynamically create a ColorArg.
 
-    \param out `char*` with memory allocated for the escape code string.
-    \param x   `BasicValue`, `Extended`` (unsigned char), or `RGB` value for fore color.
+    \pi x `BasicValue`, `Extended` (`unsigned char`). or `RGB` value.
+    \return  ColorArg_from_value([appropriate type], x)
+*/
+#define color_arg(x) \
+    _Generic( \
+        (x), \
+        BasicValue: ColorArg_from_value(TYPE_BASIC, &x), \
+        ExtendedValue: ColorArg_from_value(TYPE_EXTENDED, &x), \
+        struct RGB: ColorArg_from_value(TYPE_RGB, &x) \
+    )
+/*! Uses the correct format_fg* function according to the type of it's first
+    argument.
+    \details Uses `_Generic` (C11 standard) to dynamically create a fore color
+    escape code string.
+
+    \po out `char*` with memory allocated for the escape code string.
+    \pi x   `BasicValue`, `Extended` (`unsigned char`), or `RGB` value for fore color.
 */
 #define format_fore(out, x) \
     _Generic( \
         (x), \
-        RGB: format_fg_RGB, \
+        struct RGB: format_fg_RGB, \
         BasicValue: format_fg, \
-        unsigned char: format_fgx \
+        ExtendedValue: format_fgx \
     )(out, x)
 
-/*! \brief Uses the correct format_bg* function according to the type of it's first
-    \brief argument.
+/*! Uses the correct format_bg* function according to the type of it's first
+    argument.
+    \details Uses `_Generic` (C11 standard) to dynamically create a back color
+    escape code string.
 
-    \param out `char*` with memory allocated for the escape code string.
-    \param x   `BasicValue`, `Extended`` (unsigned char), or `RGB` value for fore color.
+    \po out `char*` with memory allocated for the escape code string.
+    \pi x   `BasicValue`, `Extended` (`unsigned char`), or `RGB` value for fore color.
 */
 #define format_back(out, x) \
     _Generic( \
@@ -146,13 +175,21 @@
         unsigned char: format_bgx \
     )(out, x)
 
-/*! \brief Uses the format_fore/back macros, along with format_style, to build a
-    \brief style (string of escape codes).
+/*! Uses the format_fore/back macros, along with format_style, to build a
+    style (string of escape codes).
+    \details
+    Uses `_Generic` (C11 standard) to dynamically create a colorized/styled
+    string.
 
-        \param out   char *buffer, must have a size of at least CODE_ANY_LEN.
-        \param fore  BasicValue, ExtendedValue, or RGB for fore color.
-        \param back  BasicValue, ExtendedValue, or RGB for back color.
-        \param style StyleValue for style.
+    \details
+    Arguments are passed to format_fore(), format_back(), and format_style().
+    \details
+    The string of codes is built in place, and copied into the `out` parameter.
+
+    \po out   char *buffer, must have a size of at least CODE_ANY_LEN.
+    \pi fore  BasicValue, ExtendedValue, or RGB for fore color.
+    \pi back  BasicValue, ExtendedValue, or RGB for back color.
+    \pi style StyleValue for style.
 */
 #define format_all(out, fore, back, style) \
     do { \
@@ -165,23 +202,53 @@
         sprintf(out, "%s%s%s", _fa_style, _fa_fore, _fa_back); \
     } while (0)
 
-/*! \brief Creates an anonymous RGB struct for use in function calls.
+/*! Transforms several ColrC objects into strings. If a string is given, this does nothing.
+    \details
+    Uses _Generic (C11 standard) to dynamically ensure a string.
 
-    \param r `unsigned char` Red value.
-    \param g `unsigned char` Blue value.
-    \param b `unsigned char` Green value.
+    \details
+    This is used to dynamically join strings and colors.
+
+    \details
+    Supported Types:
+        - struct ColorArg
+        - ColorType
+        - char*
+
+    \pi  x  A string, ColorArg, or ColorType to transform into a string.
+            \remark _Obviously this is a no-op for strings._
+    \return Either the string that was given, or a stringified version of what was given.
+*/
+#define force_str(x) \
+    _Generic( \
+        (x), \
+        struct ColorArg: ColorArg_repr, \
+        ColorType: ColorType_repr, \
+        char*: str_noop \
+    )(x)
+
+/*! Creates an anonymous RGB struct for use in function calls.
+
+    \pi r `unsigned char` Red value.
+    \pi g `unsigned char` Blue value.
+    \pi b `unsigned char` Green value.
 
 */
-#define rgb(r, g, b) ((RGB){r, g, b})
+#define rgb(r, g, b) ((struct RGB){.red=r, .green=g, .blue=b})
 
-/*! \brief Casts to ExtendedValue (unsigned char).
+/*! Casts to ExtendedValue (unsigned char).
 
-    \param x Value to cast to `unsigned char`/`ExtendedValue`.
+    \pi x Value to cast to `unsigned char`/`ExtendedValue`.
 */
 #define ext(x) (ExtendedValue)(x)
 
 
-//!  Basic color values, with a few convenience values for extended colors.
+/*! Basic color values, with a few convenience values for extended colors.
+
+    \details
+    Values greater than 9 will trigger the use of an ExtendedValue (and it's
+    associated functions).
+*/
 typedef enum BasicValue_t {
     COLOR_INVALID = -2,
     COLOR_NONE = -1,
@@ -212,7 +279,7 @@ typedef enum BasicValue_t {
     LIGHTNORMAL = 23
 } BasicValue;
 
-//! Convenience `typedef` for clarity.
+//! Convenience `typedef` for clarity when dealing with extended (256) colors.
 typedef unsigned char ExtendedValue;
 
 //! Container for RGB values.
@@ -222,7 +289,7 @@ struct RGB {
     unsigned char green;
 };
 
-//!  Style values.
+//! Style values.
 typedef enum StyleValue_t {
     STYLE_INVALID = -2,
     STYLE_NONE = -1,
@@ -237,30 +304,30 @@ typedef enum StyleValue_t {
 } StyleValue;
 
 
-//!  Color code name types. Used with `colorname_type()`.
-typedef enum ColorNameType_t {
-    COLORNAME_INVALID_EXTENDED_RANGE = -4,
-    COLORNAME_INVALID_RGB_RANGE = -3,
-    COLORNAME_INVALID = -2,
-    COLORNAME_BASIC = 0,
-    COLORNAME_EXTENDED = 1,
-    COLORNAME_RGB = 2,
-} ColorNameType;
+//! Color code name types. Used with ColorType_from_str().
+typedef enum ColorType_t {
+    TYPE_INVALID_EXTENDED_RANGE = -4,
+    TYPE_INVALID_RGB_RANGE = -3,
+    TYPE_INVALID = -2,
+    TYPE_BASIC = 0,
+    TYPE_EXTENDED = 1,
+    TYPE_RGB = 2,
+} ColorType;
 
-/*! \struct ColorInfo
-    Holds a known color name and it's `BasicValue`.
+/*! Holds a known color name and it's `BasicValue`.
+    \struct ColorInfo
 
-    This is used for the `color_names` array in colr.c.
+    \details This is used for the `color_names` array in colr.c.
 */
 struct ColorInfo {
     // TODO: Map these, like Colr.py.
     char *name;
     BasicValue color;
 };
-/*! \struct StyleInfo
-    Holds a known style name and it's `StyleValue`.
+/*! Holds a known style name and it's `StyleValue`.
+    \struct StyleInfo
 
-    This is used for the `style_names` array in colr.c.
+    \details This is used for the `style_names` array in colr.c.
 */
 struct StyleInfo {
     // TODO: Map these, like Colr.py.
@@ -268,6 +335,24 @@ struct StyleInfo {
     StyleValue style;
 };
 
+/*! Holds an arg type and it's value for a single fore/back color arg.
+    \struct ColorArg
+
+    \details This is internal. It's used to make the final interface easier to use.
+    You probably shouldn't be using it.
+*/
+struct ColorArg {
+    ColorType type;
+    BasicValue basic;
+    ExtendedValue ext;
+    struct RGB rgb;
+};
+
+
+/*! \file colr.h
+    Common macros and definitions are found here in colr.h,
+    however the functions are documented in colr.c.
+*/
 void format_bgx(char *out, unsigned char num);
 void format_bg(char *out, BasicValue value);
 void format_bg_rgb(char *out, unsigned char red, unsigned char green, unsigned char blue);
@@ -280,13 +365,23 @@ void format_rainbow_fore(char *out, double freq, size_t step);
 void format_style(char *out, StyleValue style);
 
 char *str_copy(char *dest, const char *src, size_t length);
+char *str_noop(char *s);
 int str_startswith(const char *s, const char *prefix);
 void str_tolower(char *out, const char *s);
-BasicValue colorname_to_color(const char *arg);
-int colorname_to_colorx(const char *arg);
-int colorname_to_color_rgb(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b);
-int colorname_to_color_RGB(const char *arg, struct RGB *rgb);
-ColorNameType colorname_type(const char *arg);
+
+struct ColorArg ColorArg_from_str(char *s);
+struct ColorArg ColorArg_from_value(ColorType type, void *p);
+char *ColorArg_repr(struct ColorArg);
+
+ColorType ColorType_from_str(const char *arg);
+char *ColorType_repr(ColorType type);
+
+BasicValue BasicValue_from_str(const char *arg);
+int ExtendedValue_from_str(const char *arg);
+int rgb_from_str(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b);
+int RGB_from_str(const char *arg, struct RGB *rgb);
+StyleValue StyleValue_from_str(const char *arg);
+
 void colrbg(char *out, const char *s, BasicValue back);
 void colrbgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue);
 void colrbgRGB(char *out, const char *s, struct RGB rgb);
@@ -305,5 +400,4 @@ void colrizex(
     const char *s,
     unsigned char forenum, unsigned char backnum, StyleValue style);
 void colrstyle(char *out, const char *s, StyleValue style);
-StyleValue stylename_to_style(const char *arg);
 #endif // COLR_H

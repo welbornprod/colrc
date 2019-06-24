@@ -1,7 +1,11 @@
-/* colr_example.c
-    Example implementation using colr.h.
+#ifndef DOXYGEN_SKIP
+//! \file
 
-    -Christopher Welborn 02-05-2017
+/*! Example implementation using colr.h, and a command-line tool
+    to colorize text.
+
+    \author Christopher Welborn
+    \date 02-05-2017
 */
 #include "colr_tool.h"
 #define return_on_null(x) do { \
@@ -11,8 +15,19 @@
         } \
     } while (0)
 
+
 int main(int argc, char *argv[]) {
     /* TODO: parse_args() for flag arguments, while keeping positionals. */
+
+    // ----------------------------------------------------------------------
+    puts("TESTING STUFF IN main():\n");
+    // struct RGB bval = rgb(34, 155, 25);
+    ColorType type = TYPE_BASIC;
+    char *argstr = force_str(type);
+    printf("Got arg: %s\n", argstr);
+
+    return 1;
+    // ----------------------------------------------------------------------
 
     // Declare args and setup some defaults.
     char textarg[MAX_TEXT_LEN + 1] = "-";
@@ -72,27 +87,27 @@ int main(int argc, char *argv[]) {
                  This tool should show colrizex and colrfgrgb.
                  See TODOS in colr.h, still need colrizergb() implementation.
         */
-        StyleValue stylecode = stylename_to_style(stylearg);
+        StyleValue stylecode = StyleValue_from_str(stylearg);
         if (!validate_style_arg(stylecode, stylearg)) return 1;
 
-        ColorNameType forenametype = colorname_type(forearg);
+        ColorType forenametype = ColorType_from_str(forearg);
         if (!validate_color_arg("fore", forenametype, forearg)) return 1;
-        ColorNameType backnametype = colorname_type(backarg);
+        ColorType backnametype = ColorType_from_str(backarg);
         if (!validate_color_arg("back", backnametype, backarg)) return 1;
 
         /*  TODO: Should be able to mix basic and extended codes for fore and
                   back colors.
         */
-        if (forenametype == COLORNAME_BASIC && backnametype == COLORNAME_BASIC) {
-            BasicValue fore = colorname_to_color(forearg);
-            BasicValue back = colorname_to_color(backarg);
+        if (forenametype == TYPE_BASIC && backnametype == TYPE_BASIC) {
+            BasicValue fore = BasicValue_from_str(forearg);
+            BasicValue back = BasicValue_from_str(backarg);
             char *colorized = alloc_with_codes(strlen(textarg));
             colrize(colorized, textarg, fore, back, stylecode);
             printf("%s\n", colorized);
             free(colorized);
-        } else if (forenametype == COLORNAME_EXTENDED && backnametype == COLORNAME_EXTENDED) {
-            unsigned char forex = colorname_to_colorx(forearg);
-            unsigned char backx = colorname_to_colorx(backarg);
+        } else if (forenametype == TYPE_EXTENDED && backnametype == TYPE_EXTENDED) {
+            unsigned char forex = ExtendedValue_from_str(forearg);
+            unsigned char backx = ExtendedValue_from_str(backarg);
             char *colorizedx = alloc_with_codes(strlen(textarg));
             colrizex(colorizedx, textarg, forex, backx, stylecode);
             printf("%s\n", colorizedx);
@@ -315,20 +330,20 @@ read_stdin_arg(char *textarg, size_t length) {
 
 
 bool
-validate_color_arg(const char *type, ColorNameType nametype, const char *name) {
-    /*  Checks `nametype` for COLORNAME_INVALID*, and prints the usage string
+validate_color_arg(const char *type, ColorType nametype, const char *name) {
+    /*  Checks `nametype` for TYPE_INVALID*, and prints the usage string
         with a warning message if it is invalid.
         If the code is not invalid, it simply returns `true`.
     */
     char errmsg[MAX_ERR_LEN];
     switch (nametype) {
-        case COLORNAME_INVALID_RGB_RANGE:
+        case TYPE_INVALID_RGB_RANGE:
             snprintf(errmsg, MAX_ERR_LEN, "Invalid range (0-255) for %s RGB color: %s", type, name);
             break;
-        case COLORNAME_INVALID_EXTENDED_RANGE:
+        case TYPE_INVALID_EXTENDED_RANGE:
             snprintf(errmsg, MAX_ERR_LEN, "Invalid range (0-255) for extended %s color: %s", type, name);
             break;
-        case COLORNAME_INVALID:
+        case TYPE_INVALID:
             snprintf(errmsg, MAX_ERR_LEN, "Invalid %s color name: %s", type, name);
             break;
         default:
@@ -356,3 +371,4 @@ validate_style_arg(StyleValue code, char *name) {
     }
     return true;
 }
+#endif // DOXYGEN_SKIP
