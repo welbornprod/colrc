@@ -338,6 +338,13 @@ struct ColorArg ColorArg_from_str(char *s) {
 
     \pi type A ColorType value, to mark the type of ColorArg.
     \pi p    A pointer to either a BasicValue, ExtendedValue, or a struct RGB.
+
+    \return A ColorArg struct with the appropriate `.type` member set for
+            the value that was passed. For invalid types the `.type` member may
+            be set to one of:
+        - TYPE_INVALID
+        - TYPE_INVALID_EXTENDED_RANGE
+        - TYPE_INVALID_RGB_RANGE
 */
 struct ColorArg ColorArg_from_value(ColorType type, void *p) {
     if (
@@ -485,7 +492,7 @@ BasicValue BasicValue_from_str(const char *arg) {
     \pi arg Color name to find the ExtendedValue for.
 
     \return A value between 0 and 255 on success.
-    \return COLORVAL_INVALID on error or bad values.
+            COLORVAL_INVALID on error or bad values.
 */
 int ExtendedValue_from_str(const char *arg) {
     if (streq(arg, "xred")) return XRED;
@@ -528,7 +535,7 @@ int ExtendedValue_from_str(const char *arg) {
     \po b   Pointer to an unsigned char for blue value on success.
 
     \return 0 on success.
-    \return COLORVAL_INVALID, or COLORVAL_INVALID_RANGE on error.
+            COLORVAL_INVALID, or COLORVAL_INVALID_RANGE on error.
 */
 int rgb_from_str(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b) {
     const char *formats[4] = {
@@ -574,7 +581,7 @@ RGB_from_str("123,0,234", &rgbval)
     \po rgbval Pointer to an RGB struct to fill in the values for.
 
     \return 0 on success.
-    \return COLORVAL_INVALID, or COLORVAL_INVALID_RANGE on error.
+            COLORVAL_INVALID, or COLORVAL_INVALID_RANGE on error.
 */
 int RGB_from_str(const char *arg, struct RGB *rgbval) {
     unsigned char r = 0;
@@ -593,6 +600,7 @@ int RGB_from_str(const char *arg, struct RGB *rgbval) {
 
 /*! Convert named argument to actual StyleValue enum value.
 
+    \pi arg Style name to convert into a StyleValue.
     \return A usable StyleValue value on success, or STYLE_INVALID on error.
 */
 StyleValue StyleValue_from_str(const char *arg) {

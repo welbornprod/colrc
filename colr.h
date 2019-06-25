@@ -1,5 +1,5 @@
-//! \file
-/* Declarations for ColrC functions, enums, structs, etc.
+/*! \file colr.h
+    Declarations for ColrC functions, enums, structs, etc.
 
     \details
     To use ColrC in your project, you will need to include colr.h
@@ -11,18 +11,18 @@
     \endcode
 
     \code{.sh}
-    gcc -c your_program.c colr.c -o myprogram
+    gcc -std=c11 -c your_program.c colr.c -o myprogram
     \endcode
 */
 // TODO: After fleshing out the interface, come back here and show actual
-//       usage in the \code block above.
+//       usage in the code block above.
 #ifndef COLR_H
 #define COLR_H
 #ifndef _GNU_SOURCE
     #define _GNU_SOURCE
 #endif
 
-//! Current version for ColrC.
+//! Current version for Colr.
 #define COLR_VERSION "0.2.2"
 
 
@@ -82,32 +82,37 @@
 //! Maximim string length for a fore, back, or style name.
 #define MAX_COLOR_NAME_LEN 12
 
-/*! Allocate `str_len` + enough for a basic code with reset appended.
+/*! \def alloc_with_code
+    Allocate `str_len` + enough for a basic code with reset appended.
 
-    \pi str_len Extra room to allocate for text.
+    \pm str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_code(str_len) (char*)calloc(str_len + CODEX_LEN, sizeof(char))
-/*! Allocate `str_len` + enough for a mixture of fore/basic codes.
+/*! \def alloc_with_codes
+    Allocate `str_len` + enough for a mixture of fore/basic codes.
 
     \pi str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_codes(str_len) (char*)calloc(str_len + COLOR_LEN, sizeof(char))
-/*! Allocate `str_len` + enough for an rgb code with reset appended.
+/*! \def alloc_with_rgb
+    Allocate `str_len` + enough for an rgb code with reset appended.
 
     \pi str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_rgb(str_len) (char*)calloc(str_len + COLOR_RGB_LEN, sizeof(char))
-/*! Allocate `str_len` + enough for a style code with reset appended.
+/*! \def alloc_with_style
+    Allocate `str_len` + enough for a style code with reset appended.
 
     \pi str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_style(str_len) (char*)calloc(str_len + STYLE_LEN, sizeof(char))
 
-/*! Convenience macro for `!strcmp(s1, s2)`.
+/*! \def streq
+    Convenience macro for `!strcmp(s1, s2)`.
 
     \pi s1 The first string to compare.
     \pi s2 The second string to compare.
@@ -116,7 +121,8 @@
 */
 #define streq(s1, s2) (!strcmp(s1, s2))
 
-/*! Convenience macro for `!strcmp(arg, s1) || !strcmp(arg, s2)`
+/*! \def argeq
+    Convenience macro for `!strcmp(arg, s1) || !strcmp(arg, s2)`
 
     \pi arg String to check.
     \pi s1  First string to compare against.
@@ -129,7 +135,8 @@
 //! Convenience macro for `fprintf(stderr, ...)`.
 #define printferr(...) fprintf(stderr, __VA_ARGS__)
 
-/*! Builds a correct ColorArg struct according to the type of it's first
+/*! \def color_arg
+    Builds a correct ColorArg struct according to the type of it's first
     argument.
     \details Uses `_Generic` (C11 standard) to dynamically create a ColorArg.
 
@@ -215,7 +222,7 @@
         - ColorType
         - char*
 
-    \pi  x  A string, ColorArg, or ColorType to transform into a string.
+    \pi x   A string, ColorArg, or ColorType to transform into a string.
             \remark _Obviously this is a no-op for strings._
     \return Either the string that was given, or a stringified version of what was given.
 */
@@ -237,7 +244,7 @@
 #define rgb(r, g, b) ((struct RGB){.red=r, .green=g, .blue=b})
 
 /*! Casts to ExtendedValue (unsigned char).
-
+    \def ext
     \pi x Value to cast to `unsigned char`/`ExtendedValue`.
 */
 #define ext(x) (ExtendedValue)(x)

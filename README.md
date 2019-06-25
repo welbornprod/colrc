@@ -1,9 +1,7 @@
-# ColrC - Documentation {#index}
+# Documentation {#index}
 \tableofcontents
 # ColrC
 **ColrC** is a C library for terminal colors/escape-codes on linux.
-
-## Files:
 
 The only two files that are needed to use ColrC are colr.h and colr.c.
 
@@ -16,9 +14,12 @@ program.
 ```
 *Be sure to include **libm** (the math library) when compiling*:
 ```bash
-gcc -c myprogram.c colr.c -o myexecutable -lm
+gcc -std=c11 -c myprogram.c colr.c -o myexecutable -lm
 ```
-File | Description
+
+## Files:
+
+Name   | Description
 :----- | :---------------------------------------------
 colr.h | The interface to ColrC.
 colr.c | Where ColrC is implemented. This must be compiled/linked with your program.
