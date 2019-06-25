@@ -41,6 +41,7 @@ h1, h2, h3, h4, h5, h6 {
 	-moz-transition: text-shadow 0.5s linear;
 	-ms-transition: text-shadow 0.5s linear;
 	-o-transition: text-shadow 0.5s linear;
+    text-shadow: rgba(0, 0, 0, 0.5) 1px 1px 2px;
 	transition: text-shadow 0.5s linear;
 	margin-right: 15px;
 }
@@ -377,7 +378,7 @@ span.preprocessor {
 }
 
 span.stringliteral {
-	color: #002080
+	color: #003b7b; /* default: #002080 */
 }
 
 span.charliteral {
@@ -524,8 +525,8 @@ table.memberdecls {
 	border-top: 1px solid #A4C1D5;
 	border-left: 1px solid #A4C1D5;
 	border-right: 1px solid #A4C1D5;
-	border-top-right-radius: 4px;
-	border-top-left-radius: 4px;
+	border-top-right-radius: 9px;
+	border-top-left-radius: 9px;
 	margin-bottom: -1px;
 	background-image: url('nav_f.png');
 	background-repeat: repeat-x;
@@ -580,6 +581,7 @@ table.memberdecls {
 }
 
 .memname {
+        font-family: "DejaVu Sans Mono", "Source Code Pro", monospace;
         font-weight: 400;
         margin-left: 6px;
 }
@@ -657,6 +659,7 @@ dl.reflist dd {
 
 .paramname {
 	color: #602020;
+    font-family: "DejaVu Sans Mono", "Source Code Pro", monospace;
 	white-space: nowrap;
 }
 .paramname em {
@@ -684,6 +687,11 @@ dl.reflist dd {
 .params .paramdir {
         font-family: "DejaVu Sans Mono", "Source Code Pro", "courier new", courier, monospace;
         vertical-align: top;
+}
+
+.paramdir {
+    color: rgba(0, 0, 0, 0.5);
+    font-size: 0.65rem;
 }
 
 table.mlabels {
@@ -1083,6 +1091,7 @@ div.header
 
 div.headertitle
 {
+    display:none; /* Disabled because it's redundant. */
 	padding: 5px 5px 5px 10px;
 }
 

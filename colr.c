@@ -208,11 +208,15 @@ void format_style(char *out, StyleValue style) {
 
 /*! Like strncopy, but ensures null-termination.
 
-    \details If src is NULL, or dest is NULL, NULL is returned.
+    \details
+    If src is NULL, or dest is NULL, NULL is returned.
+
+    \details
     If src does not contain a null-terminator, _this function
     will truncate at `length` characters_.
 
-    \details A null-terminator is always appended to dest.
+    \details
+    A null-terminator is always appended to dest.
 
     \pi dest   Memory allocated for new string.
                _Must have room for `strlen(src)`._
@@ -249,7 +253,8 @@ char *str_noop(char *s) {
 
 /*! Checks a string for a certain prefix substring.
 
-    \details _`prefix` must be null-terminated._
+    \details
+    _`prefix` must be null-terminated._
 
     \pi s      The string to check.
     \pi prefix The prefix string to look for.
@@ -277,7 +282,8 @@ int str_startswith(const char *s, const char *prefix) {
 }
 
 /*! Converts a string into lower case, and copies it into `out`.
-    \details _Input string must be null-terminated._
+    \details
+    _Input string must be null-terminated._
 
     \po out Memory allocated for the result.
             _Must have capacity for `strlen(s) + 1`._
@@ -401,17 +407,18 @@ char *ColorArg_repr(struct ColorArg carg) {
 
 /*! Determine which type of color value is desired by name.
 
-    \details Example:
+    \details
+    Example:
         - "red" == TYPE_BASIC
         - "253" == TYPE_EXTENDED
         - "123,55,67" == TYPE_RGB
 
     \pi arg Color name to get the ColorType for.
-    \return ColorType value on success.
-    \return On error, returns one of:
-        - TYPE_INVALID
-        - TYPE_INVALID_EXTENDED_RANGE
-        - TYPE_INVALID_RGB_RANGE
+
+    \retval ColorType value on success.
+    \retval TYPE_INVALID for invalid color names/strings.
+    \retval TYPE_INVALID_EXTENDED_RANGE for ExtendedValues outside of 0-255.
+    \retval TYPE_INVALID_RGB_RANGE for rgb values outside of 0-255.
 */
 ColorType ColorType_from_str(const char *arg) {
     if (!arg) {
@@ -492,7 +499,7 @@ BasicValue BasicValue_from_str(const char *arg) {
     \pi arg Color name to find the ExtendedValue for.
 
     \return A value between 0 and 255 on success.
-            COLORVAL_INVALID on error or bad values.
+    \retval COLORVAL_INVALID on error or bad values.
 */
 int ExtendedValue_from_str(const char *arg) {
     if (streq(arg, "xred")) return XRED;
@@ -524,7 +531,8 @@ int ExtendedValue_from_str(const char *arg) {
 
 /*! Convert an RGB string into separate red, green, blue values.
 
-    \details The format for RGB strings can be one of:
+    \details
+    The format for RGB strings can be one of:
         - "RED,GREEN,BLUE"
         - "RED GREEN BLUE"
         - "RED:GREEN:BLUE"
@@ -534,8 +542,9 @@ int ExtendedValue_from_str(const char *arg) {
     \po g   Pointer to an unsigned char for green value on success.
     \po b   Pointer to an unsigned char for blue value on success.
 
-    \return 0 on success.
-            COLORVAL_INVALID, or COLORVAL_INVALID_RANGE on error.
+    \retval 0 on success, with \p rgbval filled with the values.
+    \retval COLORVAL_INVALID for non-rgb strings.
+    \retval COLORVAL_INVALID_RANGE for rgb values outside of 0-255.
 */
 int rgb_from_str(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b) {
     const char *formats[4] = {
@@ -566,12 +575,14 @@ int rgb_from_str(const char *arg, unsigned char *r, unsigned char *g, unsigned c
 /*! Convert an RGB string into a RGB struct suitable for the
     colr*RGB functions.
 
-    \details The format for RGB strings can be one of:
+    \details
+    The format for RGB strings can be one of:
         - "RED,GREEN,BLUE"
         - "RED GREEN BLUE"
         - "RED:GREEN:BLUE"
 
-    \details Example:
+    \details
+    Example:
     \code
 struct RGB rgbval;
 RGB_from_str("123,0,234", &rgbval)
@@ -580,8 +591,9 @@ RGB_from_str("123,0,234", &rgbval)
     \pi arg    String to check for RGB values.
     \po rgbval Pointer to an RGB struct to fill in the values for.
 
-    \return 0 on success.
-            COLORVAL_INVALID, or COLORVAL_INVALID_RANGE on error.
+    \retval 0 on success, with \p rgbval filled with the values.
+    \retval COLORVAL_INVALID for non-rgb strings.
+    \retval COLORVAL_INVALID_RANGE for rgb values outside of 0-255.
 */
 int RGB_from_str(const char *arg, struct RGB *rgbval) {
     unsigned char r = 0;
@@ -616,7 +628,8 @@ StyleValue StyleValue_from_str(const char *arg) {
 }
 
 /*! Prepend back color codes to a string, and copy the result into out.
-    \details The `STYLE_RESET_ALL` code is already appended to the result.
+    \details
+    The `STYLE_RESET_ALL` code is already appended to the result.
 
     \po out  Memory allocated for the result.
              _Must have enough room for `strlen(s) + COLOR_LEN`._
@@ -638,7 +651,8 @@ void colrbg(char *out, const char *s, BasicValue back) {
 
 /*! Colorize a string using true color, rgb back colors and copy the
     result into out.
-    \details The `StyleValue.RESET_ALL` code is already appended to the result.
+    \details
+    The `StyleValue.RESET_ALL` code is already appended to the result.
 
     \po out   Allocated memory to copy the result to.
               _Must have enough room for `strlen(s) + COLOR_LEN`._
@@ -663,7 +677,8 @@ void colrbgrgb(char *out, const char *s, unsigned char red, unsigned char green,
 
 /*! Colorize a string using true color, rgbval back colors and copy the
     result into out.
-    \details The `StyleValue.RESET_ALL` code is already appended to the result.
+    \details
+    The `StyleValue.RESET_ALL` code is already appended to the result.
 
     \po out    Allocated memory to copy the result to.
                _Must have enough room for `strlen(s) + COLOR_LEN`._
@@ -686,7 +701,8 @@ void colrbgRGB(char *out, const char *s, struct RGB rgbval) {
 
 /*! Colorize a string using extended, 256, bg colors, and copy the
     result into out.
-    \details The `STYLE_RESET_ALL` code is already appended to the result.
+    \details
+    The `STYLE_RESET_ALL` code is already appended to the result.
 
     \po out Allocated memory to copy the result to.
             _Must have enough room for `strlen(s) + COLOR_LEN`._
@@ -709,7 +725,8 @@ void colrbgx(char *out, const char *s, unsigned char num) {
 }
 
 /*! Prepend fore color codes to a string, and copy the result into out.
-    \details The STYLE_RESET_ALL code is already appended to the result.
+    \details
+    The STYLE_RESET_ALL code is already appended to the result.
 
     \po out  Memory allocated for the result.
              _Must have enough room for `strlen(s) + COLOR_LEN`._
@@ -743,7 +760,8 @@ void colrfgchar(char *out, const char c, BasicValue fore) {
 }
 
 /*! Rainbow-ize some text using rgb fore colors, lolcat style.
-    \details The `STYLE_RESET_ALL` code is already appended to the result.
+    \details
+    The `STYLE_RESET_ALL` code is already appended to the result.
 
     \po out    Memory allocated for the result.
                _Must have enough room for `strlen(s) + (CODE_RGB_LEN * strlen(s))`._
@@ -786,7 +804,8 @@ char * acolrfgrainbow(const char *s, double freq, size_t offset) {
 
 /*! Colorize a string using true color, rgb fore colors and copy the
     result into out.
-    \details The `StyleValue.RESET_ALL` code is already appended to the result.
+    \details
+    The `StyleValue.RESET_ALL` code is already appended to the result.
 
     \po out   Allocated memory to copy the result to.
               _Must have enough room for `strlen(s) + COLOR_RGB_LEN`._
@@ -811,7 +830,8 @@ void colrfgrgb(char *out, const char *s, unsigned char red, unsigned char green,
 
 /*! Colorize a string using true color, rgb fore colors, and copy the
     result into `out`.
-    \details The StyleValue.RESET_ALL code is already appended to the result.
+    \details
+    The StyleValue.RESET_ALL code is already appended to the result.
 
     \po out    Allocated memory to copy the result to.
                _Must have enough room for `strlen(s) + COLOR_RGB_LEN`.
@@ -834,7 +854,8 @@ void colrfgRGB(char *out, const char *s, struct RGB rgbval) {
 
 /*!
     \brief Colorize a string using extended, 256 colors, and copy the result into `out`.
-    \details The `StyleValue.RESET_ALL` code is already appended to the result.
+    \details
+    The `StyleValue.RESET_ALL` code is already appended to the result.
 
     \po out Allocated memory to copy the result to.
             _Must have enough room for `strlen(s) + COLOR_LEN`._
@@ -972,7 +993,8 @@ void colrizex(
 }
 
 /*! Prepend style codes to a string, and copy the result into out.
-    \details The STYLE_RESET_ALL code is already appended to the result.
+    \details
+    The STYLE_RESET_ALL code is already appended to the result.
 
     \po out   Memory allocated for the result.
               _Must have enough room for `strlen(s) + COLOR_LEN`._

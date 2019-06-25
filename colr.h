@@ -100,6 +100,7 @@
     Allocate `str_len` + enough for an rgb code with reset appended.
 
     \pi str_len Extra room to allocate for text.
+
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_rgb(str_len) (char*)calloc(str_len + COLOR_RGB_LEN, sizeof(char))
@@ -107,6 +108,7 @@
     Allocate `str_len` + enough for a style code with reset appended.
 
     \pi str_len Extra room to allocate for text.
+
     \return Pointer to the allocated string, or NULL on error.
 */
 #define alloc_with_style(str_len) (char*)calloc(str_len + STYLE_LEN, sizeof(char))
@@ -117,7 +119,9 @@
     \pi s1 The first string to compare.
     \pi s2 The second string to compare.
 
-    \return 0 if equal, 1 if \p s1 is greater, and -1 if \p s1 is less than.
+    \retval 0 if \p s1 and \p s2 are equal.
+    \retval 1 if \p s1 is greater than \p s2.
+    \retval 1 if \p s1 is less than \p s2.
 */
 #define streq(s1, s2) (!strcmp(s1, s2))
 
@@ -138,7 +142,9 @@
 /*! \def color_arg
     Builds a correct ColorArg struct according to the type of it's first
     argument.
-    \details Uses `_Generic` (C11 standard) to dynamically create a ColorArg.
+
+    \details
+    Uses `_Generic` (C11 standard) to dynamically create a ColorArg.
 
     \pi x `BasicValue`, `Extended` (`unsigned char`). or `RGB` value.
     \return  ColorArg_from_value([appropriate type], x)
@@ -152,7 +158,9 @@
     )
 /*! Uses the correct format_fg* function according to the type of it's first
     argument.
-    \details Uses `_Generic` (C11 standard) to dynamically create a fore color
+
+    \details
+    Uses `_Generic` (C11 standard) to dynamically create a fore color
     escape code string.
 
     \po out `char*` with memory allocated for the escape code string.
@@ -168,7 +176,8 @@
 
 /*! Uses the correct format_bg* function according to the type of it's first
     argument.
-    \details Uses `_Generic` (C11 standard) to dynamically create a back color
+    \details
+    Uses `_Generic` (C11 standard) to dynamically create a back color
     escape code string.
 
     \po out `char*` with memory allocated for the escape code string.
@@ -324,7 +333,8 @@ typedef enum ColorType_t {
 /*! Holds a known color name and it's `BasicValue`.
     \struct ColorInfo
 
-    \details This is used for the `color_names` array in colr.c.
+    \details
+    This is used for the `color_names` array in colr.c.
 */
 struct ColorInfo {
     // TODO: Map these, like Colr.py.
@@ -334,7 +344,8 @@ struct ColorInfo {
 /*! Holds a known style name and it's `StyleValue`.
     \struct StyleInfo
 
-    \details This is used for the `style_names` array in colr.c.
+    \details
+    This is used for the `style_names` array in colr.c.
 */
 struct StyleInfo {
     // TODO: Map these, like Colr.py.
@@ -345,7 +356,11 @@ struct StyleInfo {
 /*! Holds an arg type and it's value for a single fore/back color arg.
     \struct ColorArg
 
-    \details This is internal. It's used to make the final interface easier to use.
+    \details
+    The `.type` member must always match the type of color value it is holding.
+
+    \details
+    This is internal. It's used to make the final interface easier to use.
     You probably shouldn't be using it.
 */
 struct ColorArg {

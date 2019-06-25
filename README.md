@@ -1,5 +1,5 @@
 # Documentation {#index}
-\tableofcontents
+
 # ColrC
 **ColrC** is a C library for terminal colors/escape-codes on linux.
 
