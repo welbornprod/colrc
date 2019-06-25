@@ -12,40 +12,40 @@
 #include <cmocka.h>
 #include "../colr.h"
 
-static void test_colorname_to_color(void **state) {
-    /*  Tests colorname_to_color basic usage.
+static void test_BasicValue_from_str(void **state) {
+    /*  Tests BasicValue_from_str basic usage.
     */
     (void)state; // Unused (no setup/teardown function used.)
-    assert_true(colorname_to_color("NOTACOLOR") == COLOR_INVALID);
+    assert_true(BasicValue_from_str("NOTACOLOR") == COLOR_INVALID);
 }
 
-static void test_colorname_type(void **state) {
-    /*  Tests colorname_to_color basic usage.
+static void test_ColorType_from_str(void **state) {
+    /*  Tests ColorType_from_str basic usage.
     */
     (void)state; // Unused (no setup/teardown function used.)
     struct TestItems {
         const char* arg;
-        ColorNameType ret;
+        ColorType ret;
     } test_items[] = {
-        {"NOTACOLOR", COLORNAME_INVALID},
-        {"red", COLORNAME_BASIC},
-        {"lightblue", COLORNAME_EXTENDED},
-        {"234,234,234", COLORNAME_RGB},
-        {"355,255,255", COLORNAME_INVALID_RGB_RANGE},
+        {"NOTACOLOR", TYPE_INVALID},
+        {"red", TYPE_BASIC},
+        {"lightblue", TYPE_EXTENDED},
+        {"234,234,234", TYPE_RGB},
+        {"355,255,255", TYPE_INVALID_RGB_RANGE},
     };
     size_t test_item_len = sizeof(test_items) / sizeof(struct TestItems);
     for (size_t i = 0; i < test_item_len; i++) {
         const char *arg = test_items[i].arg;
-        ColorNameType ret = test_items[i].ret;
-        assert_true(colorname_type(arg) == ret);
+        ColorType ret = test_items[i].ret;
+        assert_true(ColorType_from_str(arg) == ret);
     }
 
     for (size_t i = 0; i < color_names_len; i++) {
         char *name = color_names[i].name;
         if (str_startswith(name, "light") || str_startswith(name, "x")) {
-            assert_true(colorname_type(name) == COLORNAME_EXTENDED);
+            assert_true(ColorType_from_str(name) == TYPE_EXTENDED);
         } else {
-            assert_true(colorname_type(name) == COLORNAME_BASIC);
+            assert_true(ColorType_from_str(name) == TYPE_BASIC);
         }
     }
 }
@@ -85,7 +85,7 @@ static void test_format_bg_RGB(void **state) {
     */
     (void)state; // Unused (no setup/teardown function used.)
     char codeonly[CODE_RGB_LEN];
-    RGB rgb = {25, 35, 45};
+    struct RGB rgb = {25, 35, 45};
     format_bg_RGB(codeonly, rgb);
     assert_true(strlen(codeonly) < 30);
 }
@@ -118,12 +118,12 @@ static void test_str_startswith(void **state) {
     assert_false(str_startswith(NULL, NULL));
 }
 
-int run_colorname_tests(void) {
+int run_from_str_tests(void) {
     const struct CMUnitTest colorname_tests[] = {
-        cmocka_unit_test(test_colorname_to_color),
-        cmocka_unit_test(test_colorname_type),
+        cmocka_unit_test(test_BasicValue_from_str),
+        cmocka_unit_test(test_ColorType_from_str),
     };
-    return cmocka_run_group_tests_name("colorname_tests", colorname_tests, NULL, NULL);
+    return cmocka_run_group_tests_name("from_str_tests", colorname_tests, NULL, NULL);
 }
 
 int run_format_bg_tests(void) {
@@ -155,7 +155,7 @@ int main(int argc, char *argv[]) {
     (void)argv; // <- To silence linters when not using argv.
     int errs = 0;
     errs += run_helper_tests();
-    errs += run_colorname_tests();
+    errs += run_from_str_tests();
     errs += run_format_bg_tests();
     errs += run_format_fg_tests();
     return errs;

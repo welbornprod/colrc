@@ -88,14 +88,14 @@
     \pm str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
-#define alloc_with_code(str_len) (char*)calloc(str_len + CODEX_LEN, sizeof(char))
+#define alloc_with_code(str_len) calloc(str_len + CODEX_LEN, sizeof(char))
 /*! \def alloc_with_codes
     Allocate `str_len` + enough for a mixture of fore/basic codes.
 
     \pi str_len Extra room to allocate for text.
     \return Pointer to the allocated string, or NULL on error.
 */
-#define alloc_with_codes(str_len) (char*)calloc(str_len + COLOR_LEN, sizeof(char))
+#define alloc_with_codes(str_len) calloc(str_len + COLOR_LEN, sizeof(char))
 /*! \def alloc_with_rgb
     Allocate `str_len` + enough for an rgb code with reset appended.
 
@@ -103,7 +103,7 @@
 
     \return Pointer to the allocated string, or NULL on error.
 */
-#define alloc_with_rgb(str_len) (char*)calloc(str_len + COLOR_RGB_LEN, sizeof(char))
+#define alloc_with_rgb(str_len) calloc(str_len + COLOR_RGB_LEN, sizeof(char))
 /*! \def alloc_with_style
     Allocate `str_len` + enough for a style code with reset appended.
 
@@ -111,7 +111,7 @@
 
     \return Pointer to the allocated string, or NULL on error.
 */
-#define alloc_with_style(str_len) (char*)calloc(str_len + STYLE_LEN, sizeof(char))
+#define alloc_with_style(str_len) calloc(str_len + STYLE_LEN, sizeof(char))
 
 /*! \def streq
     Convenience macro for `!strcmp(s1, s2)`.
@@ -369,6 +369,30 @@ struct ColorArg {
     ExtendedValue ext;
     struct RGB rgb;
 };
+
+/*! \internal
+    Allows access to color_names (implemented in colr.c).
+    \endinternal
+*/
+extern struct ColorInfo color_names[];
+
+/*! \internal
+    Allows access to color_names_len (implemented in colr.c).
+    \endinternal
+*/
+extern size_t color_names_len;
+
+/*! \internal
+    Allows access to style_names (implemented in colr.c).
+    \endinternal
+*/
+extern struct StyleInfo style_names[];
+
+/*! \internal
+    Allows access to style_names_len (implemented in colr.c).
+    \endinternal
+*/
+extern size_t style_names_len;
 
 
 /*! \file colr.h

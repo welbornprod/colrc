@@ -797,7 +797,7 @@ void colrfgrainbow(char *out, const char *s, double freq, size_t offset) {
 */
 char * acolrfgrainbow(const char *s, double freq, size_t offset) {
     size_t oldlen = strlen(s);
-    char *out = (char*)calloc(oldlen + (CODE_RGB_LEN * oldlen), sizeof(char));
+    char *out = calloc(oldlen + (CODE_RGB_LEN * oldlen), sizeof(char));
     colrfgrainbow(out, s, freq, offset);
     return out;
 }

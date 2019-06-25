@@ -14,9 +14,11 @@ INCLUDES=-iquote../
 LIBS=-lcmocka -lm
 
 binary=test_colr
-source=test_colr.c
+source=test_colr.c ../colr.c
 headers=../colr.h
 objects:=$(source:.c=.o)
+binobjects:=$(notdir $(objects))
+test_runner=run_tests.py
 
 .PHONY: all, debug, debugnotags, release
 all: debug
@@ -29,15 +31,21 @@ release: CFLAGS+=-O3 -DNDEBUG
 release: $(binary)
 release: strip
 
-$(binary): $(objects)
-	$(CC) -o $(binary) $(CFLAGS) $(objects) $(LIBS) $(INCLUDES)
+$(binary): $(binobjects)
+	@printf "\nCompiling test executable, $(binary)...\n    "
+	$(CC) -o $(binary) $(CFLAGS) $(binobjects) $(LIBS) $(INCLUDES)
 
-%.o: %.c %.h
+colr.o: ../colr.c
+	@printf "\nCompiling colr.c for tests...\n    "
+	$(CC) -c $< -o colr.o $(CFLAGS) $(LIBS) $(INCLUDES)
+test_colr.o: test_colr.c
+	@printf "\nCompiling test_colr.c for tests...\n    "
 	$(CC) -c $< $(CFLAGS) $(LIBS) $(INCLUDES)
 
 
+
 tags: $(source) $(headers)
-	-@printf "Building ctags...\n";
+	@printf "Building ctags...\n    ";
 	ctags $(source) $(headers);
 
 .PHONY: clang, clangrelease
@@ -49,20 +57,20 @@ clang: debug
 clean:
 	-@if [[ -e $(binary) ]]; then\
 		if rm -f $(binary); then\
-			printf "Binaries cleaned:\n    $(binary)\n";\
+			printf "\nTest binaries cleaned:\n    $(binary)\n";\
 		fi;\
 	else\
-		printf "Binaries already clean:\n    $(binary)\n";\
+		printf "\nTest binaries already clean:\n    $(binary)\n";\
 	fi;
 
-	-@if ls $(objects) &>/dev/null; then\
-		if rm $(objects); then\
-			printf "Objects cleaned:\n";\
-			printf "    %s\n" $(objects);\
+	-@if ls $(binobjects) &>/dev/null; then\
+		if rm $(binobjects); then\
+			printf "\nTest objects cleaned:\n";\
+			printf "    %s\n" $(binobjects);\
 		fi;\
 	else\
-		printf "Objects already clean:\n";\
-		printf "    %s\n" $(objects);\
+		printf "\nTest objects already clean:\n";\
+		printf "    %s\n" $(binobjects);\
 	fi;
 
 .PHONY: strip
@@ -90,8 +98,12 @@ help targets:
 
 .PHONY: cleantest, test
 cleantest:
-	-@make --no-print-directory clean debug && ./run_tests.py;
+	-@make --no-print-directory clean debug && \
+		printf "\nRunning $(binary) (via $(test_runner))...\n" && \
+		./$(test_runner);
 
 test:
-	-@make --no-print-directory debug && ./run_tests.py;
+	-@make --no-print-directory debug && \
+		printf "\nRunning $(binary) (via $(test_runner))...\n" && \
+		./$(test_runner);
 

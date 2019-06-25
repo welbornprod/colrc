@@ -33,17 +33,20 @@ release: $(binary)
 release: strip
 
 $(binary): $(objects)
+	@printf "\nCompiling $(binary) executable...\n    "
 	$(CC) -o $(binary) $(CFLAGS) $(objects) $(LIBS)
 
 %.o: %.c %.h
+	@printf "\nCompiling $<...\n    "
 	$(CC) -c $< $(CFLAGS)
 
 $(docsmainfile): $(source) $(headers) $(docsconfig) $(docsreadme)
 docs: $(source) $(headers) $(docsconfig) $(docsmainfile) $(docsreadme)
+	@printf "\nBuilding doxygen docs...\n    "
 	doxygen $(docsconfig);
 
 tags: $(source) $(headers)
-	-@printf "Building ctags...\n";
+	-@printf "Building ctags...\n    ";
 	ctags $(source) $(headers);
 
 .PHONY: clang, clangrelease
@@ -59,19 +62,19 @@ clangrelease: release
 clean:
 	-@if [[ -e $(binary) ]]; then\
 		if rm -f $(binary); then\
-			printf "Binaries cleaned:\n    $(binary)\n";\
+			printf "\nBinaries cleaned:\n    $(binary)\n";\
 		fi;\
 	else\
-		printf "Binaries already clean:\n    $(binary)\n";\
+		printf "\nBinaries already clean:\n    $(binary)\n";\
 	fi;
 
 	-@if ls $(objects) &>/dev/null; then\
 		if rm $(objects); then\
-			printf "Objects cleaned:\n";\
+			printf "\nObjects cleaned:\n";\
 			printf "    %s\n" $(objects);\
 		fi;\
 	else\
-		printf "Objects already clean:\n";\
+		printf "\nObjects already clean:\n";\
 		printf "    %s\n" $(objects);\
 	fi;
 
