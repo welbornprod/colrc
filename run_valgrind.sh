@@ -40,13 +40,15 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
-        $appscript [ARG...] [TOOL] -- [EXE_ARGS...]
+        $appscript [-a] [ARG...] [TOOL] -- [EXE_ARGS...]
 
     Options:
         ARG           : One or more extra arguments for valgrind.
         EXE_ARGS      : Arguments for $binaryname while running the test.
         TOOL          : Tool to use.
                         Default: $default_tool
+        -a,--all      : Shortcut to --show-leak-kinds=all flag.
+                        This implies TOOL=memcheck.
         -h,--help     : Show this message.
         -v,--version  : Show $appname version and exit.
     "
@@ -61,6 +63,10 @@ for arg; do
     case "$arg" in
         "--")
             in_exe_args=1
+            ;;
+        "-a" | "--all")
+            nonflags[0]="memcheck"
+            flagargs+=("--show-leak-kinds=all")
             ;;
         "-h" | "--help")
             ((in_exe_args)) && {
