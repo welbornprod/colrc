@@ -15,29 +15,42 @@ const int COLORVAL_INVALID_RANGE = -1;
 //! A list of ColorInfo items, used with BasicValue_from_str().
 struct ColorInfo color_names[] = {
     {"none", COLOR_NONE},
+    {"reset", RESET},
     {"black", BLACK},
     {"blue", BLUE},
     {"cyan", CYAN},
     {"green", GREEN},
     {"magenta", MAGENTA},
+    {"normal", WHITE},
     {"red", RED},
-    {"reset", RESET},
-    {"yellow", YELLOW},
     {"white", WHITE},
+    {"yellow", YELLOW},
+    {"lightblack", LIGHTBLACK},
     {"lightblue", LIGHTBLUE},
     {"lightcyan", LIGHTCYAN},
     {"lightgreen", LIGHTGREEN},
     {"lightmagenta", LIGHTMAGENTA},
-    {"lightnormal", LIGHTNORMAL},
+    {"lightnormal", LIGHTWHITE},
     {"lightred", LIGHTRED},
+    {"lightwhite", LIGHTWHITE},
     {"lightyellow", LIGHTYELLOW},
     {"xblue", XBLUE},
     {"xcyan", XCYAN},
     {"xgreen", XGREEN},
     {"xmagenta", XMAGENTA},
-    {"xnormal", XNORMAL},
+    {"xnormal", XWHITE},
     {"xred", XRED},
+    {"xwhite", XWHITE},
     {"xyellow", XYELLOW},
+    {"xlightblack", XLIGHTBLACK},
+    {"xlightblue", XLIGHTBLUE},
+    {"xlightcyan", XLIGHTCYAN},
+    {"xlightgreen", XLIGHTGREEN},
+    {"xlightmagenta", XLIGHTMAGENTA},
+    {"xlightnormal", XLIGHTWHITE},
+    {"xlightred", XLIGHTRED},
+    {"xlightwhite", XLIGHTWHITE},
+    {"xlightyellow", XLIGHTYELLOW},
 };
 
 //! Length of color_names.
@@ -77,10 +90,23 @@ void format_bgx(char *out, unsigned char num) {
     \pi value BasicValue value to use for background.
 */
 void format_bg(char *out, BasicValue value) {
-    if (value > 9) {
-        format_bgx(out, value - (value > 16 ? 8: 9));
+    int use_value = (int)value;
+    if (value < 0) {
+        // Invalid, just use the RESET code.
+        use_value = RESET;
+    } else if (value >= 20) {
+        // Use 256-colors.
+        use_value -= 20;
+        format_fgx(out, use_value);
     } else {
-        snprintf(out, CODE_LEN, "\033[%dm", (value < 0 ? RESET: value) + 40);
+        if (value >= 10) {
+            // Bright colors.
+            use_value += 90;
+        }  else {
+            // Normal basic value.
+            use_value += 40;
+        }
+        snprintf(out, CODE_LEN, "\033[%dm", use_value);
     }
 }
 
@@ -147,10 +173,23 @@ void format_fgx(char *out, unsigned char num) {
     \pi value BasicValue value to use for fore.
 */
 void format_fg(char *out, BasicValue value) {
-    if (value > 9) {
-        format_fgx(out, value - (value > 16 ? 8: 9));
+    int use_value = (int)value;
+    if (value < 0) {
+        // Invalid, just use the RESET code.
+        use_value = RESET;
+    } else if (value >= 20) {
+        // Use 256-colors.
+        use_value -= 20;
+        format_fgx(out, use_value);
     } else {
-        snprintf(out, CODE_LEN, "\033[%dm", (value < 0 ? RESET: value) + 30);
+        if (value >= 10) {
+            // Bright colors.
+            use_value += 80;
+        }  else {
+            // Normal basic value.
+            use_value += 30;
+        }
+        snprintf(out, CODE_LEN, "\033[%dm", use_value);
     }
 }
 
@@ -508,14 +547,17 @@ int ExtendedValue_from_str(const char *arg) {
     if (streq(arg, "xblue")) return XBLUE;
     if (streq(arg, "xmagenta")) return XMAGENTA;
     if (streq(arg, "xcyan")) return XCYAN;
-    if (streq(arg, "xnormal")) return XNORMAL;
-    if (streq(arg, "lightred")) return LIGHTRED;
-    if (streq(arg, "lightgreen")) return LIGHTGREEN;
-    if (streq(arg, "lightyellow")) return LIGHTYELLOW;
-    if (streq(arg, "lightblue")) return LIGHTBLUE;
-    if (streq(arg, "lightmagenta")) return LIGHTMAGENTA;
-    if (streq(arg, "lightcyan")) return LIGHTCYAN;
-    if (streq(arg, "lightnormal")) return LIGHTNORMAL;
+    if (streq(arg, "xnormal")) return XWHITE;
+    if (streq(arg, "xwhite")) return XWHITE;
+    if (streq(arg, "xlightred")) return XLIGHTRED;
+    if (streq(arg, "xlightgreen")) return XLIGHTGREEN;
+    if (streq(arg, "xlightyellow")) return XLIGHTYELLOW;
+    if (streq(arg, "xlightblack")) return XLIGHTBLACK;
+    if (streq(arg, "xlightblue")) return XLIGHTBLUE;
+    if (streq(arg, "xlightmagenta")) return XLIGHTMAGENTA;
+    if (streq(arg, "xlightcyan")) return XLIGHTCYAN;
+    if (streq(arg, "xlightnormal")) return XLIGHTWHITE;
+    if (streq(arg, "xlightwhite")) return XLIGHTWHITE;
 
     // Using long to combat easy overflow.
     long usernum;

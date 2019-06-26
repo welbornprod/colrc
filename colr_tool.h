@@ -14,6 +14,9 @@
 #ifndef COLR_TOOL_H
 #pragma GCC diagnostic ignored "-Wunused-macros"
 #define COLR_TOOL_H
+#ifndef _GNU_SOURCE
+    #define _GNU_SOURCE
+#endif
 
 #include <stdbool.h>
 #include <stdlib.h>

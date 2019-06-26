@@ -12,6 +12,11 @@ program.
 
 // ..use ColrC functions/macros/etc.
 ```
+
+ColrC uses a couple glibc features (`fileno` and `hsearch`), which may not be
+compatible with your system. Most linux distros are compatible. The colr.h header
+defines `_GNU_SOURCE` if it's not already defined (see `man feature_test_macros`).
+
 *Be sure to include **libm** (the math library) when compiling*:
 ```bash
 gcc -std=c11 -c myprogram.c colr.c -o myexecutable -lm

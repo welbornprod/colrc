@@ -8,8 +8,8 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
        -Wmissing-include-dirs -Wnull-dereference -Wpedantic -Wshadow \
        -Wstrict-prototypes -Wunused \
        -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 \
-       -D_GNU_SOURCE \
        -std=c11
+
 LIBS=-lm
 
 binary=colr
@@ -78,6 +78,10 @@ clean:
 		printf "    %s\n" $(objects);\
 	fi;
 
+.PHONY: cleandebug
+cleandebug: clean
+cleandebug: debug
+
 .PHONY: cleandocs
 cleandocs:
 	-@if [[ "$(docsdir)x" != "x" ]] && [[ -e "$(docsmainfile)" ]]; then\
@@ -89,6 +93,10 @@ cleandocs:
 		printf "Docs already clean:\n";\
 		printf "    %s\n" "$(docsdir)/*";\
 	fi;
+
+.PHONY: docsrebuild
+rebuilddocs: cleandocs
+rebuilddocs: docs
 
 .PHONY: strip
 strip:
@@ -105,11 +113,13 @@ help targets:
     clang        : Use \`clang\` to build the default target.\n\
     clangrelease : Use \`clang\` to build the release target.\n\
     clean        : Delete previous build files.\n\
+    cleandebug   : Like running \`make clean debug\`.\n\
     cleandocs    : Delete Doxygen docs from ./$(docsdir).\n\
     cleantest    : Delete previous build files, build the binary and the \n\
                    test binary, and run the tests.\n\
     debug        : Build the executable with debug symbols.\n\
     docs         : Build the Doxygen docs.\n\
+    docsrebuild  : Like running \`make cleandocs docs\`\n\
     release      : Build the executable with optimization, and strip it.\n\
     strip        : Run \`strip\` on the executable.\n\
     tags         : Build tags for this project using \`ctags\`.\n\

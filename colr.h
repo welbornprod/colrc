@@ -29,6 +29,7 @@
 #include <ctype.h>
 #include <malloc.h>
 #include <math.h>  /* Must include `-lm` in compiler args or Makefile LIBS! */
+#include <search.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -113,6 +114,35 @@
 */
 #define alloc_with_style(str_len) calloc(str_len + STYLE_LEN, sizeof(char))
 
+/*! \def argeq
+    Convenience macro for `!strcmp(arg, s1) || !strcmp(arg, s2)`
+
+    \pi arg String to check.
+    \pi s1  First string to compare against.
+    \pi s2  Second string to compare against.
+
+    \return Non-zero if \p arg matches either \p s1 or \p s2, otherwise `0`.
+*/
+#define argeq(arg, s1, s2) (!strcmp(arg, s1)) || (!strcmp(arg, s2))
+
+/*! Casts to ExtendedValue (unsigned char).
+    \def ext
+    \pi x Value to cast to `unsigned char`/`ExtendedValue`.
+*/
+#define ext(x) (ExtendedValue)(x)
+
+//! Convenience macro for `fprintf(stderr, ...)`.
+#define printferr(...) fprintf(stderr, __VA_ARGS__)
+
+/*! Creates an anonymous RGB struct for use in function calls.
+
+    \pi r `unsigned char` Red value.
+    \pi g `unsigned char` Blue value.
+    \pi b `unsigned char` Green value.
+
+*/
+#define rgb(r, g, b) ((struct RGB){.red=r, .green=g, .blue=b})
+
 /*! \def streq
     Convenience macro for `!strcmp(s1, s2)`.
 
@@ -125,19 +155,6 @@
 */
 #define streq(s1, s2) (!strcmp(s1, s2))
 
-/*! \def argeq
-    Convenience macro for `!strcmp(arg, s1) || !strcmp(arg, s2)`
-
-    \pi arg String to check.
-    \pi s1  First string to compare against.
-    \pi s2  Second string to compare against.
-
-    \return Non-zero if \p arg matches either \p s1 or \p s2, otherwise `0`.
-*/
-#define argeq(arg, s1, s2) (!strcmp(arg, s1)) || (!strcmp(arg, s2))
-
-//! Convenience macro for `fprintf(stderr, ...)`.
-#define printferr(...) fprintf(stderr, __VA_ARGS__)
 
 /*! \def color_arg
     Builds a correct ColorArg struct according to the type of it's first
@@ -156,6 +173,7 @@
         ExtendedValue: ColorArg_from_value(TYPE_EXTENDED, &x), \
         struct RGB: ColorArg_from_value(TYPE_RGB, &x) \
     )
+
 /*! Uses the correct format_fg* function according to the type of it's first
     argument.
 
@@ -243,22 +261,6 @@
         char*: str_noop \
     )(x)
 
-/*! Creates an anonymous RGB struct for use in function calls.
-
-    \pi r `unsigned char` Red value.
-    \pi g `unsigned char` Blue value.
-    \pi b `unsigned char` Green value.
-
-*/
-#define rgb(r, g, b) ((struct RGB){.red=r, .green=g, .blue=b})
-
-/*! Casts to ExtendedValue (unsigned char).
-    \def ext
-    \pi x Value to cast to `unsigned char`/`ExtendedValue`.
-*/
-#define ext(x) (ExtendedValue)(x)
-
-
 /*! Basic color values, with a few convenience values for extended colors.
 
     \details
@@ -268,6 +270,8 @@
 typedef enum BasicValue_t {
     COLOR_INVALID = -2,
     COLOR_NONE = -1,
+    // The actual escape code value for fore colors is BasicValue + 30.
+    // The actual escape code value for back colors is BasicValue + 40.
     BLACK = 0,
     RED = 1,
     GREEN = 2,
@@ -278,21 +282,38 @@ typedef enum BasicValue_t {
     WHITE = 7,
     UNUSED = 8,
     RESET = 9,
-    // The following colors trigger extended color code use.
-    XRED = 10,
-    XGREEN = 11,
-    XYELLOW = 12,
-    XBLUE = 13,
-    XMAGENTA = 14,
-    XCYAN = 15,
-    XNORMAL = 16,
-    LIGHTRED = 17,
-    LIGHTGREEN = 18,
-    LIGHTYELLOW = 19,
-    LIGHTBLUE = 20,
-    LIGHTMAGENTA = 21,
-    LIGHTCYAN = 22,
-    LIGHTNORMAL = 23
+    // The following colors are basic "bright" colors.
+    // The actual escape code value for fore colors is BasicValue + 80.
+    // The actual escape code value for back colors is BasicValue + 90.
+    LIGHTBLACK = 10,
+    LIGHTRED = 11,
+    LIGHTGREEN = 12,
+    LIGHTYELLOW = 13,
+    LIGHTBLUE = 14,
+    LIGHTMAGENTA = 15,
+    LIGHTCYAN = 16,
+    LIGHTWHITE = 17,
+    // The following colors trigger extended color code use (format_fgx()).
+    // The actual 256-color value is BasicValue - 20.
+    XBLACK = 20,
+    XRED = 22,
+    XGREEN = 22,
+    XYELLOW = 23,
+    XBLUE = 24,
+    XMAGENTA = 25,
+    XCYAN = 26,
+    XWHITE = 27,
+    // The same "bright" colors as above, using the 256-color code.
+    // The actual 256-color value is BasicValue - 20.
+    XLIGHTBLACK = 28,
+    XLIGHTRED = 29,
+    XLIGHTGREEN = 30,
+    XLIGHTYELLOW = 31,
+    XLIGHTBLUE = 33,
+    XLIGHTMAGENTA = 33,
+    XLIGHTCYAN = 34,
+    XLIGHTWHITE = 35,
+
 } BasicValue;
 
 //! Convenience `typedef` for clarity when dealing with extended (256) colors.
@@ -427,6 +448,7 @@ int ExtendedValue_from_str(const char *arg);
 int rgb_from_str(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b);
 int RGB_from_str(const char *arg, struct RGB *rgb);
 StyleValue StyleValue_from_str(const char *arg);
+
 
 void colrbg(char *out, const char *s, BasicValue back);
 void colrbgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue);

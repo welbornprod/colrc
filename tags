@@ -56,20 +56,21 @@ FLASH	colr.h	/^    FLASH = 5,$/;"	e	enum:StyleValue_t
 GREEN	colr.h	/^    GREEN = 2,$/;"	e	enum:BasicValue_t
 HIGHLIGHT	colr.h	/^    HIGHLIGHT = 7,$/;"	e	enum:StyleValue_t
 ITALIC	colr.h	/^    ITALIC = 3,$/;"	e	enum:StyleValue_t
-LIGHTBLUE	colr.h	/^    LIGHTBLUE = 20,$/;"	e	enum:BasicValue_t
-LIGHTCYAN	colr.h	/^    LIGHTCYAN = 22,$/;"	e	enum:BasicValue_t
-LIGHTGREEN	colr.h	/^    LIGHTGREEN = 18,$/;"	e	enum:BasicValue_t
-LIGHTMAGENTA	colr.h	/^    LIGHTMAGENTA = 21,$/;"	e	enum:BasicValue_t
-LIGHTNORMAL	colr.h	/^    LIGHTNORMAL = 23$/;"	e	enum:BasicValue_t
-LIGHTRED	colr.h	/^    LIGHTRED = 17,$/;"	e	enum:BasicValue_t
-LIGHTYELLOW	colr.h	/^    LIGHTYELLOW = 19,$/;"	e	enum:BasicValue_t
+LIGHTBLACK	colr.h	/^    LIGHTBLACK = 10,$/;"	e	enum:BasicValue_t
+LIGHTBLUE	colr.h	/^    LIGHTBLUE = 14,$/;"	e	enum:BasicValue_t
+LIGHTCYAN	colr.h	/^    LIGHTCYAN = 16,$/;"	e	enum:BasicValue_t
+LIGHTGREEN	colr.h	/^    LIGHTGREEN = 12,$/;"	e	enum:BasicValue_t
+LIGHTMAGENTA	colr.h	/^    LIGHTMAGENTA = 15,$/;"	e	enum:BasicValue_t
+LIGHTRED	colr.h	/^    LIGHTRED = 11,$/;"	e	enum:BasicValue_t
+LIGHTWHITE	colr.h	/^    LIGHTWHITE = 17,$/;"	e	enum:BasicValue_t
+LIGHTYELLOW	colr.h	/^    LIGHTYELLOW = 13,$/;"	e	enum:BasicValue_t
 MAGENTA	colr.h	/^    MAGENTA = 5,$/;"	e	enum:BasicValue_t
-MAX_ARG_LEN	colr_tool.h	26;"	d
+MAX_ARG_LEN	colr_tool.h	29;"	d
 MAX_COLOR_NAME_LEN	colr.h	83;"	d
-MAX_ERR_LEN	colr_tool.h	28;"	d
-MAX_TEXT_LEN	colr_tool.h	30;"	d
+MAX_ERR_LEN	colr_tool.h	31;"	d
+MAX_TEXT_LEN	colr_tool.h	33;"	d
 M_PI	colr.h	48;"	d
-NAME	colr_tool.h	22;"	d
+NAME	colr_tool.h	25;"	d
 NORMAL	colr.h	/^    NORMAL = 22$/;"	e	enum:StyleValue_t
 RED	colr.h	/^    RED = 1,$/;"	e	enum:BasicValue_t
 RESET	colr.h	/^    RESET = 9,$/;"	e	enum:BasicValue_t
@@ -92,17 +93,27 @@ TYPE_INVALID_RGB_RANGE	colr.h	/^    TYPE_INVALID_RGB_RANGE = -3,$/;"	e	enum:Colo
 TYPE_RGB	colr.h	/^    TYPE_RGB = 2,$/;"	e	enum:ColorType_t
 UNDERLINE	colr.h	/^    UNDERLINE = 4,$/;"	e	enum:StyleValue_t
 UNUSED	colr.h	/^    UNUSED = 8,$/;"	e	enum:BasicValue_t
-VERSION	colr_tool.h	23;"	d
+VERSION	colr_tool.h	26;"	d
 WHITE	colr.h	/^    WHITE = 7,$/;"	e	enum:BasicValue_t
-XBLUE	colr.h	/^    XBLUE = 13,$/;"	e	enum:BasicValue_t
-XCYAN	colr.h	/^    XCYAN = 15,$/;"	e	enum:BasicValue_t
-XGREEN	colr.h	/^    XGREEN = 11,$/;"	e	enum:BasicValue_t
-XMAGENTA	colr.h	/^    XMAGENTA = 14,$/;"	e	enum:BasicValue_t
-XNORMAL	colr.h	/^    XNORMAL = 16,$/;"	e	enum:BasicValue_t
-XRED	colr.h	/^    XRED = 10,$/;"	e	enum:BasicValue_t
-XYELLOW	colr.h	/^    XYELLOW = 12,$/;"	e	enum:BasicValue_t
+XBLACK	colr.h	/^    XBLACK = 20,$/;"	e	enum:BasicValue_t
+XBLUE	colr.h	/^    XBLUE = 24,$/;"	e	enum:BasicValue_t
+XCYAN	colr.h	/^    XCYAN = 26,$/;"	e	enum:BasicValue_t
+XGREEN	colr.h	/^    XGREEN = 22,$/;"	e	enum:BasicValue_t
+XLIGHTBLACK	colr.h	/^    XLIGHTBLACK = 28,$/;"	e	enum:BasicValue_t
+XLIGHTBLUE	colr.h	/^    XLIGHTBLUE = 33,$/;"	e	enum:BasicValue_t
+XLIGHTCYAN	colr.h	/^    XLIGHTCYAN = 34,$/;"	e	enum:BasicValue_t
+XLIGHTGREEN	colr.h	/^    XLIGHTGREEN = 30,$/;"	e	enum:BasicValue_t
+XLIGHTMAGENTA	colr.h	/^    XLIGHTMAGENTA = 33,$/;"	e	enum:BasicValue_t
+XLIGHTRED	colr.h	/^    XLIGHTRED = 29,$/;"	e	enum:BasicValue_t
+XLIGHTWHITE	colr.h	/^    XLIGHTWHITE = 35,$/;"	e	enum:BasicValue_t
+XLIGHTYELLOW	colr.h	/^    XLIGHTYELLOW = 31,$/;"	e	enum:BasicValue_t
+XMAGENTA	colr.h	/^    XMAGENTA = 25,$/;"	e	enum:BasicValue_t
+XRED	colr.h	/^    XRED = 22,$/;"	e	enum:BasicValue_t
+XWHITE	colr.h	/^    XWHITE = 27,$/;"	e	enum:BasicValue_t
+XYELLOW	colr.h	/^    XYELLOW = 23,$/;"	e	enum:BasicValue_t
 YELLOW	colr.h	/^    YELLOW = 3,$/;"	e	enum:BasicValue_t
 _GNU_SOURCE	colr.h	22;"	d
+_GNU_SOURCE	colr_tool.h	18;"	d
 acolrfgrainbow	colr.c	/^char * acolrfgrainbow(const char *s, double freq, size_t offset) {$/;"	f
 alloc_with_code	colr.h	91;"	d
 alloc_with_codes	colr.h	98;"	d
@@ -131,8 +142,8 @@ colrize	colr.c	/^void colrize(char *out, const char *s, BasicValue fore, BasicVa
 colrizechar	colr.c	/^void colrizechar(char *out, char c, BasicValue fore, BasicValue back, StyleValue style) {$/;"	f
 colrizex	colr.c	/^void colrizex($/;"	f
 colrstyle	colr.c	/^void colrstyle(char *out, const char *s, StyleValue style) {$/;"	f
-debug	colr_tool.h	35;"	d
 debug	colr_tool.h	38;"	d
+debug	colr_tool.h	41;"	d
 debug	dbug.h	103;"	d
 debug	dbug.h	126;"	d
 debug_args	colr_tool.c	/^debug_args(char *text, char *fore, char *back, char *style) {$/;"	f
@@ -167,7 +178,7 @@ name	colr.h	/^    char *name;$/;"	m	struct:ColorInfo
 name	colr.h	/^    char *name;$/;"	m	struct:StyleInfo
 print_256	colr_tool.c	/^print_256(colorext_func func) {$/;"	f
 print_basic	colr_tool.c	/^print_basic() {$/;"	f
-print_fore_color	colr_tool.h	43;"	d
+print_fore_color	colr_tool.h	46;"	d
 print_rainbow_fore	colr_tool.c	/^print_rainbow_fore() {$/;"	f
 print_rgb	colr_tool.c	/^print_rgb(colorrgb_func func) {$/;"	f
 print_unrecognized_arg	colr_tool.c	/^print_unrecognized_arg(const char *userarg) {$/;"	f

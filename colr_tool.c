@@ -184,21 +184,23 @@ print_basic() {
     print_fore_color(UNUSED);
     print_fore_color(RESET);
     puts("\n");
+    print_fore_color(XBLACK);
     print_fore_color(XRED);
     print_fore_color(XGREEN);
     print_fore_color(XYELLOW);
     print_fore_color(XBLUE);
     print_fore_color(XMAGENTA);
     print_fore_color(XCYAN);
-    print_fore_color(XNORMAL);
+    print_fore_color(XWHITE);
     puts("\n");
+    print_fore_color(LIGHTBLACK);
     print_fore_color(LIGHTRED);
     print_fore_color(LIGHTGREEN);
     print_fore_color(LIGHTYELLOW);
     print_fore_color(LIGHTBLUE);
     print_fore_color(LIGHTMAGENTA);
     print_fore_color(LIGHTCYAN);
-    print_fore_color(LIGHTNORMAL);
+    print_fore_color(LIGHTWHITE);
     puts("\n");
     free(name);
 }
