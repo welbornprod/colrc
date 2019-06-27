@@ -8,13 +8,16 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
        -Wmissing-include-dirs -Wnull-dereference -Wpedantic -Wshadow \
        -Wstrict-prototypes -Wunused \
        -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 \
+       -D_GNU_SOURCE \
        -std=c11
 
 LIBS=-lm
 
 binary=colr
 source=colr_tool.c colr.c
-headers=colr.h colr_tool.h dbug.h
+headers=colr.h colr_tool.h
+optional_headers=dbug.h
+optional_flags=$(foreach header, $(optional_headers), -include $(header))
 docsconfig=Doxyfile
 docsdir=docs
 docsmainfile=$(docsdir)/html/index.html

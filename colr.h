@@ -31,6 +31,7 @@
 #include <math.h>  /* Must include `-lm` in compiler args or Makefile LIBS! */
 #include <search.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -66,8 +67,9 @@
 */
 #define COLOR_LEN 40
 
-//! Maximum length in chars for an RGB fore/back escape code.
+//! Maximum length in chars for an RGB fore/back escape code, including '\0'.
 #define CODE_RGB_LEN 23
+
 /*! Maximum length in chars added to a rgb colorized string.
 
     Should be `CODE_RGB_LEN + STYLE_LEN`
@@ -75,13 +77,44 @@
     for this.
 */
 #define COLOR_RGB_LEN 32
+
 /*! Maximum length in chars for any possible escape code mixture.
 
     (basically `(CODE_RGB_LEN * 2) + STYLE_LEN` since rgb codes are the longest).
 */
 #define CODE_ANY_LEN 54
+
 //! Maximim string length for a fore, back, or style name.
 #define MAX_COLOR_NAME_LEN 12
+
+/*! \def alloc_basic
+    Allocate enough for a basic code.
+
+    \return Pointer to the allocated string, or NULL on error.
+*/
+#define alloc_basic() calloc(CODE_LEN, sizeof(char))
+
+/*! \def alloc_extended
+    Allocate enough for a extended code.
+
+    \return Pointer to the allocated string, or NULL on error.
+*/
+#define alloc_extended() calloc(CODEX_LEN, sizeof(char))
+
+
+/*! \def alloc_rgb
+    Allocate enough for an rgb code.
+
+    \return Pointer to the allocated string, or NULL on error.
+*/
+#define alloc_rgb() calloc(CODE_RGB_LEN, sizeof(char))
+
+/*! \def alloc_style
+    Allocate enough for a style code.
+
+    \return Pointer to the allocated string, or NULL on error.
+*/
+#define alloc_style() calloc(STYLE_LEN, sizeof(char))
 
 /*! \def alloc_with_code
     Allocate `str_len` + enough for a basic code with reset appended.
@@ -125,8 +158,23 @@
 */
 #define argeq(arg, s1, s2) (!strcmp(arg, s1)) || (!strcmp(arg, s2))
 
-/*! Casts to ExtendedValue (unsigned char).
-    \def ext
+
+/*! \def bool_colr_enum
+    Returns the "truthiness" of the enums used in ColrC
+    (BasicValue, ExtendedValue, StyleValue, ColorType, ArgType).
+
+    \details
+    Any value less than `0` is considered false.
+
+    \pi x An enum to convert to boolean.
+    \retval true if the value is considered valid, or non-empty.
+    \retval false if the value is considered invalid, or empty.
+*/
+#define bool_colr_enum(x) (x < 0 ? false: true)
+
+/*! \def ext
+    Casts to ExtendedValue (unsigned char).
+
     \pi x Value to cast to `unsigned char`/`ExtendedValue`.
 */
 #define ext(x) (ExtendedValue)(x)
@@ -134,7 +182,8 @@
 //! Convenience macro for `fprintf(stderr, ...)`.
 #define printferr(...) fprintf(stderr, __VA_ARGS__)
 
-/*! Creates an anonymous RGB struct for use in function calls.
+/*! \def rgb
+    Creates an anonymous RGB struct for use in function calls.
 
     \pi r `unsigned char` Red value.
     \pi g `unsigned char` Blue value.
@@ -155,26 +204,110 @@
 */
 #define streq(s1, s2) (!strcmp(s1, s2))
 
-
 /*! \def color_arg
-    Builds a correct ColorArg struct according to the type of it's first
+    Builds a correct ColorArg struct according to the type of it's second
     argument.
 
     \details
     Uses `_Generic` (C11 standard) to dynamically create a ColorArg.
 
-    \pi x `BasicValue`, `Extended` (`unsigned char`). or `RGB` value.
-    \return  ColorArg_from_value([appropriate type], x)
+    \pi type `ArgType` (`FORE`, `BACK`, `STYLE`) to build the ColorArg.
+    \pi x    `BasicValue`, `Extended` (`unsigned char`). or `RGB` value.
+    \return  ColorArg_from_value(type, [appropriate type], x)
 */
-#define color_arg(x) \
+#define color_arg(type, x) \
     _Generic( \
         (x), \
-        BasicValue: ColorArg_from_value(TYPE_BASIC, &x), \
-        ExtendedValue: ColorArg_from_value(TYPE_EXTENDED, &x), \
-        struct RGB: ColorArg_from_value(TYPE_RGB, &x) \
+        BasicValue: ColorArg_from_value(type, TYPE_BASIC, &x), \
+        ExtendedValue: ColorArg_from_value(type, TYPE_EXTENDED, &x), \
+        StyleValue: ColorArg_from_value(type, TYPE_STYLE, &x), \
+        struct RGB: ColorArg_from_value(type, TYPE_RGB, &x) \
     )
 
-/*! Uses the correct format_fg* function according to the type of it's first
+/*! \def color_val
+    Builds a correct ColorValue struct according to the type of it's first
+    argument.
+
+    \details
+    Uses `_Generic` (C11 standard) to dynamically create a ColorValue.
+
+    \pi x `BasicValue`, `Extended` (`unsigned char`). or `RGB` value.
+    \return  ColorValue_from_value([appropriate type], x)
+*/
+#define color_val(x) \
+    _Generic( \
+        (x), \
+        BasicValue: ColorValue_from_value(TYPE_BASIC, &x), \
+        ExtendedValue: ColorValue_from_value(TYPE_EXTENDED, &x), \
+        StyleValue: ColorValue_from_value(TYPE_STYLE, &x), \
+        struct RGB: ColorValue_from_value(TYPE_RGB, &x) \
+    )
+
+
+/*! \def force_repr
+    Transforms several ColrC objects into strings. If a string is given, this does nothing.
+    \details
+    Uses _Generic (C11 standard) to dynamically ensure a string.
+
+    \details
+    This is used to dynamically join strings and colors.
+
+    \details
+    Supported Types:
+        - struct ColorValue
+        - ColorType
+        - char*
+
+    \pi x   A string, ColorValue, or ColorType to transform into a string.
+            \remark _Obviously this is a no-op for strings._
+    \return Either the string that was given, or a stringified version of what was given.
+*/
+#define force_repr(x) \
+    _Generic( \
+        (x), \
+        struct ColorArg: ColorArg_repr, \
+        struct ColorValue: ColorValue_repr, \
+        ArgType: ArgType_repr, \
+        ColorType: ColorType_repr, \
+        char*: str_noop \
+    )(x)
+
+/*! \def fore_arg
+    Uses ColorArg_from_value to build a ColorArg with the appropriate color
+    type, based on the type of it's argument.
+
+    \details
+    Uses `_Generic` (C11 standard) to dynamically create a ColorArg.
+    This is used by the fore() macro.
+
+    \pi x   `BasicValue`, `Extended` (`unsigned char`), `RGB` struct,
+            or string (color name) for fore color.
+    \return A ColorArg with the FORE type set, and it's `.value.type` set
+            for the appropriate color type/value.
+            For invalid values the `.value.type` may be set to TYPE_INVALID.
+*/
+#define fore_arg(x) \
+    _Generic( \
+        (x), \
+        char *: ColorArg_from_value_str(FORE, TYPE_INVALID, x), \
+        struct RGB: ColorArg_from_value(FORE, TYPE_RGB, &x), \
+        BasicValue: ColorArg_from_value(FORE, TYPE_BASIC, &x), \
+        ExtendedValue: ColorArg_from_value(FORE, TYPE_EXTENDED, &x), \
+        StyleValue: ColorArg_from_value(FORE, TYPE_STYLE, &x) \
+    )
+
+/*! \def fore
+    Uses the fore_arg() macro to build a fore-color escape code string,
+    based on the type of it's argument.
+
+    \pi x   `BasicValue`, `Extended` (`unsigned char`), `RGB` struct,
+            or string (color name) for fore color.
+    \return An allocated string from ColorArg_to_str().
+*/
+#define fore(x) ColorArg_to_str(fore_arg(x))
+
+/*! \def format_fore
+    Uses the correct format_fg* function according to the type of it's first
     argument.
 
     \details
@@ -192,7 +325,8 @@
         ExtendedValue: format_fgx \
     )(out, x)
 
-/*! Uses the correct format_bg* function according to the type of it's first
+/*! \def format_back
+    Uses the correct format_bg* function according to the type of it's first
     argument.
     \details
     Uses `_Generic` (C11 standard) to dynamically create a back color
@@ -209,7 +343,8 @@
         unsigned char: format_bgx \
     )(out, x)
 
-/*! Uses the format_fore/back macros, along with format_style, to build a
+/*! \def format_all
+    Uses the format_fore/back macros, along with format_style, to build a
     style (string of escape codes).
     \details
     Uses `_Generic` (C11 standard) to dynamically create a colorized/styled
@@ -235,31 +370,6 @@
         format_style(_fa_style, style); \
         sprintf(out, "%s%s%s", _fa_style, _fa_fore, _fa_back); \
     } while (0)
-
-/*! Transforms several ColrC objects into strings. If a string is given, this does nothing.
-    \details
-    Uses _Generic (C11 standard) to dynamically ensure a string.
-
-    \details
-    This is used to dynamically join strings and colors.
-
-    \details
-    Supported Types:
-        - struct ColorArg
-        - ColorType
-        - char*
-
-    \pi x   A string, ColorArg, or ColorType to transform into a string.
-            \remark _Obviously this is a no-op for strings._
-    \return Either the string that was given, or a stringified version of what was given.
-*/
-#define force_str(x) \
-    _Generic( \
-        (x), \
-        struct ColorArg: ColorArg_repr, \
-        ColorType: ColorType_repr, \
-        char*: str_noop \
-    )(x)
 
 /*! Basic color values, with a few convenience values for extended colors.
 
@@ -340,8 +450,15 @@ typedef enum StyleValue_t {
     NORMAL = 22
 } StyleValue;
 
+//! Argument types (fore, back).
+typedef enum ArgType_t {
+    ARGTYPE_NONE = -1,
+    FORE = 0,
+    BACK = 1,
+    STYLE = 2,
+} ArgType;
 
-//! Color code name types. Used with ColorType_from_str().
+//! Color/Style code types. Used with ColorType_from_str() and ColorValue.
 typedef enum ColorType_t {
     TYPE_INVALID_EXTENDED_RANGE = -4,
     TYPE_INVALID_RGB_RANGE = -3,
@@ -349,33 +466,31 @@ typedef enum ColorType_t {
     TYPE_BASIC = 0,
     TYPE_EXTENDED = 1,
     TYPE_RGB = 2,
+    TYPE_STYLE = 3,
 } ColorType;
 
+
+
 /*! Holds a known color name and it's `BasicValue`.
-    \struct ColorInfo
 
     \details
     This is used for the `color_names` array in colr.c.
 */
 struct ColorInfo {
-    // TODO: Map these, like Colr.py.
     char *name;
     BasicValue color;
 };
 /*! Holds a known style name and it's `StyleValue`.
-    \struct StyleInfo
 
     \details
     This is used for the `style_names` array in colr.c.
 */
 struct StyleInfo {
-    // TODO: Map these, like Colr.py.
     char *name;
     StyleValue style;
 };
 
-/*! Holds an arg type and it's value for a single fore/back color arg.
-    \struct ColorArg
+/*! Holds a color type and it's value.
 
     \details
     The `.type` member must always match the type of color value it is holding.
@@ -384,11 +499,28 @@ struct StyleInfo {
     This is internal. It's used to make the final interface easier to use.
     You probably shouldn't be using it.
 */
-struct ColorArg {
+struct ColorValue {
     ColorType type;
     BasicValue basic;
     ExtendedValue ext;
     struct RGB rgb;
+    StyleValue style;
+};
+
+/*! Holds an ArgType, and a ColorValue.
+*/
+struct ColorArg {
+    ArgType type;
+    struct ColorValue value;
+};
+
+/*! Holds a ColorValue struct, and some text to be colorized with it.
+*/
+struct ColorText {
+    char *text;
+    struct ColorArg *fore;
+    struct ColorArg *back;
+    struct ColorArg *style;
 };
 
 /*! \internal
@@ -420,6 +552,7 @@ extern size_t style_names_len;
     Common macros and definitions are found here in colr.h,
     however the functions are documented in colr.c.
 */
+char *colr_empty_str(void);
 void format_bgx(char *out, unsigned char num);
 void format_bg(char *out, BasicValue value);
 void format_bg_rgb(char *out, unsigned char red, unsigned char green, unsigned char blue);
@@ -436,12 +569,25 @@ char *str_noop(char *s);
 int str_startswith(const char *s, const char *prefix);
 void str_tolower(char *out, const char *s);
 
-struct ColorArg ColorArg_from_str(char *s);
-struct ColorArg ColorArg_from_value(ColorType type, void *p);
-char *ColorArg_repr(struct ColorArg);
+char *ArgType_repr(ArgType type);
 
 ColorType ColorType_from_str(const char *arg);
 char *ColorType_repr(ColorType type);
+
+struct ColorValue ColorValue_from_str(char *s);
+struct ColorValue ColorValue_from_value(ColorType type, void *p);
+bool ColorValue_is_invalid(struct ColorValue cval);
+char *ColorValue_repr(struct ColorValue cval);
+char *ColorValue_to_str(ArgType type, struct ColorValue cval);
+
+struct ColorArg ColorArg_from_str(ArgType type, char *colorname);
+struct ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p);
+struct ColorArg ColorArg_from_value_str(ArgType type, ColorType nothing, void *p);
+
+bool ColorArg_is_invalid(struct ColorArg carg);
+
+char *ColorArg_repr(struct ColorArg carg);
+char *ColorArg_to_str(struct ColorArg carg);
 
 BasicValue BasicValue_from_str(const char *arg);
 int ExtendedValue_from_str(const char *arg);

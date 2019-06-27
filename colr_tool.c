@@ -21,10 +21,18 @@ int main(int argc, char *argv[]) {
 
     // ----------------------------------------------------------------------
     puts("TESTING STUFF IN main():\n");
-    // struct RGB bval = rgb(34, 155, 25);
-    ColorType type = TYPE_BASIC;
-    char *argstr = force_str(type);
-    printf("Got arg: %s\n", argstr);
+    //struct RGB bval = rgb(34, 155, 25);
+    //BasicValue bval = RED;
+    //ExtendedValue bval = 56;
+    //StyleValue bval = BRIGHT;
+    char *bval = "red";
+    // struct ColorValue cval = ColorValue_from_str(bval);
+    // char *valrepr = force_repr(cval);
+    // printf("Got ColorValue: %s\n", valrepr);
+    char *argstr = fore(bval);
+    printf("Got arg: %stest%s\n", argstr, STYLE_RESET_ALL);
+    free(argstr);
+
 
     return 1;
     // ----------------------------------------------------------------------

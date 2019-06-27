@@ -20,7 +20,7 @@ COLOR_RGB_LEN	../colr.h	76;"	d
 COLR_H	../colr.h	20;"	d
 COLR_VERSION	../colr.h	26;"	d
 CYAN	../colr.h	/^    CYAN = 6,$/;"	e	enum:BasicValue_t
-ColorArg	../colr.h	/^struct ColorArg {$/;"	s
+ColorValue	../colr.h	/^struct ColorValue {$/;"	s
 ColorInfo	../colr.h	/^struct ColorInfo {$/;"	s
 ColorType	../colr.h	/^} ColorType;$/;"	t	typeref:enum:ColorType_t
 ColorType_t	../colr.h	/^typedef enum ColorType_t {$/;"	g
@@ -75,11 +75,11 @@ alloc_with_codes	../colr.h	98;"	d
 alloc_with_rgb	../colr.h	106;"	d
 alloc_with_style	../colr.h	114;"	d
 argeq	../colr.h	137;"	d
-basic	../colr.h	/^    BasicValue basic;$/;"	m	struct:ColorArg
+basic	../colr.h	/^    BasicValue basic;$/;"	m	struct:ColorValue
 blue	../colr.h	/^    unsigned char blue;$/;"	m	struct:RGB
 color	../colr.h	/^    BasicValue color;$/;"	m	struct:ColorInfo
 color_arg	../colr.h	152;"	d
-ext	../colr.h	/^    ExtendedValue ext;$/;"	m	struct:ColorArg
+ext	../colr.h	/^    ExtendedValue ext;$/;"	m	struct:ColorValue
 ext	../colr.h	259;"	d
 force_str	../colr.h	238;"	d
 format_all	../colr.h	210;"	d
@@ -91,7 +91,7 @@ name	../colr.h	/^    char *name;$/;"	m	struct:ColorInfo
 name	../colr.h	/^    char *name;$/;"	m	struct:StyleInfo
 printferr	../colr.h	140;"	d
 red	../colr.h	/^    unsigned char red;$/;"	m	struct:RGB
-rgb	../colr.h	/^    struct RGB rgb;$/;"	m	struct:ColorArg	typeref:struct:ColorArg::RGB
+rgb	../colr.h	/^    struct RGB rgb;$/;"	m	struct:ColorValue	typeref:struct:ColorValue::RGB
 rgb	../colr.h	253;"	d
 run_format_bg_tests	test_colr.c	/^int run_format_bg_tests(void) {$/;"	f
 run_format_fg_tests	test_colr.c	/^int run_format_fg_tests(void) {$/;"	f
@@ -107,4 +107,4 @@ test_format_bg_rgb	test_colr.c	/^static void test_format_bg_rgb(void **state) {$
 test_format_bgx	test_colr.c	/^static void test_format_bgx(void **state) {$/;"	f	file:
 test_format_fg	test_colr.c	/^static void test_format_fg(void **state) {$/;"	f	file:
 test_str_startswith	test_colr.c	/^static void test_str_startswith(void **state) {$/;"	f	file:
-type	../colr.h	/^    ColorType type;$/;"	m	struct:ColorArg
+type	../colr.h	/^    ColorType type;$/;"	m	struct:ColorValue
