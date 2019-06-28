@@ -3,7 +3,7 @@
 
 SHELL=bash
 CC=gcc
-CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
+CFLAGS=-Wall -Wextra -Wfloat-equal -Wenum-compare -Winline -Wlogical-op \
        -Wimplicit-fallthrough -Wlogical-not-parentheses \
        -Wmissing-include-dirs -Wnull-dereference -Wpedantic -Wshadow \
        -Wstrict-prototypes -Wunused \
@@ -49,7 +49,7 @@ docs: $(source) $(headers) $(docsconfig) $(docsmainfile) $(docsreadme)
 	doxygen $(docsconfig);
 
 tags: $(source) $(headers)
-	-@printf "Building ctags...\n    ";
+	@printf "Building ctags...\n    ";
 	ctags $(source) $(headers);
 
 .PHONY: clang, clangrelease
@@ -62,23 +62,24 @@ clangrelease: CFLAGS+=-Wno-unknown-warning-option -Wliblto
 clangrelease: release
 
 .PHONY: clean
+.ONESHELL:
 clean:
-	-@if [[ -e $(binary) ]]; then\
-		if rm -f $(binary); then\
-			printf "\nBinaries cleaned:\n    $(binary)\n";\
-		fi;\
-	else\
-		printf "\nBinaries already clean:\n    $(binary)\n";\
+	-@if [[ -e $(binary) ]]; then
+		if rm -f $(binary); then
+			printf "\nBinaries cleaned:\n    $(binary)\n";
+		fi;
+	else
+		printf "\nBinaries already clean:\n    $(binary)\n";
 	fi;
 
-	-@if ls $(objects) &>/dev/null; then\
-		if rm $(objects); then\
-			printf "\nObjects cleaned:\n";\
-			printf "    %s\n" $(objects);\
-		fi;\
-	else\
-		printf "\nObjects already clean:\n";\
-		printf "    %s\n" $(objects);\
+	-@if ls $(objects) &>/dev/null; then
+		if rm $(objects); then
+			printf "\nObjects cleaned:\n";
+			printf "    %s\n" $(objects);
+		fi;
+	else
+		printf "\nObjects already clean:\n";
+		printf "    %s\n" $(objects);
 	fi;
 
 .PHONY: cleandebug
@@ -86,27 +87,38 @@ cleandebug: clean
 cleandebug: debug
 
 .PHONY: cleandocs
+.ONESHELL:
 cleandocs:
-	-@if [[ "$(docsdir)x" != "x" ]] && [[ -e "$(docsmainfile)" ]]; then\
-		if rm -r $(docsdir)/*; then\
-			printf "Docs cleaned:\n";\
-			printf "    %s\n" "$(docsdir)/*";\
-		fi;\
-	else\
-		printf "Docs already clean:\n";\
-		printf "    %s\n" "$(docsdir)/*";\
+	-@if [[ "$(docsdir)x" != "x" ]] && [[ -e "$(docsmainfile)" ]]; then
+		if rm -r $(docsdir)/*; then
+			printf "Docs cleaned:\n";
+			printf "    %s\n" "$(docsdir)/*";
+		fi;
+	else
+		printf "Docs already clean:\n";
+		printf "    %s\n" "$(docsdir)/*";
 	fi;
 
 .PHONY: docsrebuild
-rebuilddocs: cleandocs
-rebuilddocs: docs
+docsrebuild: cleandocs
+docsrebuild: docs
+
+.PHONY: run
+.ONESHELL:
+run:
+	-@if [[ -e $(binary) ]]; then
+		./$(binary) $$COLR_ARGS
+	else
+		printf "No binary built yet: $(binary)" 1>&2;
+	fi
 
 .PHONY: strip
+.ONESHELL:
 strip:
-	@if strip $(binary); then\
-		printf "\n%s was stripped.\n" "$(binary)";\
-	else\
-		printf "\nError stripping executable: %s\n" "$(binary)" 1>&2;\
+	@if strip $(binary); then
+		printf "\n%s was stripped.\n" "$(binary)";
+	else
+		printf "\nError stripping executable: %s\n" "$(binary)" 1>&2;
 	fi;
 
 .PHONY: help, targets

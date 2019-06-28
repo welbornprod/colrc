@@ -42,10 +42,31 @@
     #endif
 #endif
 
+// Print a representation of a ColorArg to stdout.
+#define print_ColorArg_repr(x) \
+    do { \
+        char *_pcar_valrepr = force_repr(x); \
+        printf("%s\n", _pcar_valrepr); \
+        free(_pcar_valrepr); \
+    } while(0)
+
+// Print a representation of a ColorArg to stdout, with a colorized example
+// using it's value.
+#define print_ColorArg_example(x) \
+    do { \
+        char *_pcae_valrepr = force_repr(x); \
+        char *_pcae_valcode = ColorArg_to_str(x); \
+        printf("%s%s%s\n", _pcae_valcode, _pcae_valrepr, CODE_RESET_ALL); \
+        free(_pcae_valcode); \
+        free(_pcae_valrepr); \
+    } while(0)
+
 // Assumes memory allocated in a variable named `name`.
 #define print_fore_color(codename) \
-    colrfg(name, #codename, codename); \
-    printf("%s ", name);
+    do { \
+        colrfg(name, #codename, codename); \
+        printf("%s ", name); \
+    } while(0)
 
 typedef void (*colorext_func)(char*, const char*, unsigned char);
 typedef void (*colorrgb_func)(char*, const char*, struct RGB);

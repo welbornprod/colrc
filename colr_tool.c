@@ -21,19 +21,44 @@ int main(int argc, char *argv[]) {
 
     // ----------------------------------------------------------------------
     puts("TESTING STUFF IN main():\n");
-    //struct RGB bval = rgb(34, 155, 25);
-    //BasicValue bval = RED;
-    //ExtendedValue bval = 56;
-    //StyleValue bval = BRIGHT;
-    char *bval = "red";
-    // struct ColorValue cval = ColorValue_from_str(bval);
-    // char *valrepr = force_repr(cval);
-    // printf("Got ColorValue: %s\n", valrepr);
-    char *argstr = fore(bval);
-    printf("Got arg: %stest%s\n", argstr, STYLE_RESET_ALL);
-    free(argstr);
+    char *cval;
+    bool do_all = false;
+    switch (argc) {
+        case 2:
+            if (strcasestr(argv[1], "all")) do_all = true;
+            if (do_all || strcasestr(argv[1], "str")) {
+                debug("Using string.\n");
+                print_ColorArg_example(fore_arg("red"));
+                printf("%sThis is a test string.%s\n\n", fore("blue"), CODE_RESET_ALL);
+            }
 
-
+            if (do_all || strcasestr(argv[1], "rgb")) {
+                debug("Using rgb.\n");
+                print_ColorArg_example(fore_arg(rgb(150, 0, 150)));
+                printf("%sThis is a test string.%s\n\n", fore(rgb(54, 0, 155)), CODE_RESET_ALL);
+            }
+            if (do_all || strcasestr(argv[1], "basic")) {
+                debug("Using BasicValue.\n");
+                print_ColorArg_example(fore_arg(RED));
+                printf("%sThis is a test string.%s\n\n", fore(MAGENTA), CODE_RESET_ALL);
+            }
+            if (do_all || strcasestr(argv[1], "ext")) {
+                debug("Using ExtendedValue.\n");
+                print_ColorArg_example(fore_arg(ext(124)));
+                printf("%sThis is a test string.%s\n\n", fore(ext(56)), CODE_RESET_ALL);
+            }
+            if (do_all || strcasestr(argv[1], "style")) {
+                debug("Using StyleValue.\n");
+                print_ColorArg_example(fore_arg(BRIGHT));
+                printf("%sThis is a test string.%s\n\n", fore(UNDERLINE), CODE_RESET_ALL);
+            }
+            break;
+        default:
+            debug("Using default string.\n");
+            cval = "lightblue";
+            print_ColorArg_example(fore_arg(cval));
+    }
+    printf("%sTesting%s\n", fore(ext(32)), CODE_RESET_ALL);
     return 1;
     // ----------------------------------------------------------------------
 

@@ -50,7 +50,7 @@
     #define M_PI (3.14159265358979323846)
 #endif
 //! Convenience definition, because this is used a lot.
-#define STYLE_RESET_ALL "\033[0m"
+#define CODE_RESET_ALL "\033[0m"
 
 //! Maximum length for a basic fore/back escape code, including `'\0'`.
 #define CODE_LEN 10
@@ -158,7 +158,12 @@
 */
 #define argeq(arg, s1, s2) (!strcmp(arg, s1)) || (!strcmp(arg, s2))
 
+/*! \def basic
+    Casts to BasicValue.
 
+    \pi x Value to case to `BasicValue`.
+*/
+#define basic(x) ((enum BasicValue_t)(x))
 /*! \def bool_colr_enum
     Returns the "truthiness" of the enums used in ColrC
     (BasicValue, ExtendedValue, StyleValue, ColorType, ArgType).
@@ -177,7 +182,7 @@
 
     \pi x Value to cast to `unsigned char`/`ExtendedValue`.
 */
-#define ext(x) (ExtendedValue)(x)
+#define ext(x) ((ExtendedValue)(x))
 
 //! Convenience macro for `fprintf(stderr, ...)`.
 #define printferr(...) fprintf(stderr, __VA_ARGS__)
@@ -289,93 +294,27 @@
 #define fore_arg(x) \
     _Generic( \
         (x), \
-        char *: ColorArg_from_value_str(FORE, TYPE_INVALID, x), \
-        struct RGB: ColorArg_from_value(FORE, TYPE_RGB, &x), \
-        BasicValue: ColorArg_from_value(FORE, TYPE_BASIC, &x), \
-        ExtendedValue: ColorArg_from_value(FORE, TYPE_EXTENDED, &x), \
-        StyleValue: ColorArg_from_value(FORE, TYPE_STYLE, &x) \
-    )
+        char *: ColorArg_from_str, \
+        struct RGB: ColorArg_from_RGB, \
+        BasicValue: ColorArg_from_BasicValue, \
+        ExtendedValue: ColorArg_from_ExtendedValue, \
+        StyleValue: ColorArg_from_StyleValue \
+    )(FORE, x)
 
-/*! \def fore
-    Uses the fore_arg() macro to build a fore-color escape code string,
-    based on the type of it's argument.
-
-    \pi x   `BasicValue`, `Extended` (`unsigned char`), `RGB` struct,
-            or string (color name) for fore color.
-    \return An allocated string from ColorArg_to_str().
-*/
 #define fore(x) ColorArg_to_str(fore_arg(x))
 
-/*! \def format_fore
-    Uses the correct format_fg* function according to the type of it's first
-    argument.
-
-    \details
-    Uses `_Generic` (C11 standard) to dynamically create a fore color
-    escape code string.
-
-    \po out `char*` with memory allocated for the escape code string.
-    \pi x   `BasicValue`, `Extended` (`unsigned char`), or `RGB` value for fore color.
-*/
-#define format_fore(out, x) \
-    _Generic( \
-        (x), \
-        struct RGB: format_fg_RGB, \
-        BasicValue: format_fg, \
-        ExtendedValue: format_fgx \
-    )(out, x)
-
-/*! \def format_back
-    Uses the correct format_bg* function according to the type of it's first
-    argument.
-    \details
-    Uses `_Generic` (C11 standard) to dynamically create a back color
-    escape code string.
-
-    \po out `char*` with memory allocated for the escape code string.
-    \pi x   `BasicValue`, `Extended` (`unsigned char`), or `RGB` value for fore color.
-*/
-#define format_back(out, x) \
-    _Generic( \
-        (x), \
-        RGB: format_bg_RGB, \
-        BasicValue: format_bg, \
-        unsigned char: format_bgx \
-    )(out, x)
-
-/*! \def format_all
-    Uses the format_fore/back macros, along with format_style, to build a
-    style (string of escape codes).
-    \details
-    Uses `_Generic` (C11 standard) to dynamically create a colorized/styled
-    string.
-
-    \details
-    Arguments are passed to format_fore(), format_back(), and format_style().
-    \details
-    The string of codes is built in place, and copied into the `out` parameter.
-
-    \po out   char *buffer, must have a size of at least CODE_ANY_LEN.
-    \pi fore  BasicValue, ExtendedValue, or RGB for fore color.
-    \pi back  BasicValue, ExtendedValue, or RGB for back color.
-    \pi style StyleValue for style.
-*/
-#define format_all(out, fore, back, style) \
-    do { \
-        char _fa_fore[CODE_RGB_LEN]; \
-        format_fore(_fa_fore, fore); \
-        char _fa_back[CODE_RGB_LEN]; \
-        format_back(_fa_back, back); \
-        char _fa_style[STYLE_LEN]; \
-        format_style(_fa_style, style); \
-        sprintf(out, "%s%s%s", _fa_style, _fa_fore, _fa_back); \
-    } while (0)
 
 /*! Basic color values, with a few convenience values for extended colors.
 
     \details
     Values greater than 9 will trigger the use of an ExtendedValue (and it's
     associated functions).
+
+    \internal
+    The enum values are immediately defined to be explicit casts to the
+    BasicValue_t type, this ensure no confusion between StyleValue and
+    BasicValue when they are passed to _Generic-based macros.
+    \endinternal
 */
 typedef enum BasicValue_t {
     COLOR_INVALID = -2,
@@ -423,8 +362,46 @@ typedef enum BasicValue_t {
     XLIGHTMAGENTA = 33,
     XLIGHTCYAN = 34,
     XLIGHTWHITE = 35,
-
 } BasicValue;
+
+#ifndef DOXYGEN_SKIP
+#define COLOR_INVALID basic(COLOR_INVALID)
+#define COLOR_NONE basic(COLOR_NONE)
+#define BLACK basic(BLACK)
+#define RED basic(RED)
+#define GREEN basic(GREEN)
+#define YELLOW basic(YELLOW)
+#define BLUE basic(BLUE)
+#define MAGENTA basic(MAGENTA)
+#define CYAN basic(CYAN)
+#define WHITE basic(WHITE)
+#define UNUSED basic(UNUSED)
+#define RESET basic(RESET)
+#define LIGHTBLACK basic(LIGHTBLACK)
+#define LIGHTRED basic(LIGHTRED)
+#define LIGHTGREEN basic(LIGHTGREEN)
+#define LIGHTYELLOW basic(LIGHTYELLOW)
+#define LIGHTBLUE basic(LIGHTBLUE)
+#define LIGHTMAGENTA basic(LIGHTMAGENTA)
+#define LIGHTCYAN basic(LIGHTCYAN)
+#define LIGHTWHITE basic(LIGHTWHITE)
+#define XBLACK basic(XBLACK)
+#define XRED basic(XRED)
+#define XGREEN basic(XGREEN)
+#define XYELLOW basic(XYELLOW)
+#define XBLUE basic(XBLUE)
+#define XMAGENTA basic(XMAGENTA)
+#define XCYAN basic(XCYAN)
+#define XWHITE basic(XWHITE)
+#define XLIGHTBLACK basic(XLIGHTBLACK)
+#define XLIGHTRED basic(XLIGHTRED)
+#define XLIGHTGREEN basic(XLIGHTGREEN)
+#define XLIGHTYELLOW basic(XLIGHTYELLOW)
+#define XLIGHTBLUE basic(XLIGHTBLUE)
+#define XLIGHTMAGENTA basic(XLIGHTMAGENTA)
+#define XLIGHTCYAN basic(XLIGHTCYAN)
+#define XLIGHTWHITE basic(XLIGHTWHITE)
+#endif // DOXYGEN_SKIP
 
 //! Convenience `typedef` for clarity when dealing with extended (256) colors.
 typedef unsigned char ExtendedValue;
@@ -449,6 +426,19 @@ typedef enum StyleValue_t {
     HIGHLIGHT = 7,
     NORMAL = 22
 } StyleValue;
+
+#ifndef DOXYGEN_SKIP
+#define STYLE_INVALID ((enum StyleValue_t)STYLE_INVALID)
+#define STYLE_NONE ((enum StyleValue_t)STYLE_NONE)
+#define RESET_ALL ((enum StyleValue_t)RESET_ALL)
+#define BRIGHT ((enum StyleValue_t)BRIGHT)
+#define DIM ((enum StyleValue_t)DIM)
+#define ITALIC ((enum StyleValue_t)ITALIC)
+#define UNDERLINE ((enum StyleValue_t)UNDERLINE)
+#define FLASH ((enum StyleValue_t)FLASH)
+#define HIGHLIGHT ((enum StyleValue_t)HIGHLIGHT)
+#define NORMAL ((enum StyleValue_t)NORMAL)
+#endif // DOXYGEN_SKIP
 
 //! Argument types (fore, back).
 typedef enum ArgType_t {
@@ -572,6 +562,8 @@ void str_tolower(char *out, const char *s);
 char *ArgType_repr(ArgType type);
 
 ColorType ColorType_from_str(const char *arg);
+bool ColorType_is_invalid(ColorType type);
+bool ColorType_is_valid(ColorType type);
 char *ColorType_repr(ColorType type);
 
 struct ColorValue ColorValue_from_str(char *s);
@@ -580,9 +572,12 @@ bool ColorValue_is_invalid(struct ColorValue cval);
 char *ColorValue_repr(struct ColorValue cval);
 char *ColorValue_to_str(ArgType type, struct ColorValue cval);
 
+struct ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value);
+struct ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value);
+struct ColorArg ColorArg_from_RGB(ArgType type, struct RGB value);
 struct ColorArg ColorArg_from_str(ArgType type, char *colorname);
+struct ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value);
 struct ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p);
-struct ColorArg ColorArg_from_value_str(ArgType type, ColorType nothing, void *p);
 
 bool ColorArg_is_invalid(struct ColorArg carg);
 
