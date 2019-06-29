@@ -14,13 +14,17 @@ INCLUDES=-iquote../
 LIBS=-lcmocka -lm
 
 binary=test_colr
-cov_cmd=bash ../gen_coverage_html.sh
+cov_cmd=bash ../gen_coverage_html.sh --
 cov_dir=coverage
-valgrind_cmd=bash ../run_valgrind.sh
-source=test_colr.c ../colr.c
-headers=../colr.h
+valgrind_cmd=bash ../run_valgrind.sh --
+test_source:=$(wildcard *.c)
+source:=$(test_source) ../colr.c
+test_headers:=$(wildcard *.h)
+headers:=$(test_headers) ../colr.h
+test_objects=$(test_source:.c=.o)
 objects:=$(source:.c=.o)
 binobjects:=$(notdir $(objects))
+
 test_runner=run_tests.py
 
 .PHONY: all, coverage, debug, debugnotags, release
@@ -32,7 +36,7 @@ coverage: CFLAGS+=-fprofile-arcs -ftest-coverage
 coverage: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
 coverage: $(binary)
 coverage:
-	@$(cov_cmd) "$(realpath $(binary))" "$(realpath $(cov_dir))"
+	@$(cov_cmd) "$(realpath $(binary))" "$(cov_dir)"
 
 debug: tags
 debug: CFLAGS+=-g3 -DDEBUG
@@ -46,14 +50,16 @@ $(binary): $(binobjects)
 	@printf "\nCompiling test executable, $(binary)...\n    "
 	$(CC) -o $(binary) $(CFLAGS) $(binobjects) $(LIBS) $(INCLUDES)
 
-colr.o: ../colr.c
-	@printf "\nCompiling colr.c for tests...\n    "
+colr.o: ../colr.c ../colr.h
+	@printf "\nCompiling colr.c from parent dir for tests...\n    "
 	$(CC) -c $< -o colr.o $(CFLAGS) $(LIBS) $(INCLUDES)
-test_colr.o: test_colr.c
-	@printf "\nCompiling test_colr.c for tests...\n    "
-	$(CC) -c $< $(CFLAGS) $(LIBS) $(INCLUDES)
 
-
+.ONESHELL:
+$(test_objects): $(test_source) $(test_headers)
+	@objpath="$@"
+	cfile="$${objpath%.*}.c"
+	printf "\nCompiling $$cfile for tests (caused by $@)...\n    "
+	$(CC) -c $$cfile -o $@ $(CFLAGS) $(LIBS) $(INCLUDES)
 
 tags: $(source) $(headers)
 	@printf "Building ctags...\n    ";
@@ -66,23 +72,7 @@ clang: debug
 
 .PHONY: clean
 clean:
-	-@if [[ -e $(binary) ]]; then\
-		if rm -f $(binary); then\
-			printf "\nTest binaries cleaned:\n    $(binary)\n";\
-		fi;\
-	else\
-		printf "\nTest binaries already clean:\n    $(binary)\n";\
-	fi;
-
-	-@if ls $(binobjects) &>/dev/null; then\
-		if rm $(binobjects); then\
-			printf "\nTest objects cleaned:\n";\
-			printf "    %s\n" $(binobjects);\
-		fi;\
-	else\
-		printf "\nTest objects already clean:\n";\
-		printf "    %s\n" $(binobjects);\
-	fi;
+	-@bash ../clean.sh "$(binary)"
 
 .PHONY: coveragesummary
 coveragesummary:
@@ -125,12 +115,12 @@ help targets:
 
 .PHONY: cleantest, test
 cleantest:
-	-@make --no-print-directory clean debug && \
+	-@$(MAKE) --no-print-directory clean debug && \
 		printf "\nRunning $(binary) (via $(test_runner))...\n" && \
 		./$(test_runner);
 
 test:
-	-@make --no-print-directory debug && \
+	-@$(MAKE) --no-print-directory debug && \
 		printf "\nRunning $(binary) (via $(test_runner))...\n" && \
 		./$(test_runner);
 

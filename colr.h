@@ -369,10 +369,11 @@
 
     \example fore_macro.c
 
-    \pi x  A BasicValue, ExtendedValue, or RGB struct to use for the color value.
+    \pi x   A BasicValue, ExtendedValue, or RGB struct to use for the color value.
     \return A pointer to a heap-allocated ColorArg struct. If used with
-            colr(), __it will be free()'d__. This is to allow for an easy
-            interface.
+            colr() or Colr(), __it will be free()'d__.
+            This is to allow for an easy interface.
+            If used outside of those macros, __you must free() it__.
 */
 #define fore(x) ColorArg_to_ptr(fore_arg(x))
 /*! \def fore_str
@@ -435,10 +436,11 @@
 
     \example back_macro.c
 
-    \pi x  A BasicValue, ExtendedValue, or RGB struct to use for the color value.
+    \pi x   A BasicValue, ExtendedValue, or RGB struct to use for the color value.
     \return A pointer to a heap-allocated ColorArg struct. If used with
-            colr(), __it will be free()'d__. This is to allow for an easy
-            interface.
+            colr() or Colr(), __it will be free()'d__.
+            This is to allow for an easy interface.
+            If used outside of those macros, __you must free() it__.
 */
 #define back(x) ColorArg_to_ptr(back_arg(x))
 /*! \def back_str
@@ -493,10 +495,11 @@
 
     \example style_macro.c
 
-    \pi x  A StyleValue.
+    \pi x   A StyleValue.
     \return A pointer to a heap-allocated ColorArg struct. If used with
-            colr(), __it will be free()'d__. This is to allow for an easy
-            interface.
+            colr() or Colr(), __it will be free()'d__.
+            This is to allow for an easy interface.
+            If used outside of those macros, __you must free() it__.
 */
 #define style(x) ColorArg_to_ptr(style_arg(x))
 /*! \def style_str

@@ -156,8 +156,14 @@ help targets:
     cleantest       : Delete previous build files, build the binary and the \n\
                       test binary, and run the tests.\n\
     coverage        : Compile the debug build and generate coverage reports.\n\
+                      This only checks the main binary, not the tests.\n\
+                      See the \`testcoverage\` target.\n\
     coveragesummary : View a summary of previously generated coverage reports.\n\
+                      This is only for the main binary, not the tests.\n\
+                      See the \`testsummary\` target.\n\
     coverageview    : View previously generated html coverage reports.\n\
+                      This is only for the main binary, not the tests.\n\
+                      See the \`testview\` target.\n\
     debug           : Build the executable with debug symbols.\n\
     docs            : Build the Doxygen docs.\n\
     docsrebuild     : Like running \`make cleandocs docs\`\n\
@@ -172,7 +178,18 @@ help targets:
 
 .PHONY: cleantest, test
 cleantest:
-	-@make --no-print-directory clean debug && { cd test; make --no-print-directory cleantest; };
+	-@$(MAKE) --no-print-directory clean debug && { cd test; $(MAKE) --no-print-directory cleantest; };
 
 test:
-	-@make --no-print-directory debug && { cd test; make --no-print-directory test; };
+	-@$(MAKE) --no-print-directory debug && { cd test; $(MAKE) --no-print-directory test; };
+
+.PHONY: testcoverage, testsummary, testview
+testcoverage:
+	-@cd test && $(MAKE) --no-print-directory clean coverage
+
+testsummary:
+	-@cd test && $(MAKE) --no-print-directory coveragesummary
+
+testview:
+	-@cd test && $(MAKE) --no-print-directory coverageview
+
