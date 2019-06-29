@@ -30,7 +30,6 @@ test_runner=run_tests.py
 .PHONY: all, coverage, debug, debugnotags, release
 all: debug
 
-.ONESHELL:
 coverage: CFLAGS+=-O0 -DDEBUG
 coverage: CFLAGS+=-fprofile-arcs -ftest-coverage
 coverage: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
@@ -54,12 +53,11 @@ colr.o: ../colr.c ../colr.h
 	@printf "\nCompiling colr.c from parent dir for tests...\n    "
 	$(CC) -c $< -o colr.o $(CFLAGS) $(LIBS) $(INCLUDES)
 
-.ONESHELL:
 $(test_objects): $(test_source) $(test_headers)
-	@objpath="$@"
-	cfile="$${objpath%.*}.c"
-	printf "\nCompiling $$cfile for tests (caused by $@)...\n    "
-	$(CC) -c $$cfile -o $@ $(CFLAGS) $(LIBS) $(INCLUDES)
+	@objpath="$@"; \
+	cfile="$${objpath%.*}.c"; \
+	printf "\nCompiling $$cfile for tests (caused by $@)...\n    "; \
+	$(CC) -c $$cfile -o $@ $(CFLAGS) $(LIBS) $(INCLUDES);
 
 tags: $(source) $(headers)
 	@printf "Building ctags...\n    ";
@@ -116,11 +114,11 @@ help targets:
 .PHONY: cleantest, test
 cleantest:
 	-@$(MAKE) --no-print-directory clean debug && \
-		printf "\nRunning $(binary) (via $(test_runner))...\n" && \
+		printf "\nRunning $(binary) (via $(test_runner))...\n    "; \
 		./$(test_runner);
 
 test:
-	-@$(MAKE) --no-print-directory debug && \
-		printf "\nRunning $(binary) (via $(test_runner))...\n" && \
+	-@$(MAKE) --no-print-directory debug; \
+		printf "\nRunning $(binary) (via $(test_runner))...\n    "; \
 		./$(test_runner);
 
