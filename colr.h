@@ -29,6 +29,7 @@
 #include <ctype.h>
 #include <malloc.h>
 #include <math.h>  /* Must include `-lm` in compiler args or Makefile LIBS! */
+#include <limits.h>
 #include <search.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -51,24 +52,30 @@
 #endif
 //! Convenience definition, because this is used a lot.
 #define CODE_RESET_ALL "\033[0m"
-
-//! Maximum length for a basic fore/back escape code, including `'\0'`.
-#define CODE_LEN 10
+//! Short-hand for CODE_RESET_ALL, stands for "No Color".
+#define NC CODE_RESET_ALL
+//! Length of CODE_RESET_ALL, including `'\0'`.
+#define CODE_RESET_LEN 5
+/*! Maximum length for a basic fore/back escape code, including `'\0'`.
+    Keep in mind that BasicValue actually has some extended values in it
+    for convenience.
+*/
+#define CODE_LEN 12
 //! Maximum length for an extended fore/back escape code, including `'\0'`.
-#define CODEX_LEN 15
+#define CODEX_LEN 12
 
 //! Maximum length for a style escape code, including `'\0'`.
-#define STYLE_LEN 8
+#define STYLE_LEN 6
 
 /*! Maximum length in chars for any combination of basic/extended escape codes.
 
     Should be `(CODEX_LEN * 2) + STYLE_LEN`.
     Allocating for a string that will be colorized must account for this.
 */
-#define COLOR_LEN 40
+#define COLOR_LEN 30
 
 //! Maximum length in chars for an RGB fore/back escape code, including '\0'.
-#define CODE_RGB_LEN 23
+#define CODE_RGB_LEN 20
 
 /*! Maximum length in chars added to a rgb colorized string.
 
@@ -76,16 +83,30 @@
     Allocating for a string that will be colorized with rgb values must account
     for this.
 */
-#define COLOR_RGB_LEN 32
+#define COLOR_RGB_LEN 26
 
 /*! Maximum length in chars for any possible escape code mixture.
 
     (basically `(CODE_RGB_LEN * 2) + STYLE_LEN` since rgb codes are the longest).
 */
-#define CODE_ANY_LEN 54
+#define CODE_ANY_LEN 46
 
 //! Maximim string length for a fore, back, or style name.
 #define MAX_COLOR_NAME_LEN 12
+
+/*! \internal
+    Marker for the ColroArg struct, for identifying a void pointer as a
+    ColorArg.
+    \endinternal
+*/
+#define COLORARG_MARKER UINT_MAX
+
+/*! \internal
+    Marker for the ColorText struct, for identifying a void pointer as a
+    ColorText.
+    \endinternal
+*/
+#define COLORTEXT_MARKER (UINT_MAX >> 1)
 
 /*! \def alloc_basic
     Allocate enough for a basic code.
@@ -164,6 +185,7 @@
     \pi x Value to case to `BasicValue`.
 */
 #define basic(x) ((enum BasicValue_t)(x))
+
 /*! \def bool_colr_enum
     Returns the "truthiness" of the enums used in ColrC
     (BasicValue, ExtendedValue, StyleValue, ColorType, ArgType).
@@ -271,14 +293,36 @@
     _Generic( \
         (x), \
         struct ColorArg: ColorArg_repr, \
+        struct ColorText: ColorText_repr, \
         struct ColorValue: ColorValue_repr, \
         ArgType: ArgType_repr, \
         ColorType: ColorType_repr, \
         char*: str_noop \
     )(x)
 
+/*! \def debug_repr
+    Uses force_repr() to build a string representation of a Colr object,
+    debug prints it, and calls free() when it's done.
+
+    \details
+    This is for debugging purposes obviously, and is a no-op when DEBUG is not
+    defined.
+
+    \pi lbl Label text for the debug print.
+    \pi x   Any object supported by force_repr().
+*/
+#ifdef DEBUG
+    #define debug_repr(lbl, x) \
+        do { \
+            char *_debug_repr_s = force_repr(x); \
+            debug("%s: %s\n", lbl, _debug_repr_s); \
+            free(_debug_repr_s); \
+        } while(0)
+#else
+    #define debug_repr(lbl, x) ((void)0)
+#endif
 /*! \def fore_arg
-    Uses ColorArg_from_value to build a ColorArg with the appropriate color
+    Uses ColorArg_from_<type> to build a ColorArg with the appropriate color
     type, based on the type of it's argument.
 
     \details
@@ -301,8 +345,198 @@
         StyleValue: ColorArg_from_StyleValue \
     )(FORE, x)
 
-#define fore(x) ColorArg_to_str(fore_arg(x))
 
+/*! \def fore
+    Create a fore color suitable for use with the colr() and Colr() macros.
+
+
+    \details
+    Technically, this macro accepts BasicValues, ExtendedValues, or RGB structs.
+    However, for some of these you should be using the
+    macros that create those things.
+
+    \details
+    BasicValues can be used by their names (RED, YELLOW, etc.).
+
+    \details
+    ExtendedValues can be created on the fly with ext().
+
+    \details
+    RGB structs can be easily created with rgb().
+
+    \details
+    Color names (`char *`) can be passed to generate the appropriate color value.
+
+    \example fore_macro.c
+
+    \pi x  A BasicValue, ExtendedValue, or RGB struct to use for the color value.
+    \return A pointer to a heap-allocated ColorArg struct. If used with
+            colr(), __it will be free()'d__. This is to allow for an easy
+            interface.
+*/
+#define fore(x) ColorArg_to_ptr(fore_arg(x))
+/*! \def fore_str
+    Retrieve just the escape code string for a fore color.
+
+    \details
+    You must free() the resulting string.
+
+    \pi x A BasicValue, ExtendedValue, or RGB struct.
+
+    \sa fore_arg
+*/
+#define fore_str(x) ColorArg_to_str(fore_arg(x))
+
+/*! \def back_arg
+    Uses ColorArg_from_<type> to build a ColorArg with the appropriate color
+    type, based on the type of it's argument.
+
+    \details
+    Uses `_Generic` (C11 standard) to dynamically create a ColorArg.
+    This is used by the back() macro.
+
+    \pi x   `BasicValue`, `Extended` (`unsigned char`), `RGB` struct,
+            or string (color name) for back color.
+    \return A ColorArg with the BACK type set, and it's `.value.type` set
+            for the appropriate color type/value.
+            For invalid values the `.value.type` may be set to TYPE_INVALID.
+*/
+#define back_arg(x) \
+    _Generic( \
+        (x), \
+        char *: ColorArg_from_str, \
+        struct RGB: ColorArg_from_RGB, \
+        BasicValue: ColorArg_from_BasicValue, \
+        ExtendedValue: ColorArg_from_ExtendedValue, \
+        StyleValue: ColorArg_from_StyleValue \
+    )(BACK, x)
+
+
+/*! \def back
+    Create a back color suitable for use with the colr() and Colr() macros.
+
+
+    \details
+    Technically, this macro accepts BasicValues, ExtendedValues, or RGB structs.
+    However, for some of these you should be using the
+    macros that create those things.
+
+    \details
+    BasicValues can be used by their names (RED, YELLOW, etc.).
+
+    \details
+    ExtendedValues can be created on the fly with ext().
+
+    \details
+    RGB structs can be easily created with rgb().
+
+    \details
+    Color names (`char *`) can be passed to generate the appropriate color value.
+
+    \example back_macro.c
+
+    \pi x  A BasicValue, ExtendedValue, or RGB struct to use for the color value.
+    \return A pointer to a heap-allocated ColorArg struct. If used with
+            colr(), __it will be free()'d__. This is to allow for an easy
+            interface.
+*/
+#define back(x) ColorArg_to_ptr(back_arg(x))
+/*! \def back_str
+    Retrieve just the escape code string for a back color.
+
+    \details
+    You must free() the resulting string.
+
+    \pi x A BasicValue, ExtendedValue, or RGB struct.
+
+    \sa back_arg
+*/
+#define back_str(x) ColorArg_to_str(back_arg(x))
+
+/*! \def style_arg
+    Uses ColorArg_from_StyleValue to build a ColorArg with the appropriate color
+    type/value.
+
+    \pi x   `StyleValue` for the style.
+    \return A ColorArg with the STYLE type set, and it's `.value.type` set
+            for the appropriate color type/value.
+            For invalid values the `.value.type` may be set to TYPE_INVALID.
+*/
+#define style_arg(x) \
+    _Generic( \
+        (x), \
+        char *: ColorArg_from_str, \
+        StyleValue: ColorArg_from_StyleValue \
+    )(STYLE, x)
+
+
+/*! \def style
+    Create a style suitable for use with the colr() and Colr() macros.
+
+
+    \details
+    Technically, this macro accepts BasicValues, ExtendedValues, or RGB structs.
+    However, for some of these you should be using the
+    macros that create those things.
+
+    \details
+    BasicValues can be used by their names (RED, YELLOW, etc.).
+
+    \details
+    ExtendedValues can be created on the fly with ext().
+
+    \details
+    RGB structs can be easily created with rgb().
+
+    \details
+    Style names (`char *`) can be passed to generate the appropriate color value.
+
+    \example style_macro.c
+
+    \pi x  A StyleValue.
+    \return A pointer to a heap-allocated ColorArg struct. If used with
+            colr(), __it will be free()'d__. This is to allow for an easy
+            interface.
+*/
+#define style(x) ColorArg_to_ptr(style_arg(x))
+/*! \def style_str
+    Retrieve just the escape code string for a style.
+
+    \details
+    You must free() the resulting string.
+
+    \pi x StyleValue to use.
+
+    \sa style_arg
+*/
+#define style_str(x) ColorArg_to_str(style_arg(x))
+
+/*! \def colr
+    Join ColorArg pointers, ColorText pointers, and strings into one long string.
+
+    \details
+    To build the ColorArg pointers, it is better to use the fore(), back(),
+    and style() macros. The ColorArgs are heap allocated, but colr() will
+    free() them for you.
+
+    \details
+    To build the ColorText pointers, it is better to use the Colr() macro,
+    along with the fore(), back(), and style() macros. The ColorTexts are
+    heap allocated, but colr() will free() them for you.
+*/
+#define colr(...) Colr_join(__VA_ARGS__, NULL)
+// TODO: colr and Colr examples in their docs, and on the main pages.
+// TODO: ColrJoin (see colr_tool.c TODOS).
+
+/*! \def Colr
+    Returns a heap-allocated ColorText object that can be used by itself,
+    or with the colr() macro.
+
+    \details
+    You must `free()` the resulting ColorText struct using ColorText_free(),
+    unless you pass it to colr(), which will `free()` it for you.
+*/
+#define Colr(...) ColorText_to_ptr(ColorText_from_values(__VA_ARGS__, NULL))
 
 /*! Basic color values, with a few convenience values for extended colors.
 
@@ -500,13 +734,16 @@ struct ColorValue {
 /*! Holds an ArgType, and a ColorValue.
 */
 struct ColorArg {
+    unsigned int marker;
     ArgType type;
     struct ColorValue value;
 };
 
-/*! Holds a ColorValue struct, and some text to be colorized with it.
+
+/*! Holds a string of text, and optional fore, back, and style ColorArgs.
 */
 struct ColorText {
+    unsigned int marker;
     char *text;
     struct ColorArg *fore;
     struct ColorArg *back;
@@ -559,31 +796,73 @@ char *str_noop(char *s);
 int str_startswith(const char *s, const char *prefix);
 void str_tolower(char *out, const char *s);
 
+
+/*! \internal
+    The multi-type variadiac function behind the colr() macro.
+    \endinternal
+*/
+char *Colr_join(void *ctext, ...);
+
+/*! \internal
+    ArgType functions that only deal with argument types (fore, back, style).
+    \endinternal
+*/
 char *ArgType_repr(ArgType type);
 
-ColorType ColorType_from_str(const char *arg);
-bool ColorType_is_invalid(ColorType type);
-bool ColorType_is_valid(ColorType type);
-char *ColorType_repr(ColorType type);
-
-struct ColorValue ColorValue_from_str(char *s);
-struct ColorValue ColorValue_from_value(ColorType type, void *p);
-bool ColorValue_is_invalid(struct ColorValue cval);
-char *ColorValue_repr(struct ColorValue cval);
-char *ColorValue_to_str(ArgType type, struct ColorValue cval);
-
+/*! \internal
+    ColorArg functions that deal with an ArgType, and a ColorValue.
+    \endinternal
+*/
+void ColorArg_free(struct ColorArg *p);
 struct ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value);
 struct ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value);
 struct ColorArg ColorArg_from_RGB(ArgType type, struct RGB value);
 struct ColorArg ColorArg_from_str(ArgType type, char *colorname);
 struct ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value);
 struct ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p);
-
 bool ColorArg_is_invalid(struct ColorArg carg);
-
+bool ColorArg_is_ptr(void *p);
+bool ColorArg_is_valid(struct ColorArg carg);
+struct ColorArg *ColorArg_to_ptr(struct ColorArg carg);
 char *ColorArg_repr(struct ColorArg carg);
 char *ColorArg_to_str(struct ColorArg carg);
 
+/*! \internal
+    ColorText functions that deal with a string of text, and fore/back/style
+    ColorArgs.
+    \endinternal
+*/
+void ColorText_free(struct ColorText *p);
+struct ColorText ColorText_from_values(char *text, ...);
+bool ColorText_is_ptr(void *p);
+char *ColorText_repr(struct ColorText);
+struct ColorText *ColorText_to_ptr(struct ColorText ctext);
+char *ColorText_to_str(struct ColorText ctext);
+
+/*! \internal
+    ColorType functions that deal with the type of ColorValue (basic, ext, rgb.)
+    \endinternal
+*/
+ColorType ColorType_from_str(const char *arg);
+bool ColorType_is_invalid(ColorType type);
+bool ColorType_is_valid(ColorType type);
+char *ColorType_repr(ColorType type);
+
+/*! \internal
+    ColorValue functions that deal with a specific color value (basic, ext, rgb).
+    \endinternal
+*/
+struct ColorValue ColorValue_from_str(char *s);
+struct ColorValue ColorValue_from_value(ColorType type, void *p);
+bool ColorValue_is_invalid(struct ColorValue cval);
+char *ColorValue_repr(struct ColorValue cval);
+char *ColorValue_to_str(ArgType type, struct ColorValue cval);
+
+
+/*! \internal
+    Functions that deal with basic color values, and their types.
+    \endinternal
+*/
 BasicValue BasicValue_from_str(const char *arg);
 int ExtendedValue_from_str(const char *arg);
 int rgb_from_str(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b);

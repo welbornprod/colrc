@@ -22,7 +22,7 @@
 //! Name of this library.
 #define DBUG_NAME "dbug"
 //! Version for this library.
-#define DBUG_VERSION "0.0.2"
+#define DBUG_VERSION "0.0.3"
 //! Long version string for this library.
 #define DBUG_VERSION_STR DBUG_NAME " v. " DBUG_VERSION
 
@@ -46,7 +46,7 @@
     #define DBUG_STYLE_BRIGHT "\033[1m"
     #endif
     //! Number of characters in the file, line, and lineno info.
-    #define DBUG_DEBUGWIDTH 41
+    #define DBUG_DEBUGWIDTH 45
     //! Number of characters in the maximum line-count/line-number.
     #define DBUG_LINELEN 4
     //! Number of "other characters", such as ':', '()', and ' ' in the line info.

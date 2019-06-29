@@ -21,7 +21,6 @@ int main(int argc, char *argv[]) {
 
     // ----------------------------------------------------------------------
     puts("TESTING STUFF IN main():\n");
-    char *cval;
     bool do_all = false;
     switch (argc) {
         case 2:
@@ -29,36 +28,44 @@ int main(int argc, char *argv[]) {
             if (do_all || strcasestr(argv[1], "str")) {
                 debug("Using string.\n");
                 print_ColorArg_example(fore_arg("red"));
-                printf("%sThis is a test string.%s\n\n", fore("blue"), CODE_RESET_ALL);
+                printf("%sThis is a test string.%s\n\n", fore_str("blue"), CODE_RESET_ALL);
             }
 
             if (do_all || strcasestr(argv[1], "rgb")) {
                 debug("Using rgb.\n");
                 print_ColorArg_example(fore_arg(rgb(150, 0, 150)));
-                printf("%sThis is a test string.%s\n\n", fore(rgb(54, 0, 155)), CODE_RESET_ALL);
+                printf("%sThis is a test string.%s\n\n", fore_str(rgb(54, 0, 155)), CODE_RESET_ALL);
             }
             if (do_all || strcasestr(argv[1], "basic")) {
                 debug("Using BasicValue.\n");
                 print_ColorArg_example(fore_arg(RED));
-                printf("%sThis is a test string.%s\n\n", fore(MAGENTA), CODE_RESET_ALL);
+                printf("%sThis is a test string.%s\n\n", fore_str(MAGENTA), CODE_RESET_ALL);
             }
             if (do_all || strcasestr(argv[1], "ext")) {
                 debug("Using ExtendedValue.\n");
                 print_ColorArg_example(fore_arg(ext(124)));
-                printf("%sThis is a test string.%s\n\n", fore(ext(56)), CODE_RESET_ALL);
+                printf("%sThis is a test string.%s\n\n", fore_str(ext(56)), CODE_RESET_ALL);
             }
             if (do_all || strcasestr(argv[1], "style")) {
                 debug("Using StyleValue.\n");
                 print_ColorArg_example(fore_arg(BRIGHT));
-                printf("%sThis is a test string.%s\n\n", fore(UNDERLINE), CODE_RESET_ALL);
+                printf("%sThis is a test string.%s\n\n", fore_str(UNDERLINE), CODE_RESET_ALL);
             }
             break;
         default:
-            debug("Using default string.\n");
-            cval = "lightblue";
-            print_ColorArg_example(fore_arg(cval));
+            #define C Colr
+            // TODO: I have Colr_join, now I need Colr_str_join.
+            //       So I can do ColrJoin("-", "this", "that", Colr("the other", fore("red")))
+            debug("Using default case.\n");
+            char *text = colr(
+                C("This ", fore("lightblue"), back("white")),
+                "is ",
+                C("awesome", style("underline"))
+            );
+            printf("Final: %s\n", text);
+            free(text);
     }
-    printf("%sTesting%s\n", fore(ext(32)), CODE_RESET_ALL);
+
     return 1;
     // ----------------------------------------------------------------------
 

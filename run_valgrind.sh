@@ -50,7 +50,7 @@ function print_usage {
         -a,--all      : Shortcut to --show-leak-kinds=all flag.
                         This implies TOOL=memcheck.
         -h,--help     : Show this message.
-        -v,--version  : Show $appname version and exit.
+        -V,--version  : Show $appname version and exit.
     "
 }
 
@@ -76,7 +76,7 @@ for arg; do
             print_usage ""
             exit 0
             ;;
-        "-v" | "--version")
+        "-V" | "--version")
             ((in_exe_args)) && {
                 exeargs+=("$arg")
                 continue

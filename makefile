@@ -103,6 +103,10 @@ cleandocs:
 docsrebuild: cleandocs
 docsrebuild: docs
 
+.PHONY: memcheck
+memcheck:
+	@./run_valgrind.sh -a $(COLR_ARGS)
+
 .PHONY: run
 .ONESHELL:
 run:
@@ -136,10 +140,12 @@ help targets:
     docs         : Build the Doxygen docs.\n\
     docsrebuild  : Like running \`make cleandocs docs\`\n\
     release      : Build the executable with optimization, and strip it.\n\
+    run          : Run the executable. Args are set with COLR_ARGS.\n\
     strip        : Run \`strip\` on the executable.\n\
     tags         : Build tags for this project using \`ctags\`.\n\
     test         : Build debug (if needed), build the test debug (if needed),\n\
                    and run the tests.\n\
+    memcheck     : Run valgrind's memcheck on the executable.\n\
 	";
 
 .PHONY: cleantest, test

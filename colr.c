@@ -339,6 +339,92 @@ void str_tolower(char *out, const char *s) {
 }
 
 /* ---------------------------- Colr Functions ---------------------------- */
+
+/*! Joins ColorArgs, ColorTexts, and strings into one long string.
+
+    \details
+    This will free() any ColorArgs and ColorTexts that are passed in. It is
+    backing the colr() macro, and enables easy throwaway color values.
+
+    \details
+    Any plain strings that are passed in are left alone. It is up to the caller
+    to free those. Colr only manages the temporary Colr-based objects needed
+    to build up these strings.
+
+    \pi p   The first of any ColorArg, ColorText, or strings to join.
+    \pi ... Zero or more ColorArg, ColorText, or string to join.
+    \return An allocated string with mixed escape codes/strings.
+            CODE_RESET_ALL is appended to all the pieces that aren't plain
+            strings. This allows easy part-colored messages, so there's no
+            need to use CODE_RESET_ALL directly.
+            __You must free() the memory allocated by this function.__
+*/
+char *Colr_join(void *p, ...) {
+    // Argument list must have ColorArg/ColorText with NULL members at the end.
+    va_list args;
+    va_start(args, p);
+    char *s;
+    struct ColorArg *cargp = NULL;
+    struct ColorText *ctextp = NULL;
+    if (ColorArg_is_ptr(p)) {
+        // It's a ColorArg.
+        cargp = p;
+        s = ColorArg_to_str(*cargp);
+        ColorArg_free(cargp);
+    } else if (ColorText_is_ptr(p)) {
+        ctextp = p;
+        s = ColorText_to_str(*ctextp);
+        ColorText_free(ctextp);
+    } else {
+        // It's a string, or it better be anyway.
+        s = (char *)p;
+    }
+    size_t length = strlen(s) + 1;
+    length += CODE_RESET_LEN;
+    // Allocate enough for the reset code at the end.
+    char *final = calloc(length, sizeof(char));
+    sprintf(final, "%s", s);
+    if (cargp) {
+        free(s);
+    }
+    if (ctextp) {
+        free(s);
+    }
+
+    void *arg = NULL;
+    while ((arg = va_arg(args, void*))) {
+        cargp = NULL;
+        ctextp = NULL;
+        // These ColorArgs/ColorTexts were heap allocated through the fore,
+        // back, style, and Colr macros. I'm going to free them, so the user
+        // doesn't have to keep track of all the temporary pieces that built
+        // this string.
+        if (ColorArg_is_ptr(arg)) {
+            // It's a ColorArg.
+            cargp = arg;
+            s = ColorArg_to_str(*cargp);
+            ColorArg_free(cargp);
+        } else if (ColorText_is_ptr(arg)) {
+            ctextp = arg;
+            s = ColorText_to_str(*ctextp);
+            ColorText_free(ctextp);
+        } else {
+            // It better be a string.
+            s = (char *)arg;
+        }
+        // TODO: Not allocating enough, getting invalid writes.
+        length += strlen(s) + 1;
+        final = realloc(final, length);
+        sprintf(final, "%s%s", final, s);
+        // Free the temporary string from those ColorArgs/ColorTexts.
+        if (cargp || ctextp) free(s);
+    }
+    sprintf(final, "%s%s", final, CODE_RESET_ALL);
+    debug("FINAL LENGTH: %lu, ALLOCATED LENGTH: %lu\n", strlen(final), length);
+    va_end(args);
+    return final;
+}
+
 /*! Creates a string representation of a ArgType.
 
     \pi type A ArgType to get the type from.
@@ -363,6 +449,18 @@ char *ArgType_repr(ArgType type) {
     return typestr;
 }
 
+/*! Free allocated memory for a ColorArg.
+
+    \details
+    This has no advantage over `free(colorarg)` right now, it is used in
+    debugging, and may be extended in the future. It's better just to use it.
+
+    \pi p ColorArg to free.
+*/
+void ColorArg_free(struct ColorArg *p) {
+    free(p);
+}
+
 /*! Explicit version of ColorArg_from_value that only handles BasicValues.
 
     \details
@@ -377,7 +475,8 @@ struct ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value) {
     // Saving a copy on the stack, in case an anonymous value was given.
     // As long as the address is good through _from_value() we're good.
     BasicValue val = value;
-    return (struct ColorArg) {
+    return (struct ColorArg){
+        .marker=COLORARG_MARKER,
         .type=type,
         .value=ColorValue_from_value(TYPE_EXTENDED, &val),
     };
@@ -397,7 +496,8 @@ struct ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value) {
     // Saving a copy on the stack, in case an anonymous value was given.
     // As long as the address is good through _from_value() we're good.
     ExtendedValue val = value;
-    return (struct ColorArg) {
+    return (struct ColorArg){
+        .marker=COLORARG_MARKER,
         .type=type,
         .value=ColorValue_from_value(TYPE_EXTENDED, &val),
     };
@@ -417,7 +517,8 @@ struct ColorArg ColorArg_from_RGB(ArgType type, struct RGB value) {
     // Saving a copy on the stack, in case an anonymous value was given.
     // As long as the address is good through _from_value() we're good.
     struct RGB val = value;
-    return (struct ColorArg) {
+    return (struct ColorArg){
+        .marker=COLORARG_MARKER,
         .type=type,
         .value=ColorValue_from_value(TYPE_RGB, &val),
     };
@@ -436,7 +537,12 @@ struct ColorArg ColorArg_from_RGB(ArgType type, struct RGB value) {
 */
 struct ColorArg ColorArg_from_str(ArgType type, char *colorname) {
     struct ColorValue carg = ColorValue_from_str(colorname);
-    return (struct ColorArg){.type=type, .value=carg};
+    return (struct ColorArg){
+        .marker=COLORARG_MARKER,
+        .type=type,
+        .value=carg
+    };
+
 }
 
 /*! Explicit version of ColorArg_from_value that only handles StyleValues.
@@ -453,7 +559,8 @@ struct ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value) {
     // Saving a copy on the stack, in case an anonymous value was given.
     // As long as the address is good through _from_value() we're good.
     StyleValue val = value;
-    return (struct ColorArg) {
+    return (struct ColorArg){
+        .marker=COLORARG_MARKER,
         .type=type,
         .value=ColorValue_from_value(TYPE_STYLE, &val),
     };
@@ -476,11 +583,13 @@ struct ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value) {
 struct ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p) {
     if (!p) {
         return (struct ColorArg){
+            .marker=COLORARG_MARKER,
             .type=ARGTYPE_NONE,
             .value=ColorValue_from_value(TYPE_INVALID, NULL)
         };
     }
     return (struct ColorArg){
+        .marker=COLORARG_MARKER,
         .type=type,
         .value=ColorValue_from_value(colrtype, p),
     };
@@ -495,6 +604,21 @@ struct ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p) {
 bool ColorArg_is_invalid(struct ColorArg carg) {
     return !(bool_colr_enum(carg.value.type) && bool_colr_enum(carg.type));
 }
+
+/*! Checks a void pointer to see if it contains a ColorArg struct.
+
+    \details The first member of a ColorArg is a marker.
+
+    \pi     p A void pointer to check.
+    \return `true` if the pointer is a ColorArg, otherwise `false`.
+*/
+bool ColorArg_is_ptr(void *p) {
+    if (!p) return false;
+    // The head of a ColorArg is always a valid marker.
+    struct ColorArg *cargp = p;
+    return cargp->marker == COLORARG_MARKER;
+}
+
 /*! Checks to see if a ColorArg holds a valid value.
 
     \pi carg ColorArg struct to check.
@@ -503,6 +627,8 @@ bool ColorArg_is_invalid(struct ColorArg carg) {
 bool ColorArg_is_valid(struct ColorArg carg) {
     return bool_colr_enum(carg.value.type) && bool_colr_enum(carg.type);
 }
+
+
 
 /*! Creates a string representation for a ColorArg.
     \details
@@ -516,10 +642,24 @@ char *ColorArg_repr(struct ColorArg carg) {
     char *type = ArgType_repr(carg.type);
     char *value = ColorValue_repr(carg.value);
     char *repr;
-    asprintf(&repr, "struct ColorArg {.type=%s, .value=}%s", type, value);
+    asprintf(&repr, "struct ColorArg {.type=%s, .value=%s}", type, value);
     free(type);
     free(value);
     return repr;
+}
+
+/*! Copies a ColorArg into memory and returns the pointer.
+
+    \details
+    You must free() the memory if you call this directly.
+
+    \pi carg ColorArg to copy/allocate for.
+    \return Pointer to a heap-allocated ColorArg.
+*/
+struct ColorArg *ColorArg_to_ptr(struct ColorArg carg) {
+    struct ColorArg *p = malloc(sizeof(carg));
+    *p = carg;
+    return p;
 }
 
 /*! Converts a ColorArg into an escape code string.
@@ -538,16 +678,141 @@ char *ColorArg_to_str(struct ColorArg carg) {
     return ColorValue_to_str(carg.type, carg.value);
 }
 
-/*! Colorize text with values built from a ColorText struct.
 
-    \pi carg A ColorText struct to get the text and ColorValue values from.
+/*! Frees a ColorText and it's ColorArgs.
 
-    \return An allocated string, filled with the colorized text.
-            If allocation fails, `NULL` is returned.
+    \details
+    The text member is left alone, because it wasn't created by Colr.
+
+    \pi p Pointer to ColorText to free, along with it's Colr-based members.
 */
-char *ColorText_to_str(struct ColorText carg) {
-    (void) carg;
-    return NULL;
+void ColorText_free(struct ColorText *p) {
+    if (!p) return;
+    if (p->fore) free(p->fore);
+    if (p->back) free(p->back);
+    if (p->style) free(p->style);
+
+    free(p);
+}
+
+/*! Builds a ColorText from 1 mandatory string, and optional fore, back, and
+    style args (pointers to ColorArgs).
+    \pi text Text to colorize (a regular string).
+    \pi ... ColorArgs for fore, back, and style, in any order.
+    \return An initialized ColorText struct.
+*/
+struct ColorText ColorText_from_values(char *text, ...) {
+    // Argument list must have ColorArg with NULL members at the end.
+    struct ColorText ctext = {
+        .marker=COLORTEXT_MARKER,
+        .text=text,
+        .fore=NULL,
+        .back=NULL,
+        .style=NULL
+    };
+    va_list colrargs;
+    va_start(colrargs, text);
+    struct ColorArg *arg;
+    while ((arg = va_arg(colrargs, struct ColorArg*))) {
+        // It's a ColorArg.
+        if (arg->type == FORE) {
+            // It's the fore arg.
+            ctext.fore = arg;
+        } else if (arg->type == BACK) {
+            ctext.back = arg;
+        } else if (arg->type == STYLE) {
+            ctext.style = arg;
+            break;
+        }
+    }
+    va_end(colrargs);
+    return ctext;
+}
+/*! Checks a void pointer to see if it contains a ColorText struct.
+
+    \details The first member of a ColorText is a marker.
+
+    \pi     p A void pointer to check.
+    \return `true` if the pointer is a ColorText, otherwise `false`.
+*/
+bool ColorText_is_ptr(void *p) {
+    if (!p) return false;
+    // The head of a ColorText is always a valid marker.
+    struct ColorText *ctextp = p;
+    return ctextp->marker == COLORTEXT_MARKER;
+}
+
+/*! Allocate a string representation for a ColorText.
+
+    \pi ctext ColorText to get the string representation for.
+    \return Allocated string for the ColorText.
+*/
+char *ColorText_repr(struct ColorText ctext) {
+    char *s;
+    char *sfore = ctext.fore ? ColorArg_repr(*(ctext.fore)) : NULL;
+    char *sback = ctext.back ? ColorArg_repr(*(ctext.back)) : NULL;
+    char *sstyle = ctext.style ? ColorArg_repr(*(ctext.style)) : NULL;
+
+    asprintf(
+        &s,
+        "struct ColorText {.text=%s, .fore=%s, .back=%s, .style=%s}\n",
+        ctext.text ? ctext.text : "NULL",
+        sfore ? sfore : "NULL",
+        sback ? sback : "NULL",
+        sstyle ? sstyle : "NULL"
+    );
+    free(sfore);
+    free(sback);
+    free(sstyle);
+    return s;
+}
+/*! Copies a ColorText into memory and returns the pointer.
+
+    \details
+    You must free() the memory if you call this directly.
+
+    \pi ctext ColorText to copy/allocate for.
+    \return Pointer to a heap-allocated ColorText.
+*/
+struct ColorText *ColorText_to_ptr(struct ColorText ctext) {
+    size_t length = sizeof(struct ColorText);
+    if (ctext.text) length += strlen(ctext.text) + 1;
+    struct ColorText *p = malloc(length);
+    *p = ctext;
+    if (!(p->marker)) p->marker = COLORTEXT_MARKER;
+    return p;
+}
+
+/*! Stringifies a ColorText struct.
+
+    \details
+    You must free() the resulting string.
+    \pi ctext ColorText to stringify.
+    \return An allocated string. _You must `free()` it_.
+*/
+char *ColorText_to_str(struct ColorText ctext) {
+    if (!ctext.text) return colr_empty_str();
+    size_t length = strlen(ctext.text) + 1;
+    // Make room for any fore/back/style code combo plus the reset_all code.
+    length += CODE_ANY_LEN + STYLE_LEN;
+    char *final = calloc(length, sizeof(char));
+    if (ctext.style) {
+        char *stylecode = ColorArg_to_str(*(ctext.style));
+        sprintf(final, "%s%s", final, stylecode);
+        free(stylecode);
+    }
+    if (ctext.fore) {
+        char *forecode = ColorArg_to_str(*(ctext.fore));
+        sprintf(final, "%s%s", final, forecode);
+        free(forecode);
+    }
+    if (ctext.back) {
+        char *backcode = ColorArg_to_str(*(ctext.back));
+        sprintf(final, "%s%s", final, backcode);
+        free(backcode);
+    }
+    sprintf(final, "%s%s%s", final, ctext.text, CODE_RESET_ALL);
+    return final;
 }
 
 /*! Determine which type of color value is desired by name.
@@ -680,6 +945,11 @@ struct ColorValue ColorValue_from_str(char *s) {
         return ColorValue_from_value(type, &xval);
     }
     // Try styles.
+    int s_ret = StyleValue_from_str(s);
+    if (s_ret != STYLE_INVALID) {
+        StyleValue sval = (StyleValue)s_ret;
+        return ColorValue_from_value(type, &sval);
+    }
 
     // Try basic colors.
     int b_ret = BasicValue_from_str(s);
