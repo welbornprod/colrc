@@ -14,14 +14,25 @@ INCLUDES=-iquote../
 LIBS=-lcmocka -lm
 
 binary=test_colr
+cov_cmd=bash ../gen_coverage_html.sh
+cov_dir=coverage
+valgrind_cmd=bash ../run_valgrind.sh
 source=test_colr.c ../colr.c
 headers=../colr.h
 objects:=$(source:.c=.o)
 binobjects:=$(notdir $(objects))
 test_runner=run_tests.py
 
-.PHONY: all, debug, debugnotags, release
+.PHONY: all, coverage, debug, debugnotags, release
 all: debug
+
+.ONESHELL:
+coverage: CFLAGS+=-O0 -DDEBUG
+coverage: CFLAGS+=-fprofile-arcs -ftest-coverage
+coverage: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
+coverage: $(binary)
+coverage:
+	@$(cov_cmd) "$(realpath $(binary))" "$(realpath $(cov_dir))"
 
 debug: tags
 debug: CFLAGS+=-g3 -DDEBUG
@@ -73,6 +84,18 @@ clean:
 		printf "    %s\n" $(binobjects);\
 	fi;
 
+.PHONY: coveragesummary
+coveragesummary:
+	@$(cov_cmd) "$(binary)" "$(cov_dir)" --summary
+
+.PHONY: coverageview
+coverageview:
+	@$(cov_cmd) "$(binary)" "$(cov_dir)" --view
+
+.PHONY: memcheck
+memcheck:
+	@$(valgrind_cmd) -a $(TEST_ARGS)
+
 .PHONY: strip
 strip:
 	@if strip $(binary); then\
@@ -84,16 +107,20 @@ strip:
 .PHONY: help, targets
 help targets:
 	-@printf "Make targets available:\n\
-    all       : Build with no optimization or debug symbols.\n\
-    clang        : Use \`clang\` to build the default target.\n\
-    clangrelease : Use \`clang\` to build the release target.\n\
-    clean     : Delete previous build files.\n\
-    cleantest : Delete previous build files, then build and run the tests.\n\
-    debug     : Build the executable with debug symbols.\n\
-    release   : Build the executable with optimization, and strip it.\n\
-    strip     : Run \`strip\` on the executable.\n\
-    tags      : Build tags for this project using \`ctags\`.\n\
-    test      : Make debug (if needed) and then run the tests.\n\
+    all             : Build with no optimization or debug symbols.\n\
+    clang           : Use \`clang\` to build the default target.\n\
+    clangrelease    : Use \`clang\` to build the release target.\n\
+    clean           : Delete previous build files.\n\
+    cleantest       : Delete previous build files, then build and run the tests.\n\
+    coverage        : Compile the debug build and generate coverage reports.\n\
+    coveragesummary : View a summary of previously generated coverage reports.\n\
+    coverageview    : View previously generated html coverage reports.\n\
+    debug           : Build the executable with debug symbols.\n\
+    memcheck        : Run valgrind's memcheck on the executable.\n\
+    release         : Build the executable with optimization, and strip it.\n\
+    strip           : Run \`strip\` on the executable.\n\
+    tags            : Build tags for this project using \`ctags\`.\n\
+    test            : Make debug (if needed) and then run the tests.\n\
 	";
 
 .PHONY: cleantest, test

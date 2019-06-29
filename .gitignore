@@ -2,3 +2,7 @@ colr
 test_colr
 *.o
 docs
+*.gcov
+*.gcno
+*.gcda
+coverage

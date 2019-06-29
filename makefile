@@ -14,18 +14,29 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Wenum-compare -Winline -Wlogical-op \
 LIBS=-lm
 
 binary=colr
-source=colr_tool.c colr.c
-headers=colr.h colr_tool.h
+colr_source=colr.c
+source=colr_tool.c $(colr_source)
+colr_headers=colr.h
+headers=colr_tool.h $(colr_headers)
 optional_headers=dbug.h
 optional_flags=$(foreach header, $(optional_headers), -include $(header))
+cov_dir=coverage
 docsconfig=Doxyfile
 docsdir=docs
 docsmainfile=$(docsdir)/html/index.html
 docsreadme=README.md
 objects:=$(source:.c=.o)
 
-.PHONY: all, debug, release
+.PHONY: all, coverage, debug, release
 all: debug
+
+.ONESHELL:
+coverage: CFLAGS+=-O0 -DDEBUG
+coverage: CFLAGS+=-fprofile-arcs -ftest-coverage
+coverage: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
+coverage: $(binary)
+coverage:
+	@./gen_coverage_html.sh "$(realpath $(binary))" "$(realpath $(cov_dir))"
 
 debug: tags
 debug: CFLAGS+=-g3 -DDEBUG
@@ -36,16 +47,16 @@ release: $(binary)
 release: strip
 
 $(binary): $(objects)
-	@printf "\nCompiling $(binary) executable...\n    "
+	@printf "\nCompiling $(binary) executable...\n    ";
 	$(CC) -o $(binary) $(CFLAGS) $(objects) $(LIBS)
 
 %.o: %.c %.h
-	@printf "\nCompiling $<...\n    "
+	@printf "\nCompiling $<...\n";
 	$(CC) -c $< $(CFLAGS)
 
 $(docsmainfile): $(source) $(headers) $(docsconfig) $(docsreadme)
 docs: $(source) $(headers) $(docsconfig) $(docsmainfile) $(docsreadme)
-	@printf "\nBuilding doxygen docs...\n    "
+	@printf "\nBuilding doxygen docs...\n    ";
 	doxygen $(docsconfig);
 
 tags: $(source) $(headers)
@@ -99,6 +110,14 @@ cleandocs:
 		printf "    %s\n" "$(docsdir)/*";
 	fi;
 
+.PHONY: coveragesummary
+coveragesummary:
+	@./gen_coverage_html.sh "$(binary)" "$(cov_dir)" --summary
+
+.PHONY: coverageview
+coverageview:
+	@./gen_coverage_html.sh "$(binary)" "$(cov_dir)" --view
+
 .PHONY: docsrebuild
 docsrebuild: cleandocs
 docsrebuild: docs
@@ -128,24 +147,27 @@ strip:
 .PHONY: help, targets
 help targets:
 	-@printf "Make targets available:\n\
-    all          : Build with no optimization or debug symbols.\n\
-    clang        : Use \`clang\` to build the default target.\n\
-    clangrelease : Use \`clang\` to build the release target.\n\
-    clean        : Delete previous build files.\n\
-    cleandebug   : Like running \`make clean debug\`.\n\
-    cleandocs    : Delete Doxygen docs from ./$(docsdir).\n\
-    cleantest    : Delete previous build files, build the binary and the \n\
-                   test binary, and run the tests.\n\
-    debug        : Build the executable with debug symbols.\n\
-    docs         : Build the Doxygen docs.\n\
-    docsrebuild  : Like running \`make cleandocs docs\`\n\
-    release      : Build the executable with optimization, and strip it.\n\
-    run          : Run the executable. Args are set with COLR_ARGS.\n\
-    strip        : Run \`strip\` on the executable.\n\
-    tags         : Build tags for this project using \`ctags\`.\n\
-    test         : Build debug (if needed), build the test debug (if needed),\n\
-                   and run the tests.\n\
-    memcheck     : Run valgrind's memcheck on the executable.\n\
+    all             : Build with no optimization or debug symbols.\n\
+    clang           : Use \`clang\` to build the default target.\n\
+    clangrelease    : Use \`clang\` to build the release target.\n\
+    clean           : Delete previous build files.\n\
+    cleandebug      : Like running \`make clean debug\`.\n\
+    cleandocs       : Delete Doxygen docs from ./$(docsdir).\n\
+    cleantest       : Delete previous build files, build the binary and the \n\
+                      test binary, and run the tests.\n\
+    coverage        : Compile the debug build and generate coverage reports.\n\
+    coveragesummary : View a summary of previously generated coverage reports.\n\
+    coverageview    : View previously generated html coverage reports.\n\
+    debug           : Build the executable with debug symbols.\n\
+    docs            : Build the Doxygen docs.\n\
+    docsrebuild     : Like running \`make cleandocs docs\`\n\
+    release         : Build the executable with optimization, and strip it.\n\
+    run             : Run the executable. Args are set with COLR_ARGS.\n\
+    strip           : Run \`strip\` on the executable.\n\
+    tags            : Build tags for this project using \`ctags\`.\n\
+    test            : Build debug (if needed), build the test debug (if needed),\n\
+                      and run the tests.\n\
+    memcheck        : Run valgrind's memcheck on the executable.\n\
 	";
 
 .PHONY: cleantest, test

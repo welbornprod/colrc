@@ -46,7 +46,9 @@ function generate_html() {
     done
 
     printf "\nGenerating lcov report info...\n"
-    lcov --capture --directory "$cov_dir" --output-file "$lcov_name" || fail "Failed to generate lcov info."
+    lcov \
+        --capture --directory "$cov_dir" --output-file "$lcov_name" \
+        --rc lcov_branch_coverage=1 || fail "Failed to generate lcov info."
     declare -a info_files=("$cov_dir"/*.info)
     ((${#info_files[@]})) || fail "No .info files were generated."
 
@@ -62,6 +64,7 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
+        $appscript -s | -V
         $appscript EXE COVERAGE_DIR [ARGS...]
 
     Options:
@@ -69,6 +72,8 @@ function print_usage {
         EXE           : Executable to run to generate the coverage files.
         COVERAGE_DIR  : Directory for output coverage files.
         -h,--help     : Show this message.
+        -s,--summary  : View a summary of a previously generated report.
+        -V,--view     : View previously generated reports in a browser.
         -v,--version  : Show $appname version and exit.
     "
 }
@@ -79,11 +84,17 @@ function view_html() {
     google-chrome "$index_file" &>/dev/null
 }
 
+function view_summary() {
+    [[ -e "$lcov_name" ]] || fail "Coverage info file not found: $lcov_name"
+    lcov --rc lcov_branch_coverage=1 --summary "$lcov_name"
+}
+
 (( $# > 1 )) || fail_usage "No arguments!"
 
 declare -a flagargs nonflags
 exe_path=""
 cov_dir=""
+do_summary=0
 do_view=0
 
 for arg; do
@@ -91,6 +102,9 @@ for arg; do
         "-h" | "--help")
             print_usage ""
             exit 0
+            ;;
+        "-s" | "--summary")
+            do_summary=1
             ;;
         "-v" | "--version")
             echo -e "$appname v. $appversion\n"
@@ -131,6 +145,8 @@ html_dir="${cov_dir}/html"
 }
 if ((do_view)); then
     view_html
+elif ((do_summary)); then
+    view_summary
 else
     generate_html
 fi

@@ -6,10 +6,10 @@ appname="Valgrind Runner"
 appversion="0.0.1"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
-appdir="${apppath%/*}"
+# appdir="${apppath%/*}"
 # This should be the only variable that needs to change for other projects.
-binaryname="colr"
-binary="${appdir}/${binaryname}"
+binaryname=$(find . -maxdepth 1 -type f -executable '!' -name "*.*" | head -n 1)
+binary=$(realpath "$binaryname")
 
 default_tool="memcheck"
 cachegrind_file="${binary}.cachegrind"
@@ -40,17 +40,19 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
-        $appscript [-a] [ARG...] [TOOL] -- [EXE_ARGS...]
+        $appscript [-a] [-e exe] [ARG...] [TOOL] -- [EXE_ARGS...]
 
     Options:
-        ARG           : One or more extra arguments for valgrind.
-        EXE_ARGS      : Arguments for $binaryname while running the test.
-        TOOL          : Tool to use.
-                        Default: $default_tool
-        -a,--all      : Shortcut to --show-leak-kinds=all flag.
-                        This implies TOOL=memcheck.
-        -h,--help     : Show this message.
-        -V,--version  : Show $appname version and exit.
+        ARG              : One or more extra arguments for valgrind.
+        EXE_ARGS         : Arguments for $binaryname while running the test.
+        TOOL             : Tool to use.
+                           Default: $default_tool
+        -a,--all         : Shortcut to --show-leak-kinds=all flag.
+                           This implies TOOL=memcheck.
+        -e exe,--exe exe : Executable to run.
+                           Default: $binaryname
+        -h,--help        : Show this message.
+        -V,--version     : Show $appname version and exit.
     "
 }
 
@@ -58,6 +60,7 @@ declare -a nonflags
 declare -a flagargs
 declare -a exeargs
 in_exe_args=0
+in_binary_arg=0
 
 for arg; do
     case "$arg" in
@@ -67,6 +70,13 @@ for arg; do
         "-a" | "--all")
             nonflags[0]="memcheck"
             flagargs+=("--show-leak-kinds=all")
+            ;;
+        "-e" | "--exe")
+            if ((in_exe_args)); then
+                exeargs+=("$arg")
+            else
+                in_binary_arg=1
+            fi
             ;;
         "-h" | "--help")
             ((in_exe_args)) && {
@@ -94,6 +104,12 @@ for arg; do
         *)
             ((in_exe_args)) && {
                 exeargs+=("$arg")
+                continue
+            }
+            ((in_binary_arg)) && {
+                binaryname=$arg
+                binary=$(realpath "$binaryname")
+                in_binary_arg=0
                 continue
             }
             nonflags+=("$arg")
