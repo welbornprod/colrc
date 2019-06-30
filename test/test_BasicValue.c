@@ -1,3 +1,8 @@
+/*! Tests for the BasicValue enum, and it's related functions.
+
+    \author Christopher Welborn
+    \date 06-29-2019
+*/
 #include "test_colr.h"
 
 static void test_BasicValue_from_str(void **state) {

@@ -1,3 +1,8 @@
+/*! Tests for the format_* functions.
+
+    \author Christopher Welborn
+    \date 06-29-2019
+*/
 #include "test_colr.h"
 
 static void test_format_bg(void **state) {

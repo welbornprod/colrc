@@ -1,3 +1,8 @@
+/*! Tests for the ColorType enum, and it's related functions.
+
+    \author Christopher Welborn
+    \date 06-29-2019
+*/
 #include "test_colr.h"
 
 

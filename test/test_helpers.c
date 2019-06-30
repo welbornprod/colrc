@@ -1,3 +1,9 @@
+/*! Tests for small helper functions.
+
+    \author Christopher Welborn
+    \date 06-29-2019
+*/
+
 #include "test_colr.h"
 
 static void test_str_startswith(void **state) {

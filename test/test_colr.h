@@ -1,6 +1,7 @@
-/* test_colr.h
-    Tests for Colr.
-    -Christopher Welborn 06-29-2019
+/*! Tests for the ColrC library.
+
+    \author Christopher Welborn
+    \date 06-29-2019
 */
 
 
