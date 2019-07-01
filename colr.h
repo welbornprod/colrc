@@ -873,22 +873,6 @@ int RGB_from_str(const char *arg, struct RGB *rgb);
 StyleValue StyleValue_from_str(const char *arg);
 
 
-void colrbg(char *out, const char *s, BasicValue back);
-void colrbgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue);
-void colrbgRGB(char *out, const char *s, struct RGB rgb);
-void colrbgx(char *out, const char *s, unsigned char num);
-void colrfg(char *out, const char *s, BasicValue fore);
-void colrfgchar(char *out, const char c, BasicValue fore);
 void colrfgrainbow(char *out, const char *s, double freq, size_t offset);
 char *acolrfgrainbow(const char *s, double freq, size_t offset);
-void colrfgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue);
-void colrfgRGB(char *out, const char *s, struct RGB rgb);
-void colrfgx(char *out, const char *s, unsigned char num);
-void colrize(char *out, const char *s, BasicValue fore, BasicValue back, StyleValue style);
-void colrizechar(char *out, char c, BasicValue fore, BasicValue back, StyleValue style);
-void colrizex(
-    char *out,
-    const char *s,
-    unsigned char forenum, unsigned char backnum, StyleValue style);
-void colrstyle(char *out, const char *s, StyleValue style);
 #endif // COLR_H
