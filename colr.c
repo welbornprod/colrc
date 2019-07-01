@@ -34,6 +34,7 @@ struct ColorInfo color_names[] = {
     {"lightred", LIGHTRED},
     {"lightwhite", LIGHTWHITE},
     {"lightyellow", LIGHTYELLOW},
+    {"xblack", XBLACK},
     {"xblue", XBLUE},
     {"xcyan", XCYAN},
     {"xgreen", XGREEN},
@@ -109,11 +110,11 @@ void format_bg(char *out, BasicValue value) {
     int use_value = (int)value;
     if (value < 0) {
         // Invalid, just use the RESET code.
-        use_value = RESET;
+        snprintf(out, CODE_LEN, "\033[%dm", RESET);
     } else if (value >= 20) {
         // Use 256-colors.
         use_value -= 20;
-        format_fgx(out, use_value);
+        format_bgx(out, use_value);
     } else {
         if (value >= 10) {
             // Bright colors.
@@ -278,6 +279,29 @@ char *str_copy(char *dest, const char *src, size_t length) {
     return dest;
 }
 
+/*! Determine if one string ends with another.
+
+    \details
+    _`str` and `suf` must be null-terminated_.
+
+    \pi str String to check.
+    \pi suf Suffix to check for.
+    \return True if `str` ends with `suf`.
+    \return False if either is NULL, or the string doesn't end with the suffix.
+*/
+bool str_endswith(const char *str, const char *suf) {
+    if (!str || !suf) {
+        return false;
+    }
+    size_t strlength = strlen(str);
+    size_t suflength = strlen(suf);
+    if ((!(suflength && strlength)) || (suflength > strlength)) {
+        // Empty strings, or suffix is longer than the entire string.
+        return false;
+    }
+    return (strncmp(str + (strlength - suflength), suf, suflength) == 0);
+}
+
 /*! This is a no-op function that simply returns the pointer it is given.
     \details
     It is used in the force_str macro to dynamically ensure it's argument
@@ -299,26 +323,26 @@ char *str_noop(char *s) {
     \pi s      The string to check.
     \pi prefix The prefix string to look for.
 
-    \return non-zero if the string `s` starts with prefix.
-    \return 0 if one of the strings is null, or the prefix isn't found.
+    \return True if the string `s` starts with prefix.
+    \return False if one of the strings is null, or the prefix isn't found.
 */
-int str_startswith(const char *s, const char *prefix) {
+bool str_startswith(const char *s, const char *prefix) {
     if (!s || !prefix) {
         // One of the strings is null.
-        return 0;
+        return false;
     }
     size_t pre_len = strlen(prefix);
     for (size_t i = 0; i < pre_len; i++) {
         if (s[i] == '\0') {
             // Reached the end of s before the end of prefix.
-            return 0;
+            return false;
         }
         if (prefix[i] != s[i]) {
             // Character differs from the prefix.
-            return 0;
+            return false;
         }
     }
-    return 1;
+    return true;
 }
 
 /*! Converts a string into lower case, and copies it into `out`.
@@ -420,7 +444,6 @@ char *Colr_join(void *p, ...) {
         if (cargp || ctextp) free(s);
     }
     sprintf(final, "%s%s", final, CODE_RESET_ALL);
-    debug("FINAL LENGTH: %lu, ALLOCATED LENGTH: %lu\n", strlen(final), length);
     va_end(args);
     return final;
 }
@@ -444,6 +467,30 @@ char *ArgType_repr(ArgType type) {
             break;
         case STYLE:
             asprintf(&typestr, "STYLE");
+            break;
+    }
+    return typestr;
+}
+
+/*! Creates a string from an ArgType.
+
+    \pi type A ArgType to get the type from.
+    \return  A pointer to an allocated string. You must free() it.
+*/
+char *ArgType_to_str(ArgType type) {
+    char *typestr;
+    switch (type) {
+        case ARGTYPE_NONE:
+            asprintf(&typestr, "none");
+            break;
+        case FORE:
+            asprintf(&typestr, "fore");
+            break;
+        case BACK:
+            asprintf(&typestr, "back");
+            break;
+        case STYLE:
+            asprintf(&typestr, "style");
             break;
     }
     return typestr;
@@ -478,7 +525,7 @@ struct ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value) {
     return (struct ColorArg){
         .marker=COLORARG_MARKER,
         .type=type,
-        .value=ColorValue_from_value(TYPE_EXTENDED, &val),
+        .value=ColorValue_from_value(TYPE_BASIC, &val),
     };
 }
 
@@ -536,11 +583,11 @@ struct ColorArg ColorArg_from_RGB(ArgType type, struct RGB value) {
     \return A ColorArg struct with usable values.
 */
 struct ColorArg ColorArg_from_str(ArgType type, char *colorname) {
-    struct ColorValue carg = ColorValue_from_str(colorname);
+    struct ColorValue cval = ColorValue_from_str(colorname);
     return (struct ColorArg){
         .marker=COLORARG_MARKER,
         .type=type,
-        .value=carg
+        .value=cval
     };
 
 }
@@ -588,11 +635,15 @@ struct ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p) {
             .value=ColorValue_from_value(TYPE_INVALID, NULL)
         };
     }
-    return (struct ColorArg){
+    struct ColorArg carg = {
         .marker=COLORARG_MARKER,
         .type=type,
         .value=ColorValue_from_value(colrtype, p),
     };
+    if ((type == STYLE) && (carg.value.type == TYPE_INVALID)) {
+        carg.value.type = TYPE_INVALID_STYLE;
+    }
+    return carg;
 }
 
 
@@ -714,6 +765,7 @@ struct ColorText ColorText_from_values(char *text, ...) {
     va_start(colrargs, text);
     struct ColorArg *arg;
     while ((arg = va_arg(colrargs, struct ColorArg*))) {
+        assert(ColorArg_is_ptr(arg));
         // It's a ColorArg.
         if (arg->type == FORE) {
             // It's the fore arg.
@@ -856,6 +908,8 @@ ColorType ColorType_from_str(const char *arg) {
     // Try styles.
     if (StyleValue_from_str(arg) != STYLE_INVALID) {
         return TYPE_STYLE;
+    } else {
+        return TYPE_INVALID_STYLE;
     }
     return TYPE_INVALID;
 }
@@ -900,6 +954,9 @@ char *ColorType_repr(ColorType type) {
             break;
         case TYPE_INVALID:
             asprintf(&typestr, "TYPE_INVALID");
+            break;
+        case TYPE_INVALID_STYLE:
+            asprintf(&typestr, "TYPE_INVALID_STYLE");
             break;
         case TYPE_INVALID_EXTENDED_RANGE:
             asprintf(&typestr, "TYPE_INVALID_EXTENDED_RANGE");
@@ -995,7 +1052,8 @@ struct ColorValue ColorValue_from_value(ColorType type, void *p) {
         return (struct ColorValue){.type=TYPE_EXTENDED, .ext=*eval};
     } else if (type == TYPE_STYLE) {
         StyleValue *sval = p;
-        return (struct ColorValue){.type=TYPE_STYLE, .style=*sval};
+        ColorType ctype = (*sval == STYLE_INVALID) ? TYPE_INVALID_STYLE : TYPE_STYLE;
+        return (struct ColorValue){.type=ctype, .style=*sval};
     } else if (type == TYPE_RGB) {
         struct RGB *rgbval = p;
         return (struct ColorValue){.type=TYPE_RGB, .rgb=*rgbval};

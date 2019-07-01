@@ -25,7 +25,7 @@
 //! Current version for Colr.
 #define COLR_VERSION "0.2.2"
 
-
+#include <assert.h>
 #include <ctype.h>
 #include <malloc.h>
 #include <math.h>  /* Must include `-lm` in compiler args or Makefile LIBS! */
@@ -687,8 +687,9 @@ typedef enum ArgType_t {
 
 //! Color/Style code types. Used with ColorType_from_str() and ColorValue.
 typedef enum ColorType_t {
-    TYPE_INVALID_EXTENDED_RANGE = -4,
-    TYPE_INVALID_RGB_RANGE = -3,
+    TYPE_INVALID_EXTENDED_RANGE = -5,
+    TYPE_INVALID_RGB_RANGE = -4,
+    TYPE_INVALID_STYLE = -3,
     TYPE_INVALID = -2,
     TYPE_BASIC = 0,
     TYPE_EXTENDED = 1,
@@ -795,8 +796,9 @@ void format_rainbow_fore(char *out, double freq, size_t step);
 void format_style(char *out, StyleValue style);
 
 char *str_copy(char *dest, const char *src, size_t length);
+bool str_endswith(const char *s, const char *suffix);
 char *str_noop(char *s);
-int str_startswith(const char *s, const char *prefix);
+bool str_startswith(const char *s, const char *prefix);
 void str_tolower(char *out, const char *s);
 
 
@@ -811,6 +813,7 @@ char *Colr_join(void *ctext, ...);
     \endinternal
 */
 char *ArgType_repr(ArgType type);
+char *ArgType_to_str(ArgType type);
 
 /*! \internal
     ColorArg functions that deal with an ArgType, and a ColorValue.
@@ -871,7 +874,6 @@ int ExtendedValue_from_str(const char *arg);
 int rgb_from_str(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b);
 int RGB_from_str(const char *arg, struct RGB *rgb);
 StyleValue StyleValue_from_str(const char *arg);
-
 
 void colrfgrainbow(char *out, const char *s, double freq, size_t offset);
 char *acolrfgrainbow(const char *s, double freq, size_t offset);

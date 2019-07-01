@@ -61,26 +61,16 @@
         free(_pcae_valrepr); \
     } while(0)
 
-// Assumes memory allocated in a variable named `name`.
-#define print_fore_color(codename) \
-    do { \
-        colrfg(name, #codename, codename); \
-        printf("%s ", name); \
-    } while(0)
-
-typedef void (*colorext_func)(char*, const char*, unsigned char);
-typedef void (*colorrgb_func)(char*, const char*, struct RGB);
-void debug_args(char*, char*, char*, char*);
+void debug_args(char *text, char *fore, char *back, char *style);
 void example_color_build(void);
-void print_256(colorext_func);
-void print_basic(void);
-void print_rainbow_fore(void);
-void print_rgb(colorrgb_func);
-void print_unrecognized_arg(const char*);
-void print_usage(const char*);
-void print_usage_full(void);
-void read_stdin_arg(char*, size_t);
-bool validate_color_arg(const char*, ColorType, const char*);
-bool validate_style_arg(StyleValue, char*);
+int print_256(bool do_fore);
+int print_basic(bool do_fore);
+int print_rainbow_fore(void);
+int print_rgb(bool do_fore);
+void print_unrecognized_arg(const char* userarg);
+int print_usage(const char *reason);
+int print_usage_full(void);
+void read_stdin_arg(char *textarg, size_t length);
+bool validate_color_arg(struct ColorArg carg, const char *name);
 #endif // COLR_TOOL_H
 #endif // DOXYGEN_SKIP
