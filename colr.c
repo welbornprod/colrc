@@ -82,8 +82,8 @@ const size_t style_names_len = sizeof(style_names) / sizeof(style_names[0]);
 
     \return Pointer to an allocated string consisting of '\0'.
 */
-char *colr_empty_str(void) {
-    char *s = malloc(sizeof(char));
+char* colr_empty_str(void) {
+    char* s = malloc(sizeof(char));
     if (!s) return NULL;
     s[0] = '\0';
     return s;
@@ -95,7 +95,7 @@ char *colr_empty_str(void) {
               _Must have enough room for `CODEX_LEN`._
     \pi value BasicValue value to use for background.
 */
-void format_bg(char *out, BasicValue value) {
+void format_bg(char* out, BasicValue value) {
     if (!out) return;
     snprintf(out, CODE_LEN, "\033[%dm", BasicValue_to_ansi(BACK, value));
 }
@@ -106,7 +106,7 @@ void format_bg(char *out, BasicValue value) {
             _Must have enough room for `CODEX_LEN`._
     \pi num Value to use for background.
 */
-void format_bgx(char *out, unsigned char num) {
+void format_bgx(char* out, unsigned char num) {
     if (!out) return;
     snprintf(out, CODEX_LEN, "\033[48;5;%dm", num);
 }
@@ -119,7 +119,7 @@ void format_bgx(char *out, unsigned char num) {
     \pi greenval Value for green.
     \pi blueval  Value for blue.
 */
-void format_bg_rgb(char *out, unsigned char redval, unsigned char greenval, unsigned char blueval) {
+void format_bg_rgb(char* out, unsigned char redval, unsigned char greenval, unsigned char blueval) {
     if (!out) return;
     snprintf(out, CODE_RGB_LEN, "\033[48;2;%d;%d;%dm", redval, greenval, blueval);
 }
@@ -131,7 +131,7 @@ void format_bg_rgb(char *out, unsigned char redval, unsigned char greenval, unsi
             _Must have enough room for `CODE_RGB_LEN`._
     \pi rgb RGB struct to get red, blue, and green values from.
 */
-void format_bg_RGB(char *out, struct RGB rgb) {
+void format_bg_RGB(char* out, struct RGB rgb) {
     if (!out) return;
     format_bg_rgb(out, rgb.red, rgb.green, rgb.blue);
 }
@@ -142,7 +142,7 @@ void format_bg_RGB(char *out, struct RGB rgb) {
               _Must have enough room for `CODEX_LEN`._
     \pi value BasicValue value to use for fore.
 */
-void format_fg(char *out, BasicValue value) {
+void format_fg(char* out, BasicValue value) {
     if (!out) return;
     snprintf(out, CODE_LEN, "\033[%dm", BasicValue_to_ansi(FORE, value));
 }
@@ -153,7 +153,7 @@ void format_fg(char *out, BasicValue value) {
             _Must have enough room for `CODEX_LEN`._
     \pi num Value to use for fore.
 */
-void format_fgx(char *out, unsigned char num) {
+void format_fgx(char* out, unsigned char num) {
     if (!out) return;
     snprintf(out, CODEX_LEN, "\033[38;5;%dm", num);
 }
@@ -166,7 +166,7 @@ void format_fgx(char *out, unsigned char num) {
     \pi greenval Value for green.
     \pi blueval  Value for blue.
 */
-void format_fg_rgb(char *out, unsigned char redval, unsigned char greenval, unsigned char blueval) {
+void format_fg_rgb(char* out, unsigned char redval, unsigned char greenval, unsigned char blueval) {
     if (!out) return;
     snprintf(out, CODE_RGB_LEN, "\033[38;2;%d;%d;%dm", redval, greenval, blueval);
 }
@@ -177,7 +177,7 @@ void format_fg_rgb(char *out, unsigned char redval, unsigned char greenval, unsi
     \po out Memory allocated for the escape code string.
     \pi rgb Pointer to an RGB struct.
 */
-void format_fg_RGB(char *out, struct RGB rgb) {
+void format_fg_RGB(char* out, struct RGB rgb) {
     if (!out) return;
     format_fg_rgb(out, rgb.red, rgb.green, rgb.blue);
 }
@@ -189,7 +189,7 @@ void format_fg_RGB(char *out, struct RGB rgb) {
     \pi step Offset from the start of the rainbow.
              Usually an index into a string.
 */
-void format_rainbow_fore(char *out, double freq, size_t step) {
+void format_rainbow_fore(char* out, double freq, size_t step) {
     if (!out) return;
     double redval = sin(freq * step + 0) * 127 + 128;
     double greenval = sin(freq * step + 2 * M_PI / 3) * 127 + 128;
@@ -208,11 +208,36 @@ void format_rainbow_fore(char *out, double freq, size_t step) {
               _Must have enough room for `STYLE_LEN`._
     \pi style StyleValue value to use for style.
 */
-void format_style(char *out, StyleValue style) {
+void format_style(char* out, StyleValue style) {
     if (!out) return;
     snprintf(out, STYLE_LEN, "\033[%dm", style < 0 ? RESET_ALL: style);
 }
 
+/*! Appends CODE_RESET_ALL to a string, but makes sure to do it before any
+    newlines.
+
+    \details
+    The string _must be null-terminated_.
+
+    \pi s The string to append to.
+          __Must have extra room for CODE_RESET_ALL__.
+*/
+void str_append_reset(char *s) {
+    size_t lastindex = strlen(s) - 1;
+    size_t newlines = 0;
+    // Cut newlines off if needed. I'll add them after the reset code.
+    while (s[lastindex] == '\n') {
+        s[lastindex] = '\0';
+        newlines++;
+        lastindex--;
+    }
+
+    sprintf(s, "%s%s", s, CODE_RESET_ALL);
+    while (newlines) {
+        sprintf(s, "%s%c", s, '\n');
+        newlines--;
+    }
+}
 
 /*! Like strncopy, but ensures null-termination.
 
@@ -233,7 +258,7 @@ void format_style(char *out, StyleValue style) {
 
     \returns On success, a pointer to dest is returned.
 */
-char *str_copy(char *dest, const char *src, size_t length) {
+char* str_copy(char* dest, const char* src, size_t length) {
     if (!(src && dest)) {
         return NULL;
     }
@@ -256,7 +281,7 @@ char *str_copy(char *dest, const char *src, size_t length) {
     \return True if `str` ends with `suf`.
     \return False if either is NULL, or the string doesn't end with the suffix.
 */
-bool str_endswith(const char *str, const char *suf) {
+bool str_endswith(const char* str, const char* suf) {
     if (!str || !suf) {
         return false;
     }
@@ -275,7 +300,7 @@ bool str_endswith(const char *str, const char *suf) {
 
     \pi s The input string to convert to lower case.
 */
-void str_lower(char *s) {
+void str_lower(char* s) {
     if (!s) return;
     size_t i = 0;
     while (s[i]) {
@@ -295,7 +320,7 @@ void str_lower(char *s) {
     \pi s   The string to return.
     \return The string that was given.
 */
-char *str_noop(char *s) {
+char* str_noop(char* s) {
     return s;
 }
 
@@ -310,7 +335,7 @@ char *str_noop(char *s) {
     \return True if the string `s` starts with prefix.
     \return False if one of the strings is null, or the prefix isn't found.
 */
-bool str_startswith(const char *s, const char *prefix) {
+bool str_startswith(const char* s, const char* prefix) {
     if (!s || !prefix) {
         // One of the strings is null.
         return false;
@@ -337,7 +362,7 @@ bool str_startswith(const char *s, const char *prefix) {
             _Must have capacity for `strlen(s) + 1`._
     \pi s   The input string to convert to lower case.
 */
-void str_tolower(char *out, const char *s) {
+void str_tolower(char* out, const char* s) {
     if (!out) return;
     size_t i = 0;
     while (s[i]) {
@@ -368,14 +393,14 @@ void str_tolower(char *out, const char *s) {
             need to use CODE_RESET_ALL directly.
             __You must free() the memory allocated by this function.__
 */
-char *Colr_join(void *p, ...) {
+char* _colr(void *p, ...) {
     // Argument list must have ColorArg/ColorText with NULL members at the end.
     if (!p) {
         return colr_empty_str();
     }
     va_list args;
     va_start(args, p);
-    char *s;
+    char* s;
     struct ColorArg *cargp = NULL;
     struct ColorText *ctextp = NULL;
     if (ColorArg_is_ptr(p)) {
@@ -389,12 +414,12 @@ char *Colr_join(void *p, ...) {
         ColorText_free(ctextp);
     } else {
         // It's a string, or it better be anyway.
-        s = (char *)p;
+        s = (char* )p;
     }
     size_t length = strlen(s) + 1;
     length += CODE_RESET_LEN;
     // Allocate enough for the reset code at the end.
-    char *final = calloc(length, sizeof(char));
+    char* final = calloc(length, sizeof(char));
     sprintf(final, "%s", s);
     if (cargp) {
         free(s);
@@ -422,7 +447,7 @@ char *Colr_join(void *p, ...) {
             ColorText_free(ctextp);
         } else {
             // It better be a string.
-            s = (char *)arg;
+            s = (char* )arg;
         }
         // TODO: Not allocating enough, getting invalid writes.
         length += strlen(s) + 1;
@@ -431,7 +456,7 @@ char *Colr_join(void *p, ...) {
         // Free the temporary string from those ColorArgs/ColorTexts.
         if (cargp || ctextp) free(s);
     }
-    sprintf(final, "%s%s", final, CODE_RESET_ALL);
+    str_append_reset(final);
     va_end(args);
     return final;
 }
@@ -441,8 +466,8 @@ char *Colr_join(void *p, ...) {
     \pi type A ArgType to get the type from.
     \return  A pointer to an allocated string. You must free() it.
 */
-char *ArgType_repr(ArgType type) {
-    char *typestr;
+char* ArgType_repr(ArgType type) {
+    char* typestr;
     switch (type) {
         case ARGTYPE_NONE:
             asprintf(&typestr, "ARGTYPE_NONE");
@@ -465,8 +490,8 @@ char *ArgType_repr(ArgType type) {
     \pi type A ArgType to get the type from.
     \return  A pointer to an allocated string. You must free() it.
 */
-char *ArgType_to_str(ArgType type) {
-    char *typestr;
+char* ArgType_to_str(ArgType type) {
+    char* typestr;
     switch (type) {
         case ARGTYPE_NONE:
             asprintf(&typestr, "none");
@@ -570,7 +595,7 @@ struct ColorArg ColorArg_from_RGB(ArgType type, struct RGB value) {
 
     \return A ColorArg struct with usable values.
 */
-struct ColorArg ColorArg_from_str(ArgType type, char *colorname) {
+struct ColorArg ColorArg_from_str(ArgType type, char* colorname) {
     struct ColorValue cval = ColorValue_from_str(colorname);
     return (struct ColorArg){
         .marker=COLORARG_MARKER,
@@ -677,10 +702,10 @@ bool ColorArg_is_valid(struct ColorArg carg) {
     \return Allocated string for the representation.
             You must free() it.
 */
-char *ColorArg_repr(struct ColorArg carg) {
-    char *type = ArgType_repr(carg.type);
-    char *value = ColorValue_repr(carg.value);
-    char *repr;
+char* ColorArg_repr(struct ColorArg carg) {
+    char* type = ArgType_repr(carg.type);
+    char* value = ColorValue_repr(carg.value);
+    char* repr;
     asprintf(&repr, "struct ColorArg {.type=%s, .value=%s}", type, value);
     free(type);
     free(value);
@@ -713,7 +738,7 @@ struct ColorArg *ColorArg_to_ptr(struct ColorArg carg) {
     \return Allocated string for the escape code.
             You must free() it.
 */
-char *ColorArg_to_str(struct ColorArg carg) {
+char* ColorArg_to_str(struct ColorArg carg) {
     return ColorValue_to_str(carg.type, carg.value);
 }
 
@@ -740,7 +765,7 @@ void ColorText_free(struct ColorText *p) {
     \pi ... ColorArgs for fore, back, and style, in any order.
     \return An initialized ColorText struct.
 */
-struct ColorText ColorText_from_values(char *text, ...) {
+struct ColorText ColorText_from_values(char* text, ...) {
     // Argument list must have ColorArg with NULL members at the end.
     struct ColorText ctext = {
         .marker=COLORTEXT_MARKER,
@@ -787,11 +812,11 @@ bool ColorText_is_ptr(void *p) {
     \pi ctext ColorText to get the string representation for.
     \return Allocated string for the ColorText.
 */
-char *ColorText_repr(struct ColorText ctext) {
-    char *s;
-    char *sfore = ctext.fore ? ColorArg_repr(*(ctext.fore)) : NULL;
-    char *sback = ctext.back ? ColorArg_repr(*(ctext.back)) : NULL;
-    char *sstyle = ctext.style ? ColorArg_repr(*(ctext.style)) : NULL;
+char* ColorText_repr(struct ColorText ctext) {
+    char* s;
+    char* sfore = ctext.fore ? ColorArg_repr(*(ctext.fore)) : NULL;
+    char* sback = ctext.back ? ColorArg_repr(*(ctext.back)) : NULL;
+    char* sstyle = ctext.style ? ColorArg_repr(*(ctext.style)) : NULL;
 
     asprintf(
         &s,
@@ -830,28 +855,30 @@ struct ColorText *ColorText_to_ptr(struct ColorText ctext) {
     \pi ctext ColorText to stringify.
     \return An allocated string. _You must `free()` it_.
 */
-char *ColorText_to_str(struct ColorText ctext) {
+char* ColorText_to_str(struct ColorText ctext) {
     if (!ctext.text) return colr_empty_str();
     size_t length = strlen(ctext.text) + 1;
     // Make room for any fore/back/style code combo plus the reset_all code.
-    length += CODE_ANY_LEN + STYLE_LEN;
-    char *final = calloc(length, sizeof(char));
+    length += CODE_ANY_LEN + CODE_RESET_LEN;
+    char* final = calloc(length, sizeof(char));
+    bool do_reset = (ctext.style || ctext.fore || ctext.back);
     if (ctext.style) {
-        char *stylecode = ColorArg_to_str(*(ctext.style));
+        char* stylecode = ColorArg_to_str(*(ctext.style));
         sprintf(final, "%s%s", final, stylecode);
         free(stylecode);
     }
     if (ctext.fore) {
-        char *forecode = ColorArg_to_str(*(ctext.fore));
+        char* forecode = ColorArg_to_str(*(ctext.fore));
         sprintf(final, "%s%s", final, forecode);
         free(forecode);
     }
     if (ctext.back) {
-        char *backcode = ColorArg_to_str(*(ctext.back));
+        char* backcode = ColorArg_to_str(*(ctext.back));
         sprintf(final, "%s%s", final, backcode);
         free(backcode);
     }
-    sprintf(final, "%s%s%s", final, ctext.text, CODE_RESET_ALL);
+    sprintf(final, "%s%s", final, ctext.text);
+    if (do_reset) str_append_reset(final);
     return final;
 }
 
@@ -870,7 +897,7 @@ char *ColorText_to_str(struct ColorText ctext) {
     \retval TYPE_INVALID_EXTENDED_RANGE for ExtendedValues outside of 0-255.
     \retval TYPE_INVALID_RGB_RANGE for rgb values outside of 0-255.
 */
-ColorType ColorType_from_str(const char *arg) {
+ColorType ColorType_from_str(const char* arg) {
     if (!arg) {
         return TYPE_INVALID;
     }
@@ -923,8 +950,8 @@ bool ColorType_is_valid(ColorType type) {
     \pi type A ColorType to get the type from.
     \return  A pointer to an allocated string. You must free() it.
 */
-char *ColorType_repr(ColorType type) {
-    char *typestr;
+char* ColorType_repr(ColorType type) {
+    char* typestr;
     switch (type) {
         case TYPE_BASIC:
             asprintf(&typestr, "TYPE_BASIC");
@@ -959,7 +986,7 @@ char *ColorType_repr(ColorType type) {
     \pi s    A string to parse the color name from (can be an RGB string).
     \return  A ColorValue (with no fore/back information, only the color type and value).
 */
-struct ColorValue ColorValue_from_str(char *s) {
+struct ColorValue ColorValue_from_str(char* s) {
     if (!s) {
         return ColorValue_from_value(TYPE_INVALID, NULL);
     }
@@ -1070,8 +1097,8 @@ bool ColorValue_is_valid(struct ColorValue cval) {
     \pi cval    A ColorValue to get the type and value from.
     \return     A pointer to an allocated string. You must free() it.
 */
-char *ColorValue_repr(struct ColorValue cval) {
-    char *argstr;
+char* ColorValue_repr(struct ColorValue cval) {
+    char* argstr;
     switch (cval.type) {
         case TYPE_RGB:
             asprintf(
@@ -1109,8 +1136,8 @@ char *ColorValue_repr(struct ColorValue cval) {
     \return  An allocated string with the appropriate escape code.
              For invalid values, an empty string is returned.
 */
-char *ColorValue_to_str(ArgType type, struct ColorValue cval) {
-    char *codes;
+char* ColorValue_to_str(ArgType type, struct ColorValue cval) {
+    char* codes;
     switch (type) {
         case FORE:
             switch (cval.type) {
@@ -1189,23 +1216,26 @@ char *ColorValue_to_str(ArgType type, struct ColorValue cval) {
     \pi arg Color name to find the BasicValue for.
     \return BasicValue value on success, or BASIC_INVALID on error.
 */
-BasicValue BasicValue_from_str(const char *arg) {
+BasicValue BasicValue_from_str(const char* arg) {
     if (!arg) {
         return BASIC_INVALID;
     }
-    char *arglower;
-    asprintf(&arglower, "%s", arg);
-    str_lower(arglower);
+    char arglower[MAX_COLOR_NAME_LEN];
+    str_tolower(arglower, arg);
     for (size_t i=0; i < basic_names_len; i++) {
         if (!strcmp(arglower, basic_names[i].name)) {
-            free(arglower);
             return basic_names[i].value;
         }
     }
-    free(arglower);
     return BASIC_INVALID;
 }
 
+/*! Converts a fore/back BasicValue to the actual 4bit ansi code number.
+
+    \pi type ArgType (FORE/BACK).
+    \pi bval BasicValue to convert.
+    \return An integer usable with basic escape code fore/back colors.
+*/
 int BasicValue_to_ansi(ArgType type, BasicValue bval) {
     int use_value = (int)bval;
     if (bval < 0) {
@@ -1228,20 +1258,17 @@ int BasicValue_to_ansi(ArgType type, BasicValue bval) {
     \return A value between 0 and 255 on success.
     \retval COLOR_INVALID on error or bad values.
 */
-int ExtendedValue_from_str(const char *arg) {
+int ExtendedValue_from_str(const char* arg) {
     if (!arg) {
         return COLOR_INVALID;
     }
-    char *arglower;
-    asprintf(&arglower, "%s", arg);
-    str_lower(arglower);
+    char arglower[MAX_COLOR_NAME_LEN];
+    str_tolower(arglower, arg);
     for (size_t i=0; i < extended_names_len; i++) {
         if (!strcmp(arglower, extended_names[i].name)) {
-            free(arglower);
             return extended_names[i].value;
         }
     }
-    free(arglower);
 
     // Using long to combat easy overflow.
     long usernum;
@@ -1272,11 +1299,11 @@ int ExtendedValue_from_str(const char *arg) {
     \retval COLOR_INVALID for non-rgb strings.
     \retval COLOR_INVALID_RANGE for rgb values outside of 0-255.
 */
-int rgb_from_str(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b) {
+int rgb_from_str(const char* arg, unsigned char* r, unsigned char* g, unsigned char* b) {
     if (!arg) {
         return COLOR_INVALID;
     }
-    const char *formats[4] = {
+    const char* formats[4] = {
         "%ld,%ld,%ld",
         "%ld %ld %ld",
         "%ld:%ld:%ld",
@@ -1324,7 +1351,7 @@ RGB_from_str("123,0,234", &rgbval)
     \retval COLOR_INVALID for non-rgb strings.
     \retval COLOR_INVALID_RANGE for rgb values outside of 0-255.
 */
-int RGB_from_str(const char *arg, struct RGB *rgbval) {
+int RGB_from_str(const char* arg, struct RGB *rgbval) {
     if (!arg) {
         return COLOR_INVALID;
     }
@@ -1347,20 +1374,17 @@ int RGB_from_str(const char *arg, struct RGB *rgbval) {
     \pi arg Style name to convert into a StyleValue.
     \return A usable StyleValue value on success, or STYLE_INVALID on error.
 */
-StyleValue StyleValue_from_str(const char *arg) {
+StyleValue StyleValue_from_str(const char* arg) {
     if (!arg) {
         return STYLE_INVALID;
     }
-    char *arglower;
-    asprintf(&arglower, "%s", arg);
-    str_lower(arglower);
+    char arglower[MAX_COLOR_NAME_LEN];
+    str_tolower(arglower, arg);
     for (size_t i=0; i < style_names_len; i++) {
         if (!strcmp(arglower, style_names[i].name)) {
-            free(arglower);
             return style_names[i].value;
         }
     }
-    free(arglower);
     return STYLE_INVALID;
 }
 
@@ -1377,7 +1401,7 @@ StyleValue StyleValue_from_str(const char *arg) {
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
 */
-void colrfgrainbow(char *out, const char *s, double freq, size_t offset) {
+void colrfgrainbow(char* out, const char* s, double freq, size_t offset) {
     if (!(out && s)) {
         return;
     }
@@ -1405,12 +1429,12 @@ void colrfgrainbow(char *out, const char *s, double freq, size_t offset) {
     \pi offset Starting offset in the rainbow.
     \return    The allocated/formatted string on success.
 */
-char *acolrfgrainbow(const char *s, double freq, size_t offset) {
+char* acolrfgrainbow(const char* s, double freq, size_t offset) {
     if (!s) {
         return NULL;
     }
     size_t oldlen = strlen(s);
-    char *out = calloc(oldlen + (CODE_RGB_LEN * oldlen), sizeof(char));
+    char* out = calloc(oldlen + (CODE_RGB_LEN * oldlen), sizeof(char));
     colrfgrainbow(out, s, freq, offset);
     return out;
 }

@@ -32,20 +32,11 @@
 // Maximum length for TEXT argument.
 #define MAX_TEXT_LEN 1024
 
-#ifndef debug
-    #ifdef DEBUG
-        // Debug printer.
-        #define debug(...) fprintf(stderr, __VA_ARGS__)
-    #else
-        // No-op debug print.
-        #define debug(...) ((void)0)
-    #endif
-#endif
 
 // Print a representation of a ColorArg to stdout.
 #define print_ColorArg_repr(x) \
     do { \
-        char *_pcar_valrepr = force_repr(x); \
+        char* _pcar_valrepr = force_repr(x); \
         printf("%s\n", _pcar_valrepr); \
         free(_pcar_valrepr); \
     } while(0)
@@ -54,23 +45,23 @@
 // using it's value.
 #define print_ColorArg_example(x) \
     do { \
-        char *_pcae_valrepr = force_repr(x); \
-        char *_pcae_valcode = ColorArg_to_str(x); \
+        char* _pcae_valrepr = force_repr(x); \
+        char* _pcae_valcode = ColorArg_to_str(x); \
         printf("%s%s%s\n", _pcae_valcode, _pcae_valrepr, CODE_RESET_ALL); \
         free(_pcae_valcode); \
         free(_pcae_valrepr); \
     } while(0)
 
-void debug_args(char *text, char *fore, char *back, char *style);
+void debug_args(char* text, char* fore, char* back, char* style);
 void example_color_build(void);
 int print_256(bool do_fore);
 int print_basic(bool do_fore);
 int print_rainbow_fore(void);
 int print_rgb(bool do_fore);
 void print_unrecognized_arg(const char* userarg);
-int print_usage(const char *reason);
+int print_usage(const char* reason);
 int print_usage_full(void);
-void read_stdin_arg(char *textarg, size_t length);
-bool validate_color_arg(struct ColorArg carg, const char *name);
+char* read_stdin_arg(void);
+bool validate_color_arg(struct ColorArg carg, const char* name);
 #endif // COLR_TOOL_H
 #endif // DOXYGEN_SKIP

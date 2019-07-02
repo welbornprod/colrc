@@ -29,3 +29,8 @@ Name   | Description
 colr.h | The interface to ColrC.
 colr.c | Where ColrC is implemented. This must be compiled/linked with your program.
 dbug.h | Some debugging support, only enable when compiled with `-DDEBUG`.
+
+
+## Examples:
+
+\includedoc examples.md

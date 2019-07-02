@@ -17,6 +17,9 @@ function clean_compiled() {
         if [[ -e "$binary" ]]; then
             rm "$binary" || echo_err "Cannot remove binary: $binary"
             clean_msg 1 "$binary"
+        elif [[ "$binary" == "-" ]]; then
+            # Binary is ignored on purpose.
+            :
         else
             clean_msg 0 "$binary"
         fi
@@ -41,6 +44,10 @@ function clean_compiled() {
     }
 
     for objfile in "${objfiles[@]}"; do
+        [[ -e "$objfile" ]] || {
+            clean_msg 0 "$objfile"
+            continue
+        }
         rm "$objfile" || {
             echo_err "Cannot remove object: $objfile"
             continue
@@ -65,9 +72,9 @@ function clean_msg() {
     # Print a message about whether a file has been "cleaned".
     local wascleaned=$1 filepath=$2
     if [[ "$wascleaned" =~ (1)|(yes)|(true) ]]; then
-        printf "            Cleaned: %s\n" "$filepath"
+        printf "             Cleaned: %s\n" "$filepath"
     else
-        printf "    Already cleaned: %s\n" "$filepath" 1>&2
+        printf "     Already cleaned: %s\n" "$filepath" 1>&2
     fi
 }
 
@@ -133,7 +140,11 @@ for arg; do
             exit 0
             ;;
         -*)
-            fail_usage "Unknown flag argument: $arg"
+            if [[ "$arg" == "-" ]]; then
+                binary="$arg"
+            else
+                fail_usage "Unknown flag argument: $arg"
+            fi
             ;;
         *)
             if ((!do_docs)) && [[ -z "$binary" ]]; then

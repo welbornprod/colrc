@@ -8,7 +8,9 @@
     \date 02-05-2017
 */
 #include "colr_tool.h"
-#define return_on_null(x) do { \
+
+#define return_on_null(x) \
+    do { \
         if (!(x)) { \
             printferr("Failed to allocate memory for arguments!\n"); \
             return 1; \
@@ -16,14 +18,14 @@
     } while (0)
 
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     /* TODO: parse_args() for flag arguments, while keeping positionals. */
 
     // Declare args and setup some defaults.
-    char *textarg = NULL;
-    char *forearg = NULL;
-    char *backarg = NULL;
-    char *stylearg = NULL;
+    char* textarg = NULL;
+    char* forearg = NULL;
+    char* backarg = NULL;
+    char* stylearg = NULL;
 
     switch (argc) {
         case 5:
@@ -58,12 +60,20 @@ int main(int argc, char *argv[]) {
 
     if (streq(textarg, "-")) {
         // Read from stdin.
-        char *textargp = textarg;
-        read_stdin_arg(textargp, MAX_TEXT_LEN);
+        free(textarg);
+        textarg = read_stdin_arg();
+        if (!textarg) {
+            printferr("\nFailed to allocate for stdin data!\n");
+            return 1;
+        }
     }
     // Rainbowize the text arg.
     if (streq(forearg, "rainbow")) {
-        char *rainbowized = acolrfgrainbow(textarg, 0.1, 3.0);
+        free(forearg);
+        free(backarg);
+        free(stylearg);
+        char* rainbowized = acolrfgrainbow(textarg, 0.1, 3.0);
+        free(textarg);
         printf("%s\n", rainbowized);
         free(rainbowized);
         return 0;
@@ -71,28 +81,50 @@ int main(int argc, char *argv[]) {
 
     StyleValue styleval = StyleValue_from_str(stylearg);
     struct ColorArg style_carg = style_arg(styleval);
-    if (!validate_color_arg(style_carg, stylearg)) return 1;
-    debug("Style: %s\n", force_repr(style_carg));
+    if (!validate_color_arg(style_carg, stylearg)) {
+        free(forearg);
+        free(backarg);
+        free(stylearg);
+        free(textarg);
+        return 1;
+    }
+    debug_repr("Style: %s\n", style_carg);
 
     struct ColorArg fore_carg = fore_arg(forearg);
-    if (!validate_color_arg(fore_carg, forearg)) return 1;
-    debug("Fore: %s\n", force_repr(fore_carg));
+    if (!validate_color_arg(fore_carg, forearg)) {
+        free(forearg);
+        free(backarg);
+        free(stylearg);
+        free(textarg);
+        return 1;
+    }
+    debug_repr("Fore: %s\n", fore_carg);
 
     struct ColorArg back_carg = back_arg(backarg);
-    if (!validate_color_arg(back_carg, backarg)) return 1;
-    debug("Back: %s\n", force_repr(back_carg));
+    if (!validate_color_arg(back_carg, backarg)) {
+        free(forearg);
+        free(backarg);
+        free(stylearg);
+        free(textarg);
+        return 1;
+    }
+    debug_repr("Back: %s\n", back_carg);
 
     struct ColorText *ctext = Colr(textarg, &fore_carg, &back_carg, &style_carg);
-    debug("ColorText: %s\n", force_repr(*ctext));
-    char *text = ColorText_to_str(*ctext);
+    debug_repr("ColorText: %s\n", *ctext);
+    char* text = ColorText_to_str(*ctext);
     printf("%s\n", text);
     free(text);
     free(ctext);
+    free(forearg);
+    free(backarg);
+    free(stylearg);
+    free(textarg);
 
     return 0;
 }
 
-void debug_args(char *text, char *fore, char *back, char *style) {
+void debug_args(char* text, char* fore, char* back, char* style) {
     /*  This just pretty-prints the arguments, to verify arg-parsing logic.
     */
     printferr("Arguments:\n\
@@ -111,7 +143,7 @@ int print_256(bool do_fore) {
     */
     char num[4];
     struct ColorArg carg;
-    char *text;
+    char* text;
     for (int i = 0; i < 56; i++) {
         snprintf(num, 4, "%03d", i);
         carg = do_fore ? fore_arg(ext(i)) : back_arg(ext(i));
@@ -148,10 +180,10 @@ int print_256(bool do_fore) {
 
 int print_basic(bool do_fore) {
     /* Print basic color names and escape codes. */
-    char *text = NULL;
-    char *namefmt = NULL;
+    char* text = NULL;
+    char* namefmt = NULL;
     for (size_t i = 0; i < basic_names_len; i++) {
-        char *name = basic_names[i].name;
+        char* name = basic_names[i].name;
         BasicValue val = basic_names[i].value;
         if (streq(name, "black")) {
             puts("");
@@ -174,7 +206,7 @@ int print_basic(bool do_fore) {
 int print_rainbow_fore() {
     /* Demo the rainbow method. */
     char text[] = "This is a demo of the rainbow function.";
-    char *textfmt = acolrfgrainbow(text, 0.1, 30);
+    char* textfmt = acolrfgrainbow(text, 0.1, 30);
     printf("%s\n", textfmt);
     free(textfmt);
     return 0;
@@ -185,7 +217,7 @@ int print_rgb(bool do_fore) {
         The function choice is passed as an argument.
     */
     char num[12];
-    char *text;
+    char* text;
     int count = 0;
     for (int r = 0; r < 256; r = r + 32) {
         for (int g = 0; g < 256; g = g + 32) {
@@ -214,7 +246,7 @@ int print_rgb(bool do_fore) {
     return 0;
 }
 
-void print_unrecognized_arg(const char *userarg) {
+void print_unrecognized_arg(const char* userarg) {
     /*   Print an error message, and the short usage string for an
         unrecognized argument.
     */
@@ -226,7 +258,7 @@ void print_unrecognized_arg(const char *userarg) {
 }
 
 
-int print_usage(const char *reason) {
+int print_usage(const char* reason) {
     /* Print the short usage string with optional `reason` */
     if (reason) {
         printferr("\n%s\n\n", reason);
@@ -268,50 +300,44 @@ int print_usage_full() {
     return 0;
 }
 
-void read_stdin_arg(char *textarg, size_t length) {
+char* read_stdin_arg(void) {
     /*  Read stdin data into `textarg`.
         This only reads up to `length - 1` characters.
     */
-    textarg[0] = '\0';
-    size_t totallen = 0;
-    char line[length];
+    char line[1024];
+    size_t line_length = 1024;
+    char* buffer = NULL;
     if (isatty(fileno(stdin)) && isatty(fileno(stderr))) {
         debug("\nReading from stdin until EOF (Ctrl + D)...\n");
     }
-    while (totallen <= length) {
-        if (fgets(line, length - totallen, stdin) == NULL) {
-            // Never happens if len(stdin_data) > length
-            break;
+    while ((fgets(line, line_length, stdin))) {
+        if (!buffer) {
+            // First line.
+            asprintf(&buffer, "%s", line);
+        } else {
+            char* oldbuffer = buffer;
+            asprintf(&buffer, "%s%s", buffer, line);
+            free(oldbuffer);
         }
-        size_t linelen = strlen(line);
-        if (linelen == 0) {
-            // Happens if len(stdin_data) > length
-            break;
-        }
-        size_t possiblelen = totallen + linelen;
-        if (possiblelen > length) {
-            break;
-        }
-        strncat(textarg, line, length - strlen(textarg));
-        totallen = strlen(textarg);
     }
+    return buffer;
 }
 
 
-bool validate_color_arg(struct ColorArg carg, const char *name) {
+bool validate_color_arg(struct ColorArg carg, const char* name) {
     /*  Checks `nametype` for TYPE_INVALID*, and prints the usage string
         with a warning message if it is invalid.
         If the code is not invalid, it simply returns `true`.
     */
     if (!name) {
         #ifdef DEBUG
-        char *argtype = ArgType_to_str(carg.type);
+        char* argtype = ArgType_to_str(carg.type);
         debug("No %s arg given.\n", argtype);
         free(argtype);
         #endif
         return true;
     }
-    char *errmsg;
+    char* errmsg;
     char argtype[6] = "fore";
     if (carg.type == BACK) sprintf(argtype, "%s", "back");
 

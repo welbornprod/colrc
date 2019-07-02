@@ -6,3 +6,4 @@ docs
 *.gcno
 *.gcda
 coverage
+examples/*_example

@@ -144,6 +144,7 @@ cmd+=("--tool=$toolname")
 cmd+=("${nonflags[@]}")
 cmd+=("$binary")
 cmd+=("${exeargs[@]}")
+
 echo_err "Running: ${cmd[*]}"
 "${cmd[@]}"
 
