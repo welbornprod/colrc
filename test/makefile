@@ -14,12 +14,28 @@ INCLUDES=-iquote../
 LIBS=-lcmocka -lm
 
 binary=test_colr
-source=test_colr.c
-headers=../colr.h
+cov_cmd=bash ../gen_coverage_html.sh --
+cov_dir=coverage
+valgrind_cmd=bash ../run_valgrind.sh --
+test_source:=$(wildcard *.c)
+source:=$(test_source) ../colr.c
+test_headers:=$(wildcard *.h)
+headers:=$(test_headers) ../colr.h
+test_objects=$(test_source:.c=.o)
 objects:=$(source:.c=.o)
+binobjects:=$(notdir $(objects))
 
-.PHONY: all, debug, debugnotags, release
+test_runner=run_tests.py
+
+.PHONY: all, coverage, debug, debugnotags, release
 all: debug
+
+coverage: CFLAGS+=-O0 -DDEBUG
+coverage: CFLAGS+=-fprofile-arcs -ftest-coverage
+coverage: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
+coverage: $(binary)
+coverage:
+	@$(cov_cmd) "$(realpath $(binary))" "$(cov_dir)"
 
 debug: tags
 debug: CFLAGS+=-g3 -DDEBUG
@@ -29,15 +45,22 @@ release: CFLAGS+=-O3 -DNDEBUG
 release: $(binary)
 release: strip
 
-$(binary): $(objects)
-	$(CC) -o $(binary) $(CFLAGS) $(objects) $(LIBS) $(INCLUDES)
+$(binary): $(binobjects)
+	@printf "\nCompiling test executable, $(binary)...\n    "
+	$(CC) -o $(binary) $(CFLAGS) $(binobjects) $(LIBS) $(INCLUDES)
 
-%.o: %.c %.h
-	$(CC) -c $< $(CFLAGS) $(LIBS) $(INCLUDES)
+colr.o: ../colr.c ../colr.h
+	@printf "\nCompiling colr.c from parent dir for tests...\n    "
+	$(CC) -c $< -o colr.o $(CFLAGS) $(LIBS) $(INCLUDES)
 
+$(test_objects): $(test_source) $(test_headers)
+	@objpath="$@"; \
+	cfile="$${objpath%.*}.c"; \
+	printf "\nCompiling $$cfile for tests (caused by $@)...\n    "; \
+	$(CC) -c $$cfile -o $@ $(CFLAGS) $(LIBS) $(INCLUDES);
 
 tags: $(source) $(headers)
-	-@printf "Building ctags...\n";
+	@printf "Building ctags...\n    ";
 	ctags $(source) $(headers);
 
 .PHONY: clang, clangrelease
@@ -47,23 +70,19 @@ clang: debug
 
 .PHONY: clean
 clean:
-	-@if [[ -e $(binary) ]]; then\
-		if rm -f $(binary); then\
-			printf "Binaries cleaned:\n    $(binary)\n";\
-		fi;\
-	else\
-		printf "Binaries already clean:\n    $(binary)\n";\
-	fi;
+	-@bash ../clean.sh "$(binary)"
 
-	-@if ls $(objects) &>/dev/null; then\
-		if rm $(objects); then\
-			printf "Objects cleaned:\n";\
-			printf "    %s\n" $(objects);\
-		fi;\
-	else\
-		printf "Objects already clean:\n";\
-		printf "    %s\n" $(objects);\
-	fi;
+.PHONY: coveragesummary
+coveragesummary:
+	@$(cov_cmd) "$(binary)" "$(cov_dir)" --summary
+
+.PHONY: coverageview
+coverageview:
+	@$(cov_cmd) "$(binary)" "$(cov_dir)" --view
+
+.PHONY: memcheck
+memcheck:
+	@$(valgrind_cmd) -a $(TEST_ARGS)
 
 .PHONY: strip
 strip:
@@ -76,22 +95,31 @@ strip:
 .PHONY: help, targets
 help targets:
 	-@printf "Make targets available:\n\
-    all       : Build with no optimization or debug symbols.\n\
-    clang        : Use \`clang\` to build the default target.\n\
-    clangrelease : Use \`clang\` to build the release target.\n\
-    clean     : Delete previous build files.\n\
-    cleantest : Delete previous build files, then build and run the tests.\n\
-    debug     : Build the executable with debug symbols.\n\
-    release   : Build the executable with optimization, and strip it.\n\
-    strip     : Run \`strip\` on the executable.\n\
-    tags      : Build tags for this project using \`ctags\`.\n\
-    test      : Make debug (if needed) and then run the tests.\n\
+    all             : Build with no optimization or debug symbols.\n\
+    clang           : Use \`clang\` to build the default target.\n\
+    clangrelease    : Use \`clang\` to build the release target.\n\
+    clean           : Delete previous build files.\n\
+    cleantest       : Delete previous build files, then build and run the tests.\n\
+    coverage        : Compile the debug build and generate coverage reports.\n\
+    coveragesummary : View a summary of previously generated coverage reports.\n\
+    coverageview    : View previously generated html coverage reports.\n\
+    debug           : Build the executable with debug symbols.\n\
+    memcheck        : Run valgrind's memcheck on the executable.\n\
+    release         : Build the executable with optimization, and strip it.\n\
+    strip           : Run \`strip\` on the executable.\n\
+    tags            : Build tags for this project using \`ctags\`.\n\
+    test            : Make debug (if needed) and then run the tests.\n\
 	";
 
 .PHONY: cleantest, test
+cleantest: clean
+cleantest: debug
 cleantest:
-	-@make --no-print-directory clean debug && ./run_tests.py;
+	-@printf "\nRunning $(binary) (via $(test_runner))...\n    "; \
+	./$(test_runner);
 
+test: debug
 test:
-	-@make --no-print-directory debug && ./run_tests.py;
+	-@printf "\nRunning $(binary) (via $(test_runner))...\n    "; \
+	./$(test_runner);
 
