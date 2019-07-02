@@ -22,15 +22,15 @@ defines `_GNU_SOURCE` if it's not already defined (see `man feature_test_macros`
 gcc -std=c11 -c myprogram.c colr.c -o myexecutable -lm
 ```
 
-## Files:
+## Files
 
 Name   | Description
 :----- | :---------------------------------------------
 colr.h | The interface to ColrC.
 colr.c | Where ColrC is implemented. This must be compiled/linked with your program.
-dbug.h | Some debugging support, only enable when compiled with `-DDEBUG`.
+dbug.h | Some debugging support, only enabled when compiled with `-DDEBUG`.
 
 
-## Examples:
+## Examples
 
 \includedoc examples.md

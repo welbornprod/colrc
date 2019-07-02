@@ -8,10 +8,23 @@
     \code{.c}
     #include "colr.h"
     // Use ColrC functions/macros/etc.
+
+    int main(void) {
+        char *colorized = colr(
+            "This is ",
+            Colr("ColrC", fore(BLUE), style(BRIGHT)),
+            " and it tries to make things ",
+            Colr("easy", fore("green"), style("underline")),
+            "."
+        );
+        printf("%s\n", colorized);
+        free(colorized);
+    }
     \endcode
 
+    <em>Don't forget to compile with `colr.c` and `-lm`</em>.
     \code{.sh}
-    gcc -std=c11 -c your_program.c colr.c -o myprogram
+    gcc -std=c11 -c your_program.c colr.c -o myprogram -lm
     \endcode
 */
 // TODO: After fleshing out the interface, come back here and show actual
@@ -535,8 +548,22 @@
     heap allocated, but colr() will free() them for you.
 */
 #define colr(...) _colr(__VA_ARGS__, NULL)
+/*! \def colr_join
+    Join ColorArg pointers, ColorText pointers, and strings by another
+    ColorArg pointer, ColorText pointer, or string.
+
+    \details
+    To build the ColorArg pointers, it is better to use the fore(), back(),
+    and style() macros. The ColorArgs are heap allocated, but colr_join() will
+    free() them for you.
+
+    \details
+    To build the ColorText pointers, it is better to use the Colr() macro,
+    along with the fore(), back(), and style() macros. The ColorTexts are
+    heap allocated, but colr_join() will free() them for you.
+*/
+#define colr_join(joiner, ...) _colr_join(joiner, __VA_ARGS__, NULL)
 // TODO: colr and Colr examples in their docs, and on the main pages.
-// TODO: ColrJoin (see colr_tool.c TODOS).
 
 /*! \def Colr
     Returns a heap-allocated ColorText object that can be used by itself,
@@ -805,6 +832,11 @@ void str_tolower(char* out, const char* s);
     \endinternal
 */
 char* _colr(void *p, ...);
+/*! \internal
+    The multi-type variadiac function behind the colr_join() macro.
+    \endinternal
+*/
+char* _colr_join(void *joinerp, ...);
 
 /*! \internal
     ArgType functions that only deal with argument types (fore, back, style).

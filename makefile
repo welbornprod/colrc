@@ -23,8 +23,10 @@ optional_flags=$(foreach header, $(optional_headers), -include $(header))
 cov_dir=coverage
 docsconfig=Doxyfile
 docsdir=docs
-docsmainfile=$(docsdir)/html/index.html
 docsreadme=README.md
+docsmainfile=$(docsdir)/html/index.html
+docsexamples=$(wildcard examples/*.md) $(wildcard examples/*.c)
+docsdepfiles=$(docsconfig) $(docsreadme) $(docsexamples)
 objects:=$(source:.c=.o)
 
 .PHONY: all, coverage, debug, release
@@ -53,9 +55,9 @@ $(binary): $(objects)
 	@printf "\nCompiling $<...\n    ";
 	$(CC) -c $< $(CFLAGS)
 
-$(docsmainfile): $(source) $(headers) $(docsconfig) $(docsreadme)
-docs: $(source) $(headers) $(docsconfig) $(docsmainfile) $(docsreadme)
-	@printf "\nBuilding doxygen docs...\n    "
+$(docsmainfile): $(source) $(headers) $(docsdepfiles)
+docs: $(source) $(headers) $(docsmainfile) $(docsdepfiles)
+	@printf "\nBuilding doxygen docs (for $?)...\n    "
 	doxygen $(docsconfig);
 
 tags: $(source) $(headers)

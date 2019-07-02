@@ -22,15 +22,14 @@ binobjects=$(example_objects) colr.o
 objects:=$(source:.c=.o)
 binaries=$(basename $(notdir $(example_objects)))
 
-.PHONY: all, debug
-all: debug
+.PHONY: all
+all: $(binaries)
 
 $(binaries): $(binobjects)
 	@printf "\nCompiling example executable, $(basename $@)...\n    ";
 	binobjects="$@.o colr.o"; \
 	$(CC) -o $(basename $@) $(CFLAGS) $$binobjects $(LIBS) $(INCLUDES)
 
-colr.o: debug
 colr.o: ../colr.c ../colr.h
 	@printf "\nCompiling colr.c from parent dir for examples...\n    "
 	$(CC) -c $< -o colr.o $(CFLAGS) $(LIBS) $(INCLUDES)
@@ -38,7 +37,7 @@ colr.o: ../colr.c ../colr.h
 $(example_objects): $(example_source) $(example_headers)
 	@objpath="$@"; \
 	cfile="$${objpath%.*}.c"; \
-	printf "\nCompiling $$cfile for examples (caused by $@)...\n    "; \
+	printf "\nCompiling $$cfile for examples (caused by $?)...\n    "; \
 	$(CC) -c $$cfile -o $@ $(CFLAGS) $(LIBS) $(INCLUDES);
 
 .PHONY: clean

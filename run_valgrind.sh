@@ -9,8 +9,12 @@ appscript="${apppath##*/}"
 # appdir="${apppath%/*}"
 # This should be the only variable that needs to change for other projects.
 binaryname=$(find . -maxdepth 1 -type f -executable '!' -name "*.*" | head -n 1)
-binary=$(realpath "$binaryname")
-
+if [[ -z "$binaryname" ]]; then
+    binaryname="<none>"
+    binary=""
+else
+    binary=$(realpath "$binaryname")
+fi
 default_tool="memcheck"
 cachegrind_file="${binary}.cachegrind"
 callgrind_file="${binary}.callgrind"
@@ -116,6 +120,7 @@ for arg; do
             ;;
     esac
 done
+[[ -n "$binary" ]] || fail "No binary found, and none given either."
 [[ -e "$binary" ]] || fail "The binary hasn't been built yet: $binary"
 
 toolname="${nonflags[0]}"

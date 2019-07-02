@@ -3,6 +3,7 @@
 int main(void) {
     // Basic colors:
     char* s = colr(
+        fore(BLACK),
         back(RED),
         "This is a test",
         back(BLUE),
@@ -12,26 +13,27 @@ int main(void) {
     free(s);
 
     // Extended (256) colors:
-    char* e = colr(back(ext(35)), "Extended colors.");
+    char* e = colr(fore(ext(0)), back(ext(35)), "Extended colors.\n");
     printf("%s", e);
     free(e);
 
     // RGB (True Color) colors:
-    char* r = colr(back(rgb(35, 0, 155)), "RGB");
+    char* r = colr(back(rgb(35, 0, 155)), "RGB\n");
     printf("%s", r);
     free(r);
 
     // The order and color type does not matter.
     char* all = colr(
-        fore(YELLOW),
+        fore(WHITE),
+        back(YELLOW),
         "Basic, ",
         back(ext(234)),
         "Extended, ",
-        fore(rgb(23, 0, 155)),
+        back(rgb(23, 0, 155)),
         "RGB, ",
-        style(HIGHLIGHT),
+        style(UNDERLINE),
         "Styles, ",
-        fore("lightblue"),
+        back("lightblue"),
         "color names, ",
         style("bright"),
         "and style names."

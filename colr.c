@@ -217,10 +217,10 @@ void format_style(char* out, StyleValue style) {
     newlines.
 
     \details
-    The string _must be null-terminated_.
+    \mustnullin
 
     \pi s The string to append to.
-          __Must have extra room for CODE_RESET_ALL__.
+          <em>Must have extra room for CODE_RESET_ALL</em>.
 */
 void str_append_reset(char *s) {
     size_t lastindex = strlen(s) - 1;
@@ -274,7 +274,7 @@ char* str_copy(char* dest, const char* src, size_t length) {
 /*! Determine if one string ends with another.
 
     \details
-    _`str` and `suf` must be null-terminated_.
+    `str` and `suf` \mustnull
 
     \pi str String to check.
     \pi suf Suffix to check for.
@@ -296,7 +296,7 @@ bool str_endswith(const char* str, const char* suf) {
 
 /*! Converts a string into lower case in place.
     \details
-    _Input string must be null-terminated._
+    \mustnullin
 
     \pi s The input string to convert to lower case.
 */
@@ -327,7 +327,7 @@ char* str_noop(char* s) {
 /*! Checks a string for a certain prefix substring.
 
     \details
-    _`prefix` must be null-terminated._
+    `prefix` \mustnull
 
     \pi s      The string to check.
     \pi prefix The prefix string to look for.
@@ -356,7 +356,7 @@ bool str_startswith(const char* s, const char* prefix) {
 
 /*! Converts a string into lower case, and copies it into `out`.
     \details
-    _Input string must be null-terminated._
+    \mustnullin
 
     \po out Memory allocated for the result.
             _Must have capacity for `strlen(s) + 1`._
@@ -391,7 +391,7 @@ void str_tolower(char* out, const char* s) {
             CODE_RESET_ALL is appended to all the pieces that aren't plain
             strings. This allows easy part-colored messages, so there's no
             need to use CODE_RESET_ALL directly.
-            __You must free() the memory allocated by this function.__
+            <em>You must free() the memory allocated by this function</em>.
 */
 char* _colr(void *p, ...) {
     // Argument list must have ColorArg/ColorText with NULL members at the end.
@@ -449,7 +449,6 @@ char* _colr(void *p, ...) {
             // It better be a string.
             s = (char* )arg;
         }
-        // TODO: Not allocating enough, getting invalid writes.
         length += strlen(s) + 1;
         final = realloc(final, length);
         sprintf(final, "%s%s", final, s);
@@ -458,6 +457,101 @@ char* _colr(void *p, ...) {
     }
     str_append_reset(final);
     va_end(args);
+    return final;
+}
+
+/*! Joins ColorArgs, ColorTexts, and strings into one long string separated
+    by it's first argument.
+
+    \details
+    This will free() any ColorArgs and ColorTexts that are passed in. It is
+    backing the colr() macro, and enables easy throwaway color values.
+
+    \details
+    Any plain strings that are passed in are left alone. It is up to the caller
+    to free those. Colr only manages the temporary Colr-based objects needed
+    to build up these strings.
+
+    \pi joinerp The joiner (any ColorArg, ColorText, or string).
+    \pi ...     Zero or more ColorArgs, ColorTexts, or strings to join by the joiner.
+    \return     An allocated string with mixed escape codes/strings.
+                CODE_RESET_ALL is appended to all ColorText arguments.
+                This allows easy part-colored messages.
+                <em>You must free() the memory allocated by this function</em>.
+*/
+char* _colr_join(void *joinerp, ...) {
+    // Argument list must have ColorArg/ColorText with NULL members at the end.
+    if (!joinerp) {
+        return colr_empty_str();
+    }
+    va_list args;
+    va_start(args, joinerp);
+    char* joiner;
+    struct ColorArg* joiner_cargp = NULL;
+    struct ColorText* joiner_ctextp = NULL;
+    char* piece;
+    struct ColorArg* cargp = NULL;
+    struct ColorText* ctextp = NULL;
+    if (ColorArg_is_ptr(joinerp)) {
+        // It's a ColorArg.
+        joiner_cargp = joinerp;
+        joiner = ColorArg_to_str(*joiner_cargp);
+        ColorArg_free(joiner_cargp);
+    } else if (ColorText_is_ptr(joinerp)) {
+        joiner_ctextp = joinerp;
+        joiner = ColorText_to_str(*joiner_ctextp);
+        ColorText_free(joiner_ctextp);
+    } else {
+        // It's a string, or it better be anyway.
+        joiner = (char* )joinerp;
+    }
+    size_t joiner_len = strlen(joiner) + 1;
+    size_t length = 0;
+    int count = 0;
+    joiner_len += CODE_RESET_LEN;
+    // Allocate enough for the reset code at the end.
+    char* final = calloc(joiner_len, sizeof(char));
+
+    void *arg = NULL;
+    while ((arg = va_arg(args, void*))) {
+        count++;
+        cargp = NULL;
+        ctextp = NULL;
+        // These ColorArgs/ColorTexts were heap allocated through the fore,
+        // back, style, and Colr macros. I'm going to free them, so the user
+        // doesn't have to keep track of all the temporary pieces that built
+        // this string.
+        if (ColorArg_is_ptr(arg)) {
+            // It's a ColorArg.
+            cargp = arg;
+            piece = ColorArg_to_str(*cargp);
+            ColorArg_free(cargp);
+        } else if (ColorText_is_ptr(arg)) {
+            ctextp = arg;
+            piece = ColorText_to_str(*ctextp);
+            ColorText_free(ctextp);
+        } else {
+            // It better be a string.
+            piece = (char* )arg;
+        }
+        length += strlen(piece) + joiner_len + 1;
+        final = realloc(final, length);
+        if (count == 1) {
+            sprintf(final, "%s%s", final, piece);
+        } else {
+            sprintf(final, "%s%s%s", final, joiner, piece);
+        }
+        // Free the temporary string from those ColorArgs/ColorTexts.
+        if (cargp || ctextp) free(piece);
+    }
+    str_append_reset(final);
+    va_end(args);
+    if (joiner_cargp) {
+        free(joiner);
+    }
+    if (joiner_ctextp) {
+        free(joiner);
+    }
     return final;
 }
 

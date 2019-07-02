@@ -1,29 +1,17 @@
 #include "colr.h"
 
 int main(void) {
+    /* You can build your strings with colr().
+       Using a Colr (ColorText), or sprinkling fore(), back(), and style() calls,
+       you can build multi-color strings and only worry about allocating/freeing
+       the text.
 
-    // Colr is shorthand for building a ColorText struct.
-    // If you use them outside of the colr macros, you must free them.
-    // You must always free the plain text, if you allocated for it.
-    struct ColorText* ctext = Colr("This is my string.", fore(BLUE));
-    // If you use the *to_str functions outside of the colr macros, you
-    // must free the resulting string.
-    char* ctext_str = ColorText_to_str(*ctext);
-    printf("%s\n\n", ctext_str);
-    // No leaks.
-    ColorText_free(ctext);
-    free(ctext_str);
-
-    // But there's an easier way:
-
-    // You can build your strings with a Colr, or by putting fore/back/style
-    // calls sprinkled in where you need them.
+       The order/number of arguments does not matter.
+       colr() accepts ColorTexts, ColorArgs, and strings (char*).
+    */
     char* colorized = colr(
         "This will be a plain string.\n",
         Colr("This will be red/white.\n", fore(RED), back(WHITE)),
-        "Another plain string.\n",
-        Colr("This will be underlined.\n", style(UNDERLINE)),
-        Colr("This will not.\n", fore(ext(255)), back("lightblue")),
         "Just another string",
         " and another that will be joined to it.\n",
         Colr("The Colr ", fore(rgb(255, 0, 55))),
@@ -53,4 +41,17 @@ int main(void) {
     printf("%s", colored);
     free(colored);
     free(allocated);
+
+    // Colr is shorthand for building a ColorText struct.
+    // If you use them outside of the colr macros, you must free them.
+    // Again, you must always free the plain text if you allocated for it.
+    struct ColorText* ctext = Colr("I didn't allocate this.", fore(BLUE));
+    // If you use the *to_str functions outside of the colr macros, you
+    // must free the resulting string.
+    char* ctext_str = ColorText_to_str(*ctext);
+    printf("But I allocated the resulting string: %s\n\n", ctext_str);
+    // No leaks, free the ColorText's resources.
+    ColorText_free(ctext);
+    // And free the string you created from it.
+    free(ctext_str);
 }
