@@ -8,16 +8,23 @@ ARGTYPE_NONE	../colr.h	/^    ARGTYPE_NONE = -1,$/;"	e	enum:ArgType_t
 ArgType	../colr.h	/^} ArgType;$/;"	t	typeref:enum:ArgType_t
 ArgType_repr	../colr.c	/^char *ArgType_repr(ArgType type) {$/;"	f
 ArgType_t	../colr.h	/^typedef enum ArgType_t {$/;"	g
+ArgType_to_str	../colr.c	/^char *ArgType_to_str(ArgType type) {$/;"	f
 BACK	../colr.h	/^    BACK = 1,$/;"	e	enum:ArgType_t
+BASIC_INVALID	../colr.h	/^    BASIC_INVALID = COLOR_INVALID,$/;"	e	enum:BasicValue_t
+BASIC_INVALID	../colr.h	592;"	d
+BASIC_NONE	../colr.h	/^    BASIC_NONE = -1,$/;"	e	enum:BasicValue_t
+BASIC_NONE	../colr.h	593;"	d
 BLACK	../colr.h	/^    BLACK = 0,$/;"	e	enum:BasicValue_t
-BLACK	../colr.h	607;"	d
+BLACK	../colr.h	594;"	d
 BLUE	../colr.h	/^    BLUE = 4,$/;"	e	enum:BasicValue_t
-BLUE	../colr.h	611;"	d
+BLUE	../colr.h	598;"	d
 BRIGHT	../colr.h	/^    BRIGHT = 1,$/;"	e	enum:StyleValue_t
-BRIGHT	../colr.h	671;"	d
+BRIGHT	../colr.h	660;"	d
+BasicInfo	../colr.h	/^struct BasicInfo {$/;"	s
 BasicValue	../colr.h	/^} BasicValue;$/;"	t	typeref:enum:BasicValue_t
 BasicValue_from_str	../colr.c	/^BasicValue BasicValue_from_str(const char *arg) {$/;"	f
 BasicValue_t	../colr.h	/^typedef enum BasicValue_t {$/;"	g
+BasicValue_to_ansi	../colr.c	/^int BasicValue_to_ansi(ArgType type, BasicValue bval) {$/;"	f
 CODEX_LEN	../colr.h	65;"	d
 CODE_ANY_LEN	../colr.h	92;"	d
 CODE_LEN	../colr.h	63;"	d
@@ -26,18 +33,14 @@ CODE_RESET_LEN	../colr.h	58;"	d
 CODE_RGB_LEN	../colr.h	78;"	d
 COLORARG_MARKER	../colr.h	102;"	d
 COLORTEXT_MARKER	../colr.h	109;"	d
-COLORVAL_INVALID	../colr.c	/^const int COLORVAL_INVALID = -2;$/;"	v
-COLORVAL_INVALID_RANGE	../colr.c	/^const int COLORVAL_INVALID_RANGE = -1;$/;"	v
-COLOR_INVALID	../colr.h	/^    COLOR_INVALID = -2,$/;"	e	enum:BasicValue_t
-COLOR_INVALID	../colr.h	605;"	d
+COLOR_INVALID	../colr.h	114;"	d
+COLOR_INVALID_RANGE	../colr.h	116;"	d
 COLOR_LEN	../colr.h	75;"	d
-COLOR_NONE	../colr.h	/^    COLOR_NONE = -1,$/;"	e	enum:BasicValue_t
-COLOR_NONE	../colr.h	606;"	d
 COLOR_RGB_LEN	../colr.h	86;"	d
 COLR_H	../colr.h	20;"	d
 COLR_VERSION	../colr.h	26;"	d
 CYAN	../colr.h	/^    CYAN = 6,$/;"	e	enum:BasicValue_t
-CYAN	../colr.h	613;"	d
+CYAN	../colr.h	600;"	d
 ColorArg	../colr.h	/^struct ColorArg {$/;"	s
 ColorArg_free	../colr.c	/^void ColorArg_free(struct ColorArg *p) {$/;"	f
 ColorArg_from_BasicValue	../colr.c	/^struct ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value) {$/;"	f
@@ -52,7 +55,6 @@ ColorArg_is_valid	../colr.c	/^bool ColorArg_is_valid(struct ColorArg carg) {$/;"
 ColorArg_repr	../colr.c	/^char *ColorArg_repr(struct ColorArg carg) {$/;"	f
 ColorArg_to_ptr	../colr.c	/^struct ColorArg *ColorArg_to_ptr(struct ColorArg carg) {$/;"	f
 ColorArg_to_str	../colr.c	/^char *ColorArg_to_str(struct ColorArg carg) {$/;"	f
-ColorInfo	../colr.h	/^struct ColorInfo {$/;"	s
 ColorText	../colr.h	/^struct ColorText {$/;"	s
 ColorText_free	../colr.c	/^void ColorText_free(struct ColorText *p) {$/;"	f
 ColorText_from_values	../colr.c	/^struct ColorText ColorText_from_values(char *text, ...) {$/;"	f
@@ -73,160 +75,136 @@ ColorValue_is_invalid	../colr.c	/^bool ColorValue_is_invalid(struct ColorValue c
 ColorValue_is_valid	../colr.c	/^bool ColorValue_is_valid(struct ColorValue cval) {$/;"	f
 ColorValue_repr	../colr.c	/^char *ColorValue_repr(struct ColorValue cval) {$/;"	f
 ColorValue_to_str	../colr.c	/^char *ColorValue_to_str(ArgType type, struct ColorValue cval) {$/;"	f
-Colr	../colr.h	542;"	d
+Colr	../colr.h	549;"	d
 Colr_join	../colr.c	/^char *Colr_join(void *p, ...) {$/;"	f
 DIM	../colr.h	/^    DIM = 2,$/;"	e	enum:StyleValue_t
-DIM	../colr.h	672;"	d
+DIM	../colr.h	661;"	d
+EXTENDED_INVALID	../colr.h	633;"	d
+ExtendedInfo	../colr.h	/^struct ExtendedInfo {$/;"	s
 ExtendedValue	../colr.h	/^typedef unsigned char ExtendedValue;$/;"	t
 ExtendedValue_from_str	../colr.c	/^int ExtendedValue_from_str(const char *arg) {$/;"	f
 FLASH	../colr.h	/^    FLASH = 5,$/;"	e	enum:StyleValue_t
-FLASH	../colr.h	675;"	d
+FLASH	../colr.h	664;"	d
 FORE	../colr.h	/^    FORE = 0,$/;"	e	enum:ArgType_t
 GREEN	../colr.h	/^    GREEN = 2,$/;"	e	enum:BasicValue_t
-GREEN	../colr.h	609;"	d
+GREEN	../colr.h	596;"	d
 HIGHLIGHT	../colr.h	/^    HIGHLIGHT = 7,$/;"	e	enum:StyleValue_t
-HIGHLIGHT	../colr.h	676;"	d
+HIGHLIGHT	../colr.h	665;"	d
 ITALIC	../colr.h	/^    ITALIC = 3,$/;"	e	enum:StyleValue_t
-ITALIC	../colr.h	673;"	d
+ITALIC	../colr.h	662;"	d
 LIGHTBLACK	../colr.h	/^    LIGHTBLACK = 10,$/;"	e	enum:BasicValue_t
-LIGHTBLACK	../colr.h	617;"	d
+LIGHTBLACK	../colr.h	604;"	d
 LIGHTBLUE	../colr.h	/^    LIGHTBLUE = 14,$/;"	e	enum:BasicValue_t
-LIGHTBLUE	../colr.h	621;"	d
+LIGHTBLUE	../colr.h	608;"	d
 LIGHTCYAN	../colr.h	/^    LIGHTCYAN = 16,$/;"	e	enum:BasicValue_t
-LIGHTCYAN	../colr.h	623;"	d
+LIGHTCYAN	../colr.h	610;"	d
 LIGHTGREEN	../colr.h	/^    LIGHTGREEN = 12,$/;"	e	enum:BasicValue_t
-LIGHTGREEN	../colr.h	619;"	d
+LIGHTGREEN	../colr.h	606;"	d
 LIGHTMAGENTA	../colr.h	/^    LIGHTMAGENTA = 15,$/;"	e	enum:BasicValue_t
-LIGHTMAGENTA	../colr.h	622;"	d
+LIGHTMAGENTA	../colr.h	609;"	d
 LIGHTRED	../colr.h	/^    LIGHTRED = 11,$/;"	e	enum:BasicValue_t
-LIGHTRED	../colr.h	618;"	d
+LIGHTRED	../colr.h	605;"	d
 LIGHTWHITE	../colr.h	/^    LIGHTWHITE = 17,$/;"	e	enum:BasicValue_t
-LIGHTWHITE	../colr.h	624;"	d
+LIGHTWHITE	../colr.h	611;"	d
 LIGHTYELLOW	../colr.h	/^    LIGHTYELLOW = 13,$/;"	e	enum:BasicValue_t
-LIGHTYELLOW	../colr.h	620;"	d
+LIGHTYELLOW	../colr.h	607;"	d
 MAGENTA	../colr.h	/^    MAGENTA = 5,$/;"	e	enum:BasicValue_t
-MAGENTA	../colr.h	612;"	d
+MAGENTA	../colr.h	599;"	d
 MAX_COLOR_NAME_LEN	../colr.h	95;"	d
 M_PI	../colr.h	51;"	d
 NC	../colr.h	56;"	d
 NORMAL	../colr.h	/^    NORMAL = 22$/;"	e	enum:StyleValue_t
-NORMAL	../colr.h	677;"	d
+NORMAL	../colr.h	666;"	d
 RED	../colr.h	/^    RED = 1,$/;"	e	enum:BasicValue_t
-RED	../colr.h	608;"	d
+RED	../colr.h	595;"	d
 RESET	../colr.h	/^    RESET = 9,$/;"	e	enum:BasicValue_t
-RESET	../colr.h	616;"	d
+RESET	../colr.h	603;"	d
 RESET_ALL	../colr.h	/^    RESET_ALL = 0,$/;"	e	enum:StyleValue_t
-RESET_ALL	../colr.h	670;"	d
+RESET_ALL	../colr.h	659;"	d
 RGB	../colr.h	/^struct RGB {$/;"	s
 RGB_from_str	../colr.c	/^int RGB_from_str(const char *arg, struct RGB *rgbval) {$/;"	f
 STYLE	../colr.h	/^    STYLE = 2,$/;"	e	enum:ArgType_t
-STYLE_INVALID	../colr.h	/^    STYLE_INVALID = -2,$/;"	e	enum:StyleValue_t
-STYLE_INVALID	../colr.h	668;"	d
+STYLE_INVALID	../colr.h	/^    STYLE_INVALID = COLOR_INVALID,$/;"	e	enum:StyleValue_t
+STYLE_INVALID	../colr.h	657;"	d
 STYLE_LEN	../colr.h	68;"	d
 STYLE_NONE	../colr.h	/^    STYLE_NONE = -1,$/;"	e	enum:StyleValue_t
-STYLE_NONE	../colr.h	669;"	d
+STYLE_NONE	../colr.h	658;"	d
 StyleInfo	../colr.h	/^struct StyleInfo {$/;"	s
 StyleValue	../colr.h	/^} StyleValue;$/;"	t	typeref:enum:StyleValue_t
 StyleValue_from_str	../colr.c	/^StyleValue StyleValue_from_str(const char *arg) {$/;"	f
 StyleValue_t	../colr.h	/^typedef enum StyleValue_t {$/;"	g
-TEST_COLR_H	test_colr.h	15;"	d
+TEST_COLR_H	test_colr.h	16;"	d
 TYPE_BASIC	../colr.h	/^    TYPE_BASIC = 0,$/;"	e	enum:ColorType_t
 TYPE_EXTENDED	../colr.h	/^    TYPE_EXTENDED = 1,$/;"	e	enum:ColorType_t
-TYPE_INVALID	../colr.h	/^    TYPE_INVALID = -2,$/;"	e	enum:ColorType_t
-TYPE_INVALID_EXTENDED_RANGE	../colr.h	/^    TYPE_INVALID_EXTENDED_RANGE = -4,$/;"	e	enum:ColorType_t
-TYPE_INVALID_RGB_RANGE	../colr.h	/^    TYPE_INVALID_RGB_RANGE = -3,$/;"	e	enum:ColorType_t
+TYPE_INVALID	../colr.h	/^    TYPE_INVALID = COLOR_INVALID,$/;"	e	enum:ColorType_t
+TYPE_INVALID_EXTENDED_RANGE	../colr.h	/^    TYPE_INVALID_EXTENDED_RANGE = -5,$/;"	e	enum:ColorType_t
+TYPE_INVALID_RGB_RANGE	../colr.h	/^    TYPE_INVALID_RGB_RANGE = -4,$/;"	e	enum:ColorType_t
+TYPE_INVALID_STYLE	../colr.h	/^    TYPE_INVALID_STYLE = -3,$/;"	e	enum:ColorType_t
 TYPE_RGB	../colr.h	/^    TYPE_RGB = 2,$/;"	e	enum:ColorType_t
 TYPE_STYLE	../colr.h	/^    TYPE_STYLE = 3,$/;"	e	enum:ColorType_t
 UNDERLINE	../colr.h	/^    UNDERLINE = 4,$/;"	e	enum:StyleValue_t
-UNDERLINE	../colr.h	674;"	d
+UNDERLINE	../colr.h	663;"	d
 UNUSED	../colr.h	/^    UNUSED = 8,$/;"	e	enum:BasicValue_t
-UNUSED	../colr.h	615;"	d
+UNUSED	../colr.h	602;"	d
 WHITE	../colr.h	/^    WHITE = 7,$/;"	e	enum:BasicValue_t
-WHITE	../colr.h	614;"	d
-XBLACK	../colr.h	/^    XBLACK = 20,$/;"	e	enum:BasicValue_t
-XBLACK	../colr.h	625;"	d
-XBLUE	../colr.h	/^    XBLUE = 24,$/;"	e	enum:BasicValue_t
-XBLUE	../colr.h	629;"	d
-XCYAN	../colr.h	/^    XCYAN = 26,$/;"	e	enum:BasicValue_t
-XCYAN	../colr.h	631;"	d
-XGREEN	../colr.h	/^    XGREEN = 22,$/;"	e	enum:BasicValue_t
-XGREEN	../colr.h	627;"	d
-XLIGHTBLACK	../colr.h	/^    XLIGHTBLACK = 28,$/;"	e	enum:BasicValue_t
-XLIGHTBLACK	../colr.h	633;"	d
-XLIGHTBLUE	../colr.h	/^    XLIGHTBLUE = 33,$/;"	e	enum:BasicValue_t
-XLIGHTBLUE	../colr.h	637;"	d
-XLIGHTCYAN	../colr.h	/^    XLIGHTCYAN = 34,$/;"	e	enum:BasicValue_t
-XLIGHTCYAN	../colr.h	639;"	d
-XLIGHTGREEN	../colr.h	/^    XLIGHTGREEN = 30,$/;"	e	enum:BasicValue_t
-XLIGHTGREEN	../colr.h	635;"	d
-XLIGHTMAGENTA	../colr.h	/^    XLIGHTMAGENTA = 33,$/;"	e	enum:BasicValue_t
-XLIGHTMAGENTA	../colr.h	638;"	d
-XLIGHTRED	../colr.h	/^    XLIGHTRED = 29,$/;"	e	enum:BasicValue_t
-XLIGHTRED	../colr.h	634;"	d
-XLIGHTWHITE	../colr.h	/^    XLIGHTWHITE = 35,$/;"	e	enum:BasicValue_t
-XLIGHTWHITE	../colr.h	640;"	d
-XLIGHTYELLOW	../colr.h	/^    XLIGHTYELLOW = 31,$/;"	e	enum:BasicValue_t
-XLIGHTYELLOW	../colr.h	636;"	d
-XMAGENTA	../colr.h	/^    XMAGENTA = 25,$/;"	e	enum:BasicValue_t
-XMAGENTA	../colr.h	630;"	d
-XRED	../colr.h	/^    XRED = 22,$/;"	e	enum:BasicValue_t
-XRED	../colr.h	626;"	d
-XWHITE	../colr.h	/^    XWHITE = 27,$/;"	e	enum:BasicValue_t
-XWHITE	../colr.h	632;"	d
-XYELLOW	../colr.h	/^    XYELLOW = 23,$/;"	e	enum:BasicValue_t
-XYELLOW	../colr.h	628;"	d
+WHITE	../colr.h	601;"	d
+XBLACK	../colr.h	613;"	d
+XBLUE	../colr.h	617;"	d
+XCYAN	../colr.h	619;"	d
+XGREEN	../colr.h	615;"	d
+XLIGHTBLACK	../colr.h	621;"	d
+XLIGHTBLUE	../colr.h	625;"	d
+XLIGHTCYAN	../colr.h	627;"	d
+XLIGHTGREEN	../colr.h	623;"	d
+XLIGHTMAGENTA	../colr.h	626;"	d
+XLIGHTRED	../colr.h	622;"	d
+XLIGHTWHITE	../colr.h	628;"	d
+XLIGHTYELLOW	../colr.h	624;"	d
+XMAGENTA	../colr.h	618;"	d
+XRED	../colr.h	614;"	d
+XWHITE	../colr.h	620;"	d
+XYELLOW	../colr.h	616;"	d
 YELLOW	../colr.h	/^    YELLOW = 3,$/;"	e	enum:BasicValue_t
-YELLOW	../colr.h	610;"	d
+YELLOW	../colr.h	597;"	d
 _GNU_SOURCE	../colr.h	22;"	d
 acolrfgrainbow	../colr.c	/^char *acolrfgrainbow(const char *s, double freq, size_t offset) {$/;"	f
-alloc_basic	../colr.h	116;"	d
-alloc_extended	../colr.h	123;"	d
-alloc_rgb	../colr.h	131;"	d
-alloc_style	../colr.h	138;"	d
-alloc_with_code	../colr.h	146;"	d
-alloc_with_codes	../colr.h	153;"	d
-alloc_with_rgb	../colr.h	161;"	d
-alloc_with_style	../colr.h	169;"	d
-argeq	../colr.h	180;"	d
+alloc_basic	../colr.h	123;"	d
+alloc_extended	../colr.h	130;"	d
+alloc_rgb	../colr.h	138;"	d
+alloc_style	../colr.h	145;"	d
+alloc_with_code	../colr.h	153;"	d
+alloc_with_codes	../colr.h	160;"	d
+alloc_with_rgb	../colr.h	168;"	d
+alloc_with_style	../colr.h	176;"	d
+argeq	../colr.h	187;"	d
+assert_ColorType_name_equal	test_ColorType.c	8;"	d	file:
 back	../colr.h	/^    struct ColorArg *back;$/;"	m	struct:ColorText	typeref:struct:ColorText::ColorArg
-back	../colr.h	445;"	d
-back_arg	../colr.h	405;"	d
-back_str	../colr.h	456;"	d
+back	../colr.h	452;"	d
+back_arg	../colr.h	412;"	d
+back_str	../colr.h	463;"	d
 basic	../colr.h	/^    BasicValue basic;$/;"	m	struct:ColorValue
-basic	../colr.h	187;"	d
+basic	../colr.h	194;"	d
+basic_names	../colr.c	/^const struct BasicInfo basic_names[] = {$/;"	v	typeref:struct:BasicInfo
+basic_names_len	../colr.c	/^const size_t basic_names_len = sizeof(basic_names) \/ sizeof(basic_names[0]);$/;"	v
 blue	../colr.h	/^    unsigned char blue;$/;"	m	struct:RGB
-bool_colr_enum	../colr.h	200;"	d
-cm_test	test_colr.h	36;"	d
-color	../colr.h	/^    BasicValue color;$/;"	m	struct:ColorInfo
-color_arg	../colr.h	245;"	d
-color_names	../colr.c	/^struct ColorInfo color_names[] = {$/;"	v	typeref:struct:ColorInfo
-color_names_len	../colr.c	/^size_t color_names_len = sizeof color_names \/ sizeof (struct ColorInfo);$/;"	v
-color_val	../colr.h	264;"	d
-colr	../colr.h	530;"	d
+bool_colr_enum	../colr.h	207;"	d
+cm_test	test_colr.h	37;"	d
+color_arg	../colr.h	252;"	d
+color_val	../colr.h	271;"	d
+colr	../colr.h	537;"	d
 colr_empty_str	../colr.c	/^char *colr_empty_str(void) {$/;"	f
-colrbg	../colr.c	/^void colrbg(char *out, const char *s, BasicValue back) {$/;"	f
-colrbgRGB	../colr.c	/^void colrbgRGB(char *out, const char *s, struct RGB rgbval) {$/;"	f
-colrbgrgb	../colr.c	/^void colrbgrgb(char *out, const char *s, unsigned char red, unsigned char green, unsigned char blue) {$/;"	f
-colrbgx	../colr.c	/^void colrbgx(char *out, const char *s, unsigned char num) {$/;"	f
-colrfg	../colr.c	/^void colrfg(char *out, const char *s, BasicValue fore) {$/;"	f
-colrfgRGB	../colr.c	/^void colrfgRGB(char *out, const char *s, struct RGB rgbval) {$/;"	f
-colrfgchar	../colr.c	/^void colrfgchar(char *out, const char c, BasicValue fore) {$/;"	f
 colrfgrainbow	../colr.c	/^void colrfgrainbow(char *out, const char *s, double freq, size_t offset) {$/;"	f
-colrfgrgb	../colr.c	/^void colrfgrgb(char *out, const char *s, unsigned char redval, unsigned char greenval, unsigned char blueval) {$/;"	f
-colrfgx	../colr.c	/^void colrfgx(char *out, const char *s, unsigned char num) {$/;"	f
-colrize	../colr.c	/^void colrize(char *out, const char *s, BasicValue fore, BasicValue back, StyleValue style) {$/;"	f
-colrizechar	../colr.c	/^void colrizechar(char *out, char c, BasicValue fore, BasicValue back, StyleValue style) {$/;"	f
-colrizex	../colr.c	/^void colrizex($/;"	f
-colrstyle	../colr.c	/^void colrstyle(char *out, const char *s, StyleValue style) {$/;"	f
-debug_repr	../colr.h	315;"	d
 debug_repr	../colr.h	322;"	d
+debug_repr	../colr.h	329;"	d
 ext	../colr.h	/^    ExtendedValue ext;$/;"	m	struct:ColorValue
-ext	../colr.h	207;"	d
-force_repr	../colr.h	292;"	d
+ext	../colr.h	214;"	d
+extended_names	../colr.c	/^const struct ExtendedInfo extended_names[] = {$/;"	v	typeref:struct:ExtendedInfo
+extended_names_len	../colr.c	/^const size_t extended_names_len = sizeof(extended_names) \/ sizeof(extended_names[0]);$/;"	v
+force_repr	../colr.h	299;"	d
 fore	../colr.h	/^    struct ColorArg *fore;$/;"	m	struct:ColorText	typeref:struct:ColorText::ColorArg
-fore	../colr.h	378;"	d
-fore_arg	../colr.h	338;"	d
-fore_str	../colr.h	389;"	d
+fore	../colr.h	385;"	d
+fore_arg	../colr.h	345;"	d
+fore_str	../colr.h	396;"	d
 format_bg	../colr.c	/^void format_bg(char *out, BasicValue value) {$/;"	f
 format_bg_RGB	../colr.c	/^void format_bg_RGB(char *out, struct RGB rgb) {$/;"	f
 format_bg_rgb	../colr.c	/^void format_bg_rgb(char *out, unsigned char redval, unsigned char greenval, unsigned char blueval) {$/;"	f
@@ -241,35 +219,39 @@ green	../colr.h	/^    unsigned char green;$/;"	m	struct:RGB
 main	test_colr.c	/^int main(int argc, char *argv[]) {$/;"	f
 marker	../colr.h	/^    unsigned int marker;$/;"	m	struct:ColorArg
 marker	../colr.h	/^    unsigned int marker;$/;"	m	struct:ColorText
-name	../colr.h	/^    char *name;$/;"	m	struct:ColorInfo
+name	../colr.h	/^    char *name;$/;"	m	struct:BasicInfo
+name	../colr.h	/^    char *name;$/;"	m	struct:ExtendedInfo
 name	../colr.h	/^    char *name;$/;"	m	struct:StyleInfo
-printferr	../colr.h	210;"	d
+printferr	../colr.h	217;"	d
 red	../colr.h	/^    unsigned char red;$/;"	m	struct:RGB
-return_cm_tests	test_colr.h	27;"	d
+return_cm_tests	test_colr.h	28;"	d
 rgb	../colr.h	/^    struct RGB rgb;$/;"	m	struct:ColorValue	typeref:struct:ColorValue::RGB
-rgb	../colr.h	220;"	d
+rgb	../colr.h	227;"	d
 rgb_from_str	../colr.c	/^int rgb_from_str(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b) {$/;"	f
 run_BasicValue_tests	test_BasicValue.c	/^int run_BasicValue_tests(void) {$/;"	f
 run_ColorType_tests	test_ColorType.c	/^int run_ColorType_tests(void) {$/;"	f
+run_ExtendedValue_tests	test_ExtendedValue.c	/^int run_ExtendedValue_tests(void) {$/;"	f
 run_format_bg_tests	test_format.c	/^int run_format_bg_tests(void) {$/;"	f
 run_format_fg_tests	test_format.c	/^int run_format_fg_tests(void) {$/;"	f
 run_helper_tests	test_helpers.c	/^int run_helper_tests(void) {$/;"	f
-runner	test_colr.h	34;"	d
+runner	test_colr.h	35;"	d
 str_copy	../colr.c	/^char *str_copy(char *dest, const char *src, size_t length) {$/;"	f
+str_endswith	../colr.c	/^bool str_endswith(const char *str, const char *suf) {$/;"	f
+str_lower	../colr.c	/^void str_lower(char *s) {$/;"	f
 str_noop	../colr.c	/^char *str_noop(char *s) {$/;"	f
-str_startswith	../colr.c	/^int str_startswith(const char *s, const char *prefix) {$/;"	f
+str_startswith	../colr.c	/^bool str_startswith(const char *s, const char *prefix) {$/;"	f
 str_tolower	../colr.c	/^void str_tolower(char *out, const char *s) {$/;"	f
-streq	../colr.h	232;"	d
+streq	../colr.h	239;"	d
 style	../colr.h	/^    StyleValue style;$/;"	m	struct:ColorValue
-style	../colr.h	/^    StyleValue style;$/;"	m	struct:StyleInfo
 style	../colr.h	/^    struct ColorArg *style;$/;"	m	struct:ColorText	typeref:struct:ColorText::ColorArg
-style	../colr.h	504;"	d
-style_arg	../colr.h	467;"	d
-style_names	../colr.c	/^struct StyleInfo style_names[] = {$/;"	v	typeref:struct:StyleInfo
-style_names_len	../colr.c	/^size_t style_names_len = sizeof style_names \/ sizeof (struct StyleInfo);$/;"	v
-style_str	../colr.h	515;"	d
+style	../colr.h	511;"	d
+style_arg	../colr.h	474;"	d
+style_names	../colr.c	/^const struct StyleInfo style_names[] = {$/;"	v	typeref:struct:StyleInfo
+style_names_len	../colr.c	/^const size_t style_names_len = sizeof(style_names) \/ sizeof(style_names[0]);$/;"	v
+style_str	../colr.h	522;"	d
 test_BasicValue_from_str	test_BasicValue.c	/^static void test_BasicValue_from_str(void **state) {$/;"	f	file:
 test_ColorType_from_str	test_ColorType.c	/^static void test_ColorType_from_str(void **state) {$/;"	f	file:
+test_ExtendedValue_from_str	test_ExtendedValue.c	/^static void test_ExtendedValue_from_str(void **state) {$/;"	f	file:
 test_format_bg	test_format.c	/^static void test_format_bg(void **state) {$/;"	f	file:
 test_format_bg_RGB	test_format.c	/^static void test_format_bg_RGB(void **state) {$/;"	f	file:
 test_format_bg_rgb	test_format.c	/^static void test_format_bg_rgb(void **state) {$/;"	f	file:
@@ -279,4 +261,7 @@ test_str_startswith	test_helpers.c	/^static void test_str_startswith(void **stat
 text	../colr.h	/^    char *text;$/;"	m	struct:ColorText
 type	../colr.h	/^    ArgType type;$/;"	m	struct:ColorArg
 type	../colr.h	/^    ColorType type;$/;"	m	struct:ColorValue
+value	../colr.h	/^    BasicValue value;$/;"	m	struct:BasicInfo
+value	../colr.h	/^    ExtendedValue value;$/;"	m	struct:ExtendedInfo
+value	../colr.h	/^    StyleValue value;$/;"	m	struct:StyleInfo
 value	../colr.h	/^    struct ColorValue value;$/;"	m	struct:ColorArg	typeref:struct:ColorArg::ColorValue

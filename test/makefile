@@ -112,13 +112,14 @@ help targets:
 	";
 
 .PHONY: cleantest, test
+cleantest: clean
+cleantest: debug
 cleantest:
-	-@$(MAKE) --no-print-directory clean debug && \
-		printf "\nRunning $(binary) (via $(test_runner))...\n    "; \
-		./$(test_runner);
+	-@printf "\nRunning $(binary) (via $(test_runner))...\n    "; \
+	./$(test_runner);
 
+test: debug
 test:
-	-@$(MAKE) --no-print-directory debug; \
-		printf "\nRunning $(binary) (via $(test_runner))...\n    "; \
-		./$(test_runner);
+	-@printf "\nRunning $(binary) (via $(test_runner))...\n    "; \
+	./$(test_runner);
 

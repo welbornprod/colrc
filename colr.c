@@ -5,16 +5,10 @@
     \date 06-22-2019
 */
 #include "colr.h"
-/*! Possible error return value for BasicValue_from_str(), ExtendedValue_from_str(),
-    and colorname_to_rgb().
-*/
-const int COLORVAL_INVALID = -2;
-//! Possible error return value for rgb_from_str() and RGB_from_str().
-const int COLORVAL_INVALID_RANGE = -1;
 
-//! A list of ColorInfo items, used with BasicValue_from_str().
-struct ColorInfo color_names[] = {
-    {"none", COLOR_NONE},
+//! A list of BasicInfo items, used with BasicValue_from_str().
+const struct BasicInfo basic_names[] = {
+    {"none", BASIC_NONE},
     {"reset", RESET},
     {"black", BLACK},
     {"blue", BLUE},
@@ -34,31 +28,38 @@ struct ColorInfo color_names[] = {
     {"lightred", LIGHTRED},
     {"lightwhite", LIGHTWHITE},
     {"lightyellow", LIGHTYELLOW},
-    {"xblack", XBLACK},
-    {"xblue", XBLUE},
-    {"xcyan", XCYAN},
-    {"xgreen", XGREEN},
-    {"xmagenta", XMAGENTA},
-    {"xnormal", XWHITE},
-    {"xred", XRED},
-    {"xwhite", XWHITE},
-    {"xyellow", XYELLOW},
-    {"xlightblack", XLIGHTBLACK},
-    {"xlightblue", XLIGHTBLUE},
-    {"xlightcyan", XLIGHTCYAN},
-    {"xlightgreen", XLIGHTGREEN},
-    {"xlightmagenta", XLIGHTMAGENTA},
-    {"xlightnormal", XLIGHTWHITE},
-    {"xlightred", XLIGHTRED},
-    {"xlightwhite", XLIGHTWHITE},
-    {"xlightyellow", XLIGHTYELLOW},
 };
 
-//! Length of color_names.
-size_t color_names_len = sizeof color_names / sizeof (struct ColorInfo);
+//! Length of basic_names.
+const size_t basic_names_len = sizeof(basic_names) / sizeof(basic_names[0]);
+
+
+//! A list of ExtendedInfo, used with ExtendedValue_from_str().
+const struct ExtendedInfo extended_names[] = {
+    {"xred", XRED},
+    {"xgreen", XGREEN},
+    {"xyellow", XYELLOW},
+    {"xblue", XBLUE},
+    {"xmagenta", XMAGENTA},
+    {"xcyan", XCYAN},
+    {"xnormal", XWHITE},
+    {"xwhite", XWHITE},
+    {"xlightred", XLIGHTRED},
+    {"xlightgreen", XLIGHTGREEN},
+    {"xlightyellow", XLIGHTYELLOW},
+    {"xlightblack", XLIGHTBLACK},
+    {"xlightblue", XLIGHTBLUE},
+    {"xlightmagenta", XLIGHTMAGENTA},
+    {"xlightwhite", XLIGHTWHITE},
+    {"xlightcyan", XLIGHTCYAN},
+    {"xlightnormal", XLIGHTWHITE},
+};
+
+//! Length of extended_names.
+const size_t extended_names_len = sizeof(extended_names) / sizeof(extended_names[0]);
 
 //! A list of StyleInfo items, used with StyleName_from_str().
-struct StyleInfo style_names[] = {
+const struct StyleInfo style_names[] = {
     {"none", STYLE_NONE},
     {"reset", RESET_ALL},
     {"bold", BRIGHT},
@@ -72,7 +73,7 @@ struct StyleInfo style_names[] = {
 };
 
 //! Length of style_names.
-size_t style_names_len = sizeof style_names / sizeof (struct StyleInfo);
+const size_t style_names_len = sizeof(style_names) / sizeof(style_names[0]);
 
 /*! Allocates an empty string.
     \details
@@ -88,6 +89,17 @@ char *colr_empty_str(void) {
     return s;
 }
 
+/*! Create an escape code for a background color.
+
+    \po out   Memory allocated for the escape code string.
+              _Must have enough room for `CODEX_LEN`._
+    \pi value BasicValue value to use for background.
+*/
+void format_bg(char *out, BasicValue value) {
+    if (!out) return;
+    snprintf(out, CODE_LEN, "\033[%dm", BasicValue_to_ansi(BACK, value));
+}
+
 /*! Create an escape code for an extended background color.
 
     \po out Memory allocated for the escape code string.
@@ -97,34 +109,6 @@ char *colr_empty_str(void) {
 void format_bgx(char *out, unsigned char num) {
     if (!out) return;
     snprintf(out, CODEX_LEN, "\033[48;5;%dm", num);
-}
-
-/*! Create an escape code for a background color.
-
-    \po out   Memory allocated for the escape code string.
-              _Must have enough room for `CODEX_LEN`._
-    \pi value BasicValue value to use for background.
-*/
-void format_bg(char *out, BasicValue value) {
-    if (!out) return;
-    int use_value = (int)value;
-    if (value < 0) {
-        // Invalid, just use the RESET code.
-        snprintf(out, CODE_LEN, "\033[%dm", RESET);
-    } else if (value >= 20) {
-        // Use 256-colors.
-        use_value -= 20;
-        format_bgx(out, use_value);
-    } else {
-        if (value >= 10) {
-            // Bright colors.
-            use_value += 90;
-        }  else {
-            // Normal basic value.
-            use_value += 40;
-        }
-        snprintf(out, CODE_LEN, "\033[%dm", use_value);
-    }
 }
 
 /*! Create an escape code for a true color (rgb) background color.
@@ -152,6 +136,17 @@ void format_bg_RGB(char *out, struct RGB rgb) {
     format_bg_rgb(out, rgb.red, rgb.green, rgb.blue);
 }
 
+/*! Create an escape code for a fore color.
+
+    \po out   Memory allocated for the escape code string.
+              _Must have enough room for `CODEX_LEN`._
+    \pi value BasicValue value to use for fore.
+*/
+void format_fg(char *out, BasicValue value) {
+    if (!out) return;
+    snprintf(out, CODE_LEN, "\033[%dm", BasicValue_to_ansi(FORE, value));
+}
+
 /*! Create an escape code for an extended fore color.
 
     \po out Memory allocated for the escape code string.
@@ -161,34 +156,6 @@ void format_bg_RGB(char *out, struct RGB rgb) {
 void format_fgx(char *out, unsigned char num) {
     if (!out) return;
     snprintf(out, CODEX_LEN, "\033[38;5;%dm", num);
-}
-
-/*! Create an escape code for a fore color.
-
-    \po out   Memory allocated for the escape code string.
-              _Must have enough room for `CODEX_LEN`._
-    \pi value BasicValue value to use for fore.
-*/
-void format_fg(char *out, BasicValue value) {
-    if (!out) return;
-    int use_value = (int)value;
-    if (value < 0) {
-        // Invalid, just use the RESET code.
-        use_value = RESET;
-    } else if (value >= 20) {
-        // Use 256-colors.
-        use_value -= 20;
-        format_fgx(out, use_value);
-    } else {
-        if (value >= 10) {
-            // Bright colors.
-            use_value += 80;
-        }  else {
-            // Normal basic value.
-            use_value += 30;
-        }
-        snprintf(out, CODE_LEN, "\033[%dm", use_value);
-    }
 }
 
 /*! Create an escape code for a true color (rgb) fore color.
@@ -302,6 +269,23 @@ bool str_endswith(const char *str, const char *suf) {
     return (strncmp(str + (strlength - suflength), suf, suflength) == 0);
 }
 
+/*! Converts a string into lower case in place.
+    \details
+    _Input string must be null-terminated._
+
+    \pi s The input string to convert to lower case.
+*/
+void str_lower(char *s) {
+    if (!s) return;
+    size_t i = 0;
+    while (s[i]) {
+        char c = tolower(s[i]);
+        s[i] = c;
+        i++;
+    }
+    s[i] = '\0';
+}
+
 /*! This is a no-op function that simply returns the pointer it is given.
     \details
     It is used in the force_str macro to dynamically ensure it's argument
@@ -354,12 +338,13 @@ bool str_startswith(const char *s, const char *prefix) {
     \pi s   The input string to convert to lower case.
 */
 void str_tolower(char *out, const char *s) {
-    int length = 0;
-    for (int i = 0; s[i]; i++) {
-        length++;
+    if (!out) return;
+    size_t i = 0;
+    while (s[i]) {
         out[i] = tolower(s[i]);
+        i++;
     }
-    out[length] = '\0';
+    out[i] = '\0';
 }
 
 /* ---------------------------- Colr Functions ---------------------------- */
@@ -385,6 +370,9 @@ void str_tolower(char *out, const char *s) {
 */
 char *Colr_join(void *p, ...) {
     // Argument list must have ColorArg/ColorText with NULL members at the end.
+    if (!p) {
+        return colr_empty_str();
+    }
     va_list args;
     va_start(args, p);
     char *s;
@@ -889,27 +877,25 @@ ColorType ColorType_from_str(const char *arg) {
     // Try rgb first.
     unsigned char r, g, b;
     int rgb_ret = rgb_from_str(arg, &r, &g, &b);
-    if (rgb_ret == COLORVAL_INVALID_RANGE) {
+    if (rgb_ret == COLOR_INVALID_RANGE) {
         return TYPE_INVALID_RGB_RANGE;
     } else if (rgb_ret != TYPE_INVALID) {
         return TYPE_RGB;
     }
-    // Extended colors.
-    int x_ret = ExtendedValue_from_str(arg);
-    if (x_ret == COLORVAL_INVALID_RANGE) {
-        return TYPE_INVALID_EXTENDED_RANGE;
-    } else if (x_ret != COLORVAL_INVALID) {
-        return TYPE_EXTENDED;
-    }
     // Try basic colors.
-    if (BasicValue_from_str(arg) != COLOR_INVALID) {
+    if (BasicValue_from_str(arg) != BASIC_INVALID) {
         return TYPE_BASIC;
     }
     // Try styles.
     if (StyleValue_from_str(arg) != STYLE_INVALID) {
         return TYPE_STYLE;
-    } else {
-        return TYPE_INVALID_STYLE;
+    }
+    // Extended colors.
+    int x_ret = ExtendedValue_from_str(arg);
+    if (x_ret == COLOR_INVALID_RANGE) {
+        return TYPE_INVALID_EXTENDED_RANGE;
+    } else if (x_ret != COLOR_INVALID) {
+        return TYPE_EXTENDED;
     }
     return TYPE_INVALID;
 }
@@ -985,16 +971,16 @@ struct ColorValue ColorValue_from_str(char *s) {
     // Try rgb first.
     struct RGB rgb;
     int rgb_ret = RGB_from_str(s, &rgb);
-    if (rgb_ret == COLORVAL_INVALID_RANGE) {
+    if (rgb_ret == COLOR_INVALID_RANGE) {
         return ColorValue_from_value(TYPE_INVALID_RGB_RANGE, NULL);
     } else if (rgb_ret != TYPE_INVALID) {
         return ColorValue_from_value(type, &rgb);
     }
     // Extended colors.
     int x_ret = ExtendedValue_from_str(s);
-    if (x_ret == COLORVAL_INVALID_RANGE) {
+    if (x_ret == COLOR_INVALID_RANGE) {
         return ColorValue_from_value(TYPE_INVALID_EXTENDED_RANGE, NULL);
-    } else if (x_ret != COLORVAL_INVALID) {
+    } else if (x_ret != COLOR_INVALID) {
         // Need to cast back into a real ExtendedValue now that I know it's
         // not invalid. Also, ColorValue_from_value expects a pointer, to
         // help with it's "dynamic" uses.
@@ -1010,7 +996,7 @@ struct ColorValue ColorValue_from_str(char *s) {
 
     // Try basic colors.
     int b_ret = BasicValue_from_str(s);
-    if ( b_ret != COLOR_INVALID) {
+    if ( b_ret != BASIC_INVALID) {
         BasicValue bval = (BasicValue)b_ret;
         return ColorValue_from_value(type, &bval);
     }
@@ -1201,21 +1187,37 @@ char *ColorValue_to_str(ArgType type, struct ColorValue cval) {
 /*! Convert named argument to an actual BasicValue enum value.
 
     \pi arg Color name to find the BasicValue for.
-    \return BasicValue value on success, or COLOR_INVALID on error.
+    \return BasicValue value on success, or BASIC_INVALID on error.
 */
 BasicValue BasicValue_from_str(const char *arg) {
     if (!arg) {
-        return COLOR_INVALID;
+        return BASIC_INVALID;
     }
-    char arglower[MAX_COLOR_NAME_LEN];
-    str_tolower(arglower, arg);
-    for (size_t i=0; i < color_names_len; i++) {
-        if (!strcmp(arglower, color_names[i].name)) {
-            return color_names[i].color;
+    char *arglower;
+    asprintf(&arglower, "%s", arg);
+    str_lower(arglower);
+    for (size_t i=0; i < basic_names_len; i++) {
+        if (!strcmp(arglower, basic_names[i].name)) {
+            free(arglower);
+            return basic_names[i].value;
         }
     }
+    free(arglower);
+    return BASIC_INVALID;
+}
 
-    return COLOR_INVALID;
+int BasicValue_to_ansi(ArgType type, BasicValue bval) {
+    int use_value = (int)bval;
+    if (bval < 0) {
+        // Invalid, just use the RESET code.
+        return (int)RESET;
+    }
+    if (bval < 10) {
+        // Normal back colors.
+        return use_value + (type == BACK ? 40 : 30);
+    }
+    // Bright back colors.
+    return use_value + (type == BACK ? 90 : 80);
 }
 
 /*! Converts an integer string (0-255) into an ExtendedValue suitable
@@ -1224,38 +1226,31 @@ BasicValue BasicValue_from_str(const char *arg) {
     \pi arg Color name to find the ExtendedValue for.
 
     \return A value between 0 and 255 on success.
-    \retval COLORVAL_INVALID on error or bad values.
+    \retval COLOR_INVALID on error or bad values.
 */
 int ExtendedValue_from_str(const char *arg) {
     if (!arg) {
-        return COLORVAL_INVALID;
+        return COLOR_INVALID;
     }
-    if (streq(arg, "xred")) return XRED;
-    if (streq(arg, "xgreen")) return XGREEN;
-    if (streq(arg, "xyellow")) return XYELLOW;
-    if (streq(arg, "xblue")) return XBLUE;
-    if (streq(arg, "xmagenta")) return XMAGENTA;
-    if (streq(arg, "xcyan")) return XCYAN;
-    if (streq(arg, "xnormal")) return XWHITE;
-    if (streq(arg, "xwhite")) return XWHITE;
-    if (streq(arg, "xlightred")) return XLIGHTRED;
-    if (streq(arg, "xlightgreen")) return XLIGHTGREEN;
-    if (streq(arg, "xlightyellow")) return XLIGHTYELLOW;
-    if (streq(arg, "xlightblack")) return XLIGHTBLACK;
-    if (streq(arg, "xlightblue")) return XLIGHTBLUE;
-    if (streq(arg, "xlightmagenta")) return XLIGHTMAGENTA;
-    if (streq(arg, "xlightcyan")) return XLIGHTCYAN;
-    if (streq(arg, "xlightnormal")) return XLIGHTWHITE;
-    if (streq(arg, "xlightwhite")) return XLIGHTWHITE;
+    char *arglower;
+    asprintf(&arglower, "%s", arg);
+    str_lower(arglower);
+    for (size_t i=0; i < extended_names_len; i++) {
+        if (!strcmp(arglower, extended_names[i].name)) {
+            free(arglower);
+            return extended_names[i].value;
+        }
+    }
+    free(arglower);
 
     // Using long to combat easy overflow.
     long usernum;
     if (!sscanf(arg, "%ld", &usernum)) {
         // Not a number.
-        return COLORVAL_INVALID;
+        return COLOR_INVALID;
     }
     if (usernum < 0 || usernum > 255) {
-        return COLORVAL_INVALID_RANGE;
+        return COLOR_INVALID_RANGE;
     }
     return (int)usernum;
 }
@@ -1274,12 +1269,12 @@ int ExtendedValue_from_str(const char *arg) {
     \po b   Pointer to an unsigned char for blue value on success.
 
     \retval 0 on success, with \p rgbval filled with the values.
-    \retval COLORVAL_INVALID for non-rgb strings.
-    \retval COLORVAL_INVALID_RANGE for rgb values outside of 0-255.
+    \retval COLOR_INVALID for non-rgb strings.
+    \retval COLOR_INVALID_RANGE for rgb values outside of 0-255.
 */
 int rgb_from_str(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b) {
     if (!arg) {
-        return COLORVAL_INVALID;
+        return COLOR_INVALID;
     }
     const char *formats[4] = {
         "%ld,%ld,%ld",
@@ -1292,9 +1287,9 @@ int rgb_from_str(const char *arg, unsigned char *r, unsigned char *g, unsigned c
     while (formats[i]) {
         if (sscanf(arg, formats[i], &userred, &usergreen, &userblue) == 3) {
             // Found a match.
-            if (userred < 0 || userred > 255) return COLORVAL_INVALID_RANGE;
-            if (usergreen < 0 || usergreen > 255) return COLORVAL_INVALID_RANGE;
-            if (userblue < 0 || userblue > 255) return COLORVAL_INVALID_RANGE;
+            if (userred < 0 || userred > 255) return COLOR_INVALID_RANGE;
+            if (usergreen < 0 || usergreen > 255) return COLOR_INVALID_RANGE;
+            if (userblue < 0 || userblue > 255) return COLOR_INVALID_RANGE;
             // Valid ranges, set values for out parameters.
             *r = (unsigned char)userred;
             *g = (unsigned char)usergreen;
@@ -1303,7 +1298,7 @@ int rgb_from_str(const char *arg, unsigned char *r, unsigned char *g, unsigned c
         }
         i++;
     }
-    return COLORVAL_INVALID;
+    return COLOR_INVALID;
 }
 
 /*! Convert an RGB string into a RGB struct suitable for the
@@ -1326,12 +1321,12 @@ RGB_from_str("123,0,234", &rgbval)
     \po rgbval Pointer to an RGB struct to fill in the values for.
 
     \retval 0 on success, with \p rgbval filled with the values.
-    \retval COLORVAL_INVALID for non-rgb strings.
-    \retval COLORVAL_INVALID_RANGE for rgb values outside of 0-255.
+    \retval COLOR_INVALID for non-rgb strings.
+    \retval COLOR_INVALID_RANGE for rgb values outside of 0-255.
 */
 int RGB_from_str(const char *arg, struct RGB *rgbval) {
     if (!arg) {
-        return COLORVAL_INVALID;
+        return COLOR_INVALID;
     }
     unsigned char r = 0;
     unsigned char g = 0;
@@ -1356,14 +1351,16 @@ StyleValue StyleValue_from_str(const char *arg) {
     if (!arg) {
         return STYLE_INVALID;
     }
-    char arglower[MAX_COLOR_NAME_LEN];
-    str_tolower(arglower, arg);
-
+    char *arglower;
+    asprintf(&arglower, "%s", arg);
+    str_lower(arglower);
     for (size_t i=0; i < style_names_len; i++) {
         if (!strcmp(arglower, style_names[i].name)) {
-            return style_names[i].style;
+            free(arglower);
+            return style_names[i].value;
         }
     }
+    free(arglower);
     return STYLE_INVALID;
 }
 

@@ -35,7 +35,7 @@ coverage: CFLAGS+=-fprofile-arcs -ftest-coverage
 coverage: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
 coverage: $(binary)
 coverage:
-	@./gen_coverage_html.sh "$(realpath $(binary))" "$(realpath $(cov_dir))"
+	@./gen_coverage_html.sh "$(realpath $(binary))" "$(realpath $(cov_dir))" $(COLR_ARGS)
 
 debug: tags
 debug: CFLAGS+=-g3 -DDEBUG

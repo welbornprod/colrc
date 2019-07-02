@@ -46,6 +46,7 @@ int main(int argc, char *argv[]) {
             print_usage("Too many arguments!");
             return 1;
     }
+
     if (argeq(textarg, "-h", "--help")) return print_usage_full();
     if (streq(textarg, "-basic")) return print_basic(true);
     if (streq(textarg, "-bbasic") || streq(textarg, "-basicb")) return print_basic(false);
@@ -149,20 +150,10 @@ int print_basic(bool do_fore) {
     /* Print basic color names and escape codes. */
     char *text = NULL;
     char *namefmt = NULL;
-    int newlines = 0;
-    for (size_t i = 0; i < color_names_len; i++) {
-        char *name = color_names[i].name;
-        BasicValue val = color_names[i].color;
+    for (size_t i = 0; i < basic_names_len; i++) {
+        char *name = basic_names[i].name;
+        BasicValue val = basic_names[i].value;
         if (streq(name, "black")) {
-            puts("");
-        } else if ((newlines == 0) && str_startswith(name, "light")) {
-            newlines++;
-            puts("");
-        } else if ((newlines == 1) && str_startswith(name, "x")) {
-            newlines++;
-            puts("");
-        } else if ((newlines == 2) && str_startswith(name, "xlight")) {
-            newlines++;
             puts("");
         }
         BasicValue otherval = str_endswith(name, "black") ? WHITE : BLACK;

@@ -42,6 +42,8 @@ extern int run_format_bg_tests(void);
 extern int run_format_fg_tests(void);
 extern int run_BasicValue_tests(void);
 extern int run_ColorType_tests(void);
+extern int run_ExtendedValue_tests(void);
+
 /* Warn for any other unused macros, for gcc and clang. */
 #pragma GCC diagnostic warning "-Wunused-macros"
 #pragma clang diagnostic push

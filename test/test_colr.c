@@ -15,5 +15,6 @@ int main(int argc, char *argv[]) {
     errs += run_format_fg_tests();
     errs += run_BasicValue_tests();
     errs += run_ColorType_tests();
+    errs += run_ExtendedValue_tests();
     return errs;
 }

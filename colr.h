@@ -92,7 +92,7 @@
 #define CODE_ANY_LEN 46
 
 //! Maximim string length for a fore, back, or style name.
-#define MAX_COLOR_NAME_LEN 12
+#define MAX_COLOR_NAME_LEN 14
 
 /*! \internal
     Marker for the ColroArg struct, for identifying a void pointer as a
@@ -107,6 +107,13 @@
     \endinternal
 */
 #define COLORTEXT_MARKER (UINT_MAX >> 1)
+
+/*! Possible error return value for BasicValue_from_str(), ExtendedValue_from_str(),
+    and colorname_to_rgb().
+*/
+#define COLOR_INVALID (-2)
+//! Possible error return value for rgb_from_str() and RGB_from_str().
+#define COLOR_INVALID_RANGE (-1)
 
 /*! \def alloc_basic
     Allocate enough for a basic code.
@@ -229,7 +236,7 @@
     \retval 1 if \p s1 is greater than \p s2.
     \retval 1 if \p s1 is less than \p s2.
 */
-#define streq(s1, s2) (!strcmp(s1, s2))
+#define streq(s1, s2) ((s1 && s2) ? !strcmp(s1, s2) : false)
 
 /*! \def color_arg
     Builds a correct ColorArg struct according to the type of it's second
@@ -554,8 +561,8 @@
     \endinternal
 */
 typedef enum BasicValue_t {
-    COLOR_INVALID = -2,
-    COLOR_NONE = -1,
+    BASIC_INVALID = COLOR_INVALID,
+    BASIC_NONE = -1,
     // The actual escape code value for fore colors is BasicValue + 30.
     // The actual escape code value for back colors is BasicValue + 40.
     BLACK = 0,
@@ -579,31 +586,11 @@ typedef enum BasicValue_t {
     LIGHTMAGENTA = 15,
     LIGHTCYAN = 16,
     LIGHTWHITE = 17,
-    // The following colors trigger extended color code use (format_fgx()).
-    // The actual 256-color value is BasicValue - 20.
-    XBLACK = 20,
-    XRED = 22,
-    XGREEN = 22,
-    XYELLOW = 23,
-    XBLUE = 24,
-    XMAGENTA = 25,
-    XCYAN = 26,
-    XWHITE = 27,
-    // The same "bright" colors as above, using the 256-color code.
-    // The actual 256-color value is BasicValue - 20.
-    XLIGHTBLACK = 28,
-    XLIGHTRED = 29,
-    XLIGHTGREEN = 30,
-    XLIGHTYELLOW = 31,
-    XLIGHTBLUE = 33,
-    XLIGHTMAGENTA = 33,
-    XLIGHTCYAN = 34,
-    XLIGHTWHITE = 35,
 } BasicValue;
 
 #ifndef DOXYGEN_SKIP
-#define COLOR_INVALID basic(COLOR_INVALID)
-#define COLOR_NONE basic(COLOR_NONE)
+#define BASIC_INVALID basic(BASIC_INVALID)
+#define BASIC_NONE basic(BASIC_NONE)
 #define BLACK basic(BLACK)
 #define RED basic(RED)
 #define GREEN basic(GREEN)
@@ -622,26 +609,28 @@ typedef enum BasicValue_t {
 #define LIGHTMAGENTA basic(LIGHTMAGENTA)
 #define LIGHTCYAN basic(LIGHTCYAN)
 #define LIGHTWHITE basic(LIGHTWHITE)
-#define XBLACK basic(XBLACK)
-#define XRED basic(XRED)
-#define XGREEN basic(XGREEN)
-#define XYELLOW basic(XYELLOW)
-#define XBLUE basic(XBLUE)
-#define XMAGENTA basic(XMAGENTA)
-#define XCYAN basic(XCYAN)
-#define XWHITE basic(XWHITE)
-#define XLIGHTBLACK basic(XLIGHTBLACK)
-#define XLIGHTRED basic(XLIGHTRED)
-#define XLIGHTGREEN basic(XLIGHTGREEN)
-#define XLIGHTYELLOW basic(XLIGHTYELLOW)
-#define XLIGHTBLUE basic(XLIGHTBLUE)
-#define XLIGHTMAGENTA basic(XLIGHTMAGENTA)
-#define XLIGHTCYAN basic(XLIGHTCYAN)
-#define XLIGHTWHITE basic(XLIGHTWHITE)
+//! Convenience 256 color names.
+# define XBLACK ((ExtendedValue)0)
+# define XRED ((ExtendedValue)1)
+# define XGREEN ((ExtendedValue)2)
+# define XYELLOW ((ExtendedValue)3)
+# define XBLUE ((ExtendedValue)4)
+# define XMAGENTA ((ExtendedValue)5)
+# define XCYAN ((ExtendedValue)6)
+# define XWHITE ((ExtendedValue)7)
+# define XLIGHTBLACK ((ExtendedValue)8)
+# define XLIGHTRED ((ExtendedValue)9)
+# define XLIGHTGREEN ((ExtendedValue)10)
+# define XLIGHTYELLOW ((ExtendedValue)11)
+# define XLIGHTBLUE ((ExtendedValue)12)
+# define XLIGHTMAGENTA ((ExtendedValue)13)
+# define XLIGHTCYAN ((ExtendedValue)14)
+# define XLIGHTWHITE ((ExtendedValue)15)
 #endif // DOXYGEN_SKIP
 
 //! Convenience `typedef` for clarity when dealing with extended (256) colors.
 typedef unsigned char ExtendedValue;
+#define EXTENDED_INVALID COLOR_INVALID
 
 //! Container for RGB values.
 struct RGB {
@@ -652,7 +641,7 @@ struct RGB {
 
 //! Style values.
 typedef enum StyleValue_t {
-    STYLE_INVALID = -2,
+    STYLE_INVALID = COLOR_INVALID,
     STYLE_NONE = -1,
     RESET_ALL = 0,
     BRIGHT = 1,
@@ -690,7 +679,7 @@ typedef enum ColorType_t {
     TYPE_INVALID_EXTENDED_RANGE = -5,
     TYPE_INVALID_RGB_RANGE = -4,
     TYPE_INVALID_STYLE = -3,
-    TYPE_INVALID = -2,
+    TYPE_INVALID = COLOR_INVALID,
     TYPE_BASIC = 0,
     TYPE_EXTENDED = 1,
     TYPE_RGB = 2,
@@ -702,11 +691,20 @@ typedef enum ColorType_t {
 /*! Holds a known color name and it's `BasicValue`.
 
     \details
-    This is used for the `color_names` array in colr.c.
+    This is used for the `basic_names` array in colr.c.
 */
-struct ColorInfo {
+struct BasicInfo {
     char *name;
-    BasicValue color;
+    BasicValue value;
+};
+/*! Holds a known color name and it's `ExtendedValue`.
+
+    \details
+    This is used for the `basic_names` array in colr.c.
+*/
+struct ExtendedInfo {
+    char *name;
+    ExtendedValue value;
 };
 /*! Holds a known style name and it's `StyleValue`.
 
@@ -715,7 +713,7 @@ struct ColorInfo {
 */
 struct StyleInfo {
     char *name;
-    StyleValue style;
+    StyleValue value;
 };
 
 /*! Holds a color type and it's value.
@@ -754,29 +752,20 @@ struct ColorText {
     struct ColorArg *style;
 };
 
-/*! \internal
-    Allows access to color_names (implemented in colr.c).
-    \endinternal
-*/
-extern struct ColorInfo color_names[];
-
-/*! \internal
-    Allows access to color_names_len (implemented in colr.c).
-    \endinternal
-*/
-extern size_t color_names_len;
-
-/*! \internal
-    Allows access to style_names (implemented in colr.c).
-    \endinternal
-*/
-extern struct StyleInfo style_names[];
-
-/*! \internal
-    Allows access to style_names_len (implemented in colr.c).
-    \endinternal
-*/
-extern size_t style_names_len;
+#ifndef DOXYGEN_SKIP
+//! A list of BasicInfo items, used with BasicValue_from_str().
+extern const struct BasicInfo basic_names[];
+//! Length of basic_names.
+extern const size_t basic_names_len;
+//! A list of ExtendedInfo, used with ExtendedValue_from_str().
+extern const struct ExtendedInfo extended_names[];
+//! Length of extended_names.
+extern const size_t extended_names_len;
+//! A list of StyleInfo items, used with StyleName_from_str().
+extern const struct StyleInfo style_names[];
+//! Length of style_names.
+extern const size_t style_names_len;
+#endif
 
 
 /*! \file colr.h
@@ -797,6 +786,7 @@ void format_style(char *out, StyleValue style);
 
 char *str_copy(char *dest, const char *src, size_t length);
 bool str_endswith(const char *s, const char *suffix);
+void str_lower(char *s);
 char *str_noop(char *s);
 bool str_startswith(const char *s, const char *prefix);
 void str_tolower(char *out, const char *s);
@@ -806,7 +796,7 @@ void str_tolower(char *out, const char *s);
     The multi-type variadiac function behind the colr() macro.
     \endinternal
 */
-char *Colr_join(void *ctext, ...);
+char *Colr_join(void *p, ...);
 
 /*! \internal
     ArgType functions that only deal with argument types (fore, back, style).
@@ -870,11 +860,16 @@ char *ColorValue_to_str(ArgType type, struct ColorValue cval);
     \endinternal
 */
 BasicValue BasicValue_from_str(const char *arg);
+int BasicValue_to_ansi(ArgType type, BasicValue bval);
 int ExtendedValue_from_str(const char *arg);
 int rgb_from_str(const char *arg, unsigned char *r, unsigned char *g, unsigned char *b);
 int RGB_from_str(const char *arg, struct RGB *rgb);
 StyleValue StyleValue_from_str(const char *arg);
 
+/*! \internal
+    Specialized functions.
+    \endinternal
+*/
 void colrfgrainbow(char *out, const char *s, double freq, size_t offset);
 char *acolrfgrainbow(const char *s, double freq, size_t offset);
 #endif // COLR_H
