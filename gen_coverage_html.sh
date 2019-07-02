@@ -28,7 +28,7 @@ function fail_usage {
 }
 
 
-function generate_html() {
+function generate_html {
     printf "\nRunning executable for coverage...\n"
     $exe_path "${flagargs[@]}" "${nonflags[@]}" 1>/dev/null
 
@@ -78,13 +78,13 @@ function print_usage {
     "
 }
 
-function view_html() {
+function view_html {
     local index_file="${html_dir}/index.html"
     [[ -e "$index_file" ]] || fail "HTML index file doesn't exist: $index_file"
     google-chrome "$index_file" &>/dev/null
 }
 
-function view_summary() {
+function view_summary {
     [[ -e "$lcov_name" ]] || fail "Coverage info file not found: $lcov_name"
     lcov --rc lcov_branch_coverage=1 --summary "$lcov_name"
 }

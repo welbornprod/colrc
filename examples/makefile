@@ -26,9 +26,14 @@ binaries=$(basename $(notdir $(example_objects)))
 all: $(binaries)
 
 $(binaries): $(binobjects)
-	@printf "\nCompiling example executable, $(basename $@)...\n    ";
-	binobjects="$@.o colr.o"; \
-	$(CC) -o $(basename $@) $(CFLAGS) $$binobjects $(LIBS) $(INCLUDES)
+	@binname="$(basename $@)"; \
+	if [[ "$?" =~ "$${binname}.o" ]]; then \
+		printf "\nCompiling example executable $$binname:\n    Caused by $?\n    "; \
+		binobjects="$@.o colr.o"; \
+		$(CC) -o $(basename $@) $(CFLAGS) $$binobjects $(LIBS) $(INCLUDES); \
+	else \
+		: # printf "\nNot compiling executable $$binname ($? changed).\n"; \
+	fi;
 
 colr.o: ../colr.c ../colr.h
 	@printf "\nCompiling colr.c from parent dir for examples...\n    "
@@ -37,12 +42,16 @@ colr.o: ../colr.c ../colr.h
 $(example_objects): $(example_source) $(example_headers)
 	@objpath="$@"; \
 	cfile="$${objpath%.*}.c"; \
-	printf "\nCompiling $$cfile for examples (caused by $?)...\n    "; \
-	$(CC) -c $$cfile -o $@ $(CFLAGS) $(LIBS) $(INCLUDES);
+	if [[ "$?" =~ "$$cfile" ]]; then \
+		printf "\nCompiling $$cfile for examples:\n    Caused by $?\n    "; \
+		$(CC) -c $$cfile -o $@ $(CFLAGS) $(LIBS) $(INCLUDES); \
+	else \
+		: # printf "\nNot compiling $$cfile ($? changed).\n"; \
+	fi;
 
 .PHONY: clean
 clean:
-	-@bash ../clean.sh - $(binaries) $(example_objects)
+	-@bash ../clean.sh - $(binaries) $(example_objects) colr.o
 
 .PHONY: help, targets
 help targets:

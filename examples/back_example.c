@@ -12,6 +12,14 @@ int main(void) {
     printf("%s\n", s);
     free(s);
 
+    // Color names:
+    char* n = colr(
+        fore("blue"),
+        "This is blue."
+    );
+    printf("%s\n", n);
+    free(n);
+
     // Extended (256) colors:
     char* e = colr(fore(ext(0)), back(ext(35)), "Extended colors.\n");
     printf("%s", e);
@@ -22,22 +30,15 @@ int main(void) {
     printf("%s", r);
     free(r);
 
-    // The order and color type does not matter.
-    char* all = colr(
-        fore(WHITE),
-        back(YELLOW),
-        "Basic, ",
-        back(ext(234)),
-        "Extended, ",
-        back(rgb(23, 0, 155)),
-        "RGB, ",
-        style(UNDERLINE),
-        "Styles, ",
-        back("lightblue"),
-        "color names, ",
-        style("bright"),
-        "and style names."
+    /*
+        Colr() accepts a fore() as one of it's arguments.
+        The order does not matter.
+    */
+    char* mystr = colr(
+        Colr("This is red.\n", fore(RED)),
+        Colr("This is also red.\n", back("white"), fore("red")),
+        "This is not."
     );
-    printf("%s\n", all);
-    free(all);
+    printf("%s\n", mystr);
+    free(mystr);
 }
