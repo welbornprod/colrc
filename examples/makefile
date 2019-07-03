@@ -36,7 +36,7 @@ $(binaries): $(binobjects)
 	fi;
 
 colr.o: ../colr.c ../colr.h
-	@printf "\nCompiling colr.c from parent dir for examples...\n    "
+	@printf "\nCompiling colr.c from parent dir for examples...\n    "; \
 	$(CC) -c $< -o colr.o $(CFLAGS) $(LIBS) $(INCLUDES)
 
 $(example_objects): $(example_source) $(example_headers)
@@ -51,11 +51,11 @@ $(example_objects): $(example_source) $(example_headers)
 
 .PHONY: clean
 clean:
-	-@bash ../clean.sh - $(binaries) $(example_objects) colr.o
+	-@../clean.sh - $(binaries) $(example_objects) colr.o
 
 .PHONY: help, targets
 help targets:
 	-@printf "Make targets available:\n\
+	all       : Compile all examples.\n\
 	clean     : Delete previous build files.\n\
-	debug     : Build the executable with debug symbols.\n\
 	";

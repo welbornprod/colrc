@@ -25,8 +25,11 @@ docsconfig=Doxyfile
 docsdir=docs
 docsreadme=README.md
 docsmainfile=$(docsdir)/html/index.html
-docsexamples=$(wildcard examples/*.md) $(wildcard examples/*.c)
-docsdepfiles=$(docsconfig) $(docsreadme) $(docsexamples)
+docscss=doc_style/customdoxygen.css
+docsexamples=$(wildcard examples/*.doc) $(wildcard examples/*.c)
+docsdepfiles=$(docsconfig) $(docsreadme) $(docsexamples) $(docscss)
+examples_dir=examples
+examples_source=$(wildcard $(examples_dir)/*.c)
 objects:=$(source:.c=.o)
 
 .PHONY: all, coverage, debug, release
@@ -75,7 +78,7 @@ clangrelease: release
 
 .PHONY: clean
 clean:
-	@bash clean.sh "$(binary)"
+	@./clean.sh "$(binary)"
 
 .PHONY: cleandebug
 cleandebug: clean
@@ -83,7 +86,11 @@ cleandebug: debug
 
 .PHONY: cleandocs
 cleandocs:
-	@bash clean.sh -d "$(docsdir)" "$(docsmainfile)"
+	@./clean.sh -d "$(docsdir)" "$(docsmainfile)"
+
+.PHONY: cleanexamples
+cleanexamples:
+	@cd examples && $(MAKE) $(MAKEFLAGS) --no-print-directory clean
 
 .PHONY: coveragesummary
 coveragesummary:
@@ -97,6 +104,10 @@ coverageview:
 docsrebuild: cleandocs
 docsrebuild: docs
 
+.PHONY: examples
+examples: $(examples_source)
+	@cd examples && $(MAKE) $(MAKEFLAGS) --no-print-directory $(COLR_ARGS)
+
 .PHONY: memcheck
 memcheck:
 	@./run_valgrind.sh -a $(COLR_ARGS)
@@ -108,6 +119,10 @@ run:
 	else \
 		printf "No binary built yet: $(binary)" 1>&2; \
 	fi; \
+
+.PHONY: runexamples
+runexamples:
+	@cd examples && ./run_examples.sh $(COLR_ARGS)
 
 .PHONY: strip
 strip:
@@ -126,6 +141,7 @@ help targets:
     clean           : Delete previous build files.\n\
     cleandebug      : Like running \`make clean debug\`.\n\
     cleandocs       : Delete Doxygen docs from ./$(docsdir).\n\
+    cleanexamples   : Delete previous build files from the examples in $(examples_dir).\n\
     cleantest       : Delete previous build files, build the binary and the \n\
                       test binary, and run the tests.\n\
     coverage        : Compile the debug build and generate coverage reports.\n\
@@ -140,8 +156,10 @@ help targets:
     debug           : Build the executable with debug symbols.\n\
     docs            : Build the Doxygen docs.\n\
     docsrebuild     : Like running \`make cleandocs docs\`\n\
+    examples        : Build example executables in $(examples_dir).\n\
     release         : Build the executable with optimization, and strip it.\n\
     run             : Run the executable. Args are set with COLR_ARGS.\n\
+    runexamples     : Run the example executables in $(examples_dir).\n\
     strip           : Run \`strip\` on the executable.\n\
     tags            : Build tags for this project using \`ctags\`.\n\
     test            : Build debug (if needed), build the test debug (if needed),\n\
@@ -151,18 +169,18 @@ help targets:
 
 .PHONY: cleantest, test
 cleantest:
-	-@$(MAKE) --no-print-directory clean debug && { cd test; $(MAKE) --no-print-directory cleantest; };
+	-@$(MAKE) $(MAKEFLAGS) --no-print-directory clean debug && { cd test; $(MAKE) $(MAKEFLAGS) --no-print-directory cleantest; };
 
 test:
-	-@$(MAKE) --no-print-directory debug && { cd test; $(MAKE) --no-print-directory test; };
+	-@$(MAKE) $(MAKEFLAGS) --no-print-directory debug && { cd test; $(MAKE) $(MAKEFLAGS) --no-print-directory test; };
 
 .PHONY: testcoverage, testsummary, testview
 testcoverage:
-	-@cd test && $(MAKE) --no-print-directory clean coverage
+	-@cd test && $(MAKE) $(MAKEFLAGS) --no-print-directory clean coverage
 
 testsummary:
-	-@cd test && $(MAKE) --no-print-directory coveragesummary
+	-@cd test && $(MAKE) $(MAKEFLAGS) --no-print-directory coveragesummary
 
 testview:
-	-@cd test && $(MAKE) --no-print-directory coverageview
+	-@cd test && $(MAKE) $(MAKEFLAGS) --no-print-directory coverageview
 

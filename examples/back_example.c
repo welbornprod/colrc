@@ -14,10 +14,11 @@ int main(void) {
 
     // Color names:
     char* n = colr(
-        fore("blue"),
+        back("blue"),
+        fore("white"),
         "This is blue."
     );
-    printf("%s\n", n);
+    printf("%s\nThis is not.\n", n);
     free(n);
 
     // Extended (256) colors:
@@ -31,14 +32,14 @@ int main(void) {
     free(r);
 
     /*
-        Colr() accepts a fore() as one of it's arguments.
+        Colr() accepts a back() as one of it's arguments.
         The order does not matter.
     */
-    char* mystr = colr(
-        Colr("This is red.\n", fore(RED)),
-        Colr("This is also red.\n", back("white"), fore("red")),
+    char* colorized = colr(
+        Colr("This is red.\n", back(RED)),
+        Colr("This is also red.\n", back("red"), fore("white")),
         "This is not."
     );
-    printf("%s\n", mystr);
-    free(mystr);
+    printf("%s\n", colorized);
+    free(colorized);
 }

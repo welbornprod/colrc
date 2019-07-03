@@ -308,7 +308,8 @@
 
 
 /*! \def force_repr
-    Transforms several ColrC objects into their string representations.\nIf a string is given, this does nothing.
+    Transforms several ColrC objects into their string representations.
+    If a string is given, this does nothing.
 
     \details
     Uses _Generic (C11 standard) to dynamically ensure a string.

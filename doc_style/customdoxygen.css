@@ -37,17 +37,17 @@ h3.groupheader {
 }
 
 h1, h2, h3, h4, h5, h6 {
-	-webkit-transition: text-shadow 0.5s linear;
+	/* -webkit-transition: text-shadow 0.5s linear;
 	-moz-transition: text-shadow 0.5s linear;
 	-ms-transition: text-shadow 0.5s linear;
 	-o-transition: text-shadow 0.5s linear;
     text-shadow: rgba(0, 0, 0, 0.5) 1px 1px 2px;
-	transition: text-shadow 0.5s linear;
+	transition: text-shadow 0.5s linear; */
 	margin-right: 15px;
 }
 
 h1.glow, h2.glow, h3.glow, h4.glow, h5.glow, h6.glow {
-	text-shadow: 0 0 15px cyan;
+	text-shadow: 0 0 6px rgb(39, 73, 157);
 }
 
 dt {
@@ -151,11 +151,11 @@ a.elRef {
 }
 
 a.code, a.code:visited, a.line, a.line:visited {
-	color: #4665A2;
+	color: #81a0de;
 }
 
 a.codeRef, a.codeRef:visited, a.lineRef, a.lineRef:visited {
-	color: #4665A2;
+	color: #81a0de;
 }
 
 /* @end */
@@ -178,15 +178,16 @@ pre.fragment {
 }
 
 div.fragment {
-    background-color: #FBFCFD;
+    background-color: #272822;
     border-radius: 5px;
     border: 1px solid #C2D5E2;
     margin: 4px 8px 4px 2px;
     padding-left: 5px;
-    padding: 2px;
+    padding: 4px;
 }
 
 div.line {
+	color: #f8f8f2;
 	font-family: "DejaVu Sans Mono", "Source Code Pro", monospace, fixed;
     font-size: 13px;
 	min-height: 13px;
@@ -219,24 +220,24 @@ div.line:after {
 }
 
 div.line.glow {
-	background-color: cyan;
-	box-shadow: 0 0 10px cyan;
+	background-color: rgba(39, 73, 157, 0.23);
+	box-shadow: 0 0 6px rgba(39, 73, 157, 0.23);
 }
 
 
 span.lineno {
 	padding-right: 4px;
 	text-align: right;
-	border-right: 2px solid #0F0;
-	background-color: #E8E8E8;
+	border-right: 2px solid #a6e22e; /* #0F0; */
+	background-color: #272822;
         white-space: pre;
 }
 span.lineno a {
-	background-color: #D8D8D8;
+	background-color: #272822;
 }
 
 span.lineno a:hover {
-	background-color: #C8C8C8;
+	background-color: #272822;
 }
 
 .lineno {
@@ -285,11 +286,19 @@ div.groupText {
 	margin-left: 16px;
 	font-style: italic;
 }
-
 body {
-	background-color: white;
-	color: black;
-        margin: 0;
+    background-color: #f1f1f1; /* white; */
+    color: #272822; /* black */
+    margin: 0;
+}
+#nav-tree {
+	background-color: #f1f1f1; /* not set */
+    color: #272822; /*not set */
+}
+#titlearea {
+	color: #f1f1f1;
+	background-color: #d3e1ea;
+	background: linear-gradient(90deg, #355b73, transparent);
 }
 
 div.contents {
@@ -357,48 +366,50 @@ img.footer {
 code {
     font-family: "DejaVu Sans Mono","Source Code Pro", monospace;
 }
+/* @group Code Colorization */
+
 span.keyword {
-	color: #008000
+	color: #f92672; /* #4dd3ff; */
 }
 
 span.keywordtype {
-	color: #604020
+	color: #66d9ef; /* #4dd3ff; */
 }
 
 span.keywordflow {
-	color: #e08000
+	color: #f92672; /* #ac7339; */
 }
 
 span.comment {
-	color: #800000
+	color: #75715e; /* #8a8a8a; */
 }
 
 span.preprocessor {
-	color: #806020
+	color: #75715e; /* #cacaca; */
 }
 
 span.stringliteral {
-	color: #003b7b; /* default: #002080 */
+	color: #e6db74; /* #f6fda3; */
 }
 
 span.charliteral {
-	color: #008080
+	color: #e6db74; /* #008080; */
 }
 
 span.vhdldigit {
-	color: #ff00ff
+	color: #ae81ff; /* #ff00ff; */
 }
 
 span.vhdlchar {
-	color: #000000
+	color: #e6db74; /* #000000;  */
 }
 
 span.vhdlkeyword {
-	color: #700070
+	color: #f92672; /* #700070; */
 }
 
 span.vhdllogic {
-	color: #ff0000
+	color: #f92672; /* #ff0000; */
 }
 
 blockquote {
@@ -475,8 +486,8 @@ table.memberdecls {
 }
 
 .memberdecls td.glow, .fieldtable tr.glow {
-	background-color: cyan;
-	box-shadow: 0 0 15px cyan;
+	background-color: rgba(39, 73, 157, 0.23);
+	box-shadow: 0 0 6px rgba(39, 73, 157, 0.23);
 }
 
 .mdescLeft, .mdescRight,
@@ -577,7 +588,7 @@ table.memberdecls {
 }
 
 .memitem.glow {
-         box-shadow: 0 0 15px cyan;
+         box-shadow: 0 0 6px rgba(39, 73, 157, 0.23);
 }
 
 .memname {
@@ -1187,9 +1198,11 @@ dl.section dd {
 
 #projectname
 {
-	font: 300% "Noto Sans", Roboto, Tahoma, Arial, sans-serif;
-	margin: 0px;
+	font: 200% "Noto Sans", Roboto, Tahoma, Arial, sans-serif;
+    font-weight: bold;
+    margin: 0px;
 	padding: 2px 0px;
+	text-shadow: rgb(0, 0, 0, 1) 2px 2px 3px;
 }
 
 #projectbrief
