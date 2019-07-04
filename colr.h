@@ -43,12 +43,15 @@
 #include <malloc.h>
 #include <math.h>  /* Must include `-lm` in compiler args or Makefile LIBS! */
 #include <limits.h>
+#include <locale.h>
 #include <search.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <wchar.h>
 #include "dbug.h"
 
 /* Tell gcc to ignore unused macros. */
@@ -65,6 +68,8 @@
 #endif
 //! Convenience definition, because this is used a lot.
 #define CODE_RESET_ALL "\033[0m"
+//! Convenience definition for wide chars.
+#define WCODE_RESET_ALL L"\033[0m"
 //! Short-hand for CODE_RESET_ALL, stands for "No Color".
 #define NC CODE_RESET_ALL
 //! Length of CODE_RESET_ALL, including `'\0'`.
@@ -340,24 +345,54 @@
         char*: str_noop \
     )(x)
 
+/*! Safely frees a string created by the force_repr() macro.
+
+    \details
+    This is used to build the debug_repr() macro, and free all resources in
+    a safe way. Plain strings passed into force_repr() should never be free'd,
+    but all of the other supported types should be.
+
+    \details
+    If anything except a plain string is passed in as `x`, `free(s)` is called.
+    For plain strings, this is a no-op.
+
+    \pi x The object used in force_repr() to build the string.
+    \pi s The string that was created by force_repr().
+
+    \sa force_repr debug_repr
+*/
+#define _debug_repr_free(x, s) \
+    _Generic( \
+        (x), \
+        struct ColorArg: free(s), \
+        struct ColorText: free(s), \
+        struct ColorValue: free(s), \
+        ArgType: free(s), \
+        ColorType: free(s), \
+        char*: ((void)0) \
+    )
+
 /*! \def debug_repr
-    Uses force_repr() to build a string representation of a Colr object,
+    Uses force_repr() to build a string representation of a ColrC object,
     debug prints it, and calls free() when it's done.
 
     \details
-    This is for debugging purposes obviously, and is a no-op when DEBUG is not
+    This is for debugging purposes, and is a no-op when DEBUG is not
     defined.
 
     \pi lbl Label text for the debug print.
     \pi x   Any object supported by force_repr().
+
+    \sa force_repr _debug_repr_free
 */
 #if defined(DEBUG) && defined(debug)
     #define debug_repr(lbl, x) \
         do { \
             char* _debug_repr_s = force_repr(x); \
             debug("%s: %s\n", lbl, _debug_repr_s); \
-            free(_debug_repr_s); \
+            _debug_repr_free(x, _debug_repr_s); \
         } while(0)
+        // Can't free a string passed into force_repr()
 #else
     #define debug_repr(lbl, x) ((void)0)
 #endif
@@ -861,6 +896,7 @@ char* str_copy(char* dest, const char* src, size_t length);
 bool str_endswith(const char* s, const char* suffix);
 void str_lower(char* s);
 char* str_noop(char* s);
+char* str_repr(const char* s);
 bool str_startswith(const char* s, const char* prefix);
 void str_tolower(char* out, const char* s);
 
@@ -949,5 +985,6 @@ StyleValue StyleValue_from_str(const char* arg);
     \endinternal
 */
 void colrfgrainbow(char* out, const char* s, double freq, size_t offset);
-char* acolrfgrainbow(const char* s, double freq, size_t offset);
+char* rainbow_fg(const char* s, double freq, size_t offset);
+char* wcrainbow_fg(const char* s, double freq, size_t offset);
 #endif // COLR_H

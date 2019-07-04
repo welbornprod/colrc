@@ -324,6 +324,38 @@ char* str_noop(char* s) {
     return s;
 }
 
+/*! Convert a string into a representation of a string, by wrapping it in
+    quotes and escaping all inner quotes.
+
+    \pi     s The string to represent.
+    \return An allocated string with the respresentation.
+            \mustfree
+*/
+char* str_repr(const char* s) {
+    size_t length = strlen(s);
+    size_t quotechars = 0;
+    size_t i;
+    for (i = 0; i < length; i++) {
+        if (s[i] == '"') quotechars++;
+    }
+    size_t repr_length = length + (quotechars * 2);
+    // Make room for the wrapping quotes, and a null-terminator.
+    repr_length += 3;
+    char *repr = calloc(repr_length + 1, sizeof(char));
+    size_t inew = 0;
+    repr[0] = '"';
+    for (i = 0, inew = 1; i < length; i++) {
+        if (s[i] == '"') {
+            repr[inew++] = '\\';
+            repr[inew++] = '"';
+        } else {
+            repr[inew++] = s[i];
+        }
+    }
+    repr[inew] = '"';
+    return repr;
+}
+
 /*! Checks a string for a certain prefix substring.
 
     \details
@@ -1483,28 +1515,33 @@ StyleValue StyleValue_from_str(const char* arg) {
 }
 
 
-
 /*! Rainbow-ize some text using rgb fore colors, lolcat style.
+
     \details
     The `CODE_RESET_ALL` code is already appended to the result.
 
-    \po out    Memory allocated for the result.
-               _Must have enough room for `strlen(s) + (CODE_RGB_LEN * strlen(s))`._
     \pi s      The string to colorize.
                _Must be null-terminated._
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
+    \return    The allocated/formatted string on success.
+               \mustfree
+               If the allocation fails, `NULL` is returned.
 */
-void colrfgrainbow(char* out, const char* s, double freq, size_t offset) {
-    if (!(out && s)) {
-        return;
+char* rainbow_fg(const char* s, double freq, size_t offset) {
+    if (!s) {
+        return NULL;
+    }
+    size_t oldlen = strlen(s);
+    char* out = calloc(oldlen + (CODE_RGB_LEN * oldlen), sizeof(char));
+    if (!out) {
+        return NULL;
     }
     // Enough room for the escape code and one character.
     char codes[CODE_RGB_LEN];
     size_t singlecharlen = CODE_RGB_LEN + 1;
     char singlechar[singlecharlen];
     singlechar[0] = '\0';
-    size_t oldlen = strlen(s);
     out[0] = '\0';
     for (size_t i = 0; i < oldlen; i++) {
         format_rainbow_fore(codes, freq, offset + i);
@@ -1512,23 +1549,50 @@ void colrfgrainbow(char* out, const char* s, double freq, size_t offset) {
         strncat(out, singlechar, CODE_RGB_LEN);
     }
     strncat(out, CODE_RESET_ALL, STYLE_LEN);
+    return out;
 }
 
-/*! Like colrfgrainbow, except it allocates the string for you, with
-    enough room to fit the string and any escape codes needed.
-
-    \pi s      The string to colorize.
-               _Must be null-terminated._
-    \pi freq   Frequency ("tightness") for the colors.
-    \pi offset Starting offset in the rainbow.
-    \return    The allocated/formatted string on success.
-*/
-char* acolrfgrainbow(const char* s, double freq, size_t offset) {
+char* wcrainbow_fg(const char* s, double freq, size_t offset) {
     if (!s) {
         return NULL;
     }
-    size_t oldlen = strlen(s);
-    char* out = calloc(oldlen + (CODE_RGB_LEN * oldlen), sizeof(char));
-    colrfgrainbow(out, s, freq, offset);
+    if (!offset) offset = 3;
+    if (freq < 0.1) freq = 0.1;
+    // Rainbowizing multibyte strings without converting to wchar destroys things.
+    // I don't want to ask the user of ColrC to call `setlocale()`, when they
+    // may not even be using the rainbow* functions.
+    setlocale(LC_ALL, "");
+    size_t charlen = mbstowcs(NULL, s, 0) + 1;
+    if (charlen == (size_t) - 1) {
+        debug("Invalid multibyte character found in string.\n");
+        return NULL;
+    }
+    wchar_t* wchars = calloc(charlen, sizeof(wchar_t));
+    if (!wchars) {
+        debug("Failed to allocate memory for wide character string.\n");
+        return NULL;
+    }
+    mbstowcs(wchars, s, charlen);
+
+    size_t total_size = charlen + (CODE_RGB_LEN * charlen);
+    wchar_t* wc_out = calloc(total_size, sizeof(wchar_t));
+    char codes[CODE_RGB_LEN];
+    wchar_t wcodes[CODE_RGB_LEN];
+    // Enough room for the escape code and one character.
+    size_t singlecharlen = CODE_RGB_LEN + 1;
+    wchar_t singlewchar[singlecharlen];
+    for (size_t i = 0; i < charlen; i++) {
+        format_rainbow_fore(codes, freq, offset + i);
+        swprintf(wcodes, CODE_RGB_LEN, L"%s", codes);
+        swprintf(singlewchar, singlecharlen, L"%ls%lc", wcodes, wchars[i]);
+        wcscat(wc_out, singlewchar);
+    }
+    free(wchars);
+    wcsncat(wc_out, WCODE_RESET_ALL, STYLE_LEN);
+
+    size_t finallen = wcslen(wc_out) + 1;
+    char* out = calloc(finallen, sizeof(char));
+    wcstombs(out, wc_out, finallen);
+    free(wc_out);
     return out;
 }

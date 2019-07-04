@@ -75,7 +75,7 @@ Name           | Example
 ## Why
 
 ColrC is the `C` version of [Colr](https://github.com/welbornprod/colr)
-(a python library), and it's less-flexible cousin
+(a python library) and it's less-flexible cousin
 [Colr.sh](https://github.com/welbornprod/colr.sh).
 The programming styles vary because `C` doesn't allow easy method chaining,
 and instead leans towards nested function calls.

@@ -18,8 +18,6 @@
     #define _GNU_SOURCE
 #endif
 
-#include <stdbool.h>
-#include <stdlib.h>
 #include "colr.h"
 
 #define NAME "Colr"
