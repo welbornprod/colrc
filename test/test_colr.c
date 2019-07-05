@@ -5,7 +5,7 @@
 */
 #include "test_colr.h"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     (void)argc; // <- To silence linters when not using argc.
     (void)argv; // <- To silence linters when not using argv.
     //TODO: Run specific tests, just look at argc/argv.

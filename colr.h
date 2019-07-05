@@ -278,7 +278,7 @@
     )
 
 
-/*! \def force_repr
+/*! \def colr_repr
     Transforms several ColrC objects into their string representations.
 
     \details
@@ -298,7 +298,7 @@
             \mustfree
 
 */
-#define force_repr(x) \
+#define colr_repr(x) \
     _Generic( \
         (x), \
         struct ColorArg: ColorArg_repr, \
@@ -310,7 +310,7 @@
     )(x)
 
 /*! \def debug_repr
-    Uses force_repr() to build a string representation of a ColrC object,
+    Uses colr_repr() to build a string representation of a ColrC object,
     debug prints it, and calls free() when it's done.
 
     \details
@@ -318,18 +318,18 @@
     defined.
 
     \pi lbl Label text for the debug print.
-    \pi x   Any object supported by force_repr().
+    \pi x   Any object supported by colr_repr().
 
-    \sa force_repr _debug_repr_free
+    \sa colr_repr _debug_repr_free
 */
 #if defined(DEBUG) && defined(debug)
     #define debug_repr(lbl, x) \
         do { \
-            char* _debug_repr_s = force_repr(x); \
+            char* _debug_repr_s = colr_repr(x); \
             debug("%s: %s\n", lbl, _debug_repr_s); \
             free(_debug_repr_s); \
         } while(0)
-        // Can't free a string passed into force_repr()
+        // Can't free a string passed into colr_repr()
 #else
     #define debug_repr(lbl, x) ((void)0)
 #endif
@@ -834,7 +834,6 @@ void str_append_reset(char* s);
 char* str_copy(char* dest, const char* src, size_t length);
 bool str_endswith(const char* s, const char* suffix);
 void str_lower(char* s);
-char* str_noop(char* s);
 char* str_repr(const char* s);
 bool str_startswith(const char* s, const char* prefix);
 void str_to_lower(char* out, const char* s);
@@ -924,7 +923,5 @@ StyleValue StyleValue_from_str(const char* arg);
     Specialized functions.
     \endinternal
 */
-void colrfgrainbow(char* out, const char* s, double freq, size_t offset);
 char* rainbow_fg(const char* s, double freq, size_t offset);
-char* wcrainbow_fg(const char* s, double freq, size_t offset);
 #endif // COLR_H

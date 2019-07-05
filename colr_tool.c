@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
         free(forearg);
         free(backarg);
         free(stylearg);
-        char* rainbowized = wcrainbow_fg(textarg, 0.1, 3.0);
+        char* rainbowized = rainbow_fg(textarg, 0.1, 3.0);
         free(textarg);
         printf("%s\n", rainbowized);
         free(rainbowized);

@@ -5,14 +5,14 @@
 */
 #include "test_colr.h"
 
-static void test_ExtendedValue_from_str(void **state) {
-    /*  Tests ExtendedValue_from_str basic usage.
+static void test_ExtendedValue_from_str(void** state) {
+    /*! Tests ExtendedValue_from_str basic usage.
     */
     (void)state; // Unused (no setup/teardown function used.)
     assert_true(ExtendedValue_from_str("NOTACOLOR") == COLOR_INVALID);
     // Test all basic names, in case of some weird regression.
     for (size_t i = 0; i < extended_names_len; i++) {
-        char *name = extended_names[i].name;
+        char* name = extended_names[i].name;
         ExtendedValue bval = extended_names[i].value;
         assert_true(ExtendedValue_from_str(name) == bval);
     }
@@ -29,7 +29,7 @@ static void test_ExtendedValue_from_str(void **state) {
     }
     // Test bad numbers.
     int nums[] = {-255, -1, 256, 1337};
-    size_t nums_len = sizeof(nums) / sizeof(nums[0]);
+    size_t nums_len = array_length(nums);
     for (size_t i = 0; i < nums_len; i++) {
         sprintf(numstr, "%d", nums[i]);
         int eval = ExtendedValue_from_str(numstr);

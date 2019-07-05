@@ -5,8 +5,8 @@
 */
 #include "test_colr.h"
 
-static void test_format_bg(void **state) {
-    /*  Tests basic format_bg usage.
+static void test_format_bg(void** state) {
+    /*! Tests basic format_bg usage.
     */
     (void)state; // Unused (no setup/teardown function used.)
     char codeonly[CODE_LEN];
@@ -14,8 +14,8 @@ static void test_format_bg(void **state) {
     assert_true(strlen(codeonly) > 3);
 }
 
-static void test_format_bgx(void **state) {
-    /*  Tests basic format_bgx usage.
+static void test_format_bgx(void** state) {
+    /*! Tests basic format_bgx usage.
     */
     (void)state; // Unused (no setup/teardown function used.)
     char codeonly[CODEX_LEN];
@@ -23,8 +23,8 @@ static void test_format_bgx(void **state) {
     assert_true(strlen(codeonly) > 3);
 }
 
-static void test_format_bg_rgb(void **state) {
-    /*  Tests basic format_bg_rgb usage.
+static void test_format_bg_rgb(void** state) {
+    /*! Tests basic format_bg_rgb usage.
     */
     (void)state; // Unused (no setup/teardown function used.)
     char codeonly[CODE_RGB_LEN];
@@ -35,8 +35,8 @@ static void test_format_bg_rgb(void **state) {
     assert_true(strlen(codeonly) < 30);
 }
 
-static void test_format_bg_RGB(void **state) {
-    /*  Tests basic format_bg_RGB usage.
+static void test_format_bg_RGB(void** state) {
+    /*! Tests basic format_bg_RGB usage.
     */
     (void)state; // Unused (no setup/teardown function used.)
     char codeonly[CODE_RGB_LEN];
@@ -45,8 +45,8 @@ static void test_format_bg_RGB(void **state) {
     assert_true(strlen(codeonly) < 30);
 }
 
-static void test_format_fg(void **state) {
-    /*  Tests basic format_fg usage.
+static void test_format_fg(void** state) {
+    /*! Tests basic format_fg usage.
     */
     (void)state; // Unused (no setup/teardown function used.)
     char codeonly[CODE_LEN];
