@@ -75,6 +75,97 @@ const struct StyleInfo style_names[] = {
 //! Length of style_names.
 const size_t style_names_len = sizeof(style_names) / sizeof(style_names[0]);
 
+/*! Returns the char needed to represent an escape sequence in C.
+
+    \details
+    The following characters are supported:
+        Escape Sequence  |  Description Representation
+        ---------------: | :--------------------------
+                      \' | single quote
+                      \" | double quote
+                      \? | question mark
+                      \\ | backslash
+                      \a | audible bell
+                      \b | backspace
+                      \f | form feed - new page
+                      \n | line feed - new line
+                      \r | carriage return
+                      \t | horizontal tab
+                      \v | vertical tab
+
+    \pi c   The character to check.
+    \return The letter, without a backslash, needed to create an escape sequence.
+            If the char doesn't need an escape sequence, it is simply returned.
+
+    \examplecodefor{char_escape_char,.c}
+        char constantchar = char_escape_char('\n');
+        assert(constantchar == 'n');
+
+        char constantquote = char_escape_char('"');
+        assert(constantquote == '"');
+
+        // The actual escape sequence would need the backslash added to it:
+        char* escaped;
+        asprintf(&escaped, "\\%c", char_escape_char('\t'));
+    \endexamplecode
+*/
+char char_escape_char(char c) {
+    switch (c) {
+        case '\'': return '\''; break;
+        case '\"': return '"'; break;
+        case '\?': return '?'; break;
+        case '\\': return '\\'; break;
+        case '\a': return 'a'; break;
+        case '\b': return 'b'; break;
+        case '\f': return 'f'; break;
+        case '\n': return 'n'; break;
+        case '\r': return 'r'; break;
+        case '\t': return 't'; break;
+        case '\v': return 'v'; break;
+        default:
+            return c;
+    }
+}
+
+/*! Determines if an ascii character has an escape sequence in C.
+
+    \details
+    The following characters are supported:
+        Escape Sequence  |  Description Representation
+        ---------------: | :--------------------------
+                      \' | single quote
+                      \" | double quote
+                      \? | question mark
+                      \\ | backslash
+                      \a | audible bell
+                      \b | backspace
+                      \f | form feed - new page
+                      \n | line feed - new line
+                      \r | carriage return
+                      \t | horizontal tab
+                      \v | vertical tab
+
+    \pi c   The character to check.
+    \return `true` if the character needs an escape sequence, otherwise `false`.
+*/
+bool char_should_escape(char c) {
+    switch (c) {
+        case '\'': return true; break;
+        case '\"': return true; break;
+        case '\?': return true; break;
+        case '\\': return true; break;
+        case '\a': return true; break;
+        case '\b': return true; break;
+        case '\f': return true; break;
+        case '\n': return true; break;
+        case '\r': return true; break;
+        case '\t': return true; break;
+        case '\v': return true; break;
+        default:
+            return false;
+    }
+}
+
 /*! Allocates an empty string.
     \details
     This is for keeping the interface simple, so the return values from
@@ -333,21 +424,22 @@ char* str_noop(char* s) {
 */
 char* str_repr(const char* s) {
     size_t length = strlen(s);
-    size_t quotechars = 0;
+    size_t esc_chars = 0;
     size_t i;
     for (i = 0; i < length; i++) {
-        if (s[i] == '"') quotechars++;
+        if (char_should_escape(s[i])) esc_chars++;
     }
-    size_t repr_length = length + (quotechars * 2);
+    size_t repr_length = length + (esc_chars * 2);
     // Make room for the wrapping quotes, and a null-terminator.
     repr_length += 3;
     char *repr = calloc(repr_length + 1, sizeof(char));
     size_t inew = 0;
     repr[0] = '"';
     for (i = 0, inew = 1; i < length; i++) {
-        if (s[i] == '"') {
+        char c = s[i];
+        if (char_should_escape(c)) {
             repr[inew++] = '\\';
-            repr[inew++] = '"';
+            repr[inew++] = char_escape_char(c);
         } else {
             repr[inew++] = s[i];
         }

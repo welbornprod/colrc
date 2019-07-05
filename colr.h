@@ -280,7 +280,6 @@
 
 /*! \def force_repr
     Transforms several ColrC objects into their string representations.
-    If a string is given, this does nothing.
 
     \details
     Uses _Generic (C11 standard) to dynamically ensure a string.
@@ -295,10 +294,9 @@
         - char*
 
     \pi x   A value with one of the supported types to transform into a string.
-    \return Either the string that was given, or a stringified version of what was given.\n
+    \return Stringified representation of what was passed in.\n
             \mustfree
 
-    \remark <em>Obviously this is a no-op for strings</em>.
 */
 #define force_repr(x) \
     _Generic( \
@@ -308,35 +306,8 @@
         struct ColorValue: ColorValue_repr, \
         ArgType: ArgType_repr, \
         ColorType: ColorType_repr, \
-        char*: str_noop \
+        char*: str_repr \
     )(x)
-
-/*! Safely frees a string created by the force_repr() macro.
-
-    \details
-    This is used to build the debug_repr() macro, and free all resources in
-    a safe way. Plain strings passed into force_repr() should never be free'd,
-    but all of the other supported types should be.
-
-    \details
-    If anything except a plain string is passed in as `x`, `free(s)` is called.
-    For plain strings, this is a no-op.
-
-    \pi x The object used in force_repr() to build the string.
-    \pi s The string that was created by force_repr().
-
-    \sa force_repr debug_repr
-*/
-#define _debug_repr_free(x, s) \
-    _Generic( \
-        (x), \
-        struct ColorArg: free(s), \
-        struct ColorText: free(s), \
-        struct ColorValue: free(s), \
-        ArgType: free(s), \
-        ColorType: free(s), \
-        char*: ((void)0) \
-    )
 
 /*! \def debug_repr
     Uses force_repr() to build a string representation of a ColrC object,
@@ -356,7 +327,7 @@
         do { \
             char* _debug_repr_s = force_repr(x); \
             debug("%s: %s\n", lbl, _debug_repr_s); \
-            _debug_repr_free(x, _debug_repr_s); \
+            free(_debug_repr_s); \
         } while(0)
         // Can't free a string passed into force_repr()
 #else
@@ -845,6 +816,8 @@ extern const size_t style_names_len;
     Common macros and definitions are found here in colr.h,
     however the functions are documented in colr.c.
 */
+char char_escape_char(char c);
+bool char_should_escape(char c);
 char* colr_empty_str(void);
 void format_bgx(char* out, unsigned char num);
 void format_bg(char* out, BasicValue value);
