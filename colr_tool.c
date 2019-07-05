@@ -20,7 +20,8 @@
 
 int main(int argc, char* argv[]) {
     /* TODO: parse_args() for flag arguments, while keeping positionals. */
-
+    char *locale = setlocale(LC_ALL, "");
+    debug("Using locale: %s\n", locale); (void)locale; // Stupid clang linter in sublime text.
     // Declare args and setup some defaults.
     char* textarg = NULL;
     char* forearg = NULL;

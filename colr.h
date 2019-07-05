@@ -40,6 +40,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
 #include <malloc.h>
 #include <math.h>  /* Must include `-lm` in compiler args or Makefile LIBS! */
 #include <limits.h>
@@ -165,41 +166,6 @@
             \mustfree
 */
 #define alloc_style() calloc(STYLE_LEN, sizeof(char))
-
-/*! \def alloc_with_code
-    Allocate `str_len` + enough for a basic code with reset appended.
-
-    \pm str_len Extra room to allocate for text.
-    \return     Pointer to the allocated string, or NULL on error.\n
-                \mustfree
-*/
-#define alloc_with_code(str_len) calloc(str_len + CODEX_LEN, sizeof(char))
-/*! \def alloc_with_codes
-    Allocate `str_len` + enough for a mixture of fore/basic codes.
-
-    \pi str_len Extra room to allocate for text.
-    \return     Pointer to the allocated string, or NULL on error.\n
-                \mustfree
-*/
-#define alloc_with_codes(str_len) calloc(str_len + COLOR_LEN, sizeof(char))
-/*! \def alloc_with_rgb
-    Allocate `str_len` + enough for an rgb code with reset appended.
-
-    \pi str_len Extra room to allocate for text.
-
-    \return     Pointer to the allocated string, or NULL on error.\n
-                \mustfree
-*/
-#define alloc_with_rgb(str_len) calloc(str_len + COLOR_RGB_LEN, sizeof(char))
-/*! \def alloc_with_style
-    Allocate `str_len` + enough for a style code with reset appended.
-
-    \pi str_len Extra room to allocate for text.
-
-    \return     Pointer to the allocated string, or NULL on error.\n
-                \mustfree
-*/
-#define alloc_with_style(str_len) calloc(str_len + STYLE_LEN, sizeof(char))
 
 /*! \def argeq
     Convenience macro for `!strcmp(arg, s1) || !strcmp(arg, s2)`
@@ -898,8 +864,9 @@ void str_lower(char* s);
 char* str_noop(char* s);
 char* str_repr(const char* s);
 bool str_startswith(const char* s, const char* prefix);
-void str_tolower(char* out, const char* s);
-
+void str_to_lower(char* out, const char* s);
+wchar_t* str_to_wide(const char* s);
+char* wide_to_str(const wchar_t* s);
 
 /*! \internal
     The multi-type variadiac function behind the colr() macro.

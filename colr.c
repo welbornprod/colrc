@@ -394,7 +394,7 @@ bool str_startswith(const char* s, const char* prefix) {
             _Must have capacity for `strlen(s) + 1`._
     \pi s   The input string to convert to lower case.
 */
-void str_tolower(char* out, const char* s) {
+void str_to_lower(char* out, const char* s) {
     if (!out) return;
     size_t i = 0;
     while (s[i]) {
@@ -402,6 +402,34 @@ void str_tolower(char* out, const char* s) {
         i++;
     }
     out[i] = '\0';
+}
+
+wchar_t* str_to_wide(const char* s) {
+    mbstate_t state;
+    memset(&state, 0, sizeof(state));
+    size_t wlen = mbsrtowcs(NULL, &s, 0, &state);
+    if (wlen == (size_t) - 1) {
+        debug("Error converting to wide-chars: %s\n", strerror(errno));
+        return NULL;
+    }
+    wlen++;
+    wchar_t* out = calloc(wlen, sizeof(wchar_t));
+    mbsrtowcs(out, &s, wlen, &state);
+    return out;
+}
+
+char* wide_to_str(const wchar_t* s) {
+    mbstate_t state;
+    memset(&state, 0, sizeof(state));
+    size_t len = wcsrtombs(NULL, &s, 0, &state);
+    if (len == (size_t) - 1) {
+        debug("Error converting wide-chars to str: %s\n", strerror(errno));
+        return NULL;
+    }
+    len++;
+    char* out = calloc(len, sizeof(char));
+    wcsrtombs(out, &s, len, &state);
+    return out;
 }
 
 /* ---------------------------- Colr Functions ---------------------------- */
@@ -1347,7 +1375,7 @@ BasicValue BasicValue_from_str(const char* arg) {
         return BASIC_INVALID;
     }
     char arglower[MAX_COLOR_NAME_LEN];
-    str_tolower(arglower, arg);
+    str_to_lower(arglower, arg);
     for (size_t i=0; i < basic_names_len; i++) {
         if (!strcmp(arglower, basic_names[i].name)) {
             return basic_names[i].value;
@@ -1389,7 +1417,7 @@ int ExtendedValue_from_str(const char* arg) {
         return COLOR_INVALID;
     }
     char arglower[MAX_COLOR_NAME_LEN];
-    str_tolower(arglower, arg);
+    str_to_lower(arglower, arg);
     for (size_t i=0; i < extended_names_len; i++) {
         if (!strcmp(arglower, extended_names[i].name)) {
             return extended_names[i].value;
@@ -1505,7 +1533,7 @@ StyleValue StyleValue_from_str(const char* arg) {
         return STYLE_INVALID;
     }
     char arglower[MAX_COLOR_NAME_LEN];
-    str_tolower(arglower, arg);
+    str_to_lower(arglower, arg);
     for (size_t i=0; i < style_names_len; i++) {
         if (!strcmp(arglower, style_names[i].name)) {
             return style_names[i].value;
@@ -1558,24 +1586,18 @@ char* wcrainbow_fg(const char* s, double freq, size_t offset) {
     }
     if (!offset) offset = 3;
     if (freq < 0.1) freq = 0.1;
-    // Rainbowizing multibyte strings without converting to wchar destroys things.
-    // I don't want to ask the user of ColrC to call `setlocale()`, when they
-    // may not even be using the rainbow* functions.
-    setlocale(LC_ALL, "");
-    size_t charlen = mbstowcs(NULL, s, 0) + 1;
-    if (charlen == (size_t) - 1) {
-        debug("Invalid multibyte character found in string.\n");
-        return NULL;
-    }
-    wchar_t* wchars = calloc(charlen, sizeof(wchar_t));
-    if (!wchars) {
-        debug("Failed to allocate memory for wide character string.\n");
-        return NULL;
-    }
-    mbstowcs(wchars, s, charlen);
+    // TODO: There are at least 3 iterations of this string to account for
+    //       unicode characters. It would be nice to do the conversion on the
+    //       fly, prepending RGB codes along the way.
+    wchar_t* chars = str_to_wide(s);
+    // str_to_wide prints a debug message on failure.
+    if (!chars) return NULL;
 
+    size_t charlen = wcslen(chars);
+    // There is an RGB code for every wide character in the string.
     size_t total_size = charlen + (CODE_RGB_LEN * charlen);
     wchar_t* wc_out = calloc(total_size, sizeof(wchar_t));
+
     char codes[CODE_RGB_LEN];
     wchar_t wcodes[CODE_RGB_LEN];
     // Enough room for the escape code and one character.
@@ -1584,15 +1606,13 @@ char* wcrainbow_fg(const char* s, double freq, size_t offset) {
     for (size_t i = 0; i < charlen; i++) {
         format_rainbow_fore(codes, freq, offset + i);
         swprintf(wcodes, CODE_RGB_LEN, L"%s", codes);
-        swprintf(singlewchar, singlecharlen, L"%ls%lc", wcodes, wchars[i]);
+        swprintf(singlewchar, singlecharlen, L"%ls%lc", wcodes, chars[i]);
         wcscat(wc_out, singlewchar);
     }
-    free(wchars);
+    free(chars);
     wcsncat(wc_out, WCODE_RESET_ALL, STYLE_LEN);
 
-    size_t finallen = wcslen(wc_out) + 1;
-    char* out = calloc(finallen, sizeof(char));
-    wcstombs(out, wc_out, finallen);
+    char* out = wide_to_str(wc_out);
     free(wc_out);
     return out;
 }
