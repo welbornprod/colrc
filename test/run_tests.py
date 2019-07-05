@@ -278,18 +278,30 @@ class InvalidArg(ValueError):
     def __init__(self, msg=None):
         self.msg = msg or ''
 
-    def __str__(self):
+    def __colr__(self):
         if self.msg:
-            return f'Invalid argument, {self.msg}'
-        return 'Invalid argument!'
+            return C(', ').join(
+                C('Invalid argument', 'red'),
+                C(self.msg, 'blue'),
+            )
+        return C('Invalid argument!', 'red')
+
+    def __str__(self):
+        return C(self).stripped()
 
 
 class InvalidXML(InvalidArg):
     """ Raised when the test runner emits non-xml data. """
-    def __str__(self):
+    def __colr__(self):
         if self.msg:
-            return f'Test executable output was invalid XML: {self.msg}'
-        return 'Test executable output was invalid XML!'
+            return C(': ').join(
+                C('Test executable output was invalid XML', 'red'),
+                C(self.msg, 'blue'),
+            )
+        return C('Test executable output was invalid XML!', 'red')
+
+    def __str__(self):
+        return C(self).stripped()
 
 
 class FailureLineInfo(object):
@@ -298,8 +310,20 @@ class FailureLineInfo(object):
 
     def __init__(self, lineinfo, code=None):
         self.code = code
-        self.file, self.line, self.msg = lineinfo.split(':', 2)
-        self.msg = self.msg.strip()
+        try:
+            self.file, self.line, self.msg = lineinfo.split(':', 2)
+            self.fatal_err = None
+            self.fatal_msg = None
+            self.signal_info = None
+            self.msg = self.msg.strip()
+        except ValueError:
+            self.msg = None
+            self.file = None
+            self.line = None
+            self.fatal_msg, self.fatal_err = lineinfo.split(':', 1)
+            self.fatal_msg = self.fatal_msg.strip()
+            self.fatal_err = self.fatal_err.strip()
+            self.signal_info = SignalInfo.from_line(self.fatal_err)
 
     def __bool__(self):
         # Being explicit, even though this is the default python behavior.
@@ -310,13 +334,7 @@ class FailureLineInfo(object):
         spaces = ' ' * self.indent
 
         # Append line info.
-        pcs = [
-            C(':').join(
-                C(self.file, 'cyan'),
-                C(self.line, 'lightblue'),
-                ' {}'.format(C(self.msg, 'red')),
-            )
-        ]
+        pcs = [self._lineinfo_str() or self._fatal_str() or self._unknown_str()]
         # Use highlighted code if available.
         if self.code:
             pcs.append(highlight_c(self.code))
@@ -332,6 +350,42 @@ class FailureLineInfo(object):
             ')',
         ))
 
+    def _fatal_str(self):
+        if not (self.fatal_msg and self.fatal_err):
+            return None
+        rjust_width = 8
+        if self.fatal_msg.startswith('Test failed with exception'):
+            self.fatal_msg = 'Failure'
+        line = C(': ').join(
+            C(self.fatal_msg.rjust(rjust_width), 'red'),
+            C(self.fatal_err, 'blue'),
+        )
+        if self.signal_info and self.signal_info.num is not None:
+            spaces = ' ' * self.indent
+            line = C(f'\n{spaces}').join(
+                line,
+                C(': ').join(
+                    C('Reason'.rjust(rjust_width), 'red'),
+                    C(self.signal_info),
+                ),
+            )
+        return str(line)
+
+    def _lineinfo_str(self):
+        if not (self.file and self.line and self.msg):
+            return None
+        return C(':').join(
+            C(self.file, 'cyan'),
+            C(self.line, 'lightblue'),
+            ' {}'.format(C(self.msg, 'red')),
+        )
+
+    def _unknown_str(self):
+        return C(': ').join(
+            C('An unknown error occurred', 'red'),
+            C('check the raw output for clues...', 'blue', style='bright'),
+        )
+
     @classmethod
     def from_elem(cls, failelem):
         """ Build a FailureLineInfo from a <failure> ElementTree element. """
@@ -342,6 +396,22 @@ class FailureLineInfo(object):
             lineinfo = failelem.text
             code = None
         return cls(lineinfo, code=code)
+
+
+class FatalError(ValueError):
+    """ Raised when there is nothing else to do, and I can't continue.
+    """
+    def __init__(self, msg=None):
+        self.msg = msg or 'can\'t continue.'
+
+    def __colr__(self):
+        return C(', ').join(
+            C('Fatal error', 'red'),
+            C(self.msg, 'blue')
+        )
+
+    def __str__(self):
+        return C(self).stripped()
 
 
 class OutputStyle(Enum):
@@ -417,6 +487,96 @@ class OutputStyle(Enum):
             'xml': 'XML',
             'xmlfile': 'XML',
         }
+
+
+class SignalInfo(object):
+    # ISO C99 signals.
+    SIGINT = 2  # Interactive attention signal.
+    SIGILL = 4  # Illegal instruction.
+    SIGABRT = 6  # Abnormal termination.
+    SIGFPE = 8  # Erroneous arithmetic operation.
+    SIGSEGV = 11  # Invalid access to storage.
+    SIGTERM = 15  # Termination request.
+    # Historical signals specified by POSIX.
+    SIGHUP = 1  # Hangup.
+    SIGQUIT = 3  # Quit.
+    SIGTRAP = 5  # Trace/breakpoint trap.
+    SIGKILL = 9  # Killed.
+    SIGBUS = 10  # Bus error.
+    SIGSYS = 12  # Bad system call.
+    SIGPIPE = 13  # Broken pipe.
+    SIGALRM = 14  # Alarm clock.
+    # New(er) POSIX signals (1003.1-2008, 1003.1-2013).
+    SIGURG = 16  # Urgent data is available at a socket.
+    SIGSTOP = 17  # Stop, unblockable.
+    SIGTSTP = 18  # Keyboard stop.
+    SIGCONT = 19  # Continue.
+    SIGCHLD = 20  # Child terminated or stopped.
+    SIGTTIN = 21  # Background read from control terminal.
+    SIGTTOU = 22  # Background write to control terminal.
+    SIGPOLL = 23  # Pollable event occurred (System V).
+    SIGXCPU = 24  # CPU time limit exceeded.
+    SIGXFSZ = 25  # File size limit exceeded.
+    SIGVTALRM = 26  # Virtual timer expired.
+    SIGPROF = 27  # Profiling timer expired.
+    SIGUSR1 = 30  # User-defined signal 1.
+    SIGUSR2 = 31  # User-defined signal 2.
+    # Nonstandard signals found in all modern POSIX systems
+    # (including both BSD and Linux).  */
+    SIGWINCH = 28  # Window size change (4.3 BSD, Sun).
+    descs = {
+        SIGINT: "Interactive attention signal.",
+        SIGILL: "Illegal instruction.",
+        SIGABRT: "Abnormal termination.",
+        SIGFPE: "Erroneous arithmetic operation.",
+        SIGSEGV: "Invalid access to storage.",
+        SIGTERM: "Termination request.",
+        SIGHUP: "Hangup.",
+        SIGQUIT: "Quit.",
+        SIGTRAP: "Trace/breakpoint trap.",
+        SIGKILL: "Killed.",
+        SIGBUS: "Bus error.",
+        SIGSYS: "Bad system call.",
+        SIGPIPE: "Broken pipe.",
+        SIGALRM: "Alarm clock.",
+        SIGURG: "Urgent data is available at a socket.",
+        SIGSTOP: "Stop, unblockable.",
+        SIGTSTP: "Keyboard stop.",
+        SIGCONT: "Continue.",
+        SIGCHLD: "Child terminated or stopped.",
+        SIGTTIN: "Background read from control terminal.",
+        SIGTTOU: "Background write to control terminal.",
+        SIGPOLL: "Pollable event occurred (System V).",
+        SIGXCPU: "CPU time limit exceeded.",
+        SIGXFSZ: "File size limit exceeded.",
+        SIGVTALRM: "Virtual timer expired.",
+        SIGPROF: "Profiling timer expired.",
+        SIGUSR1: "User-defined signal 1.",
+        SIGUSR2: "User-defined signal 2.",
+        SIGWINCH: "Window size change (4.3 BSD, Sun).",
+    }
+
+    def __init__(self, signum=None):
+        self.num = signum
+
+    def __colr__(self):
+        return C(self.descs.get(self.num, 'None'), 'blue')
+
+    def __str__(self):
+        return C(self).stripped()
+
+    @classmethod
+    def from_line(cls, line):
+        if ('(' not in line) or (')' not in line):
+            return cls()
+        _, _, line = line.partition('(')
+        num, _, _ = line.rpartition(')')
+        try:
+            val = int(num)
+        except ValueError:
+            debug(f'Invalid signal number found: {num!r}')
+            return cls()
+        return cls(signum=val)
 
 
 class TestCase(object):
