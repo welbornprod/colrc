@@ -20,7 +20,8 @@
 
 int main(int argc, char* argv[]) {
     /* TODO: parse_args() for flag arguments, while keeping positionals. */
-
+    char *locale = setlocale(LC_ALL, "");
+    debug("Using locale: %s\n", locale); (void)locale; // Stupid clang linter in sublime text.
     // Declare args and setup some defaults.
     char* textarg = NULL;
     char* forearg = NULL;
@@ -72,7 +73,7 @@ int main(int argc, char* argv[]) {
         free(forearg);
         free(backarg);
         free(stylearg);
-        char* rainbowized = acolrfgrainbow(textarg, 0.1, 3.0);
+        char* rainbowized = rainbow_fg(textarg, 0.1, 3.0);
         free(textarg);
         printf("%s\n", rainbowized);
         free(rainbowized);
@@ -206,7 +207,7 @@ int print_basic(bool do_fore) {
 int print_rainbow_fore() {
     /* Demo the rainbow method. */
     char text[] = "This is a demo of the rainbow function.";
-    char* textfmt = acolrfgrainbow(text, 0.1, 30);
+    char* textfmt = rainbow_fg(text, 0.1, 30);
     printf("%s\n", textfmt);
     free(textfmt);
     return 0;

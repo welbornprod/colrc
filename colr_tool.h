@@ -18,8 +18,6 @@
     #define _GNU_SOURCE
 #endif
 
-#include <stdbool.h>
-#include <stdlib.h>
 #include "colr.h"
 
 #define NAME "Colr"
@@ -36,7 +34,7 @@
 // Print a representation of a ColorArg to stdout.
 #define print_ColorArg_repr(x) \
     do { \
-        char* _pcar_valrepr = force_repr(x); \
+        char* _pcar_valrepr = colr_repr(x); \
         printf("%s\n", _pcar_valrepr); \
         free(_pcar_valrepr); \
     } while(0)
@@ -45,7 +43,7 @@
 // using it's value.
 #define print_ColorArg_example(x) \
     do { \
-        char* _pcae_valrepr = force_repr(x); \
+        char* _pcae_valrepr = colr_repr(x); \
         char* _pcae_valcode = ColorArg_to_str(x); \
         printf("%s%s%s\n", _pcae_valcode, _pcae_valrepr, CODE_RESET_ALL); \
         free(_pcae_valcode); \

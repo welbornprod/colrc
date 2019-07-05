@@ -69,6 +69,13 @@ def main(argd):
     return run_compiled_exe(binaryname)
 
 
+def clean_objects(filepaths):
+    debug('Removing temporary object files...')
+    for filepath in filepaths:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+
+
 def compile_code(s, user_args=None):
     filepath = write_code(wrap_code(s), ext='.c')
     basename = os.path.split(os.path.splitext(filepath)[0])[-1]
@@ -78,9 +85,12 @@ def compile_code(s, user_args=None):
     try:
         debug('Compiling C files:')
         debug(' '.join(cmd), align=True)
-        run_compile_cmd(filepath, cmd)
+        compret = run_compile_cmd(filepath, cmd)
     except subprocess.CalledProcessError:
         raise CompileError(filepath)
+    else:
+        if compret != 0:
+            raise CompileError(filepath)
     colrbase = os.path.splitext(COLRC_FILE)[0]
     colrobj = f'{colrbase}.o'
     tmpobjnames = get_obj_files()
@@ -96,13 +106,19 @@ def compile_code(s, user_args=None):
     try:
         debug('Linking object files:')
         debug(' '.join(linkcmd), align=True)
-        run_compile_cmd(objname, linkcmd)
+        linkret = run_compile_cmd(objname, linkcmd)
     except subprocess.CalledProcessError:
         raise CompileError(filepath)
+    else:
+        if linkret != 0:
+            clean_objects(tmpobjnames)
+            raise CompileError(filepath)
 
-    debug('Removing temporary object files...')
-    for filepath in tmpobjnames:
-        os.remove(filepath)
+    clean_objects(tmpobjnames)
+
+    if not os.path.exists(binaryname):
+        debug('Compilation failed, bailing out.')
+        raise CompileError(filepath)
     debug('Making the binary executable...')
     os.chmod(binaryname, stat.S_IRWXU)
     return binaryname

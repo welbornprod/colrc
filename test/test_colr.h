@@ -36,6 +36,8 @@
 
 #define cm_test(x) cmocka_unit_test(x)
 
+#define array_length(array) (sizeof(array) / sizeof(array[0]))
+
 extern int run_helper_tests(void);
 extern int run_from_str_tests(void);
 extern int run_format_bg_tests(void);

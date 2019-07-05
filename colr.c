@@ -75,6 +75,97 @@ const struct StyleInfo style_names[] = {
 //! Length of style_names.
 const size_t style_names_len = sizeof(style_names) / sizeof(style_names[0]);
 
+/*! Returns the char needed to represent an escape sequence in C.
+
+    \details
+    The following characters are supported:
+        Escape Sequence  |  Description Representation
+        ---------------: | :--------------------------
+                     \\' | single quote
+                     \\" | double quote
+                     \\? | question mark
+                    \\\\ | backslash
+                     \\a | audible bell
+                     \\b | backspace
+                     \\f | form feed - new page
+                     \\n | line feed - new line
+                     \\r | carriage return
+                     \\t | horizontal tab
+                     \\v | vertical tab
+
+    \pi c   The character to check.
+    \return The letter, without a backslash, needed to create an escape sequence.
+            If the char doesn't need an escape sequence, it is simply returned.
+
+    \examplecodefor{char_escape_char,.c}
+        char constantchar = char_escape_char('\n');
+        assert(constantchar == 'n');
+
+        char constantquote = char_escape_char('"');
+        assert(constantquote == '"');
+
+        // The actual escape sequence would need the backslash added to it:
+        char* escaped;
+        asprintf(&escaped, "\\%c", char_escape_char('\t'));
+    \endexamplecode
+*/
+char char_escape_char(char c) {
+    switch (c) {
+        case '\'': return '\''; break;
+        case '\"': return '"'; break;
+        case '\?': return '?'; break;
+        case '\\': return '\\'; break;
+        case '\a': return 'a'; break;
+        case '\b': return 'b'; break;
+        case '\f': return 'f'; break;
+        case '\n': return 'n'; break;
+        case '\r': return 'r'; break;
+        case '\t': return 't'; break;
+        case '\v': return 'v'; break;
+        default:
+            return c;
+    }
+}
+
+/*! Determines if an ascii character has an escape sequence in C.
+
+    \details
+    The following characters are supported:
+        Escape Sequence  |  Description Representation
+        ---------------: | :--------------------------
+                    \\' | single quote
+                    \\" | double quote
+                    \\? | question mark
+                   \\\\ | backslash
+                    \\a | audible bell
+                    \\b | backspace
+                    \\f | form feed - new page
+                    \\n | line feed - new line
+                    \\r | carriage return
+                    \\t | horizontal tab
+                    \\v | vertical tab
+
+    \pi c   The character to check.
+    \return `true` if the character needs an escape sequence, otherwise `false`.
+*/
+bool char_should_escape(char c) {
+    switch (c) {
+        case '\'': return true; break;
+        case '\"': return true; break;
+        case '\?': return true; break;
+        case '\\': return true; break;
+        case '\a': return true; break;
+        case '\b': return true; break;
+        case '\f': return true; break;
+        case '\n': return true; break;
+        case '\r': return true; break;
+        case '\t': return true; break;
+        case '\v': return true; break;
+        default:
+            return false;
+    }
+}
+
 /*! Allocates an empty string.
     \details
     This is for keeping the interface simple, so the return values from
@@ -298,6 +389,9 @@ bool str_endswith(const char* str, const char* suf) {
     \details
     \mustnullin
 
+    \details
+    If `s` is `NULL`, nothing is done.
+
     \pi s The input string to convert to lower case.
 */
 void str_lower(char* s) {
@@ -308,20 +402,50 @@ void str_lower(char* s) {
         s[i] = c;
         i++;
     }
-    s[i] = '\0';
+    if (i > 0) s[i] = '\0';
 }
 
-/*! This is a no-op function that simply returns the pointer it is given.
-    \details
-    It is used in the force_str macro to dynamically ensure it's argument
-    is converted to a string. If a string is passed to force_str it is
-    simply returned as-is.
 
-    \pi s   The string to return.
-    \return The string that was given.
+/*! Convert a string into a representation of a string, by wrapping it in
+    quotes and escaping characters that need escaping.
+
+    \pi     s The string to represent.
+    \return An allocated string with the respresentation.
+            \mustfree
+
+    \sa char_should_escape char_escape_char
+
+    \examplecodefor{str_repr,.c}
+    char* s = str_repr("This\nhas \bspecial\tchars.")
+    // The string `s` contains an escaped string, it *looks like* the definition,
+    // but no real newlines, backspaces, or tabs are in it.
+    assert(strcmp(s, "\"This\\nhas \\bspecial\\tchars.\"") == 0);
+    \endexamplecode
 */
-char* str_noop(char* s) {
-    return s;
+char* str_repr(const char* s) {
+    size_t length = strlen(s);
+    size_t esc_chars = 0;
+    size_t i;
+    for (i = 0; i < length; i++) {
+        if (char_should_escape(s[i])) esc_chars++;
+    }
+    size_t repr_length = length + (esc_chars * 2);
+    // Make room for the wrapping quotes, and a null-terminator.
+    repr_length += 3;
+    char *repr = calloc(repr_length + 1, sizeof(char));
+    size_t inew = 0;
+    repr[0] = '"';
+    for (i = 0, inew = 1; i < length; i++) {
+        char c = s[i];
+        if (char_should_escape(c)) {
+            repr[inew++] = '\\';
+            repr[inew++] = char_escape_char(c);
+        } else {
+            repr[inew++] = s[i];
+        }
+    }
+    repr[inew] = '"';
+    return repr;
 }
 
 /*! Checks a string for a certain prefix substring.
@@ -362,7 +486,7 @@ bool str_startswith(const char* s, const char* prefix) {
             _Must have capacity for `strlen(s) + 1`._
     \pi s   The input string to convert to lower case.
 */
-void str_tolower(char* out, const char* s) {
+void str_to_lower(char* out, const char* s) {
     if (!out) return;
     size_t i = 0;
     while (s[i]) {
@@ -370,6 +494,89 @@ void str_tolower(char* out, const char* s) {
         i++;
     }
     out[i] = '\0';
+}
+
+/*! Converts a regular string (with possible multibyte characters) into a
+    `wchar_t*` string.
+
+    \details
+    In order for str_to_wide() and wide_to_str() to work correctly, a call to
+    `setlocale()` must be made, at least once, preferably at the beginning of
+    the program, before calling these functions.
+
+    \pi s   The string to convert.
+    \return An allocated wide char string with the result.\n
+            \mustfree
+
+    \examplecodefor{str_to_wide,.c}
+    #include "colr.h"
+
+    int main(void) {
+        setlocale(LC_ALL, "");
+        char* s = "This string has multibyte chars: ⬍ ⬎ ⬏ ⬐ ⬑ ⬰";
+        wchar_t* w;
+        w = str_to_wide(s);
+        wprintf(L"%ls\n", w);
+
+        wprintf(L"This is not the character we wanted: '%c'\n", s[35]);
+        wprintf(L"It was this one: '%lc'\n", w[35]);
+        free(w);
+    }
+    \endexamplecode
+*/
+wchar_t* str_to_wide(const char* s) {
+    mbstate_t state;
+    memset(&state, 0, sizeof(state));
+    size_t wlen = mbsrtowcs(NULL, &s, 0, &state);
+    if (wlen == (size_t) - 1) {
+        debug("Error converting to wide-chars: %s\n", strerror(errno));
+        return NULL;
+    }
+    wlen++;
+    wchar_t* out = calloc(wlen, sizeof(wchar_t));
+    mbsrtowcs(out, &s, wlen, &state);
+    return out;
+}
+
+/*! Converts a wide character string (with possible multibyte characters)
+    into a regular (`char*`) string.
+
+    \details
+    In order for str_to_wide() and wide_to_str() to work correctly, a call to
+    `setlocale()` must be made, at least once, preferably at the beginning of
+    the program, before calling these functions.
+
+    \pi s   The wide character string to convert.
+    \return An allocated string (`char*`) with the result.\n
+            \mustfree
+
+    \examplecodefor{wide_to_str,.c}
+    #include "colr.h"
+
+    int main(void) {
+        setlocale(LC_ALL, "");
+        wchar_t* w = L"This string has multibyte chars: ⬍ ⬎ ⬏ ⬐ ⬑ ⬰";
+        char* s;
+        s = wide_to_str(w);
+        printf("%s\n", s);
+        printf("This is not the character we wanted though: %c\n", s[35]);
+        printf("It was this one: %lc\n", w[35]);
+        free(s);
+    }
+    \endexamplecode
+*/
+char* wide_to_str(const wchar_t* s) {
+    mbstate_t state;
+    memset(&state, 0, sizeof(state));
+    size_t len = wcsrtombs(NULL, &s, 0, &state);
+    if (len == (size_t) - 1) {
+        debug("Error converting wide-chars to str: %s\n", strerror(errno));
+        return NULL;
+    }
+    len++;
+    char* out = calloc(len, sizeof(char));
+    wcsrtombs(out, &s, len, &state);
+    return out;
 }
 
 /* ---------------------------- Colr Functions ---------------------------- */
@@ -908,6 +1115,7 @@ bool ColorText_is_ptr(void *p) {
 */
 char* ColorText_repr(struct ColorText ctext) {
     char* s;
+    char* stext = ctext.text ? str_repr(ctext.text) : NULL;
     char* sfore = ctext.fore ? ColorArg_repr(*(ctext.fore)) : NULL;
     char* sback = ctext.back ? ColorArg_repr(*(ctext.back)) : NULL;
     char* sstyle = ctext.style ? ColorArg_repr(*(ctext.style)) : NULL;
@@ -915,11 +1123,12 @@ char* ColorText_repr(struct ColorText ctext) {
     asprintf(
         &s,
         "struct ColorText {.text=%s, .fore=%s, .back=%s, .style=%s}\n",
-        ctext.text ? ctext.text : "NULL",
+        stext ? stext : "NULL",
         sfore ? sfore : "NULL",
         sback ? sback : "NULL",
         sstyle ? sstyle : "NULL"
     );
+    free(stext);
     free(sfore);
     free(sback);
     free(sstyle);
@@ -1315,7 +1524,7 @@ BasicValue BasicValue_from_str(const char* arg) {
         return BASIC_INVALID;
     }
     char arglower[MAX_COLOR_NAME_LEN];
-    str_tolower(arglower, arg);
+    str_to_lower(arglower, arg);
     for (size_t i=0; i < basic_names_len; i++) {
         if (!strcmp(arglower, basic_names[i].name)) {
             return basic_names[i].value;
@@ -1357,7 +1566,7 @@ int ExtendedValue_from_str(const char* arg) {
         return COLOR_INVALID;
     }
     char arglower[MAX_COLOR_NAME_LEN];
-    str_tolower(arglower, arg);
+    str_to_lower(arglower, arg);
     for (size_t i=0; i < extended_names_len; i++) {
         if (!strcmp(arglower, extended_names[i].name)) {
             return extended_names[i].value;
@@ -1473,7 +1682,7 @@ StyleValue StyleValue_from_str(const char* arg) {
         return STYLE_INVALID;
     }
     char arglower[MAX_COLOR_NAME_LEN];
-    str_tolower(arglower, arg);
+    str_to_lower(arglower, arg);
     for (size_t i=0; i < style_names_len; i++) {
         if (!strcmp(arglower, style_names[i].name)) {
             return style_names[i].value;
@@ -1483,52 +1692,57 @@ StyleValue StyleValue_from_str(const char* arg) {
 }
 
 
-
 /*! Rainbow-ize some text using rgb fore colors, lolcat style.
+
     \details
-    The `CODE_RESET_ALL` code is already appended to the result.
+    This prepends a color code to every character in the input string.
+    To handle multibyte characters, the string is first converted to
+    `wchar_t*`. The end result is converted back into a regular `char*` string.
 
-    \po out    Memory allocated for the result.
-               _Must have enough room for `strlen(s) + (CODE_RGB_LEN * strlen(s))`._
-    \pi s      The string to colorize.
-               _Must be null-terminated._
-    \pi freq   Frequency ("tightness") for the colors.
-    \pi offset Starting offset in the rainbow.
-*/
-void colrfgrainbow(char* out, const char* s, double freq, size_t offset) {
-    if (!(out && s)) {
-        return;
-    }
-    // Enough room for the escape code and one character.
-    char codes[CODE_RGB_LEN];
-    size_t singlecharlen = CODE_RGB_LEN + 1;
-    char singlechar[singlecharlen];
-    singlechar[0] = '\0';
-    size_t oldlen = strlen(s);
-    out[0] = '\0';
-    for (size_t i = 0; i < oldlen; i++) {
-        format_rainbow_fore(codes, freq, offset + i);
-        snprintf(singlechar, singlecharlen, "%s%c", codes, s[i]);
-        strncat(out, singlechar, CODE_RGB_LEN);
-    }
-    strncat(out, CODE_RESET_ALL, STYLE_LEN);
-}
-
-/*! Like colrfgrainbow, except it allocates the string for you, with
-    enough room to fit the string and any escape codes needed.
+    \details
+    The `CODE_RESET_ALL` code is appended to the result.
 
     \pi s      The string to colorize.
                _Must be null-terminated._
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
     \return    The allocated/formatted string on success.
+               \mustfree
+               If the allocation fails, `NULL` is returned.
 */
-char* acolrfgrainbow(const char* s, double freq, size_t offset) {
+char* rainbow_fg(const char* s, double freq, size_t offset) {
     if (!s) {
         return NULL;
     }
-    size_t oldlen = strlen(s);
-    char* out = calloc(oldlen + (CODE_RGB_LEN * oldlen), sizeof(char));
-    colrfgrainbow(out, s, freq, offset);
+    if (!offset) offset = 3;
+    if (freq < 0.1) freq = 0.1;
+    // TODO: There are at least 3 iterations of this string to account for
+    //       unicode characters. It would be nice to do the conversion on the
+    //       fly, prepending RGB codes along the way.
+    wchar_t* chars = str_to_wide(s);
+    // str_to_wide prints a debug message on failure.
+    if (!chars) return NULL;
+
+    size_t charlen = wcslen(chars);
+    // There is an RGB code for every wide character in the string.
+    size_t total_size = charlen + (CODE_RGB_LEN * charlen);
+    wchar_t* wc_out = calloc(total_size, sizeof(wchar_t));
+
+    char codes[CODE_RGB_LEN];
+    wchar_t wcodes[CODE_RGB_LEN];
+    // Enough room for the escape code and one character.
+    size_t singlecharlen = CODE_RGB_LEN + 1;
+    wchar_t singlewchar[singlecharlen];
+    for (size_t i = 0; i < charlen; i++) {
+        format_rainbow_fore(codes, freq, offset + i);
+        swprintf(wcodes, CODE_RGB_LEN, L"%s", codes);
+        swprintf(singlewchar, singlecharlen, L"%ls%lc", wcodes, chars[i]);
+        wcscat(wc_out, singlewchar);
+    }
+    free(chars);
+    wcsncat(wc_out, WCODE_RESET_ALL, STYLE_LEN);
+
+    char* out = wide_to_str(wc_out);
+    free(wc_out);
     return out;
 }

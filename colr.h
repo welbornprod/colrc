@@ -40,15 +40,19 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
 #include <malloc.h>
 #include <math.h>  /* Must include `-lm` in compiler args or Makefile LIBS! */
 #include <limits.h>
+#include <locale.h>
 #include <search.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <wchar.h>
 #include "dbug.h"
 
 /* Tell gcc to ignore unused macros. */
@@ -65,6 +69,8 @@
 #endif
 //! Convenience definition, because this is used a lot.
 #define CODE_RESET_ALL "\033[0m"
+//! Convenience definition for wide chars.
+#define WCODE_RESET_ALL L"\033[0m"
 //! Short-hand for CODE_RESET_ALL, stands for "No Color".
 #define NC CODE_RESET_ALL
 //! Length of CODE_RESET_ALL, including `'\0'`.
@@ -160,41 +166,6 @@
             \mustfree
 */
 #define alloc_style() calloc(STYLE_LEN, sizeof(char))
-
-/*! \def alloc_with_code
-    Allocate `str_len` + enough for a basic code with reset appended.
-
-    \pm str_len Extra room to allocate for text.
-    \return     Pointer to the allocated string, or NULL on error.\n
-                \mustfree
-*/
-#define alloc_with_code(str_len) calloc(str_len + CODEX_LEN, sizeof(char))
-/*! \def alloc_with_codes
-    Allocate `str_len` + enough for a mixture of fore/basic codes.
-
-    \pi str_len Extra room to allocate for text.
-    \return     Pointer to the allocated string, or NULL on error.\n
-                \mustfree
-*/
-#define alloc_with_codes(str_len) calloc(str_len + COLOR_LEN, sizeof(char))
-/*! \def alloc_with_rgb
-    Allocate `str_len` + enough for an rgb code with reset appended.
-
-    \pi str_len Extra room to allocate for text.
-
-    \return     Pointer to the allocated string, or NULL on error.\n
-                \mustfree
-*/
-#define alloc_with_rgb(str_len) calloc(str_len + COLOR_RGB_LEN, sizeof(char))
-/*! \def alloc_with_style
-    Allocate `str_len` + enough for a style code with reset appended.
-
-    \pi str_len Extra room to allocate for text.
-
-    \return     Pointer to the allocated string, or NULL on error.\n
-                \mustfree
-*/
-#define alloc_with_style(str_len) calloc(str_len + STYLE_LEN, sizeof(char))
 
 /*! \def argeq
     Convenience macro for `!strcmp(arg, s1) || !strcmp(arg, s2)`
@@ -307,9 +278,8 @@
     )
 
 
-/*! \def force_repr
+/*! \def colr_repr
     Transforms several ColrC objects into their string representations.
-    If a string is given, this does nothing.
 
     \details
     Uses _Generic (C11 standard) to dynamically ensure a string.
@@ -324,12 +294,11 @@
         - char*
 
     \pi x   A value with one of the supported types to transform into a string.
-    \return Either the string that was given, or a stringified version of what was given.\n
+    \return Stringified representation of what was passed in.\n
             \mustfree
 
-    \remark <em>Obviously this is a no-op for strings</em>.
 */
-#define force_repr(x) \
+#define colr_repr(x) \
     _Generic( \
         (x), \
         struct ColorArg: ColorArg_repr, \
@@ -337,27 +306,30 @@
         struct ColorValue: ColorValue_repr, \
         ArgType: ArgType_repr, \
         ColorType: ColorType_repr, \
-        char*: str_noop \
+        char*: str_repr \
     )(x)
 
 /*! \def debug_repr
-    Uses force_repr() to build a string representation of a Colr object,
+    Uses colr_repr() to build a string representation of a ColrC object,
     debug prints it, and calls free() when it's done.
 
     \details
-    This is for debugging purposes obviously, and is a no-op when DEBUG is not
+    This is for debugging purposes, and is a no-op when DEBUG is not
     defined.
 
     \pi lbl Label text for the debug print.
-    \pi x   Any object supported by force_repr().
+    \pi x   Any object supported by colr_repr().
+
+    \sa colr_repr _debug_repr_free
 */
 #if defined(DEBUG) && defined(debug)
     #define debug_repr(lbl, x) \
         do { \
-            char* _debug_repr_s = force_repr(x); \
+            char* _debug_repr_s = colr_repr(x); \
             debug("%s: %s\n", lbl, _debug_repr_s); \
             free(_debug_repr_s); \
         } while(0)
+        // Can't free a string passed into colr_repr()
 #else
     #define debug_repr(lbl, x) ((void)0)
 #endif
@@ -844,6 +816,8 @@ extern const size_t style_names_len;
     Common macros and definitions are found here in colr.h,
     however the functions are documented in colr.c.
 */
+char char_escape_char(char c);
+bool char_should_escape(char c);
 char* colr_empty_str(void);
 void format_bgx(char* out, unsigned char num);
 void format_bg(char* out, BasicValue value);
@@ -860,10 +834,11 @@ void str_append_reset(char* s);
 char* str_copy(char* dest, const char* src, size_t length);
 bool str_endswith(const char* s, const char* suffix);
 void str_lower(char* s);
-char* str_noop(char* s);
+char* str_repr(const char* s);
 bool str_startswith(const char* s, const char* prefix);
-void str_tolower(char* out, const char* s);
-
+void str_to_lower(char* out, const char* s);
+wchar_t* str_to_wide(const char* s);
+char* wide_to_str(const wchar_t* s);
 
 /*! \internal
     The multi-type variadiac function behind the colr() macro.
@@ -948,6 +923,5 @@ StyleValue StyleValue_from_str(const char* arg);
     Specialized functions.
     \endinternal
 */
-void colrfgrainbow(char* out, const char* s, double freq, size_t offset);
-char* acolrfgrainbow(const char* s, double freq, size_t offset);
+char* rainbow_fg(const char* s, double freq, size_t offset);
 #endif // COLR_H
