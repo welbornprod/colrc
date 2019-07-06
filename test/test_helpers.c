@@ -4,200 +4,287 @@
     \date 06-29-2019
 */
 
-#include "test_colr.h"
+#include "test_ColrC.h"
 
-
-static void test_char_escape_char(void** state) {
-    /*! Tests char_escape_char.
-    */
-    (void)state; // Unused.
-
-    struct TestItem {
-        char input;
-        char expected;
-    } tests[] = {
-        {'\'', '\''},
-        {'\"', '\"'},
-        {'\?', '\?'},
-        {'\\', '\\'},
-        {'\a', 'a'},
-        {'\b', 'b'},
-        {'\f', 'f'},
-        {'\n', 'n'},
-        {'\r', 'r'},
-        {'\t', 't'},
-        {'\v', 'v'},
-    };
-    size_t tests_len = array_length(tests);
-    for (size_t i = 0; i < tests_len; i++) {
-        assert_true(char_escape_char(tests[i].input) == tests[i].expected);
+describe(helper_functions) {
+    subdesc(char_escape_char) {
+        it("should recognize valid escape sequence chars") {
+            struct TestItem {
+                char input;
+                char expected;
+            } tests[] = {
+                {'\'', '\''},
+                {'\"', '\"'},
+                {'\?', '\?'},
+                {'\\', '\\'},
+                {'\a', 'a'},
+                {'\b', 'b'},
+                {'\f', 'f'},
+                {'\n', 'n'},
+                {'\r', 'r'},
+                {'\t', 't'},
+                {'\v', 'v'},
+            };
+            size_t tests_len = array_length(tests);
+            for (size_t i = 0; i < tests_len; i++) {
+                asserteq(
+                    char_escape_char(tests[i].input),
+                    tests[i].expected,
+                    "Known escape char was not escaped."
+                );
+            }
+        }
+        it("should not escape regular ascii chars") {
+            // 65-90 inclusive == A-Z.
+            for (char C = 65; C <= 90; C++) { // Hah.
+                asserteq(
+                    char_escape_char(C),
+                    C,
+                    "Known non-escape char was escaped."
+                );
+            }
+            // 97-122 inclusive == a-z.
+            for (char c = 97; c <= 122; c++) {
+                asserteq(
+                    char_escape_char(c),
+                    c,
+                    "Known non-escape char was escaped."
+                );
+            }
+        }
     }
-    // 65-90 inclusive == A-Z.
-    for (char C = 65; C <= 90; C++) { // Hah.
-        assert_true(char_escape_char(C) == C);
+
+    subdesc(char_should_escape) {
+        it("should detect valid escape sequence chars") {
+            struct TestItem {
+                char input;
+            } tests[] = {
+                {'\''},
+                {'\"'},
+                {'\?'},
+                {'\\'},
+                {'\a'},
+                {'\b'},
+                {'\f'},
+                {'\n'},
+                {'\r'},
+                {'\t'},
+                {'\v'},
+            };
+            size_t tests_len = array_length(tests);
+            for (size_t i = 0; i < tests_len; i++) {
+                assert(
+                    char_should_escape(tests[i].input),
+                    "Known escape char returned false."
+                );
+            }
+        }
+        it("should not produce false-positives") {
+            // 65-90 inclusive == A-Z.
+            for (char C = 65; C <= 90; C++) { // Hah.
+                assert(
+                    !char_should_escape(C),
+                    "Known non-escape char returned true."
+                );
+            }
+            // 97-122 inclusive == a-z.
+            for (char c = 97; c <= 122; c++) {
+                assert(
+                    !char_should_escape(c),
+                    "Known non-escape char returned true."
+                );
+            }
+        }
     }
-    // 97-122 inclusive == a-z.
-    for (char c = 97; c <= 122; c++) {
-        assert_true(char_escape_char(c) == c);
+
+    subdesc(colr_empty_str) {
+        it("sanity check for colr_empty_str()") {
+            char* s = colr_empty_str();
+            asserteq(s, "", "Empty string was not equal to \"\".");
+            free(s);
+        }
     }
-}
 
-static void test_char_should_escape(void** state) {
-    /*! Tests char_should_escape.
-    */
-    (void)state; // Unused.
-
-    struct TestItem {
-        char input;
-    } tests[] = {
-        {'\''},
-        {'\"'},
-        {'\?'},
-        {'\\'},
-        {'\a'},
-        {'\b'},
-        {'\f'},
-        {'\n'},
-        {'\r'},
-        {'\t'},
-        {'\v'},
-    };
-    size_t tests_len = array_length(tests);
-    for (size_t i = 0; i < tests_len; i++) {
-        assert_true(char_should_escape(tests[i].input));
+    subdesc(str_endswith) {
+        it("str_endswith") {
+            // Common uses.
+            assert(
+                str_endswith("lightblue", "blue"),
+                "Known suffix was not detected."
+            );
+            assert(
+                str_endswith("xred", "red"),
+                "Known suffix was not detected."
+            );
+            assert(
+                str_endswith("yellow", "low"),
+                "Known suffix was not detected."
+            );
+            assert(
+                str_endswith("!@#$^&*", "&*"),
+                "Known suffix was not detected."
+            );
+            assert(
+                str_endswith("    test    ", "    "),
+                "Known suffix was not detected."
+            );
+            // Should not trigger a match.
+            assert(
+                !str_endswith("test", "a"),
+                "Bad suffix was falsey detected."
+            );
+            assert(
+                !str_endswith(" test ", "test"),
+                "Bad suffix was falsey detected."
+            );
+            assert(
+                !str_endswith("t", "apple"),
+                "Bad suffix was falsey detected."
+            );
+            assert(
+                !str_endswith(NULL, "a"),
+                "Null argument did not return false."
+            );
+            assert(
+                !str_endswith("test", NULL),
+                "Null argument did not return false."
+            );
+            assert(
+                !str_endswith(NULL, NULL),
+                "Null arguments did not return false."
+            );
+        }
     }
-    // 65-90 inclusive == A-Z.
-    for (char C = 65; C <= 90; C++) { // Hah.
-        assert_false(char_should_escape(C));
+
+    subdesc(str_lower) {
+        it("should handle empty strings") {
+            // Should not fail.
+            str_lower(NULL);
+
+            // Should not fail.
+            char* empty = "";
+            str_lower(empty);
+            asserteq(
+                empty,
+                "",
+                "Empty string did not return empty string."
+            );
+            char* allocempty = colr_empty_str();
+            str_lower(allocempty);
+            asserteq(
+                empty,
+                "",
+                "Empty string did not return empty string."
+            );
+            free(allocempty);
+        }
+        it("should lowercase strings") {
+            struct TestItem {
+                char* input;
+                char* expected;
+            } tests[] = {
+                {"THIS IS IT.", "this is it."},
+                {"mAcRoS aRe eViL!?%%$!", "macros are evil!?%%$!"},
+            };
+
+            size_t tests_len = array_length(tests);
+            for (size_t i = 0; i < tests_len; i++) {
+                char* input;
+                asprintf(&input, "%s", tests[i].input);
+                str_lower(input);
+                asserteq(
+                    input,
+                    tests[i].expected,
+                    "String was not lowered."
+                );
+                free(input);
+            }
+        }
     }
-    // 97-122 inclusive == a-z.
-    for (char c = 97; c <= 122; c++) {
-        assert_false(char_should_escape(c));
+
+    subdesc(str_repr) {
+        it("escapes properly") {
+            struct TestItem {
+                char* input;
+                char* expected;
+            } tests[] = {
+                {"This\'", "\"This\\'\""},
+                {"This\"", "\"This\\\"\""},
+                {"This\?", "\"This\\?\""},
+                {"This\\", "\"This\\\\\""},
+                {"This\a", "\"This\\a\""},
+                {"This\b", "\"This\\b\""},
+                {"This\f", "\"This\\f\""},
+                {"This\n", "\"This\\n\""},
+                {"This\r", "\"This\\r\""},
+                {"This\t", "\"This\\t\""},
+                {"This\v", "\"This\\v\""},
+                {
+                    "All\'together\"now\?\\\a\b\f\n\r\t\vokay.",
+                    "\"All\\'together\\\"now\\?\\\\\\a\\b\\f\\n\\r\\t\\vokay.\""
+                },
+            };
+            size_t tests_len = array_length(tests);
+            for (size_t i = 0; i < tests_len; i++) {
+                char* repr = colr_repr(tests[i].input);
+                asserteq(
+                    repr,
+                    tests[i].expected,
+                    "String was not escaped properly."
+                );
+                free(repr);
+            }
+        }
     }
-}
 
-static void test_colr_empty_str(void** state) {
-    /*! Basic sanity check for colr_empty_str().
-    */
-    (void)state;
-
-    char* s = colr_empty_str();
-    assert_string_equal(s, "");
-    free(s);
-}
-
-static void test_str_endswith(void** state) {
-    /*! Tests str_endswith.
-    */
-    (void)state; // Unused.
-    // Common uses.
-    assert_true(str_endswith("lightblue", "blue"));
-    assert_true(str_endswith("xred", "red"));
-    assert_true(str_endswith("yellow", "low"));
-    assert_true(str_endswith("!@#$^&*", "&*"));
-    assert_true(str_endswith("    test    ", "    "));
-    // Should not trigger a match.
-    assert_false(str_endswith("test", "a"));
-    assert_false(str_endswith(" test ", "test"));
-    assert_false(str_endswith("t", "apple"));
-    assert_false(str_endswith(NULL, "a"));
-    assert_false(str_endswith("test", NULL));
-    assert_false(str_endswith(NULL, NULL));
-}
-
-static void test_str_lower(void** state) {
-    /*! str_lower() should lowercase strings.
-    */
-    (void)state;
-    // Should not fail.
-    str_lower(NULL);
-
-    // Should not fail.
-    char* empty = "";
-    str_lower(empty);
-    assert_string_equal(empty, "");
-    char* allocempty = colr_empty_str();
-    str_lower(allocempty);
-    assert_string_equal(empty, "");
-
-    struct TestItem {
-        char* input;
-        char* expected;
-    } tests[] = {
-        {"THIS IS IT.", "this is it."},
-        {"mAcRoS aRe eViL!?%%$!", "macros are evil!?%%$!"},
-    };
-
-    size_t tests_len = array_length(tests);
-    for (size_t i = 0; i < tests_len; i++) {
-        char* input;
-        asprintf(&input, "%s", tests[i].input);
-        str_lower(input);
-        assert_string_equal(input, tests[i].expected);
-        free(input);
+    subdesc(str_startswith) {
+        it("recognizes string prefixes") {
+            // Common uses.
+            assert(
+                str_startswith("lightblue", "light"),
+                "Known prefix was not detected."
+            );
+            assert(
+                str_startswith("xred", "x"),
+                "Known prefix was not detected."
+            );
+            assert(
+                str_startswith("yellow", "yel"),
+                "Known prefix was not detected."
+            );
+            assert(
+                str_startswith("!@#$^&*", "!@"),
+                "Known prefix was not detected."
+            );
+            assert(
+                str_startswith("    test", "    "),
+                "Known prefix was not detected."
+            );
+            // Should not trigger a match.
+            assert(
+                !str_startswith("test", "a"),
+                "Bad prefix was falsey detected."
+            );
+            assert(
+                !str_startswith(" test", "test"),
+                "Bad prefix was falsey detected."
+            );
+            assert(
+                !str_startswith("t", "apple"),
+                "Bad prefix was falsey detected."
+            );
+            assert(
+                !str_startswith(NULL, "a"),
+                "Null argument should not return true."
+            );
+            assert(
+                !str_startswith("test", NULL),
+                "Null argument should not return true."
+            );
+            assert(
+                !str_startswith(NULL, NULL),
+                "Null arguments should not return true."
+            );
+        }
     }
-}
-
-static void test_str_repr(void** state) {
-    /*! Ensure str_repr() escapes properly.
-    */
-    (void)state; // Unused.
-    struct TestItem {
-        char* input;
-        char* expected;
-    } tests[] = {
-        {"This\'", "\"This\\'\""},
-        {"This\"", "\"This\\\"\""},
-        {"This\?", "\"This\\?\""},
-        {"This\\", "\"This\\\\\""},
-        {"This\a", "\"This\\a\""},
-        {"This\b", "\"This\\b\""},
-        {"This\f", "\"This\\f\""},
-        {"This\n", "\"This\\n\""},
-        {"This\r", "\"This\\r\""},
-        {"This\t", "\"This\\t\""},
-        {"This\v", "\"This\\v\""},
-        {
-            "All\'together\"now\?\\\a\b\f\n\r\t\vokay.",
-            "\"All\\'together\\\"now\\?\\\\\\a\\b\\f\\n\\r\\t\\vokay.\""
-        },
-    };
-    size_t tests_len = array_length(tests);
-    for (size_t i = 0; i < tests_len; i++) {
-        char* repr = colr_repr(tests[i].input);
-        assert_string_equal(repr, tests[i].expected);
-        free(repr);
-    }
-}
-
-static void test_str_startswith(void** state) {
-    /*! Tests str_startswith.
-    */
-    (void)state; // Unused.
-    // Common uses.
-    assert_true(str_startswith("lightblue", "light"));
-    assert_true(str_startswith("xred", "x"));
-    assert_true(str_startswith("yellow", "yel"));
-    assert_true(str_startswith("!@#$^&*", "!@"));
-    assert_true(str_startswith("    test", "    "));
-    // Should not trigger a match.
-    assert_false(str_startswith("test", "a"));
-    assert_false(str_startswith(" test", "test"));
-    assert_false(str_startswith("t", "apple"));
-    assert_false(str_startswith(NULL, "a"));
-    assert_false(str_startswith("test", NULL));
-    assert_false(str_startswith(NULL, NULL));
-}
-
-int run_helper_tests(void) {
-    return_cm_tests(
-        helper,
-        cm_test(test_char_escape_char),
-        cm_test(test_char_should_escape),
-        cm_test(test_colr_empty_str),
-        cm_test(test_str_endswith),
-        cm_test(test_str_lower),
-        cm_test(test_str_repr),
-        cm_test(test_str_startswith),
-    );
 }

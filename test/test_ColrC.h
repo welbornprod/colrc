@@ -15,43 +15,30 @@
 #pragma clang diagnostic ignored "-Wunused-macros"
 #define TEST_COLR_H
 #pragma clang diagnostic pop
-
-#include <setjmp.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <cmocka.h>
-#include "../colr.h"
-
-#define return_cm_tests(name, ...) \
-    const struct CMUnitTest name##_tests[] = { \
-        __VA_ARGS__ \
-    }; \
-    return cmocka_run_group_tests_name(#name "_tests", name##_tests, NULL, NULL)
-
-
-#define runner(name) name##_test_runner()
-
-#define cm_test(x) cmocka_unit_test(x)
-
-#define array_length(array) (sizeof(array) / sizeof(array[0]))
-
-extern int run_helper_tests(void);
-extern int run_from_str_tests(void);
-extern int run_format_bg_tests(void);
-extern int run_format_fg_tests(void);
-extern int run_BasicValue_tests(void);
-extern int run_ColorType_tests(void);
-extern int run_ExtendedValue_tests(void);
-
 /* Warn for any other unused macros, for gcc and clang. */
 #pragma GCC diagnostic warning "-Wunused-macros"
 #pragma clang diagnostic push
 #pragma clang diagnostic warning "-Wunused-macros"
 
+#include "../colr.h"
+// snow's describe() macro triggers a -Wstrict-prototypes warning,
+// "function declaration isn't a prototype."
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wstrict-prototypes"
+// snow redefines the `assert()` macro. It's better though.
+#undef assert
+// snow uses typeof(), which the clang linters hate.
+#ifdef __clang__
+    #define typeof(x) __typeof__(x)
+#else
+    #define typeof(x) __typeof(x)
+#endif
+#define SNOW_ENABLED
+#include "snow.h"
 
-
+#define array_length(array) (sizeof(array) / sizeof(array[0]))
+#define in_range(x, xmin, xmax) ((bool)((x >= xmin) && (x <= xmax)))
+#define assert_range(x, xmin, xmax, ...) assert(in_range(x, xmin, xmax), __VA_ARGS__)
 #pragma clang diagnostic pop /* end warning -Wunused-macros */
 #endif /* TEST_COLR_H */
