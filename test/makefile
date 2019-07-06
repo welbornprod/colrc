@@ -11,7 +11,7 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
        -D_GNU_SOURCE \
        -std=c11
 INCLUDES=-iquote../
-LIBS=-lcmocka -lm
+LIBS=-lm
 
 binary=test_colr
 cov_cmd=bash ../gen_coverage_html.sh --
@@ -51,13 +51,13 @@ $(binary): $(binobjects)
 
 colr.o: ../colr.c ../colr.h
 	@printf "\nCompiling colr.c from parent dir for tests...\n    "
-	$(CC) -c $< -o colr.o $(CFLAGS) $(LIBS) $(INCLUDES)
+	$(CC) -c $< -o colr.o $(CFLAGS) $(INCLUDES)
 
 $(test_objects): $(test_source) $(test_headers)
 	@objpath="$@"; \
 	cfile="$${objpath%.*}.c"; \
 	printf "\nCompiling $$cfile for tests (caused by $@)...\n    "; \
-	$(CC) -c $$cfile -o $@ $(CFLAGS) $(LIBS) $(INCLUDES);
+	$(CC) -c $$cfile -o $@ $(CFLAGS) $(INCLUDES);
 
 tags: $(source) $(headers)
 	@printf "Building ctags...\n    ";
@@ -72,11 +72,25 @@ clang: debug
 clean:
 	-@bash ../clean.sh "$(binary)"
 
-.PHONY: coveragesummary
+.PHONY: coverageclean, coveragesummary, coverageview
+coverageclean:
+	@shopt -s nullglob; \
+	declare -a covfiles=($(cov_dir)/*.gc{da,no} $(cov_dir)/*.info $(cov_dir)/html); \
+	if (($${#covfiles[@]})) && [[ "$${covfiles[*]}" != $(cov_dir)/html ]]; then \
+		printf "Removing coverage files...\n"; \
+		for covfile in "$${covfiles[@]}"; do \
+			if rm -r "$$covfile" &>/dev/null; then \
+				printf "    Cleaned: $$covfile\n"; \
+			elif [[ -e "$$covfile" ]]; then \
+				printf "     Failed: $$covfile\n"; \
+			fi; \
+		done; \
+	else \
+		printf "Coverage files already clean.\n"; \
+	fi;
 coveragesummary:
 	@$(cov_cmd) "$(binary)" "$(cov_dir)" --summary
 
-.PHONY: coverageview
 coverageview:
 	@$(cov_cmd) "$(binary)" "$(cov_dir)" --view
 
@@ -113,13 +127,14 @@ help targets:
 
 .PHONY: cleantest, test
 cleantest: clean
-cleantest: debug
-cleantest:
-	-@printf "\nRunning $(binary) (via $(test_runner))...\n    "; \
-	./$(test_runner);
+cleantest: test
 
 test: debug
 test:
-	-@printf "\nRunning $(binary) (via $(test_runner))...\n    "; \
-	./$(test_runner);
+	-@if [[ -x $(binary) ]]; then \
+		printf "\nRunning $(binary) (via $(test_runner))...\n    ";\
+		./$(binary) $(TEST_ARGS);\
+	else\
+		printf "\nNo test binary to run: %s\n" "$(binary)";\
+	fi;
 

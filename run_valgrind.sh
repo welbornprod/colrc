@@ -73,7 +73,7 @@ for arg; do
             ;;
         "-a" | "--all")
             nonflags[0]="memcheck"
-            flagargs+=("--show-leak-kinds=all")
+            flagargs+=("--show-leak-kinds=all" "--track-origins=yes")
             ;;
         "-e" | "--exe")
             if ((in_exe_args)); then
@@ -143,7 +143,7 @@ case "$toolname" in
         ;;
 esac
 
-declare -a cmd=("valgrind")
+declare -a cmd=("valgrind" "--error-exitcode=1")
 cmd+=("${flagargs[@]}")
 cmd+=("--tool=$toolname")
 cmd+=("${nonflags[@]}")

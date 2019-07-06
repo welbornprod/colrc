@@ -38,6 +38,32 @@
 //! Current version for Colr.
 #define COLR_VERSION "0.2.2"
 
+/*! \def IS_C11
+    Pragmas to check for _Generic support.
+
+    \details
+    There's a reason for jumping through all of these hoops.
+    See: https://mort.coffee/home/c-compiler-quirks/
+*/
+#if (__STDC_VERSION__ >= 201112L)
+    #if defined(__GNUC__) && !defined(__clang__)
+        #if (__GNUC__ >= 5 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 9))
+            #define IS_C11
+        #endif
+    #else
+        #define IS_C11
+    #endif
+#endif
+
+// ColrC uses GNU extensions.
+#ifndef __GNUC__
+    #error "ColrC uses GNU extensions that your compiler doesn't support.")
+#endif
+// Without _Generic, ColrC is useless.
+#ifndef IS_C11
+    #error "ColrC cannot compile without C11 generic selections (_Generic).")
+#endif
+
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -79,7 +105,7 @@
     Keep in mind that BasicValue actually has some extended values in it
     for convenience.
 */
-#define CODE_LEN 12
+#define CODE_LEN 6
 //! Maximum length for an extended fore/back escape code, including `'\0'`.
 #define CODEX_LEN 12
 

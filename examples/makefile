@@ -37,17 +37,22 @@ $(binaries): $(binobjects)
 
 colr.o: ../colr.c ../colr.h
 	@printf "\nCompiling colr.c from parent dir for examples...\n    "; \
-	$(CC) -c $< -o colr.o $(CFLAGS) $(LIBS) $(INCLUDES)
+	$(CC) -c $< -o colr.o $(CFLAGS) $(INCLUDES)
 
 $(example_objects): $(example_source) $(example_headers)
 	@objpath="$@"; \
 	cfile="$${objpath%.*}.c"; \
 	if [[ "$?" =~ "$$cfile" ]]; then \
 		printf "\nCompiling $$cfile for examples:\n    Caused by $?\n    "; \
-		$(CC) -c $$cfile -o $@ $(CFLAGS) $(LIBS) $(INCLUDES); \
+		$(CC) -c $$cfile -o $@ $(CFLAGS) $(INCLUDES); \
 	else \
 		: # printf "\nNot compiling $$cfile ($? changed).\n"; \
 	fi;
+
+.PHONY: clang, clangrelease
+clang: CC=clang
+clang: CFLAGS+=-Wno-unknown-warning-option -Wliblto
+clang: all
 
 .PHONY: clean
 clean:
