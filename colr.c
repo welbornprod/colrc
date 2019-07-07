@@ -831,7 +831,7 @@ void ColorArg_free(struct ColorArg *p) {
     \pi type  ArgType (FORE, BACK, STYLE).
     \pi value BasicValue to use.
 
-    \return A ColorArg, with the `.value.type` member possible set to `TYPE_INVALID`.
+    \return A ColorArg, with the `.value.type` member possibly set to `TYPE_INVALID`.
 */
 struct ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value) {
     // Saving a copy on the stack, in case an anonymous value was given.
@@ -852,7 +852,7 @@ struct ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value) {
     \pi type  ArgType (FORE, BACK, STYLE).
     \pi value ExtendedValue to use.
 
-    \return A ColorArg, with the `.value.type` member possible set to `TYPE_INVALID`.
+    \return A ColorArg, with the `.value.type` member possibly set to `TYPE_INVALID`.
 */
 struct ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value) {
     // Saving a copy on the stack, in case an anonymous value was given.
@@ -873,7 +873,7 @@ struct ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value) {
     \pi type  ArgType (FORE, BACK, STYLE).
     \pi value RGB struct to use.
 
-    \return A ColorArg, with the `.value.type` member possible set to `TYPE_INVALID`.
+    \return A ColorArg, with the `.value.type` member possibly set to `TYPE_INVALID`.
 */
 struct ColorArg ColorArg_from_RGB(ArgType type, struct RGB value) {
     // Saving a copy on the stack, in case an anonymous value was given.
@@ -915,7 +915,7 @@ struct ColorArg ColorArg_from_str(ArgType type, char* colorname) {
     \pi type  ArgType (FORE, BACK, STYLE).
     \pi value StyleValue to use.
 
-    \return A ColorArg, with the `.value.type` member possible set to `TYPE_INVALID`.
+    \return A ColorArg, with the `.value.type` member possibly set to `TYPE_INVALID`.
 */
 struct ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value) {
     // Saving a copy on the stack, in case an anonymous value was given.
