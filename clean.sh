@@ -11,7 +11,7 @@ appscript="${apppath##*/}"
 default_docs_dir="docs"
 default_docs_file="${default_docs_dir}/html/index.html"
 
-function clean_compiled() {
+function clean_compiled {
     printf "Removing compiled files:\n"
     if [[ -n "$binary" ]]; then
         if [[ -e "$binary" ]]; then
@@ -56,7 +56,7 @@ function clean_compiled() {
     done
 }
 
-function clean_docs() {
+function clean_docs {
     local docsdir=$1 docsmainfile=$2
 
     if [[ -n "$docsdir" ]] && [[ -e "$docsmainfile" ]]; then
@@ -68,7 +68,36 @@ function clean_docs() {
     fi
 }
 
-function clean_msg() {
+function clean_manual {
+    # Print a description ($1), and remove all other arguments (rm ${@:1})
+    local desc=$1
+    [[ -n "$desc" ]] || fail "No arguments provided to clean_manual()!"
+    shift
+    local files filepath cleaned missing
+    declare -a files=("$@")
+    ((${#files[@]})) || fail "No file paths provided to clean_manual()!"
+    declare -a cleaned missing
+    let errs=0
+    for filepath in "${files[@]}"; do
+        if [[ -n "$filepath" ]] && [[ -e "$filepath" ]]; then
+            rm "$filepath" || let errs+=1
+            cleaned+=("$filepath")
+        else
+            missing+=("$filepath")
+        fi
+    done
+    ((${#cleaned[@]})) && {
+        printf "%s cleaned:\n" "$desc"
+        printf "    %s\n" "${cleaned[@]}"
+    }
+    ((${#missing[@]})) && {
+        printf "%s already cleaned:\n" "$desc"
+        printf "    %s\n" "${missing[@]}"
+    }
+    return $errs
+}
+
+function clean_msg {
     # Print a message about whether a file has been "cleaned".
     local wascleaned=$1 filepath=$2
     if [[ "$wascleaned" =~ (1)|(yes)|(true) ]]; then
@@ -105,16 +134,21 @@ function print_usage {
         $appscript -h | -v
         $appscript BINARY
         $appscript -d [DOC_DIR] [DOC_INDEX]
+        $appscript -m DESC FILE...
 
     Options:
         BINARY        : Optional executable to delete.
+        DESC          : Description of files that are being manually removed.
         DOC_DIR       : Directory for Doxygen docs.
                         Default: $default_docs_dir
         DOC_INDEX     : Main index.html file for docs.
                         Default: $default_docs_file
+        FILE          : One or more files to remove. Can be anything.
+                        This is used with --manual.
         -d,--docs     : Clean the docs dir.
                         This will not clean the binary or object files.
         -h,--help     : Show this message.
+        -m,--manual   : Just \`rm\` all arguments, without a custom message.
         -v,--version  : Show $appname version and exit.
     "
 }
@@ -123,6 +157,7 @@ function print_usage {
 declare -a objfiles
 binary=""
 do_docs=0
+do_manual=0
 doc_dir=$default_docs_dir
 doc_index=$default_docs_file
 
@@ -130,10 +165,15 @@ for arg; do
     case "$arg" in
         "-d" | "--docs")
             do_docs=1
+            do_manual=0
             ;;
         "-h" | "--help")
             print_usage ""
             exit 0
+            ;;
+        "-m" | "--manual")
+            do_manual=1
+            do_docs=0
             ;;
         "-v" | "--version")
             echo -e "$appname v. $appversion\n"
@@ -147,7 +187,7 @@ for arg; do
             fi
             ;;
         *)
-            if ((!do_docs)) && [[ -z "$binary" ]]; then
+            if ((!do_docs && !do_manual)) && [[ -z "$binary" ]]; then
                 binary="$arg"
             else
                 objfiles+=("$arg")
@@ -155,7 +195,11 @@ for arg; do
     esac
 done
 
-if ((do_docs)); then
+if ((do_manual)); then
+    ((${#objfiles[@]})) || fail "Need description and file paths. Got: nothing"
+    ((${#objfiles[@]} > 1)) || fail "No file paths provided. Got: ${objfiles[*]}"
+    clean_manual "${objfiles[@]}"
+elif ((do_docs)); then
     case ${#objfiles[@]} in
         2)
             doc_dir="${objfiles[0]}"
