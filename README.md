@@ -122,8 +122,9 @@ build/run them:
 make test
 ```
 
-This will build all of the tests using the latest `colr.c` and run them. You
-can also run the tests through `valgrind` with the `testmemcheck` target:
+This will build all of the tests using the latest `colr.c` and run them.
+
+You can also run the tests through `valgrind` with the `testmemcheck` target:
 ```bash
 make testmemcheck
 ```
