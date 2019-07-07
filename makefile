@@ -164,6 +164,11 @@ help targets:
     tags            : Build tags for this project using \`ctags\`.\n\
     test            : Build debug (if needed), build the test debug (if needed),\n\
                       and run the tests.\n\
+    testcoverage    : Delete previous test build files, and build the tests for coverage.\n\
+    testmemcheck    : Delete previous test build files, build tests, and run them\n\
+                      through valgrind.\n\
+    testsummary     : View a summary of previously built test coverage reports.\n\
+    testview        : View previously generated html test coverage reports.\n\
     memcheck        : Run valgrind's memcheck on the executable.\n\
 	";
 
@@ -174,9 +179,12 @@ cleantest:
 test:
 	-@$(MAKE) $(MAKEFLAGS) --no-print-directory debug && { cd test; $(MAKE) $(MAKEFLAGS) --no-print-directory test; };
 
-.PHONY: testcoverage, testsummary, testview
+.PHONY: testcoverage, testmemcheck, testsummary, testview
 testcoverage:
 	-@cd test && $(MAKE) $(MAKEFLAGS) --no-print-directory clean coverage
+
+testmemcheck:
+	-@cd test && $(MAKE) $(MAKEFLAGS) --no-print-directory clean debug memcheck
 
 testsummary:
 	-@cd test && $(MAKE) $(MAKEFLAGS) --no-print-directory coveragesummary

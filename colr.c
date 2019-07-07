@@ -402,7 +402,8 @@ void str_lower(char* s) {
         s[i] = c;
         i++;
     }
-    if (i > 0) s[i] = '\0';
+    // This works for empty strings too.
+    if (s[i] != '\0') s[i] = '\0';
 }
 
 

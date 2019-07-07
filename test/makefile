@@ -9,7 +9,7 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
        -Wstrict-prototypes -Wunused \
        -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 \
        -D_GNU_SOURCE \
-       -std=c11
+       -std=gnu11
 INCLUDES=-iquote../
 LIBS=-lm
 
