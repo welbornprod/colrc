@@ -5,7 +5,7 @@
     To use ColrC in your project, you will need to include colr.h
     and compile colr.c with the rest of your files.
 
-    \examplecodefor{colr_h, .c}
+    \examplecodefor{colr_h,.c}
     #include "colr.h"
     // Use ColrC functions/macros/etc.
 
@@ -36,6 +36,7 @@
 //! Current version for Colr.
 #define COLR_VERSION "0.2.2"
 
+#ifndef DOXYGEN_SKIP
 /*! \def IS_C11
     Pragmas to check for _Generic support.
 
@@ -52,6 +53,7 @@
         #define IS_C11
     #endif
 #endif
+#endif // DOXYGEN_SKIP
 
 // ColrC uses GNU extensions.
 #ifndef __GNUC__

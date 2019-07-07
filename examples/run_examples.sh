@@ -45,10 +45,10 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
-        $appscript PATTERN
+        $appscript PATTERN...
 
     Options:
-        PATTERN       : Only run executables matching this regex/text pattern.
+        PATTERN       : Only run executables matching these regex/text patterns.
         -h,--help     : Show this message.
         -v,--version  : Show $appname version and exit.
     "
@@ -64,8 +64,7 @@ function run_exe {
 
 ((${#binaries})) || fail "No binaries built yet. Run \`make\`."
 
-declare -a nonflags
-pattern=""
+declare -a patterns
 
 for arg; do
     case "$arg" in
@@ -81,33 +80,40 @@ for arg; do
             fail_usage "Unknown flag argument: $arg"
             ;;
         *)
-            nonflags+=("$arg")
+            patterns+=("$arg")
     esac
 done
 
-((${#nonflags[@]})) &&  pattern="${nonflags[0]}"
-
 let count=0
 let errs=0
+declare -a matched_patterns unmatched_patterns
 for binaryname in "${binaries[@]}"; do
-    if pattern_matches "$pattern" "$binaryname"; then
-        run_exe "$binaryname" || let errs+=1
-        let count+=1
-    fi
+    for pattern in "${patterns[@]}"; do
+        if pattern_matches "$pattern" "$binaryname"; then
+            run_exe "$binaryname" || let errs+=1
+            [[ "${matched_patterns[*]}" == *"$pattern"* ]] || matched_patterns+=("$pattern")
+            let count+=1
+            continue
+        fi
+    done
+done
+for pattern in "${patterns[@]}"; do
+    [[ "${matched_patterns[*]}" == *"$pattern"* ]] || unmatched_patterns+=("$pattern")
 done
 
 if ((count)); then
     plural="examples"
     ((count == 1)) && plural="example"
     printf "\nRan %s %s" "$count" "$plural"
-    if [[ -n "$pattern" ]]; then
-        printf " matching: %s\n" "$pattern"
+    if ((${#patterns[@]})); then
+        printf " matching: %s\n" "${matched_patterns[*]}"
+        ((${#unmatched_patterns[@]})) && printf "No matches for: %s\n" "${unmatched_patterns[*]}"
     else
         printf "\n"
     fi
 else
-    if [[ -n "$pattern" ]]; then
-        echo_err "\nNo examples matching: $pattern"
+    if ((${#patterns[@]})); then
+        echo_err "\nNo examples matching: ${patterns[*]}"
     else
         echo_err "\nNo executables found!"
     fi

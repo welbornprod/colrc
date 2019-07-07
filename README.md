@@ -41,23 +41,23 @@ dbug.h | Some debugging support for the colr tool executable, only enabled when 
 You use colr(), colr_join(), and Colr(), along with fore(), back(), and style()
 to build colorized strings.
 
-\include examples/Colr_example.c
+\includesrc{examples/Colr_example.c}
 
 If you find yourself typing the same thing over and over to join by a common
 element, just use colr_join():
 
-\include examples/colr_join_example.c
+\includesrc{examples/colr_join_example.c}
 
 If you prefer to manually insert the escape codes in an arbitrary order,
 you can use fore(), back(), and style() directly inside a colr() call:
 
-\include examples/manual_example.c
+\includesrc{examples/manual_example.c}
 
 
 Finally, if you are going to be making your own Colrs outside of the macros,
 you're going to need to know how to `free()` them:
 
-\include examples/Colr_manual_example.c
+\includesrc{examples/Colr_manual_example.c}
 
 ### Example Files
 
@@ -71,6 +71,29 @@ Name           | Example
 \ref fore      | \ref fore_example.c
 \ref back      | \ref back_example.c
 \ref style     | \ref style_example.c
+
+All of these examples can be built with the `examples` target:
+```bash
+make examples
+```
+
+You can then run the executables in `./examples` manually, with the make
+target (`make runexamples`), or with the example runner:
+```bash
+./examples/run_example.sh [NAME_PATTERN...]
+```
+
+There is also a "snippet runner" that can build and run
+arbitrary C code snippets, but is useful for building and running all example
+code snippets found in the ColrC source code itself:
+```bash
+./run_snippet.py --examples
+```
+
+To see the source-based examples in the terminal you can run:
+```bash
+./run_snippet.py --listexamples
+```
 
 ## Why
 
@@ -92,16 +115,16 @@ ColrC, but for now I'm finishing out the basic features and testing.
 
 ## Tests
 
-ColrC uses CMocka for testing. In future I hope to have more tests, and more
-thorough tests. For now, if you want to run them you will need to install the
-CMocka library (`cmocka-dev` on Debian-based distros). From there you can `cd`
-into the `test` directory and make/run the tests:
-
+ColrC uses [snow](https://github.com/mortie/snow) for testing.
+If you want to run them you will have to download/clone the source and
+build/run them:
 ```bash
-cd test
 make test
 ```
 
-This will build all of the tests using the latest `colr.c` and run them with
-`run_tests.py` (a helper that colorizes the test output).
+This will build all of the tests using the latest `colr.c` and run them. You
+can also run the tests through `valgrind` with the `testmemcheck` target:
+```bash
+make testmemcheck
+```
 

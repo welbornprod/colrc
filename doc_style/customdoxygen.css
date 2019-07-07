@@ -1649,4 +1649,11 @@ div.examplecode-header {
     color: #000000;
     text-shadow: rgba(0, 0, 0, 0.5) 1px 1px 2px;
 }
+.examplecode .fragment, .included-examplecode .fragment, .contents .textblock .fragment {
+    background: linear-gradient(45deg, #272822, #272822de);
+}
+.contents div.fragment {
+    /* Source viewer */
+    background: linear-gradient(90deg, #272822, #272822f7);
+}
 /* @end */

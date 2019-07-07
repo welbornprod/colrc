@@ -81,17 +81,17 @@ const size_t style_names_len = sizeof(style_names) / sizeof(style_names[0]);
     The following characters are supported:
         Escape Sequence  |  Description Representation
         ---------------: | :--------------------------
-                     \\' | single quote
-                     \\" | double quote
-                     \\? | question mark
-                    \\\\ | backslash
-                     \\a | audible bell
-                     \\b | backspace
-                     \\f | form feed - new page
-                     \\n | line feed - new line
-                     \\r | carriage return
-                     \\t | horizontal tab
-                     \\v | vertical tab
+                    @\ ' | single quote
+                   @\ @" | double quote
+                    @\ ? | question mark
+                   @\ @\ | backslash
+                    @\ a | audible bell
+                    @\ b | backspace
+                    @\ f | form feed - new page
+                    @\ n | line feed - new line
+                    @\ r | carriage return
+                    @\ t | horizontal tab
+                    @\ v | vertical tab
 
     \pi c   The character to check.
     \return The letter, without a backslash, needed to create an escape sequence.
@@ -133,17 +133,17 @@ char char_escape_char(char c) {
     The following characters are supported:
         Escape Sequence  |  Description Representation
         ---------------: | :--------------------------
-                    \\' | single quote
-                    \\" | double quote
-                    \\? | question mark
-                   \\\\ | backslash
-                    \\a | audible bell
-                    \\b | backspace
-                    \\f | form feed - new page
-                    \\n | line feed - new line
-                    \\r | carriage return
-                    \\t | horizontal tab
-                    \\v | vertical tab
+                    @\ ' | single quote
+                   @\ @" | double quote
+                    @\ ? | question mark
+                   @\ @\ | backslash
+                    @\ a | audible bell
+                    @\ b | backspace
+                    @\ f | form feed - new page
+                    @\ n | line feed - new line
+                    @\ r | carriage return
+                    @\ t | horizontal tab
+                    @\ v | vertical tab
 
     \pi c   The character to check.
     \return `true` if the character needs an escape sequence, otherwise `false`.
