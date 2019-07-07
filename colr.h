@@ -355,7 +355,6 @@
             debug("%s: %s\n", lbl, _debug_repr_s); \
             free(_debug_repr_s); \
         } while(0)
-        // Can't free a string passed into colr_repr()
 #else
     #define debug_repr(lbl, x) ((void)0)
 #endif
@@ -615,6 +614,64 @@
 */
 #define Colr(text, ...) ColorText_to_ptr(ColorText_from_values(text, __VA_ARGS__, NULL))
 
+/*! \def color_name_is_valid
+    Convenience macro for checking if a color name is valid.
+
+    \pi x Color name (`char*`) to check.
+    \return `true` if the name is a valid color name, otherwise `false`.
+
+    \examplecodefor{color_name_is_valid,.c}
+    char* names[] = {
+        "red",
+        "lightblue",
+        "127",
+        "123,54,67",
+        "NOTACOLOR",
+        "345",
+        "1;",
+        "1;2;"
+    };
+    size_t names_len = sizeof(names) / sizeof(names[0]);
+    for (size_t i = 0; i < names_len; i++) {
+        if (color_name_is_valid(names[i])) {
+            printf("  Valid name: %s\n", names[i]);
+        } else  {
+            printf("Invalid name: %s\n", names[i]);
+        }
+    }
+    \endexamplecode
+*/
+#define color_name_is_valid(x) ColorType_is_valid(ColorType_from_str(x))
+
+/*! \def color_name_is_invalid
+    Convenience macro for checking if a color name is invalid.
+
+    \pi x Color name (`char*`) to check.
+    \return `true` if the name is an invalid color name, otherwise `false`.
+
+    \examplecodefor{color_name_is_invalid,.c}
+    char* names[] = {
+        "red",
+        "lightblue",
+        "127",
+        "123,54,67",
+        "NOTACOLOR",
+        "345",
+        "1;",
+        "1;2;"
+    };
+    size_t names_len = sizeof(names) / sizeof(names[0]);
+    for (size_t i = 0; i < names_len; i++) {
+        if (color_name_is_invalid(names[i])) {
+            printf("Invalid name: %s\n", names[i]);
+        } else  {
+            printf("  Valid name: %s\n", names[i]);
+        }
+    }
+    \endexamplecode
+*/
+#define color_name_is_invalid(x) ColorType_is_invalid(ColorType_from_str(x))
+
 /*! Basic color values, with a few convenience values for extended colors.
 
     \internal
@@ -859,6 +916,7 @@ void format_style(char* out, StyleValue style);
 void str_append_reset(char* s);
 char* str_copy(char* dest, const char* src, size_t length);
 bool str_endswith(const char* s, const char* suffix);
+bool str_is_digits(const char* s);
 void str_lower(char* s);
 char* str_repr(const char* s);
 bool str_startswith(const char* s, const char* prefix);

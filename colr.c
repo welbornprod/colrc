@@ -385,6 +385,21 @@ bool str_endswith(const char* str, const char* suf) {
     return (strncmp(str + (strlength - suflength), suf, suflength) == 0);
 }
 
+/*! Determines whether all characters in a string are digits.
+
+    \pi s   String to check.
+            \mustnull
+    \return `true` if all characters are digits (0-9), otherwise `false`.
+*/
+bool str_is_digits(const char* s) {
+    size_t i = 0;
+    while (s[i]) {
+        if (!isdigit(s[i])) return false;
+        i++;
+    }
+    return true;
+}
+
 /*! Converts a string into lower case in place.
     \details
     \mustnullin
@@ -1200,6 +1215,26 @@ char* ColorText_to_str(struct ColorText ctext) {
     \retval TYPE_INVALID for invalid color names/strings.
     \retval TYPE_INVALID_EXTENDED_RANGE for ExtendedValues outside of 0-255.
     \retval TYPE_INVALID_RGB_RANGE for rgb values outside of 0-255.
+
+    \examplecodefor{ColorType_from_str,.c}
+    int main(int argc, char** argv) {
+        char* userarg;
+        if (argc == 1) {
+            asprintf(&userarg, "%s", "123,54,25");
+        } else {
+            asprintf(&userarg, "%s",  argv[1]);
+        }
+        ColorType type = ColorType_from_str(userarg);
+        if (!ColorType_is_invalid(type)) {
+            char* repr = colr_repr(type);
+            printf("User passed in a %s, %s\n", repr, userarg);
+            free(repr);
+        } else {
+            printf("User passed in an invalid color name: %s\n", userarg);
+        }
+        free(userarg);
+    }
+    \endexamplecode
 */
 ColorType ColorType_from_str(const char* arg) {
     if (!arg) {
@@ -1210,7 +1245,7 @@ ColorType ColorType_from_str(const char* arg) {
     int rgb_ret = rgb_from_str(arg, &r, &g, &b);
     if (rgb_ret == COLOR_INVALID_RANGE) {
         return TYPE_INVALID_RGB_RANGE;
-    } else if (rgb_ret != TYPE_INVALID) {
+    } else if (rgb_ret != COLOR_INVALID) {
         return TYPE_RGB;
     }
     // Try basic colors.
@@ -1573,7 +1608,7 @@ int ExtendedValue_from_str(const char* arg) {
             return extended_names[i].value;
         }
     }
-
+    if (!str_is_digits(arg)) return COLOR_INVALID;
     // Using long to combat easy overflow.
     long usernum;
     if (!sscanf(arg, "%ld", &usernum)) {
@@ -1593,6 +1628,7 @@ int ExtendedValue_from_str(const char* arg) {
         - "RED,GREEN,BLUE"
         - "RED GREEN BLUE"
         - "RED:GREEN:BLUE"
+        - "RED;GREEN;BLUE"
 
     \pi arg String to check for RGB values.
     \po r   Pointer to an unsigned char for red value on success.
@@ -1607,10 +1643,11 @@ int rgb_from_str(const char* arg, unsigned char* r, unsigned char* g, unsigned c
     if (!arg) {
         return COLOR_INVALID;
     }
-    const char* formats[4] = {
+    const char* formats[] = {
         "%ld,%ld,%ld",
         "%ld %ld %ld",
         "%ld:%ld:%ld",
+        "%ld;%ld;%ld",
         NULL
     };
     long userred, usergreen, userblue;
@@ -1642,11 +1679,6 @@ int rgb_from_str(const char* arg, unsigned char* r, unsigned char* g, unsigned c
         - "RED:GREEN:BLUE"
 
     \details
-    Example:
-    \code
-struct RGB rgbval;
-RGB_from_str("123,0,234", &rgbval)
-    \endcode
 
     \pi arg    String to check for RGB values.
     \po rgbval Pointer to an RGB struct to fill in the values for.
@@ -1654,6 +1686,16 @@ RGB_from_str("123,0,234", &rgbval)
     \retval 0 on success, with \p rgbval filled with the values.
     \retval COLOR_INVALID for non-rgb strings.
     \retval COLOR_INVALID_RANGE for rgb values outside of 0-255.
+
+    \examplecodefor{RGB_from_str,.c}
+    struct RGB rgbval;
+    int ret = RGB_from_str("123,0,234", &rgbval);
+    if (ret != COLOR_INVALID) {
+        char* s = colr(Colr("Test", fore(rgbval)));
+        printf("%s\n", s);
+        free(s);
+    }
+    \endexamplecode
 */
 int RGB_from_str(const char* arg, struct RGB *rgbval) {
     if (!arg) {

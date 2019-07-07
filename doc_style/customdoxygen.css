@@ -23,7 +23,7 @@ h1.groupheader {
 
 h2.groupheader {
 	border-bottom: 1px solid #797979;
-	color: #252525;
+	color: #272822;
 	font-size: 150%;
 	font-weight: normal;
 	margin-top: 1.75em;
@@ -151,11 +151,11 @@ a.elRef {
 }
 
 a.code, a.code:visited, a.line, a.line:visited {
-	color: #4665A2; 
+    color: #66d9ef;
 }
 
 a.codeRef, a.codeRef:visited, a.lineRef, a.lineRef:visited {
-	color: #4665A2; 
+	color: #ae81ff; /* #4665A2; */
 }
 
 /* @end */
@@ -298,8 +298,7 @@ body {
 }
 #titlearea {
 	color: #f1f1f1;
-	background-color: #d3e1ea;
-	background: linear-gradient(90deg, #355b73, transparent);
+	background: linear-gradient(90deg, #272822, #d7d7d7)
 }
 
 div.contents {
@@ -334,7 +333,7 @@ p.formulaDsp {
 }
 
 img.formulaDsp {
-	
+
 }
 
 img.formulaInl {
@@ -629,9 +628,9 @@ table.memberdecls {
 }
 
 .memdoc, dl.reflist dd {
-        border-bottom: 1px solid #999999;      
-        border-left: 1px solid #999999;      
-        border-right: 1px solid #999999; 
+        border-bottom: 1px solid #999999;
+        border-left: 1px solid #999999;
+        border-right: 1px solid #999999;
         padding: 6px 10px 2px 10px;
         background-color: #FAFAFA;
         border-top-width: 0;
@@ -914,7 +913,7 @@ table.doxtable td, table.doxtable th {
 }
 
 table.doxtable th {
-	background-color: #272727;
+	background-color: #272822;
 	color: #FFFFFF;
 	font-size: 110%;
 	padding-bottom: 4px;
@@ -1545,7 +1544,7 @@ tr.heading h2 {
 
 /* @group Markdown */
 
-/*
+
 table.markdownTable {
 	border-collapse:collapse;
         margin-top: 4px;
@@ -1566,7 +1565,7 @@ table.markdownTableBodyLeft td, table.markdownTable th {
 }
 
 th.markdownTableHeadLeft th.markdownTableHeadRight th.markdownTableHeadCenter th.markdownTableHeadNone {
-	background-color: #272727;
+	background-color: #272822;
 	color: #FFFFFF;
 	font-size: 110%;
 	padding-bottom: 4px;
@@ -1584,7 +1583,7 @@ th.markdownTableHeadRight {
 th.markdownTableHeadCenter {
 	text-align: center
 }
-*/
+
 
 table.markdownTable {
 	border-collapse:collapse;
@@ -1622,8 +1621,9 @@ th.markdownTableHeadCenter, td.markdownTableBodyCenter {
 
 /* ColrC custom classes */
 .examplecode {
-    background-color: rgb(221, 232, 239);
-    border: 1px solid #A4C1D5;
+    background-color: rgb(215, 215, 215);
+    background: linear-gradient(0deg, #d7d7d7, 95%, #fafafa);
+    border: 1px solid #d3d3d3;
     padding: 10px;
     margin-bottom: 10px;
     border-radius: 5px;
@@ -1633,11 +1633,11 @@ th.markdownTableHeadCenter, td.markdownTableBodyCenter {
     -moz-box-shadow: rgba(0, 0, 0, 0.15) 5px 5px 5px;
     -webkit-border-bottom-left-radius: 4px;
     -webkit-border-bottom-right-radius: 4px;
-    -webkit-box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.15);
+    -webkit-box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
 }
 
 .diamond-bullet {
-    color: #3B6480;
+    color: #3d3d3d;
     display: inline-block;
     font-family: "Noto Sans", Roboto, sans-serif;
     font-size: 65%;
