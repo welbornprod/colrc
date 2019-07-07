@@ -28,12 +28,6 @@
 #pragma clang diagnostic ignored "-Wstrict-prototypes"
 // snow redefines the `assert()` macro. It's better though.
 #undef assert
-// snow uses typeof(), which the clang linters hate.
-#ifdef __clang__
-    #define typeof(x) __typeof__(x)
-#else
-    #define typeof(x) __typeof(x)
-#endif
 #define SNOW_ENABLED
 #include "snow.h"
 

@@ -416,7 +416,7 @@ void str_lower(char* s) {
     \sa char_should_escape char_escape_char
 
     \examplecodefor{str_repr,.c}
-    char* s = str_repr("This\nhas \bspecial\tchars.")
+    char* s = str_repr("This\nhas \bspecial\tchars.");
     // The string `s` contains an escaped string, it *looks like* the definition,
     // but no real newlines, backspaces, or tabs are in it.
     assert(strcmp(s, "\"This\\nhas \\bspecial\\tchars.\"") == 0);

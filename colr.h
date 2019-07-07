@@ -5,7 +5,7 @@
     To use ColrC in your project, you will need to include colr.h
     and compile colr.c with the rest of your files.
 
-    \code{.c}
+    \examplecodefor{colr_h, .c}
     #include "colr.h"
     // Use ColrC functions/macros/etc.
 
@@ -20,15 +20,13 @@
         printf("%s\n", colorized);
         free(colorized);
     }
-    \endcode
+    \endexamplecode
 
     <em>Don't forget to compile with `colr.c` and `-lm`</em>.
     \code{.sh}
     gcc -std=c11 -c your_program.c colr.c -lm
     \endcode
 */
-// TODO: After fleshing out the interface, come back here and show actual
-//       usage in the code block above.
 #ifndef COLR_H
 #define COLR_H
 #ifndef _GNU_SOURCE
