@@ -26,17 +26,21 @@ headers=colr_tool.h $(colr_headers)
 optional_headers=dbug.h
 optional_flags=$(foreach header, $(optional_headers), -include $(header))
 cov_dir=coverage
+custom_dir=doc_style
 docs_config=Doxyfile
 docs_dir=docs
 docs_readme=README.md
 docs_main_file=$(docs_dir)/html/index.html
-docs_css=doc_style/customdoxygen.css
+docs_css=$(custom_dir)/customdoxygen.css
 docs_examples=$(wildcard examples/*.c)
 docs_deps=$(docs_config) $(docs_readme) $(docs_examples) $(docs_css)
 docs_pdf=$(docs_dir)/ColrC-manual.pdf
 latex_dir=$(docs_dir)/latex
-latex_ref=$(latex_dir)/refman
-latex_pdf=$(latex_ref).pdf
+latex_header=$(custom_dir)/header.tex
+latex_style=$(custom_dir)/customdoxygen.sty
+latex_deps=$(docs_config) $(docs_readme) $(latex_header) $(latex_style)
+latex_tex=$(latex_dir)/refman.tex
+latex_pdf=$(latex_dir)/refman.pdf
 latex_files=\
 	$(wildcard $(latex_dir)/*.ps) $(wildcard $(latex_dir)/*.dvi) \
 	$(wildcard $(latex_dir)/*.aux) $(wildcard $(latex_dir)/*.toc) \
@@ -73,31 +77,62 @@ $(binary): $(objects)
 	@printf "\nCompiling $<...\n    ";
 	$(CC) -c $< $(CFLAGS)
 
+# Build all docs (html and pdf) if needed.
+docs: $(docs_main_file)
+docs: $(docs_pdf)
+
 $(docs_main_file): $(source) $(headers) $(docs_deps)
-docs: $(source) $(headers) $(docs_main_file) $(docs_deps)
-	@printf "\nBuilding doxygen docs (for $?)...\n    "
+	@# Build the html docs, with example code included.
+	@printf "\nBuilding html doxygen docs (for $@)...\n    "; \
+	DOXYGEN_ENABLED_SECTIONS=examples \
+	DOXYGEN_GENERATE_MAN=YES \
+	DOXYGEN_GENERATE_HTML=YES \
+	DOXYGEN_GENERATE_LATEX=NO \
 	doxygen $(docs_config);
 
-$(latex_ref): cleanlatex
-$(latex_ref): $(latex_dir)/refman.tex
-	# Must have the `texlive-latex-recommended` or `texlive-latex-extra` packages installed.
-	pdflatex $(latex_ref)
-	makeindex $(latex_dir)/refman.idx
-	pdflatex $(latex_ref)
-	latex_count=8 ; \
-	while egrep -s 'Rerun (LaTeX|to get cross-references right)' $(latex_dir)/refman.log && [ $$latex_count -gt 0 ] ;\
-	  do \
-	    printf "Rerunning latex....\n" ;\
-	    pdflatex $(latex_ref) ;\
-	    latex_count=`expr $$latex_count - 1` ;\
-	  done
-	makeindex $(latex_dir)/refman.idx
-	pdflatex $(latex_ref)
+$(latex_tex): $(source) $(headers) $(latex_deps)
+	@# Build the doxygen latex docs, without example code (latex_pdf and docs_pdf need this).
+	@printf "\nBuilding latex doxygen docs (for $@)...\n    "; \
+	DOXYGEN_ENABLED_SECTIONS=latex_only \
+	DOXYGEN_GENERATE_MAN=NO \
+	DOXYGEN_GENERATE_HTML=NO \
+	DOXYGEN_GENERATE_LATEX=YES \
+	doxygen $(docs_config);
 
-$(latex_pdf): $(latex_ref)
+$(latex_pdf): $(latex_tex)
+$(latex_pdf):
+	@# Builds $(latex_pdf) if needed.
+	@# Must have these packages installed:
+	@# 	   doxygen-latex, texlive-lang-cyrillic, and texlive-fonts-extra
+	@if cd $(latex_dir); then \
+		printf "\nBuilding $(latex_pdf) for ($@)...\n"; \
+		pdflatex refman; \
+		makeindex refman.idx; \
+		pdflatex refman; \
+		latex_count=8 ; \
+		while egrep -s 'Rerun (LaTeX|to get cross-references right)' refman.log && [ $$latex_count -gt 0 ] ;\
+		  do \
+		    printf "\nRerunning latex....\n" ;\
+		    pdflatex refman ;\
+		    latex_count=`expr $$latex_count - 1` ;\
+		  done; \
+		makeindex refman.idx; \
+		pdflatex refman; \
+	else \
+		printf "\nUnable to cd into latex dir: %s\n" "$(latex_dir)" 1>&2; \
+	fi;
 
 $(docs_pdf): $(latex_pdf)
-	mv $(latex_pdf) $(docs_pdf)
+	@# Move the refman.pdf into docs/ColrC-manual.pdf.
+	@if [[ -e "$(latex_pdf)" ]]; then \
+		if cp $(latex_pdf) $(docs_pdf); then \
+			printf "\nCopied docs pdf: %s\n" "$(docs_pdf)"; \
+		else \
+			printf "\nUnable to copy docs pdf: %s\n" "$(docs_pdf)" 1>&2; \
+		fi; \
+	else \
+		printf "\nSource pdf not found: %s\n" "$(latex_pdf)" 1>&2; \
+	fi;
 
 tags: $(source) $(headers)
 	@printf "Building ctags...\n    "

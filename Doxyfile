@@ -238,23 +238,29 @@ TAB_SIZE               = 4
 # "Side Effects:". You can put \n's in the value part of an alias to insert
 # newlines.
 
-ALIASES                = "pin=\param[in]" \
-                         "pi=\param[in]" \
-                         "pout=\param[out]" \
-                         "pm=\param" \
-                         "po=\param[out]" \
-                         "warn=\warning" \
-                         "att=\attention" \
-                         "colrmacros=colr(), colr_join(), and Colr() macros" \
-                         "colrmightfree=If used inside of the \colrmacros, <em>they will `free()` the result</em>.<br>Otherwise, <em>you are responsible for calling `free()`</em>." \
-                         "mustfree=<em>You must `free()` the memory allocated by this function.</em>" \
-                         "mustnull=<em>must be null-terminated</em>." \
-                         "mustnullin=Input <em>must be null-terminated</em>." \
-                         "examplecode{1}=<div class='examplecode'><div class='examplecode-header'><span class= diamond-bullet>◆&nbsp;</span>Example:</div>\n\code{\1}\n" \
-                         "examplecodefor{2}=<div class='examplecode'><div class='examplecode-header'><a id='\1_example' class='diamond-bullet' href='#\1_example'>◆&nbsp;</a>\1 example:</div>\n\code{\2}\n" \
-                         "endexamplecode=\n\endcode</div>" \
-                         "endexamplecodefor=\n\endcode</div>" \
-                         "includesrc{1}=<div class='included-examplecode'>\include \1</div>"
+ALIASES += "pin=\param[in]"
+ALIASES += "pi=\param[in]"
+ALIASES += "pout=\param[out]"
+ALIASES += "pm=\param"
+ALIASES += "po=\param[out]"
+ALIASES += "warn=\warning"
+ALIASES += "att=\attention"
+ALIASES += "colrmacros=colr(), colr_join(), and Colr() macros"
+ALIASES += "colrmightfree=If used inside of the colr macros, <em>they will `free()` the result</em>.<br>Otherwise, <em>you are responsible for calling `free()`</em>."
+ALIASES += "mustfree=<em>You must `free()` the memory allocated by this function.</em>"
+ALIASES += "mustnull=<em>must be null-terminated</em>."
+ALIASES += "mustnullin=Input <em>must be null-terminated</em>."
+ALIASES += "examplecode{1}=\if examples \
+<div class='examplecode'><div class='examplecode-header'><span class= diamond-bullet>◆&nbsp;</span>Example:</div>\n\code{\1}\n"
+ALIASES += "examplecodefor{2}=\if examples \
+<div class='examplecode'><div class='examplecode-header'><a id='\1_example' class='diamond-bullet' href='#\1_example'>◆&nbsp;</a>\1 example:</div>\n\code{\2}\n"
+ALIASES += "endexamplecode=\n\endcode</div> \
+\endif"
+ALIASES += "endexamplecodefor=\n\endcode</div> \
+\endif"
+ALIASES += "includesrc{1}=\if examples \
+<div class='included-examplecode'>\include \1</div> \
+\endif"
 
 # This tag can be used to specify a number of word-keyword mappings (TCL only).
 # A mapping has the form "name=value". For example adding "class=itcl::class"
@@ -664,7 +670,7 @@ GENERATE_DEPRECATEDLIST= YES
 # sections, marked by \if <section_label> ... \endif and \cond <section_label>
 # ... \endcond blocks.
 
-ENABLED_SECTIONS       =
+ENABLED_SECTIONS       = $(DOXYGEN_ENABLED_SECTIONS)
 
 # The MAX_INITIALIZER_LINES tag determines the maximum number of lines that the
 # initial value of a variable or macro / define can have for it to appear in the
@@ -1140,7 +1146,7 @@ IGNORE_PREFIX          =
 # If the GENERATE_HTML tag is set to YES, doxygen will generate HTML output
 # The default value is: YES.
 
-GENERATE_HTML          = YES
+GENERATE_HTML          = $(DOXYGEN_GENERATE_HTML)
 
 # The HTML_OUTPUT tag is used to specify where the HTML docs will be put. If a
 # relative path is entered the value of OUTPUT_DIRECTORY will be put in front of
@@ -1684,7 +1690,7 @@ EXTRA_SEARCH_MAPPINGS  =
 # If the GENERATE_LATEX tag is set to YES, doxygen will generate LaTeX output.
 # The default value is: YES.
 
-GENERATE_LATEX         = YES
+GENERATE_LATEX         = $(DOXYGEN_GENERATE_LATEX)
 
 # The LATEX_OUTPUT tag is used to specify where the LaTeX docs will be put. If a
 # relative path is entered the value of OUTPUT_DIRECTORY will be put in front of
@@ -1755,7 +1761,7 @@ EXTRA_PACKAGES         =
 # to HTML_HEADER.
 # This tag requires that the tag GENERATE_LATEX is set to YES.
 
-LATEX_HEADER           =
+LATEX_HEADER           =doc_style/header.tex
 
 # The LATEX_FOOTER tag can be used to specify a personal LaTeX footer for the
 # generated LaTeX document. The footer should contain everything after the last
@@ -1920,7 +1926,7 @@ RTF_SOURCE_CODE        = NO
 # classes and files.
 # The default value is: NO.
 
-GENERATE_MAN           = YES
+GENERATE_MAN           = $(DOXYGEN_GENERATE_MAN)
 
 # The MAN_OUTPUT tag is used to specify where the man pages will be put. If a
 # relative path is entered the value of OUTPUT_DIRECTORY will be put in front of
