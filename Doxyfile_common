@@ -1,4 +1,4 @@
-QUIET                  = NO
+QUIET                  = YES
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = ColrC
 PROJECT_NUMBER         =
@@ -47,16 +47,18 @@ ALIASES += "examplecodefor{2}=\if examples \
           <div class='examplecode-header'> \
                <a id='\1_example' class='diamond-bullet' href='#\1_example'>◆&nbsp;</a> \
                \1 example: \
-          </div>
+          </div> \
           \code{\2}\n"
-ALIASES += "endexamplecode=\n\endcode \
+ALIASES += "endexamplecode=\
+     \endcode \
      </div> \
      \endif"
-ALIASES += "endexamplecodefor=\n\endcode \
+ALIASES += "endexamplecodefor=\
+     \endcode \
      </div> \
      \endif"
 ALIASES += "includesrc{1}=\if examples \
-     <div class='included-examplecode'>\include \1</div> \
+          <div class='included-examplecode'>\include \1</div> \
      \endif"
 OPTIMIZE_OUTPUT_FOR_C  = YES
 TOC_INCLUDE_HEADINGS   = 99
@@ -87,7 +89,7 @@ ENUM_VALUES_PER_LINE   = 1
 TREEVIEW_WIDTH         = 250
 # Latex settings -------------------------------------------------------------
 LATEX_OUTPUT           = latex
-COMPACT_LATEX          = NO
+COMPACT_LATEX          = YES
 LATEX_HEADER           =doc_style/header.tex
 LATEX_EXTRA_STYLESHEET =doc_style/doxygen.sty
 PDF_HYPERLINKS         = YES
@@ -100,9 +102,7 @@ ENABLE_PREPROCESSING   = YES
 PREDEFINED             = DEBUG=1 \
                          _GNU_SOURCE=1 \
                          DOXYGEN_SKIP=1
-# Tags settings --------------------------------------------------------------
-TAGFILES               = tags
-DOT_FONTNAME           = Arial
 
 # Graph settings -------------------------------------------------------------
+DOT_FONTNAME           = Arial
 INCLUDE_GRAPH          = NO

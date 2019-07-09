@@ -9,7 +9,9 @@ appscript="${apppath##*/}"
 # appdir="${apppath%/*}"
 
 default_docs_dir="docs"
-default_docs_file="${default_docs_dir}/html/index.html"
+default_html_dir="${default_docs_dir}/html"
+default_man_dir="${default_docs_dir}/man"
+
 
 function clean_compiled {
     printf "Removing compiled files:\n"
@@ -57,14 +59,18 @@ function clean_compiled {
 }
 
 function clean_docs {
-    local docsdir=$1 docsmainfile=$2
-
-    if [[ -n "$docsdir" ]] && [[ -e "$docsmainfile" ]]; then
-        if rm -r "${docsdir:?}"/*; then
-            printf "Docs cleaned:\n    %s\n" "$docsdir/*"
-        fi
+    local html_dir=$1 man_dir=$2
+    if [[ -n "$html_dir" ]] && [[ -e "$html_dir" ]]; then
+        rm -r "$html_dir" || fail "Can't remove HTML docs dir: $html_dir"
+        printf "HTML docs cleaned:\n    %s\n" "$html_dir/*"
     else
-        printf "Docs already clean:\n    %s\n" "$docsdir/*"
+        printf "HTML docs already clean:\n    %s\n" "$html_dir/*"
+    fi
+    if [[ -n "$man_dir" ]] && [[ -e "$man_dir" ]]; then
+        rm -r "$man_dir" || fail "Can't remove Man docs dir: $man_dir"
+        printf "Man docs cleaned:\n    %s\n" "$man_dir/*"
+    else
+        printf "Man docs already clean:\n    %s\n" "$man_dir/*"
     fi
 }
 
@@ -140,7 +146,7 @@ function print_usage {
     Usage:
         $appscript -h | -v
         $appscript BINARY
-        $appscript -d [DOC_DIR] [DOC_INDEX]
+        $appscript -d [DOC_DIR] [HTML_DIR] [MAN_DIR]
         $appscript -m DESC FILE...
 
     Options:
@@ -148,8 +154,10 @@ function print_usage {
         DESC          : Description of files that are being manually removed.
         DOC_DIR       : Directory for Doxygen docs.
                         Default: $default_docs_dir
-        DOC_INDEX     : Main index.html file for docs.
-                        Default: $default_docs_file
+        HTML_DIR      : Directory for Doxygen html docs.
+                        Default: $default_html_dir
+        MAN_DIR       : Directory for Doxygen man docs.
+                        Default: $default_man_dir
         FILE          : One or more files to remove. Can be anything.
                         This is used with --manual.
         -d,--docs     : Clean the docs dir.
@@ -166,7 +174,8 @@ binary=""
 do_docs=0
 do_manual=0
 doc_dir=$default_docs_dir
-doc_index=$default_docs_file
+doc_html_dir=$default_html_dir
+doc_man_dir=$default_man_dir
 
 for arg; do
     case "$arg" in
@@ -208,18 +217,25 @@ if ((do_manual)); then
     clean_manual "${objfiles[@]}"
 elif ((do_docs)); then
     case ${#objfiles[@]} in
+        3)
+            doc_dir="${objfiles[0]}"
+            doc_html_dir="${objfiles[1]}"
+            doc_man_dir="${objfiles[2]}"
+            ;;
         2)
             doc_dir="${objfiles[0]}"
-            doc_index="${objfiles[1]}"
+            doc_html_dir="${objfiles[1]}"
+            doc_man_dir="${doc_dir}/man"
             ;;
         1)
             doc_dir="${objfiles[0]}"
-            doc_index="$doc_dir/html/index.html"
+            doc_html_dir="${doc_dir}/html"
+            doc_man_dir="${doc_dir}/man"
             ;;
         *)
             fail_usage "Too many arguments."
     esac
-    clean_docs "$doc_dir" "$doc_index"
+    clean_docs "$doc_html_dir" "$doc_man_dir"
 else
     clean_compiled
 fi

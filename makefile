@@ -41,8 +41,12 @@ latex_dir=$(docs_dir)/latex
 latex_header=$(custom_dir)/header.tex
 latex_style=$(custom_dir)/doxygen.sty
 latex_deps=$(docs_config) $(docs_latex_config) $(docs_readme) $(latex_header) $(latex_style)
-latex_idx=$(latex_dir)/refman.idx
+latex_tex=$(latex_dir)/refman.tex
 latex_pdf=$(latex_dir)/refman.pdf
+doxy_latex_files=\
+	$(wildcard $(latex_dir)/*.tex) $(wildcard $(latex_dir)/*.md5) \
+	$(wildcard $(latex_dir)/*.pdf) $(wildcard $(latex_dir)/*.sty) \
+	$(latex_dir)/Makefile
 latex_files=\
 	$(wildcard $(latex_dir)/*.ps) $(wildcard $(latex_dir)/*.dvi) \
 	$(wildcard $(latex_dir)/*.aux) $(wildcard $(latex_dir)/*.toc) \
@@ -50,9 +54,7 @@ latex_files=\
 	$(wildcard $(latex_dir)/*.ilg) $(wildcard $(latex_dir)/*.log) \
 	$(wildcard $(latex_dir)/*.out) $(wildcard $(latex_dir)/*.brf) \
 	$(wildcard $(latex_dir)/*.blg) $(wildcard $(latex_dir)/*.bbl) \
-	$(wildcard $(latex_dir)/*.tex) $(wildcard $(latex_dir)/*.md5) \
-	$(wildcard $(latex_dir)/*.pdf) $(wildcard $(latex_dir)/*.sty) \
-	$(latex_ref) $(docs_pdf) $(latex_dir)/Makefile _minted-refman
+	$(wildcard $(latex_dir)/*.pyg) $(latex_dir)/refman.pdf
 examples_dir=examples
 examples_source=$(wildcard $(examples_dir)/*.c)
 .PHONY: all, coverage, debug, release
@@ -87,48 +89,20 @@ docs: $(docs_pdf)
 
 # Build the html docs, with example code included.
 $(docs_main_file): $(source) $(headers) $(docs_deps)
-	@printf "\nBuilding html doxygen docs (for $@)...\n    "
-	doxygen $(docs_html_config) && printf "    Doxygen html built.\n";
+	@printf "\nBuilding html doxygen docs...\n    Target: $@\n    For: $?\n    "
+	doxygen $(docs_html_config)
 
 # Build the doxygen latex docs, without example code (latex_pdf and docs_pdf need this).
-$(latex_idx): $(source) $(headers) $(latex_deps)
-	@printf "\nBuilding latex doxygen docs (for $@)...\n    ";
-	doxygen $(docs_latex_config) && printf "    Doxygen latex built.\n";
+# The example code (custom html-wrapper aliases) cause latex to fail.
+$(latex_tex): $(source) $(headers) $(latex_deps)
+	@printf "\nBuilding latex doxygen docs...\n    Target: $@\n    For: $?\n    "
+	doxygen $(docs_latex_config)
 
-# Builds $(latex_pdf) if needed.
-# Must have these packages installed:
-# 	   doxygen-latex, texlive-lang-cyrillic, and texlive-fonts-extra
-$(latex_pdf): $(latex_idx)
-	@if cd $(latex_dir); then \
-		declare -a pdf_args=("-halt-on-error" "-shell-escape");\
-		printf "\nBuilding $(latex_pdf) for ($@)...\n"; \
-		pdflatex "$${pdf_args[@]}" refman; \
-		makeindex refman.idx; \
-		pdflatex "$${pdf_args[@]}" refman; \
-		latex_count=8 ; \
-		while egrep -s 'Rerun (LaTeX|to get cross-references right)' refman.log && [ $$latex_count -gt 0 ] ;\
-		  do \
-		    printf "\nRerunning latex....\n" ;\
-		    pdflatex "$${pdf_args[@]}" refman;\
-		    latex_count=`expr $$latex_count - 1` ;\
-		  done; \
-		makeindex refman.idx; \
-		pdflatex "$${pdf_args[@]}" refman; \
-	else \
-		printf "\nUnable to cd into latex dir: %s\n" "$(latex_dir)" 1>&2; \
-	fi;
+$(latex_pdf): $(latex_tex)
+	@./gen_latex_pdf.sh --reference
 
 $(docs_pdf): $(latex_pdf)
-	@# Move the refman.pdf into docs/ColrC-manual.pdf.
-	@if [[ -e "$(latex_pdf)" ]]; then \
-		if cp $(latex_pdf) $(docs_pdf); then \
-			printf "\nCopied docs pdf: %s\n" "$(docs_pdf)"; \
-		else \
-			printf "\nUnable to copy docs pdf: %s\n" "$(docs_pdf)" 1>&2; \
-		fi; \
-	else \
-		printf "\nSource pdf not found: %s\n" "$(latex_pdf)" 1>&2; \
-	fi;
+	@./gen_latex_pdf.sh
 
 tags: $(source) $(headers)
 	@printf "Building ctags...\n    "
@@ -151,17 +125,18 @@ clean:
 cleandebug: clean
 cleandebug: debug
 
-.PHONY: cleandocs
+.PHONY: cleandocs, cleanlatex, cleanexamples, cleanpdf
 cleandocs:
-	@./clean.sh -d "$(docs_dir)" "$(docs_main_file)"
+	@./clean.sh -d "$(docs_dir)" "$(docs_dir)/html" "$(docs_dir)/man"
 
-.PHONY: cleanlatex
 cleanlatex:
-	@./clean.sh -m "Latex" $(latex_files)
+	@./clean.sh -m "Latex" $(doxy_latex_files)
 
-.PHONY: cleanexamples
 cleanexamples:
 	@cd examples && $(MAKE) $(MAKEFLAGS) --no-print-directory clean
+
+cleanpdf:
+	@./clean.sh -m "PDF" $(docs_pdf) $(latex_files)
 
 .PHONY: coveragesummary
 coveragesummary:
@@ -171,7 +146,13 @@ coveragesummary:
 coverageview:
 	@./gen_coverage_html.sh "$(binary)" "$(cov_dir)" --view
 
-.PHONY: docsrebuild
+.PHONY: docshtml, docslatex, docspdf, docsrebuild
+docshtml: $(docs_main_file)
+
+docslatex: $(latex_idx)
+
+docspdf: $(docs_pdf)
+
 docsrebuild: cleandocs
 docsrebuild: docs
 
@@ -182,9 +163,6 @@ examples: $(examples_source)
 .PHONY: memcheck
 memcheck:
 	@./run_valgrind.sh -a $(COLR_ARGS)
-
-.PHONY: pdf
-pdf: $(docs_pdf)
 
 .PHONY: run
 run:
