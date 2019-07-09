@@ -27,19 +27,21 @@ optional_headers=dbug.h
 optional_flags=$(foreach header, $(optional_headers), -include $(header))
 cov_dir=coverage
 custom_dir=doc_style
-docs_config=Doxyfile
+docs_config=Doxyfile_common
+docs_html_config=Doxyfile_html
+docs_latex_config=Doxyfile_latex
 docs_dir=docs
 docs_readme=README.md
 docs_main_file=$(docs_dir)/html/index.html
 docs_css=$(custom_dir)/customdoxygen.css
 docs_examples=$(wildcard examples/*.c)
-docs_deps=$(docs_config) $(docs_readme) $(docs_examples) $(docs_css)
+docs_deps=$(docs_config) $(docs_html_config) $(docs_readme) $(docs_examples) $(docs_css)
 docs_pdf=$(docs_dir)/ColrC-manual.pdf
 latex_dir=$(docs_dir)/latex
 latex_header=$(custom_dir)/header.tex
-latex_style=$(custom_dir)/customdoxygen.sty
-latex_deps=$(docs_config) $(docs_readme) $(latex_header) $(latex_style)
-latex_tex=$(latex_dir)/refman.tex
+latex_style=$(custom_dir)/doxygen.sty
+latex_deps=$(docs_config) $(docs_latex_config) $(docs_readme) $(latex_header) $(latex_style)
+latex_idx=$(latex_dir)/refman.idx
 latex_pdf=$(latex_dir)/refman.pdf
 latex_files=\
 	$(wildcard $(latex_dir)/*.ps) $(wildcard $(latex_dir)/*.dvi) \
@@ -48,7 +50,9 @@ latex_files=\
 	$(wildcard $(latex_dir)/*.ilg) $(wildcard $(latex_dir)/*.log) \
 	$(wildcard $(latex_dir)/*.out) $(wildcard $(latex_dir)/*.brf) \
 	$(wildcard $(latex_dir)/*.blg) $(wildcard $(latex_dir)/*.bbl) \
-	$(latex_ref) $(docs_pdf)
+	$(wildcard $(latex_dir)/*.tex) $(wildcard $(latex_dir)/*.md5) \
+	$(wildcard $(latex_dir)/*.pdf) $(wildcard $(latex_dir)/*.sty) \
+	$(latex_ref) $(docs_pdf) $(latex_dir)/Makefile _minted-refman
 examples_dir=examples
 examples_source=$(wildcard $(examples_dir)/*.c)
 .PHONY: all, coverage, debug, release
@@ -81,43 +85,35 @@ $(binary): $(objects)
 docs: $(docs_main_file)
 docs: $(docs_pdf)
 
+# Build the html docs, with example code included.
 $(docs_main_file): $(source) $(headers) $(docs_deps)
-	@# Build the html docs, with example code included.
-	@printf "\nBuilding html doxygen docs (for $@)...\n    "; \
-	DOXYGEN_ENABLED_SECTIONS=examples \
-	DOXYGEN_GENERATE_MAN=YES \
-	DOXYGEN_GENERATE_HTML=YES \
-	DOXYGEN_GENERATE_LATEX=NO \
-	doxygen $(docs_config);
+	@printf "\nBuilding html doxygen docs (for $@)...\n    "
+	doxygen $(docs_html_config) && printf "    Doxygen html built.\n";
 
-$(latex_tex): $(source) $(headers) $(latex_deps)
-	@# Build the doxygen latex docs, without example code (latex_pdf and docs_pdf need this).
-	@printf "\nBuilding latex doxygen docs (for $@)...\n    "; \
-	DOXYGEN_ENABLED_SECTIONS=latex_only \
-	DOXYGEN_GENERATE_MAN=NO \
-	DOXYGEN_GENERATE_HTML=NO \
-	DOXYGEN_GENERATE_LATEX=YES \
-	doxygen $(docs_config);
+# Build the doxygen latex docs, without example code (latex_pdf and docs_pdf need this).
+$(latex_idx): $(source) $(headers) $(latex_deps)
+	@printf "\nBuilding latex doxygen docs (for $@)...\n    ";
+	doxygen $(docs_latex_config) && printf "    Doxygen latex built.\n";
 
-$(latex_pdf): $(latex_tex)
-$(latex_pdf):
-	@# Builds $(latex_pdf) if needed.
-	@# Must have these packages installed:
-	@# 	   doxygen-latex, texlive-lang-cyrillic, and texlive-fonts-extra
+# Builds $(latex_pdf) if needed.
+# Must have these packages installed:
+# 	   doxygen-latex, texlive-lang-cyrillic, and texlive-fonts-extra
+$(latex_pdf): $(latex_idx)
 	@if cd $(latex_dir); then \
+		declare -a pdf_args=("-halt-on-error" "-shell-escape");\
 		printf "\nBuilding $(latex_pdf) for ($@)...\n"; \
-		pdflatex refman; \
+		pdflatex "$${pdf_args[@]}" refman; \
 		makeindex refman.idx; \
-		pdflatex refman; \
+		pdflatex "$${pdf_args[@]}" refman; \
 		latex_count=8 ; \
 		while egrep -s 'Rerun (LaTeX|to get cross-references right)' refman.log && [ $$latex_count -gt 0 ] ;\
 		  do \
 		    printf "\nRerunning latex....\n" ;\
-		    pdflatex refman ;\
+		    pdflatex "$${pdf_args[@]}" refman;\
 		    latex_count=`expr $$latex_count - 1` ;\
 		  done; \
 		makeindex refman.idx; \
-		pdflatex refman; \
+		pdflatex "$${pdf_args[@]}" refman; \
 	else \
 		printf "\nUnable to cd into latex dir: %s\n" "$(latex_dir)" 1>&2; \
 	fi;
@@ -161,7 +157,7 @@ cleandocs:
 
 .PHONY: cleanlatex
 cleanlatex:
-	@./clean.sh -m "Latex files" $(latex_files)
+	@./clean.sh -m "Latex" $(latex_files)
 
 .PHONY: cleanexamples
 cleanexamples:

@@ -76,10 +76,13 @@ function clean_manual {
     local files filepath cleaned missing
     declare -a files=("$@")
     ((${#files[@]})) || fail "No file paths provided to clean_manual()!"
-    declare -a cleaned missing
+    declare -a cleaned missing cleaneddirs
     let errs=0
     for filepath in "${files[@]}"; do
-        if [[ -n "$filepath" ]] && [[ -e "$filepath" ]]; then
+        if [[ -d "$filepath" ]]; then
+            rm -r "$filepath" || let errs+=1
+            cleaneddirs+=("$filepath")
+        elif [[ -n "$filepath" ]] && [[ -e "$filepath" ]]; then
             rm "$filepath" || let errs+=1
             cleaned+=("$filepath")
         else
@@ -87,8 +90,12 @@ function clean_manual {
         fi
     done
     ((${#cleaned[@]})) && {
-        printf "%s cleaned:\n" "$desc"
+        printf "%s files cleaned:\n" "$desc"
         printf "    %s\n" "${cleaned[@]}"
+    }
+    ((${#cleaneddirs[@]})) && {
+        printf "%s dirs cleaned:\n" "$desc"
+        printf "    %s\n" "${cleaneddirs[@]}"
     }
     ((${#missing[@]})) && {
         printf "%s already cleaned:\n" "$desc"
