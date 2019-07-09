@@ -125,8 +125,12 @@ clean:
 cleandebug: clean
 cleandebug: debug
 
-.PHONY: cleandocs, cleanlatex, cleanexamples, cleanpdf
-cleandocs:
+.PHONY: cleandocs, cleanhtml, cleanlatex, cleanexamples, cleanpdf
+cleandocs: cleanhtml
+cleandocs: cleanlatex
+cleandocs: cleanpdf
+
+cleanhtml:
 	@./clean.sh -d "$(docs_dir)" "$(docs_dir)/html" "$(docs_dir)/man"
 
 cleanlatex:

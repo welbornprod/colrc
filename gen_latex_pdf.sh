@@ -8,6 +8,7 @@ apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 appdir="${apppath%/*}"
 
+colr_anim_run="$appdir/colr_anim_run.py"
 latex_dir="${appdir}/docs/latex"
 doxy_tex="${latex_dir}/refman.tex"
 ref_pdf="${latex_dir}/refman.pdf"
@@ -55,6 +56,17 @@ function clean_pdf {
     [[ -e "$doc_pdf" ]] && rm "$doc_pdf"
 }
 
+function colr_anim {
+    # Run a command through colr_anim_run.py, with a custom message.
+    local msg=$1
+    shift
+    if [[ "$msg" == "-" ]]; then
+        "$colr_anim_run" -- "$@"
+    else
+        "$colr_anim_run" -a -e -m "$msg" -- "$@"
+    fi
+}
+
 function echo_err {
     # Echo to stderr.
     echo -e "$@" 1>&2
@@ -81,8 +93,10 @@ function gen_ref_pdf {
         doxygen "$doxy_config"
     }
     needs_built_from "$ref_pdf" "$doxy_tex" || {
-        printf "Reference pdf up to date: %s\n" "$ref_pdf"
-        printf "                Based on: %s\n" "$doxy_tex"
+        ((do_ref)) && {
+            printf "Reference pdf up to date: %s\n" "$ref_pdf"
+            printf "                Based on: %s\n" "$doxy_tex"
+        }
         return 0
     }
 
@@ -93,18 +107,17 @@ function gen_ref_pdf {
 
     declare -a pdf_args=("-halt-on-error" "-shell-escape")
 
-    pdflatex "${pdf_args[@]}" refman || fail "pdflatex failed!"
-    makeindex refman.idx || fail "makeindex failed!"
-    pdflatex "${pdf_args[@]}" refman || fail "pdflatex failed!"
-    local latex_count=8
-    while grep -E -s 'Rerun (LaTeX|to get cross-references right)' refman.log && [ $latex_count -gt 0 ]
+    colr_anim "Generating ref pdf (1)" pdflatex "${pdf_args[@]}" refman || fail "pdflatex failed!"
+    colr_anim "Generating index (1)" makeindex refman.idx || fail "makeindex failed!"
+    colr_anim "Generating ref pdf (2)" pdflatex "${pdf_args[@]}" refman || fail "pdflatex failed!"
+    local latex_count=3
+    while grep -E -s 'Rerun (LaTeX|to get cross-references right)' refman.log &>/dev/null && ((latex_count < 11))
       do
-        printf "\nRerunning latex....\n"
-        pdflatex "${pdf_args[@]}" refman || fail "pdflatex re-run failed!"
-        let latex_count-=1
+        colr_anim "Rerunning ref pdf ($latex_count)" pdflatex "${pdf_args[@]}" refman || fail "pdflatex re-run failed!"
+        let latex_count+=1
       done
-    makeindex refman.idx || fail "makeindex failed!"
-    pdflatex "${pdf_args[@]}" refman || fail "pdflatex failed!"
+    colr_anim "Generating index (2)" makeindex refman.idx || fail "makeindex failed!"
+    colr_anim "Generating ref pdf ($latex_count)" pdflatex "${pdf_args[@]}" refman || fail "pdflatex failed!"
 
     cd "$appdir" || return 1
 }
