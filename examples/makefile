@@ -56,7 +56,7 @@ clang: all
 
 .PHONY: clean
 clean:
-	-@../clean.sh - $(binaries) $(example_objects) colr.o
+	-@../tools/clean.sh - $(binaries) $(example_objects) colr.o
 
 .PHONY: help, targets
 help targets:

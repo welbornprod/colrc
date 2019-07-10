@@ -529,13 +529,14 @@ void str_to_lower(char* out, const char* s) {
 
     int main(void) {
         setlocale(LC_ALL, "");
-        char* s = "This string has multibyte chars: ⬍ ⬎ ⬏ ⬐ ⬑ ⬰";
+        char* s = "This string has multibyte chars: ◯ →";
         wchar_t* w;
         w = str_to_wide(s);
         wprintf(L"%ls\n", w);
 
         wprintf(L"This is not the character we wanted: '%c'\n", s[35]);
-        wprintf(L"It was this one: '%lc'\n", w[35]);
+        // That last print actually removed some of the characters.
+        wprintf(L"\nIt was this one: '%lc'\n", w[35]);
         free(w);
     }
     \endexamplecode
@@ -571,7 +572,7 @@ wchar_t* str_to_wide(const char* s) {
 
     int main(void) {
         setlocale(LC_ALL, "");
-        wchar_t* w = L"This string has multibyte chars: ⬍ ⬎ ⬏ ⬐ ⬑ ⬰";
+        wchar_t* w = L"This string has multibyte chars: ◯ →";
         char* s;
         s = wide_to_str(w);
         printf("%s\n", s);
@@ -1608,7 +1609,13 @@ int ExtendedValue_from_str(const char* arg) {
             return extended_names[i].value;
         }
     }
-    if (!str_is_digits(arg)) return COLOR_INVALID;
+    if (!str_is_digits(arg)) {
+        if ((arg[0] == '-') && (strlen(arg) > 1) && str_is_digits(arg + 1)) {
+            // Negative number given.
+            return COLOR_INVALID_RANGE;
+        }
+        return COLOR_INVALID;
+    }
     // Using long to combat easy overflow.
     long usernum;
     if (!sscanf(arg, "%ld", &usernum)) {

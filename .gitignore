@@ -1,9 +1,9 @@
-colr
+colrc
 test_colr
-*.o
+coverage
 docs
+examples/*_example
+*.o
 *.gcov
 *.gcno
 *.gcda
-coverage
-examples/*_example

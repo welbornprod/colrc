@@ -6,12 +6,14 @@ appname="clean"
 appversion="0.0.1"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
-# appdir="${apppath%/*}"
+appdir="${apppath%/*}/.."
 
-default_docs_dir="docs"
-default_docs_file="${default_docs_dir}/html/index.html"
+default_docs_dir="${appdir}/docs"
+default_html_dir="${appdir}/${default_docs_dir}/html"
+default_man_dir="${appdir}/${default_docs_dir}/man"
 
-function clean_compiled() {
+
+function clean_compiled {
     printf "Removing compiled files:\n"
     if [[ -n "$binary" ]]; then
         if [[ -e "$binary" ]]; then
@@ -56,19 +58,59 @@ function clean_compiled() {
     done
 }
 
-function clean_docs() {
-    local docsdir=$1 docsmainfile=$2
-
-    if [[ -n "$docsdir" ]] && [[ -e "$docsmainfile" ]]; then
-        if rm -r "${docsdir:?}"/*; then
-            printf "Docs cleaned:\n    %s\n" "$docsdir/*"
-        fi
+function clean_docs {
+    local html_dir=$1 man_dir=$2
+    if [[ -n "$html_dir" ]] && [[ -e "$html_dir" ]]; then
+        rm -r "$html_dir" || fail "Can't remove HTML docs dir: $html_dir"
+        printf "HTML docs cleaned:\n    %s\n" "$html_dir/*"
     else
-        printf "Docs already clean:\n    %s\n" "$docsdir/*"
+        printf "HTML docs already clean:\n    %s\n" "$html_dir/*"
+    fi
+    if [[ -n "$man_dir" ]] && [[ -e "$man_dir" ]]; then
+        rm -r "$man_dir" || fail "Can't remove Man docs dir: $man_dir"
+        printf "Man docs cleaned:\n    %s\n" "$man_dir/*"
+    else
+        printf "Man docs already clean:\n    %s\n" "$man_dir/*"
     fi
 }
 
-function clean_msg() {
+function clean_manual {
+    # Print a description ($1), and remove all other arguments (rm ${@:1})
+    local desc=$1
+    [[ -n "$desc" ]] || fail "No arguments provided to clean_manual()!"
+    shift
+    local files filepath cleaned missing
+    declare -a files=("$@")
+    ((${#files[@]})) || fail "No file paths provided to clean_manual()!"
+    declare -a cleaned missing cleaneddirs
+    let errs=0
+    for filepath in "${files[@]}"; do
+        if [[ -d "$filepath" ]]; then
+            rm -r "$filepath" || let errs+=1
+            cleaneddirs+=("$filepath")
+        elif [[ -n "$filepath" ]] && [[ -e "$filepath" ]]; then
+            rm "$filepath" || let errs+=1
+            cleaned+=("$filepath")
+        else
+            missing+=("$filepath")
+        fi
+    done
+    ((${#cleaned[@]})) && {
+        printf "%s files cleaned:\n" "$desc"
+        printf "    %s\n" "${cleaned[@]}"
+    }
+    ((${#cleaneddirs[@]})) && {
+        printf "%s dirs cleaned:\n" "$desc"
+        printf "    %s\n" "${cleaneddirs[@]}"
+    }
+    ((${#missing[@]})) && {
+        printf "%s already cleaned:\n" "$desc"
+        printf "    %s\n" "${missing[@]}"
+    }
+    return $errs
+}
+
+function clean_msg {
     # Print a message about whether a file has been "cleaned".
     local wascleaned=$1 filepath=$2
     if [[ "$wascleaned" =~ (1)|(yes)|(true) ]]; then
@@ -104,17 +146,24 @@ function print_usage {
     Usage:
         $appscript -h | -v
         $appscript BINARY
-        $appscript -d [DOC_DIR] [DOC_INDEX]
+        $appscript -d [DOC_DIR] [HTML_DIR] [MAN_DIR]
+        $appscript -m DESC FILE...
 
     Options:
         BINARY        : Optional executable to delete.
+        DESC          : Description of files that are being manually removed.
         DOC_DIR       : Directory for Doxygen docs.
                         Default: $default_docs_dir
-        DOC_INDEX     : Main index.html file for docs.
-                        Default: $default_docs_file
+        HTML_DIR      : Directory for Doxygen html docs.
+                        Default: $default_html_dir
+        MAN_DIR       : Directory for Doxygen man docs.
+                        Default: $default_man_dir
+        FILE          : One or more files to remove. Can be anything.
+                        This is used with --manual.
         -d,--docs     : Clean the docs dir.
                         This will not clean the binary or object files.
         -h,--help     : Show this message.
+        -m,--manual   : Just \`rm\` all arguments, without a custom message.
         -v,--version  : Show $appname version and exit.
     "
 }
@@ -123,17 +172,24 @@ function print_usage {
 declare -a objfiles
 binary=""
 do_docs=0
+do_manual=0
 doc_dir=$default_docs_dir
-doc_index=$default_docs_file
+doc_html_dir=$default_html_dir
+doc_man_dir=$default_man_dir
 
 for arg; do
     case "$arg" in
         "-d" | "--docs")
             do_docs=1
+            do_manual=0
             ;;
         "-h" | "--help")
             print_usage ""
             exit 0
+            ;;
+        "-m" | "--manual")
+            do_manual=1
+            do_docs=0
             ;;
         "-v" | "--version")
             echo -e "$appname v. $appversion\n"
@@ -147,7 +203,7 @@ for arg; do
             fi
             ;;
         *)
-            if ((!do_docs)) && [[ -z "$binary" ]]; then
+            if ((!do_docs && !do_manual)) && [[ -z "$binary" ]]; then
                 binary="$arg"
             else
                 objfiles+=("$arg")
@@ -155,20 +211,31 @@ for arg; do
     esac
 done
 
-if ((do_docs)); then
+if ((do_manual)); then
+    ((${#objfiles[@]})) || fail "Need description and file paths. Got: nothing"
+    ((${#objfiles[@]} > 1)) || fail "No file paths provided. Got: ${objfiles[*]}"
+    clean_manual "${objfiles[@]}"
+elif ((do_docs)); then
     case ${#objfiles[@]} in
+        3)
+            doc_dir="${objfiles[0]}"
+            doc_html_dir="${objfiles[1]}"
+            doc_man_dir="${objfiles[2]}"
+            ;;
         2)
             doc_dir="${objfiles[0]}"
-            doc_index="${objfiles[1]}"
+            doc_html_dir="${objfiles[1]}"
+            doc_man_dir="${doc_dir}/man"
             ;;
         1)
             doc_dir="${objfiles[0]}"
-            doc_index="$doc_dir/html/index.html"
+            doc_html_dir="${doc_dir}/html"
+            doc_man_dir="${doc_dir}/man"
             ;;
         *)
             fail_usage "Too many arguments."
     esac
-    clean_docs "$doc_dir" "$doc_index"
+    clean_docs "$doc_html_dir" "$doc_man_dir"
 else
     clean_compiled
 fi

@@ -14,9 +14,9 @@ INCLUDES=-iquote../
 LIBS=-lm
 
 binary=test_colr
-cov_cmd=bash ../gen_coverage_html.sh --
+cov_cmd=bash ../tools/gen_coverage_html.sh --
 cov_dir=coverage
-valgrind_cmd=bash ../run_valgrind.sh --
+valgrind_cmd=bash ../tools/run_valgrind.sh --
 test_source:=$(wildcard *.c)
 source:=$(test_source) ../colr.c
 test_headers:=$(wildcard *.h)
@@ -70,7 +70,7 @@ clang: debug
 
 .PHONY: clean
 clean:
-	-@bash ../clean.sh "$(binary)"
+	-@bash ../tools/clean.sh "$(binary)"
 
 .PHONY: coverageclean, coveragesummary, coverageview
 coverageclean:

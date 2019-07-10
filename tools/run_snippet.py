@@ -69,7 +69,7 @@ USAGESTR = f"""{VERSIONSTR}
         -v,--version         : Show version.
 """
 
-COLR_DIR = SCRIPTDIR
+COLR_DIR = os.path.abspath(os.path.join(SCRIPTDIR, '..'))
 COLRC_FILE = os.path.join(COLR_DIR, 'colr.c')
 COLRH_FILE = os.path.join(COLR_DIR, 'colr.h')
 EXAMPLES_SRC = (COLRC_FILE, COLRH_FILE)

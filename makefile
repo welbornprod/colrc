@@ -1,37 +1,62 @@
 # Makefile for colr_tool
 # -Christopher Welborn  06-10-2019
-
+# vim: set ts=4 sw=4
 SHELL=bash
+# This is only for testing standard differences. ColrC must use at least c11/gnu11.
+STD=c11
+# The flags will be different for clang, so just use the `clang` target (`make clang`).
 CC=gcc
+# More warnings may be added, but none should be taken away just to get a clean compile.
 CFLAGS=-Wall -Wextra -Wfloat-equal -Wenum-compare -Winline -Wlogical-op \
        -Wimplicit-fallthrough -Wlogical-not-parentheses \
        -Wmissing-include-dirs -Wnull-dereference -Wpedantic -Wshadow \
        -Wstrict-prototypes -Wunused \
        -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 \
        -D_GNU_SOURCE \
-       -std=c11
-
+       -std=$(STD)
+# ColrC uses libm right now, but it's pretty standard.
 LIBS=-lm
 
-binary=colr
+binary=colrc
 colr_source=colr.c
 source=colr_tool.c $(colr_source)
+objects:=$(source:.c=.o)
 colr_headers=colr.h
 headers=colr_tool.h $(colr_headers)
 optional_headers=dbug.h
 optional_flags=$(foreach header, $(optional_headers), -include $(header))
 cov_dir=coverage
-docsconfig=Doxyfile
-docsdir=docs
-docsreadme=README.md
-docsmainfile=$(docsdir)/html/index.html
-docscss=doc_style/customdoxygen.css
-docsexamples=$(wildcard examples/*.doc) $(wildcard examples/*.c)
-docsdepfiles=$(docsconfig) $(docsreadme) $(docsexamples) $(docscss)
+custom_dir=doc_style
+docs_config=Doxyfile_common
+docs_html_config=Doxyfile_html
+docs_latex_config=Doxyfile_latex
+docs_dir=docs
+docs_readme=README.md
+docs_main_file=$(docs_dir)/html/index.html
+docs_css=$(custom_dir)/customdoxygen.css
+docs_examples=$(wildcard examples/*.c)
+docs_deps=$(docs_config) $(docs_html_config) $(docs_readme) $(docs_examples) $(docs_css)
+docs_pdf=$(docs_dir)/ColrC-manual.pdf
+latex_dir=$(docs_dir)/latex
+latex_header=$(custom_dir)/header.tex
+latex_style=$(custom_dir)/doxygen.sty
+latex_deps=$(docs_config) $(docs_latex_config) $(docs_readme) $(latex_header) $(latex_style)
+latex_tex=$(latex_dir)/refman.tex
+latex_pdf=$(latex_dir)/refman.pdf
+doxy_latex_files=\
+	$(wildcard $(latex_dir)/*.tex) $(wildcard $(latex_dir)/*.md5) \
+	$(wildcard $(latex_dir)/*.pdf) $(wildcard $(latex_dir)/*.sty) \
+	$(latex_dir)/Makefile
+latex_files=\
+	$(wildcard $(latex_dir)/*.ps) $(wildcard $(latex_dir)/*.dvi) \
+	$(wildcard $(latex_dir)/*.aux) $(wildcard $(latex_dir)/*.toc) \
+	$(wildcard $(latex_dir)/*.idx) $(wildcard $(latex_dir)/*.ind) \
+	$(wildcard $(latex_dir)/*.ilg) $(wildcard $(latex_dir)/*.log) \
+	$(wildcard $(latex_dir)/*.out) $(wildcard $(latex_dir)/*.brf) \
+	$(wildcard $(latex_dir)/*.blg) $(wildcard $(latex_dir)/*.bbl) \
+	$(wildcard $(latex_dir)/*.pyg) $(latex_dir)/refman.pdf
 examples_dir=examples
 examples_source=$(wildcard $(examples_dir)/*.c)
-objects:=$(source:.c=.o)
-
 .PHONY: all, coverage, debug, release
 all: debug
 
@@ -40,7 +65,7 @@ coverage: CFLAGS+=-fprofile-arcs -ftest-coverage
 coverage: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
 coverage: $(binary)
 coverage:
-	@./gen_coverage_html.sh "$(realpath $(binary))" "$(realpath $(cov_dir))" $(COLR_ARGS)
+	@./tools/gen_coverage_html.sh "$(realpath $(binary))" "$(realpath $(cov_dir))" $(COLR_ARGS)
 
 debug: tags
 debug: CFLAGS+=-g3 -DDEBUG
@@ -58,10 +83,30 @@ $(binary): $(objects)
 	@printf "\nCompiling $<...\n    ";
 	$(CC) -c $< $(CFLAGS)
 
-$(docsmainfile): $(source) $(headers) $(docsdepfiles)
-docs: $(source) $(headers) $(docsmainfile) $(docsdepfiles)
-	@printf "\nBuilding doxygen docs (for $?)...\n    "
-	doxygen $(docsconfig);
+# Build all docs (html and pdf) if needed.
+docs: $(docs_main_file)
+docs: $(docs_pdf)
+
+# Build the html docs, with example code included.
+$(docs_main_file): $(source) $(headers) $(docs_deps)
+	@printf "\nBuilding html doxygen docs...\n    Target: $@\n    For: $?\n    "
+	doxygen $(docs_html_config)
+
+# Build the doxygen latex docs, without example code (latex_pdf and docs_pdf need this).
+# The example code (custom html-wrapper aliases) cause latex to fail.
+$(latex_tex): $(source) $(headers) $(latex_deps)
+	@printf "\nBuilding latex doxygen docs...\n    Target: $@\n    For: $?\n    "
+	doxygen $(docs_latex_config)
+
+$(latex_pdf): $(latex_tex)
+	@./tools/gen_latex_pdf.sh --reference && \
+		[[ -e "$(latex_pdf)" ]] && \
+			printf "\nPDF reference: $(latex_pdf)\n"
+
+$(docs_pdf): $(latex_pdf)
+	@./tools/gen_latex_pdf.sh && \
+		[[ -e "$(docs_pdf)" ]] && \
+			printf "\nPDF manual: $(docs_pdf)\n"
 
 tags: $(source) $(headers)
 	@printf "Building ctags...\n    "
@@ -78,29 +123,44 @@ clangrelease: release
 
 .PHONY: clean
 clean:
-	@./clean.sh "$(binary)"
+	@./tools/clean.sh "$(binary)"
 
 .PHONY: cleandebug
 cleandebug: clean
 cleandebug: debug
 
-.PHONY: cleandocs
-cleandocs:
-	@./clean.sh -d "$(docsdir)" "$(docsmainfile)"
+.PHONY: cleandocs, cleanhtml, cleanlatex, cleanexamples, cleanpdf
+cleandocs: cleanhtml
+cleandocs: cleanlatex
+cleandocs: cleanpdf
 
-.PHONY: cleanexamples
+cleanhtml:
+	@./tools/clean.sh -d "$(docs_dir)" "$(docs_dir)/html" "$(docs_dir)/man"
+
+cleanlatex:
+	@./tools/clean.sh -m "Latex" $(doxy_latex_files)
+
 cleanexamples:
 	@cd examples && $(MAKE) $(MAKEFLAGS) --no-print-directory clean
 
+cleanpdf:
+	@./tools/clean.sh -m "PDF" $(docs_pdf) $(latex_files)
+
 .PHONY: coveragesummary
 coveragesummary:
-	@./gen_coverage_html.sh "$(binary)" "$(cov_dir)" --summary
+	@./tools/gen_coverage_html.sh "$(binary)" "$(cov_dir)" --summary
 
 .PHONY: coverageview
 coverageview:
-	@./gen_coverage_html.sh "$(binary)" "$(cov_dir)" --view
+	@./tools/gen_coverage_html.sh "$(binary)" "$(cov_dir)" --view
 
-.PHONY: docsrebuild
+.PHONY: docshtml, docslatex, docspdf, docsrebuild
+docshtml: $(docs_main_file)
+
+docslatex: $(latex_idx)
+
+docspdf: $(docs_pdf)
+
 docsrebuild: cleandocs
 docsrebuild: docs
 
@@ -110,7 +170,7 @@ examples: $(examples_source)
 
 .PHONY: memcheck
 memcheck:
-	@./run_valgrind.sh -a $(COLR_ARGS)
+	@./tools/run_valgrind.sh -a $(COLR_ARGS)
 
 .PHONY: run
 run:
@@ -140,7 +200,7 @@ help targets:
     clangrelease    : Use \`clang\` to build the release target.\n\
     clean           : Delete previous build files.\n\
     cleandebug      : Like running \`make clean debug\`.\n\
-    cleandocs       : Delete Doxygen docs from ./$(docsdir).\n\
+    cleandocs       : Delete Doxygen docs from ./$(docs_dir).\n\
     cleanexamples   : Delete previous build files from the examples in $(examples_dir).\n\
     cleantest       : Delete previous build files, build the binary and the \n\
                       test binary, and run the tests.\n\
