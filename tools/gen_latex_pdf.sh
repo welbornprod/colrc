@@ -6,9 +6,8 @@ appname="gen_latex_pdf"
 appversion="0.0.1"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
-appdir="${apppath%/*}"
+appdir="${apppath%/*}/.."
 
-colr_anim_run="$appdir/colr_anim_run.py"
 latex_dir="${appdir}/docs/latex"
 doxy_tex="${latex_dir}/refman.tex"
 ref_pdf="${latex_dir}/refman.pdf"
@@ -58,12 +57,17 @@ function clean_pdf {
 
 function colr_anim {
     # Run a command through colr_anim_run.py, with a custom message.
+    ((no_colr)) && {
+        shift
+        "$@"
+        return
+    }
     local msg=$1
     shift
     if [[ "$msg" == "-" ]]; then
-        "$colr_anim_run" -- "$@"
+        colr-run -- "$@"
     else
-        "$colr_anim_run" -a -e -m "$msg" -- "$@"
+        colr-run -a -e -m "$msg" -- "$@"
     fi
 }
 
@@ -166,13 +170,14 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
-        $appscript [-C] [-c]
-        $appscript [-r]
+        $appscript [-C] [-c] [-n]
+        $appscript [-r] [-n]
 
     Options:
         -C,--cleandoxy  : Clean Doxygen-generated files.
         -c,--clean      : Clean reference pdf files and the main pdf file.
         -h,--help       : Show this message.
+        -n,--no-anim    : No colr animations, just run the command.
         -r,--reference  : Generate the reference pdf only.
         -v,--version    : Show $appname version and exit.
     "
@@ -182,6 +187,7 @@ declare -a nonflags
 do_ref=0
 do_clean_doxy=0
 do_clean_pdf=0
+no_colr=0
 
 for arg; do
     case "$arg" in
@@ -198,6 +204,9 @@ for arg; do
         "-h" | "--help")
             print_usage ""
             exit 0
+            ;;
+        "-n" | "--no-anim")
+            no_colr=1
             ;;
         "-r" | "--reference")
             do_ref=1

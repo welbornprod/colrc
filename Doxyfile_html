@@ -2,5 +2,5 @@
 GENERATE_HTML          = YES
 GENERATE_MAN           = YES
 GENERATE_LATEX         = NO
-ENABLED_SECTIONS       = examples
+ENABLED_SECTIONS       = html_example_code
 

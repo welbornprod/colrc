@@ -28,6 +28,7 @@ describe(ColorType) {
                 {"1", TYPE_EXTENDED},
                 {"255", TYPE_EXTENDED},
                 {"-1", TYPE_INVALID_EXTENDED_RANGE},
+                {"--1", TYPE_INVALID},
                 {"256", TYPE_INVALID_EXTENDED_RANGE},
                 {"234,234,234", TYPE_RGB},
                 {"355,255,255", TYPE_INVALID_RGB_RANGE},

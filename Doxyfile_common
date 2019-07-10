@@ -31,21 +31,21 @@ ALIASES += "po=\param[out]"
 ALIASES += "warn=\warning"
 ALIASES += "att=\attention"
 ALIASES += "colrmacros=colr(), colr_join(), and Colr() macros"
-ALIASES += "colrmightfree=If used inside of the colr macros, <em>they will `free()` the result</em>.<br>Otherwise, <em>you are responsible for calling `free()`</em>."
+ALIASES += "colrmightfree=If used inside of the \colrmacros, <em>they will `free()` the result</em>.<br>Otherwise, <em>you are responsible for calling `free()`</em>."
 ALIASES += "mustfree=<em>You must `free()` the memory allocated by this function.</em>"
 ALIASES += "mustnull=<em>must be null-terminated</em>."
 ALIASES += "mustnullin=Input <em>must be null-terminated</em>."
-ALIASES += "examplecode{1}=\if examples \
+ALIASES += "examplecode{1}=\if html_example_code \
      <div class='examplecode'> \
           <div class='examplecode-header'> \
                <span class= diamond-bullet>◆&nbsp;</span> \
                Example: \
           </div> \
           \code{\1}\n"
-ALIASES += "examplecodefor{2}=\if examples \
+ALIASES += "examplecodefor{2}=\if html_example_code \
      <div class='examplecode'> \
           <div class='examplecode-header'> \
-               <a id='\1_example' class='diamond-bullet' href='#\1_example'>◆&nbsp;</a> \
+               <a id='\1-example' class='diamond-bullet' href='#\1-example'>◆&nbsp;</a> \
                \1 example: \
           </div> \
           \code{\2}\n"
@@ -57,8 +57,10 @@ ALIASES += "endexamplecodefor=\
      \endcode \
      </div> \
      \endif"
-ALIASES += "includesrc{1}=\if examples \
+ALIASES += "includesrc{1}=\if html_example_code \
           <div class='included-examplecode'>\include \1</div> \
+     \else \
+     \include \1 \
      \endif"
 OPTIMIZE_OUTPUT_FOR_C  = YES
 TOC_INCLUDE_HEADINGS   = 99

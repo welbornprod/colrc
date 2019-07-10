@@ -6,11 +6,11 @@ appname="clean"
 appversion="0.0.1"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
-# appdir="${apppath%/*}"
+appdir="${apppath%/*}/.."
 
-default_docs_dir="docs"
-default_html_dir="${default_docs_dir}/html"
-default_man_dir="${default_docs_dir}/man"
+default_docs_dir="${appdir}/docs"
+default_html_dir="${appdir}/${default_docs_dir}/html"
+default_man_dir="${appdir}/${default_docs_dir}/man"
 
 
 function clean_compiled {

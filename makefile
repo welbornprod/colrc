@@ -17,7 +17,7 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Wenum-compare -Winline -Wlogical-op \
 # ColrC uses libm right now, but it's pretty standard.
 LIBS=-lm
 
-binary=colr
+binary=colrc
 colr_source=colr.c
 source=colr_tool.c $(colr_source)
 objects:=$(source:.c=.o)
@@ -65,7 +65,7 @@ coverage: CFLAGS+=-fprofile-arcs -ftest-coverage
 coverage: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
 coverage: $(binary)
 coverage:
-	@./gen_coverage_html.sh "$(realpath $(binary))" "$(realpath $(cov_dir))" $(COLR_ARGS)
+	@./tools/gen_coverage_html.sh "$(realpath $(binary))" "$(realpath $(cov_dir))" $(COLR_ARGS)
 
 debug: tags
 debug: CFLAGS+=-g3 -DDEBUG
@@ -99,10 +99,14 @@ $(latex_tex): $(source) $(headers) $(latex_deps)
 	doxygen $(docs_latex_config)
 
 $(latex_pdf): $(latex_tex)
-	@./gen_latex_pdf.sh --reference
+	@./tools/gen_latex_pdf.sh --reference && \
+		[[ -e "$(latex_pdf)" ]] && \
+			printf "\nPDF reference: $(latex_pdf)\n"
 
 $(docs_pdf): $(latex_pdf)
-	@./gen_latex_pdf.sh
+	@./tools/gen_latex_pdf.sh && \
+		[[ -e "$(docs_pdf)" ]] && \
+			printf "\nPDF manual: $(docs_pdf)\n"
 
 tags: $(source) $(headers)
 	@printf "Building ctags...\n    "
@@ -119,7 +123,7 @@ clangrelease: release
 
 .PHONY: clean
 clean:
-	@./clean.sh "$(binary)"
+	@./tools/clean.sh "$(binary)"
 
 .PHONY: cleandebug
 cleandebug: clean
@@ -131,24 +135,24 @@ cleandocs: cleanlatex
 cleandocs: cleanpdf
 
 cleanhtml:
-	@./clean.sh -d "$(docs_dir)" "$(docs_dir)/html" "$(docs_dir)/man"
+	@./tools/clean.sh -d "$(docs_dir)" "$(docs_dir)/html" "$(docs_dir)/man"
 
 cleanlatex:
-	@./clean.sh -m "Latex" $(doxy_latex_files)
+	@./tools/clean.sh -m "Latex" $(doxy_latex_files)
 
 cleanexamples:
 	@cd examples && $(MAKE) $(MAKEFLAGS) --no-print-directory clean
 
 cleanpdf:
-	@./clean.sh -m "PDF" $(docs_pdf) $(latex_files)
+	@./tools/clean.sh -m "PDF" $(docs_pdf) $(latex_files)
 
 .PHONY: coveragesummary
 coveragesummary:
-	@./gen_coverage_html.sh "$(binary)" "$(cov_dir)" --summary
+	@./tools/gen_coverage_html.sh "$(binary)" "$(cov_dir)" --summary
 
 .PHONY: coverageview
 coverageview:
-	@./gen_coverage_html.sh "$(binary)" "$(cov_dir)" --view
+	@./tools/gen_coverage_html.sh "$(binary)" "$(cov_dir)" --view
 
 .PHONY: docshtml, docslatex, docspdf, docsrebuild
 docshtml: $(docs_main_file)
@@ -166,7 +170,7 @@ examples: $(examples_source)
 
 .PHONY: memcheck
 memcheck:
-	@./run_valgrind.sh -a $(COLR_ARGS)
+	@./tools/run_valgrind.sh -a $(COLR_ARGS)
 
 .PHONY: run
 run:
