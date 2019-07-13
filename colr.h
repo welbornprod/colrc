@@ -902,8 +902,9 @@ extern const size_t style_names_len;
     Common macros and definitions are found here in colr.h,
     however the functions are documented in colr.c.
 */
-char char_escape_char(char c);
-bool char_should_escape(char c);
+char char_escape_char(const char c);
+bool char_in_str(const char c, const char* s);
+bool char_should_escape(const char c);
 char* colr_empty_str(void);
 void format_bgx(char* out, unsigned char num);
 void format_bg(char* out, BasicValue value);
@@ -947,9 +948,10 @@ bool str_has_codes(const char* s);
 bool str_is_all(const char* s, const char c);
 bool str_is_digits(const char* s);
 void str_lower(char* s);
+char* str_lstrip_chars(const char* s, const char* chars);
 char* str_repr(const char* s);
 bool str_startswith(const char* s, const char* prefix);
-void str_to_lower(char* out, const char* s);
+char* str_to_lower(const char* s);
 wchar_t* str_to_wide(const char* s);
 char* wide_to_str(const wchar_t* s);
 
@@ -1030,6 +1032,7 @@ int BasicValue_to_ansi(ArgType type, BasicValue bval);
 int ExtendedValue_from_str(const char* arg);
 int rgb_from_hex(const char *hexstr, unsigned char* r, unsigned char* g, unsigned char*b);
 int rgb_from_str(const char* arg, unsigned char* r, unsigned char* g, unsigned char* b);
+bool RGB_eq(struct RGB a, struct RGB b);
 int RGB_from_hex(const char* arg, struct RGB *rgb);
 int RGB_from_str(const char* arg, struct RGB* rgb);
 char* RGB_to_hex(struct RGB rgb);

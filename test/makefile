@@ -25,8 +25,6 @@ test_objects=$(test_source:.c=.o)
 objects:=$(source:.c=.o)
 binobjects:=$(notdir $(objects))
 
-test_runner=run_tests.py
-
 .PHONY: all, coverage, debug, debugnotags, release
 all: debug
 
@@ -122,19 +120,30 @@ help targets:
     release         : Build the executable with optimization, and strip it.\n\
     strip           : Run \`strip\` on the executable.\n\
     tags            : Build tags for this project using \`ctags\`.\n\
-    test            : Make debug (if needed) and then run the tests.\n\
+    test            : Make debug (if needed), then run the tests.\n\
+    testgdb         : Make debug (if needed), then run the tests through GDB.\n\
+    testkdbg        : Make debug (if needed), then run the tests through KDbg.\n\
+    testquiet       : Make debug (if needed), then run the tests with --quiet.\n\
 	";
 
-.PHONY: cleantest, test
+.PHONY: cleantest, testgdb, testkdbg, testquiet, test
 cleantest: clean
 cleantest: test
 
 test: debug
 test:
-	-@if [[ -x $(binary) ]]; then \
-		printf "\nRunning $(binary) (via $(test_runner))...\n    ";\
-		./$(binary) $(TEST_ARGS);\
-	else\
-		printf "\nNo test binary to run: %s\n" "$(binary)";\
-	fi;
+	-@./run_tests.sh $(TEST_ARGS)
+
+testgdb: debug
+testgdb:
+	-@./run_tests.sh -e gdb $(TEST_ARGS)
+
+testkdbg: debug
+testkdbg:
+	-@./run_tests.sh -e kdbg $(TEST_ARGS)
+
+testquiet: debug
+testquiet:
+	-@./run_tests.sh $(TEST_ARGS) --quiet
+
 

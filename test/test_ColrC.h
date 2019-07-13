@@ -31,6 +31,17 @@
 #define in_range(x, xmin, xmax) ((bool)((x >= xmin) && (x <= xmax)))
 #define assert_range(x, xmin, xmax, ...) assert(in_range(x, xmin, xmax), __VA_ARGS__)
 
+#define def_tests(name, members, ...) \
+    struct { \
+        members \
+    } name[] = { \
+        __VA_ARGS__ \
+    }
+
+#define for_each_test(array_name, x) \
+    size_t _fet_ ## array_name ## _len = array_length(array_name); \
+    for (size_t x = 0; x < _fet_ ## array_name ## _len; x++)
+
 #pragma GCC diagnostic ignored "-Wstrict-prototypes"
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wstrict-prototypes"

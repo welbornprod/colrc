@@ -6,11 +6,11 @@
 
 #include "test_ColrC.h"
 
-describe(helper_functions) {
+describe(helpers) {
 // char_escape_char
     subdesc(char_escape_char) {
         it("should recognize valid escape sequence chars") {
-            struct TestItem {
+            struct {
                 char input;
                 char expected;
             } tests[] = {
@@ -26,8 +26,7 @@ describe(helper_functions) {
                 {'\t', 't'},
                 {'\v', 'v'},
             };
-            size_t tests_len = array_length(tests);
-            for (size_t i = 0; i < tests_len; i++) {
+            for_each_test(tests, i) {
                 asserteq(
                     char_escape_char(tests[i].input),
                     tests[i].expected,
@@ -54,10 +53,33 @@ describe(helper_functions) {
             }
         }
     }
+// char_in_str
+    subdesc(char_in_str) {
+        it("should recognize characters in strings") {
+            struct {
+                char c;
+                char* s;
+                bool expected;
+            } tests[] = {
+                {'c', "char", true},
+                {'c', "anotherchar", true},
+                {'z', "endingwith the z", true},
+                {'X', "endingwith the z", false},
+                {'X', "endingwith the z", false},
+                {'X', "endingwith the z", false}
+            };
+            for_each_test(tests, i) {
+                asserteq(
+                    char_in_str(tests[i].c, tests[i].s),
+                    tests[i].expected
+                );
+            }
+        }
+    }
 // char_should_escape
     subdesc(char_should_escape) {
         it("should detect valid escape sequence chars") {
-            struct TestItem {
+            struct {
                 char input;
             } tests[] = {
                 {'\''},
@@ -72,8 +94,7 @@ describe(helper_functions) {
                 {'\t'},
                 {'\v'},
             };
-            size_t tests_len = array_length(tests);
-            for (size_t i = 0; i < tests_len; i++) {
+            for_each_test(tests, i) {
                 assert(
                     char_should_escape(tests[i].input),
                     "Known escape char returned false."
@@ -186,6 +207,49 @@ describe(helper_functions) {
             }
         }
     }
+// str_is_all
+    subdesc(str_is_all) {
+        it("should detect single-char strings") {
+            struct {
+                char* s;
+                char c;
+                bool expected;
+            } tests[] = {
+                {NULL, 0, false},
+                {"test", 0, false},
+                {NULL, 'a', false},
+                {"aaa", 'a', true},
+                {"aaaa", 'a', true},
+                {"aaa", 'b', false},
+                {"apple", 'a', false},
+                {"xaaa", 'a', false},
+            };
+            for_each_test(tests, i) {
+                asserteq(str_is_all(tests[i].s, tests[i].c), tests[i].expected);
+            }
+        }
+    }
+// str_is_digits
+    subdesc(str_is_digits) {
+        it("should detect digit-only strings") {
+            struct {
+                char* s;
+                bool expected;
+            } tests[] = {
+                {NULL, false},
+                {"", false},
+                {"0", true},
+                {"1", true},
+                {"1234567890", true},
+                {"-1234", false},
+                {"111a", false},
+                {"a1111", false},
+            };
+            for_each_test(tests, i) {
+                asserteq(str_is_digits(tests[i].s), tests[i].expected);
+            }
+        }
+    }
 // str_lower
     subdesc(str_lower) {
         it("should handle empty strings") {
@@ -210,7 +274,7 @@ describe(helper_functions) {
             free(allocempty);
         }
         it("should lowercase strings") {
-            struct TestItem {
+            struct {
                 char* input;
                 char* expected;
             } tests[] = {
@@ -218,8 +282,7 @@ describe(helper_functions) {
                 {"mAcRoS aRe eViL!?%%$!", "macros are evil!?%%$!"},
             };
 
-            size_t tests_len = array_length(tests);
-            for (size_t i = 0; i < tests_len; i++) {
+            for_each_test(tests, i) {
                 char* input;
                 asprintf(&input, "%s", tests[i].input);
                 str_lower(input);
@@ -232,13 +295,52 @@ describe(helper_functions) {
             }
         }
     }
+// str_lstrip_chars
+    subdesc(str_lstrip_chars) {
+        it("should lstrip chars") {
+            struct {
+                char* s;
+                char* chars;
+                char* expected;
+            } tests[] = {
+                {"", "cba", NULL},
+                {"test", "", NULL},
+                {NULL, "cba", NULL},
+                {"test", NULL, NULL},
+                {NULL, NULL, NULL},
+                {"test", "cba", "test"},
+                {"aabbcctest", "cba", "test"},
+                {"aabbcctcabest", "cba", "tcabest"},
+                {" \t \t\n test", " \n\t", "test"},
+                {"aabbcctest", "cba", "test"},
+            };
+            for_each_test(tests, i) {
+                char* result = str_lstrip_chars(tests[i].s, tests[i].chars);
+                if (!result) {
+                    if (tests[i].expected) {
+                        fail(
+                            "Falsely returned NULL: str_lstrip_chars(%s, %s)\n",
+                            colr_repr(tests[i].s),
+                            colr_repr(tests[i].chars)
+                        );
+                    } else {
+                        // expected failure.
+                        continue;
+                    }
+                }
+                asserteq(result, tests[i].expected);
+                free(result);
+            }
+        }
+    }
 // str_repr
     subdesc(str_repr) {
         it("escapes properly") {
-            struct TestItem {
+            struct {
                 char* input;
                 char* expected;
             } tests[] = {
+                {NULL, "NULL"},
                 {"This\'", "\"This\\'\""},
                 {"This\"", "\"This\\\"\""},
                 {"This\?", "\"This\\?\""},
@@ -255,8 +357,7 @@ describe(helper_functions) {
                     "\"All\\'together\\\"now\\?\\\\\\a\\b\\f\\n\\r\\t\\vokay.\""
                 },
             };
-            size_t tests_len = array_length(tests);
-            for (size_t i = 0; i < tests_len; i++) {
+            for_each_test(tests, i) {
                 char* repr = colr_repr(tests[i].input);
                 asserteq(
                     repr,
@@ -318,4 +419,30 @@ describe(helper_functions) {
             );
         }
     }
+// str_to_lower
+    subdesc(str_to_lower) {
+        it("lowercases strings") {
+            struct {
+                char* s;
+                char* expected;
+            } tests[] = {
+                {NULL, NULL},
+                {"", ""},
+                {"A", "a"},
+                {"ABCDEFGHIJKLMNOP", "abcdefghijklmnop"},
+                {"  TeSt  ", "  test  "}
+            };
+            for_each_test(tests, i) {
+                char* result = str_to_lower(tests[i].s);
+                if (tests[i].expected) {
+                    assertneq(result, NULL);
+                } else {
+                    assert(result == NULL, "Expected NULL!");
+                    continue;
+                }
+                asserteq(result, tests[i].expected);
+            }
+        }
+    }
 }
+// TODO: Tests for str_to_wide, wide_to_str.

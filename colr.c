@@ -109,7 +109,7 @@ const size_t style_names_len = sizeof(style_names) / sizeof(style_names[0]);
         asprintf(&escaped, "\\%c", char_escape_char('\t'));
     \endexamplecode
 */
-char char_escape_char(char c) {
+char char_escape_char(const char c) {
     switch (c) {
         case '\'': return '\''; break;
         case '\"': return '"'; break;
@@ -125,6 +125,21 @@ char char_escape_char(char c) {
         default:
             return c;
     }
+}
+
+/*! Determines if a character exists in the given string.
+    \pi c Character to search for.
+    \pi s String to check.
+          \mustnullin
+
+    \return `true` if \p c is found in \p s, otherwise `false`.
+*/
+bool char_in_str(const char c, const char* s) {
+    size_t length = strlen(s);
+    for (size_t i = 0; i < length; i++) {
+        if (s[i] == c) return true;
+    }
+    return false;
 }
 
 /*! Determines if an ascii character has an escape sequence in C.
@@ -148,7 +163,7 @@ char char_escape_char(char c) {
     \pi c   The character to check.
     \return `true` if the character needs an escape sequence, otherwise `false`.
 */
-bool char_should_escape(char c) {
+bool char_should_escape(const char c) {
     switch (c) {
         case '\'': return true; break;
         case '\"': return true; break;
@@ -430,11 +445,17 @@ bool str_is_all(const char* s, const char c) {
 }
 /*! Determines whether all characters in a string are digits.
 
+    \details
+    If \p s is NULL or an empty string (`""`), `false` is returned.
+
     \pi s   String to check.
             \mustnullin
     \return `true` if all characters are digits (0-9), otherwise `false`.
 */
 bool str_is_digits(const char* s) {
+    if (!s) return false;
+    if (s[0] == '\0') return false;
+
     size_t i = 0;
     while (s[i]) {
         if (!isdigit(s[i])) return false;
@@ -464,9 +485,51 @@ void str_lower(char* s) {
     if (s[i] != '\0') s[i] = '\0';
 }
 
+/*! Removes certain characters from the start of a string.
+    \details
+    The order of the characters in \p chars does not matter. If any of them
+    are found at the start of a string, they will be removed.
+
+    `str_lstrip_chars("aabbccTEST", "bca") == "TEST"`
+
+
+    \pi s     The string to strip.
+              \p s \mustnull
+    \pi chars A string of characters to remove. Each will be removed from the start
+              of the string.
+              \p chars \mustnull
+    \return   An allocated string with the result. May return NULL if the allocation
+              fails, or if \p s or \p chars is NULL.
+              \mustfree
+*/
+char* str_lstrip_chars(const char* s, const char* chars) {
+    if (!(s && chars)) return NULL;
+    if ((s[0] == '\0') || (chars[0] == '\0')) return NULL;
+
+    size_t length = strlen(s);
+    char* result = calloc(length + 1, sizeof(char));
+    size_t result_pos = 0;
+    bool done_trimming = false;
+    for (size_t i = 0; i < length; i++) {
+        if ((!done_trimming) && char_in_str(s[i], chars)) {
+            continue;
+        } else {
+            // First non-`chars` character. We're done.
+            done_trimming = true;
+        }
+        result[result_pos] = s[i];
+        result_pos++;
+    }
+    return result;
+}
+
 
 /*! Convert a string into a representation of a string, by wrapping it in
     quotes and escaping characters that need escaping.
+
+    \details
+    If \p s is NULL, then an allocated string containing the string "NULL" is
+    returned (without quotes).
 
     \pi     s The string to represent.
     \return An allocated string with the respresentation.
@@ -482,6 +545,11 @@ void str_lower(char* s) {
     \endexamplecode
 */
 char* str_repr(const char* s) {
+    if (!s) {
+        char* nullrepr;
+        asprintf(&nullrepr, "NULL");
+        return nullrepr;
+    }
     size_t length = strlen(s);
     size_t esc_chars = 0;
     size_t i;
@@ -537,22 +605,28 @@ bool str_startswith(const char* s, const char* prefix) {
     return true;
 }
 
-/*! Converts a string into lower case, and copies it into `out`.
+/*! Allocate a new lowercase version of a string.
+
     \details
     \mustnullin
+    \mustfree
 
-    \po out Memory allocated for the result.
-            _Must have capacity for `strlen(s) + 1`._
     \pi s   The input string to convert to lower case.
+    \return The allocated string, or `NULL` if \p s is `NULL` or the allocation fails.
 */
-void str_to_lower(char* out, const char* s) {
-    if (!out) return;
+char* str_to_lower(const char* s) {
+    if (!s) return NULL;
+    size_t length = strlen(s);
+    char* out = calloc(length + 1, sizeof(char));
+    if (!out) return NULL;
+    if (s[0] == '\0') return out;
+
     size_t i = 0;
     while (s[i]) {
         out[i] = tolower(s[i]);
         i++;
     }
-    out[i] = '\0';
+    return out;
 }
 
 /*! Converts a regular string (with possible multibyte characters) into a
@@ -1601,13 +1675,15 @@ BasicValue BasicValue_from_str(const char* arg) {
     if (!arg) {
         return BASIC_INVALID;
     }
-    char arglower[MAX_COLOR_NAME_LEN];
-    str_to_lower(arglower, arg);
+    char* arglower = str_to_lower(arg);
+    if (!arglower) return BASIC_INVALID;
     for (size_t i=0; i < basic_names_len; i++) {
         if (!strcmp(arglower, basic_names[i].name)) {
+            free(arglower);
             return basic_names[i].value;
         }
     }
+    free(arglower);
     return BASIC_INVALID;
 }
 
@@ -1643,29 +1719,35 @@ int ExtendedValue_from_str(const char* arg) {
     if (!arg) {
         return COLOR_INVALID;
     }
-    char arglower[MAX_COLOR_NAME_LEN];
-    str_to_lower(arglower, arg);
+    char* arglower = str_to_lower(arg);
+    if (!arglower) return COLOR_INVALID;
     for (size_t i=0; i < extended_names_len; i++) {
         if (!strcmp(arglower, extended_names[i].name)) {
+            free(arglower);
             return extended_names[i].value;
         }
     }
     if (!str_is_digits(arg)) {
         if ((arg[0] == '-') && (strlen(arg) > 1) && str_is_digits(arg + 1)) {
+            free(arglower);
             // Negative number given.
             return COLOR_INVALID_RANGE;
         }
+        free(arglower);
         return COLOR_INVALID;
     }
     // Using long to combat easy overflow.
     long usernum;
     if (!sscanf(arg, "%ld", &usernum)) {
         // Not a number.
+        free(arglower);
         return COLOR_INVALID;
     }
     if (usernum < 0 || usernum > 255) {
+        free(arglower);
         return COLOR_INVALID_RANGE;
     }
+    free(arglower);
     return (int)usernum;
 }
 /*! Convert a hex color into separate red, green, blue values.
@@ -1673,6 +1755,10 @@ int ExtendedValue_from_str(const char* arg) {
     The format for hex strings can be one of:
         - "[#]ffffff" (Leading hash symbol is optional)
         - "[#]fff" (short-form)
+
+    \details
+    Three-digit numbers are valid hex strings, so values like `011` are accepted
+    and transformed into `#001111`.
 
     \pi hexstr String to convert into red, green, blue values.
                \mustnullin
@@ -1688,25 +1774,27 @@ int rgb_from_hex(const char* hexstr, unsigned char* r, unsigned char* g, unsigne
     size_t length = strnlen(hexstr, 7);
     if ((length < 3) || (length > 7)) return COLOR_INVALID;
     // Strip leading #'s.
-    char* copy = strndup(hexstr, 7);
-    while (copy[0] == '#') copy++;
-    length = strlen(copy);
-    char redstr[3] = {0, 0, 0};
-    char greenstr[3] = {0, 0, 0};
-    char bluestr[3] = {0, 0, 0};
-    switch (length) {
+    char* copy = str_lstrip_chars(hexstr, "#");
+    if (!copy) return COLOR_INVALID;
+    size_t copy_length = strlen(copy);
+    if (copy_length < length - 1) {
+        // There was more then one # symbol, I'm not gonna be *that* nice.
+        return COLOR_INVALID;
+    }
+    unsigned int redval, greenval, blueval;
+    switch (copy_length) {
         case 3:
-            redstr[0] = redstr[1] = copy[0];
-            greenstr[0] = greenstr[1] = copy[1];
-            bluestr[0] = bluestr[1] = copy[2];
-            break;
+            copy[5] = copy[2];
+            copy[4] = copy[2];
+            copy[3] = copy[1];
+            copy[2] = copy[1];
+            copy[1] = copy[0];
+            /* fall through */
         case 6:
-            redstr[0] = copy[0];
-            redstr[1] = copy[1];
-            greenstr[0] = copy[2];
-            greenstr[1] = copy[3];
-            bluestr[0] = copy[4];
-            bluestr[1] = copy[5];
+            if (sscanf(copy, "%02x%02x%02x", &redval, &greenval, &blueval) != 3) {
+                free(copy);
+                return COLOR_INVALID;
+            }
             break;
         default:
             // Not a valid length.
@@ -1715,24 +1803,6 @@ int rgb_from_hex(const char* hexstr, unsigned char* r, unsigned char* g, unsigne
     }
     free(copy);
 
-    long redval = strtol(redstr, NULL, 16);
-    if ((redval == LONG_MIN) || (redval == LONG_MAX)) {
-        return COLOR_INVALID;
-    } else if ((redval == 0) && !str_is_all(redstr, '0')) {
-        return COLOR_INVALID;
-    }
-    long greenval = strtol(greenstr, NULL, 16);
-    if ((greenval == LONG_MIN) || (greenval == LONG_MAX)) {
-        return COLOR_INVALID;
-    } else if ((greenval == 0) && !str_is_all(greenstr, '0')) {
-        return COLOR_INVALID;
-    }
-    long blueval = strtol(bluestr, NULL, 16);
-    if ((blueval == LONG_MIN) || (blueval == LONG_MAX)) {
-        return COLOR_INVALID;
-    } else if ((blueval == 0) && !str_is_all(bluestr, '0')) {
-        return COLOR_INVALID;
-    }
     *r = redval;
     *g = greenval;
     *b = blueval;
@@ -1748,8 +1818,8 @@ int rgb_from_hex(const char* hexstr, unsigned char* r, unsigned char* g, unsigne
         - "RED:GREEN:BLUE"
         - "RED;GREEN;BLUE"
     Or hex strings can be used:
-        - "[#]ffffff" (Leading hash symbol is optional)
-        - "[#]fff" (short-form)
+        - "#ffffff" (Leading hash symbol is __NOT__ optional)
+        - "#fff" (short-form)
 
     \pi arg String to check for RGB values.
     \po r   Pointer to an unsigned char for red value on success.
@@ -1785,7 +1855,21 @@ int rgb_from_str(const char* arg, unsigned char* r, unsigned char* g, unsigned c
         }
         i++;
     }
-    return rgb_from_hex(arg, r, g, b);
+    return arg[0] == '#' ? rgb_from_hex(arg, r, g, b) : COLOR_INVALID;
+}
+
+/*! Compare two RGB structs.
+
+    \pi a First RGB value to check.
+    \pi b Second RGB value to check.
+    \return `true` if \p a and \p b have the same `r`, `g`, and `b` values, otherwise `false`.
+*/
+bool RGB_eq(struct RGB a, struct RGB b) {
+    return (
+        (a.red == b.red) &&
+        (a.green == b.green) &&
+        (a.blue == b.blue)
+    );
 }
 
 /*! Convert a hex color into an RGB value.
@@ -1824,8 +1908,8 @@ int RGB_from_hex(const char* arg, struct RGB *rgb) {
         - "RED GREEN BLUE"
         - "RED:GREEN:BLUE"
     Or hex strings can be used:
-        - "[#]ffffff" (Leading hash symbol is optional)
-        - "[#]fff" (short-form)
+        - "#ffffff" (Leading hash symbol is __NOT__ optional)
+        - "#fff" (short-form)
 
     \pi arg    String to check for RGB values.
                \mustnullin
@@ -1937,13 +2021,15 @@ StyleValue StyleValue_from_str(const char* arg) {
     if (!arg) {
         return STYLE_INVALID;
     }
-    char arglower[MAX_COLOR_NAME_LEN];
-    str_to_lower(arglower, arg);
+    char* arglower = str_to_lower(arg);
+    if (!arglower) return STYLE_INVALID;
     for (size_t i=0; i < style_names_len; i++) {
         if (!strcmp(arglower, style_names[i].name)) {
+            free(arglower);
             return style_names[i].value;
         }
     }
+    free(arglower);
     return STYLE_INVALID;
 }
 
