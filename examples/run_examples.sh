@@ -7,6 +7,7 @@ appversion="0.0.1"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 appdir="${apppath%/*}"
+
 declare -a binaries=($(find "$appdir" -maxdepth 1 -executable -type f ! -name "*.*"))
 
 function echo_err {
@@ -88,14 +89,19 @@ let count=0
 let errs=0
 declare -a matched_patterns unmatched_patterns
 for binaryname in "${binaries[@]}"; do
-    for pattern in "${patterns[@]}"; do
-        if pattern_matches "$pattern" "$binaryname"; then
-            run_exe "$binaryname" || let errs+=1
-            [[ "${matched_patterns[*]}" == *"$pattern"* ]] || matched_patterns+=("$pattern")
-            let count+=1
-            continue
-        fi
-    done
+    if ((${#patterns[@]})); then
+        for pattern in "${patterns[@]}"; do
+            if pattern_matches "$pattern" "$binaryname"; then
+                run_exe "$binaryname" || let errs+=1
+                [[ "${matched_patterns[*]}" == *"$pattern"* ]] || matched_patterns+=("$pattern")
+                let count+=1
+                continue
+            fi
+        done
+    else
+        run_exe "$binaryname" || let errs+=1
+        let count+=1
+    fi
 done
 for pattern in "${patterns[@]}"; do
     [[ "${matched_patterns[*]}" == *"$pattern"* ]] || unmatched_patterns+=("$pattern")

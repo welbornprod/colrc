@@ -79,6 +79,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <wchar.h>
+
 #include "dbug.h"
 
 /* Tell gcc to ignore unused macros. */
@@ -102,10 +103,9 @@
 //! Length of CODE_RESET_ALL, including `'\0'`.
 #define CODE_RESET_LEN 5
 /*! Maximum length for a basic fore/back escape code, including `'\0'`.
-    Keep in mind that BasicValue actually has some extended values in it
-    for convenience.
+    Keep in mind that BasicValue actually has some "light" colors (104).
 */
-#define CODE_LEN 6
+#define CODE_LEN 7
 //! Maximum length for an extended fore/back escape code, including `'\0'`.
 #define CODEX_LEN 12
 
@@ -252,7 +252,7 @@
 */
 #define rgb(r, g, b) ((struct RGB){.red=r, .green=g, .blue=b})
 
-/*! \def streq
+/*! \def colr_streq
     Convenience macro for `!strcmp(s1, s2)`.
 
     \pi s1 The first string to compare.
@@ -262,7 +262,7 @@
     \retval 1 if \p s1 is greater than \p s2.
     \retval 1 if \p s1 is less than \p s2.
 */
-#define streq(s1, s2) ((s1 && s2) ? !strcmp(s1, s2) : false)
+#define colr_streq(s1, s2) ((s1 && s2) ? !strcmp(s1, s2) : false)
 
 /*! \def color_arg
     Builds a correct ColorArg struct according to the type of it's second
@@ -330,33 +330,36 @@
         struct ColorArg: ColorArg_repr, \
         struct ColorText: ColorText_repr, \
         struct ColorValue: ColorValue_repr, \
+        struct RGB: RGB_repr, \
         ArgType: ArgType_repr, \
         ColorType: ColorType_repr, \
         char*: str_repr \
     )(x)
 
-/*! \def debug_repr
+/*! \def dbug_repr
     Uses colr_repr() to build a string representation of a ColrC object,
-    debug prints it, and calls free() when it's done.
+    dbug prints it, and calls free() when it's done.
 
     \details
-    This is for debugging purposes, and is a no-op when DEBUG is not
+    This is for dbugging purposes, and is a no-op when DEBUG is not
     defined.
 
-    \pi lbl Label text for the debug print.
+    \pi lbl Label text for the dbug print.
     \pi x   Any object supported by colr_repr().
 
-    \sa colr_repr _debug_repr_free
 */
-#if defined(DEBUG) && defined(debug)
-    #define debug_repr(lbl, x) \
+#if defined(DEBUG) && defined(dbug)
+    #define dbug_repr(lbl, x) \
         do { \
-            char* _debug_repr_s = colr_repr(x); \
-            debug("%s: %s\n", lbl, _debug_repr_s); \
-            free(_debug_repr_s); \
+            char* _dbug_repr_s = colr_repr(x); \
+            dbug("%s: %s\n", lbl, _dbug_repr_s); \
+            free(_dbug_repr_s); \
         } while(0)
 #else
-    #define debug_repr(lbl, x) ((void)0)
+    #if !defined(dbug)
+        #define dbug(...) ((void)0)
+    #endif
+    #define dbug_repr(lbl, x) ((void)0)
 #endif
 
 /*! \def fore
@@ -906,16 +909,42 @@ void format_bgx(char* out, unsigned char num);
 void format_bg(char* out, BasicValue value);
 void format_bg_rgb(char* out, unsigned char red, unsigned char green, unsigned char blue);
 void format_bg_RGB(char* out, struct RGB rgb);
+void format_bg_RGB_term(char* out, struct RGB rgb);
 void format_fgx(char* out, unsigned char num);
 void format_fg(char* out, BasicValue value);
 void format_fg_rgb(char* out, unsigned char red, unsigned char green, unsigned char blue);
 void format_fg_RGB(char* out, struct RGB rgb);
-void format_rainbow_fore(char* out, double freq, size_t step);
+void format_fg_RGB_term(char* out, struct RGB rgb);
 void format_style(char* out, StyleValue style);
+/*! \internal
+    A function that formats in the rainbow style.
+    \details
+    This is used to implement the different rainbow formatters,
+    one will use straight RGB values. The other uses the "closest terminal code".
+    Some are for fore colors, others are for back colors.
+    \endinternal
+*/
+typedef void (*RGB_fmter)(char* out, struct RGB rgb);
+char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t step);
+/*! \internal
+    Specialized functions.
+    \endinternal
+*/
+char* rainbow_fg(const char* s, double freq, size_t offset);
+char* rainbow_term_fg(const char* s, double freq, size_t offset);
+char* rainbow_bg(const char* s, double freq, size_t offset);
+char* rainbow_term_bg(const char* s, double freq, size_t offset);
+struct RGB rainbow_step(double freq, size_t step);
 
+/*! \internal
+    String-based functions.
+    \endinternal
+*/
 void str_append_reset(char* s);
 char* str_copy(char* dest, const char* src, size_t length);
 bool str_endswith(const char* s, const char* suffix);
+bool str_has_codes(const char* s);
+bool str_is_all(const char* s, const char c);
 bool str_is_digits(const char* s);
 void str_lower(char* s);
 char* str_repr(const char* s);
@@ -999,13 +1028,14 @@ char* ColorValue_to_str(ArgType type, struct ColorValue cval);
 BasicValue BasicValue_from_str(const char* arg);
 int BasicValue_to_ansi(ArgType type, BasicValue bval);
 int ExtendedValue_from_str(const char* arg);
+int rgb_from_hex(const char *hexstr, unsigned char* r, unsigned char* g, unsigned char*b);
 int rgb_from_str(const char* arg, unsigned char* r, unsigned char* g, unsigned char* b);
-int RGB_from_str(const char* arg, struct RGB *rgb);
+int RGB_from_hex(const char* arg, struct RGB *rgb);
+int RGB_from_str(const char* arg, struct RGB* rgb);
+char* RGB_to_hex(struct RGB rgb);
+struct RGB RGB_to_term_RGB(struct RGB rgb);
+char* RGB_repr(struct RGB rgb);
+
 StyleValue StyleValue_from_str(const char* arg);
 
-/*! \internal
-    Specialized functions.
-    \endinternal
-*/
-char* rainbow_fg(const char* s, double freq, size_t offset);
 #endif // COLR_H

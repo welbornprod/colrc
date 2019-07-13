@@ -21,11 +21,7 @@
 #pragma clang diagnostic warning "-Wunused-macros"
 
 #include "../colr.h"
-// snow's describe() macro triggers a -Wstrict-prototypes warning,
-// "function declaration isn't a prototype."
-#pragma GCC diagnostic ignored "-Wstrict-prototypes"
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wstrict-prototypes"
+
 // snow redefines the `assert()` macro. It's better though.
 #undef assert
 #define SNOW_ENABLED
@@ -34,5 +30,8 @@
 #define array_length(array) (sizeof(array) / sizeof(array[0]))
 #define in_range(x, xmin, xmax) ((bool)((x >= xmin) && (x <= xmax)))
 #define assert_range(x, xmin, xmax, ...) assert(in_range(x, xmin, xmax), __VA_ARGS__)
-#pragma clang diagnostic pop /* end warning -Wunused-macros */
+
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wstrict-prototypes"
 #endif /* TEST_COLR_H */

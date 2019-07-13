@@ -26,11 +26,6 @@
 //! Long version string for this library.
 #define DBUG_VERSION_STR DBUG_NAME " v. " DBUG_VERSION
 
-/* Warn for any other unused macros, for gcc and clang. */
-#pragma clang diagnostic pop
-#pragma GCC diagnostic warning "-Wunused-macros"
-#pragma clang diagnostic push
-#pragma clang diagnostic warning "-Wunused-macros"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -56,7 +51,7 @@
     //! Computed max width for function name in line info.
     #define DBUG_FUNCLEN ((DBUG_DEBUGWIDTH - DBUG_LINELEN - DBUG_EXTRACHARS) / 2)
     //! Macro for printing line information only.
-    #define debug_lineinfo() \
+    #define dbug_lineinfo() \
         fprintf(stderr, "%s%*s%s:%s%s%-*d%s %s%*s()%s: " \
             ,DBUG_COLOR_YELLOW \
             ,DBUG_FILELEN, __FILE__ \
@@ -76,7 +71,7 @@
 
         \pi ... Format string and all other arguments to satisfy the format string.
     */
-    #define debug_msg(...) \
+    #define dbug_msg(...) \
         fprintf(stderr, "%s", DBUG_COLOR_GREEN); \
         fprintf(stderr, __VA_ARGS__); \
         fprintf(stderr, "%s", DBUG_COLOR_NONE);
@@ -88,7 +83,7 @@
 
         \pi ... Format string and all other arguments to satisfy the format string.
     */
-    #define debug_msg_err(...) \
+    #define dbug_msg_err(...) \
         fprintf(stderr, "%s", DBUG_COLOR_RED); \
         fprintf(stderr, __VA_ARGS__); \
         fprintf(stderr, "%s", DBUG_COLOR_NONE);
@@ -100,9 +95,9 @@
 
         \pi ... Format string and all other arguments to satisfy the format string.
     */
-    #define debug(...) \
-        debug_lineinfo(); \
-        debug_msg(__VA_ARGS__);
+    #define dbug(...) \
+        dbug_lineinfo(); \
+        dbug_msg(__VA_ARGS__);
     /*! Macro for printing debug error information.
 
         /details
@@ -111,8 +106,14 @@
         \pi ... Format string and all other arguments to satisfy the format string.
     */
     #define debugerr(...) \
-        debug_lineinfo(); \
-        debug_msg_err(__VA_ARGS__);
+        dbug_lineinfo(); \
+        dbug_msg_err(__VA_ARGS__);
+
+    /* Warn for any other unused macros, for gcc and clang. */
+    #pragma clang diagnostic pop
+    #pragma GCC diagnostic warning "-Wunused-macros"
+    #pragma clang diagnostic push
+    #pragma clang diagnostic warning "-Wunused-macros"
 #else
     // Ignore unused macros (for linting).
     #pragma GCC diagnostic ignored "-Wunknown-pragmas"
@@ -120,11 +121,11 @@
     #pragma clang diagnostic ignored "-Wunused-macros"
 
     // In non-debug builds, any calls to the debug* macros are no-ops.
-    #define debug_lineinfo(...) ((void)0)
-    #define debug_msg(...) ((void)0)
-    #define debug_msg_err(...) ((void)0)
-    #define debug(...) ((void)0)
-    #define debugerr(...) ((void)0)
+    #define dbug_lineinfo(...) ((void)0)
+    #define dbug_msg(...) ((void)0)
+    #define dbug_msg_err(...) ((void)0)
+    #define dbug(...) ((void)0)
+    #define dbugerr(...) ((void)0)
 
     #pragma clang diagnostic pop /* end ignore -Wunused-macros */
 #endif

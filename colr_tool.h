@@ -12,13 +12,17 @@
 
 
 #ifndef COLR_TOOL_H
-#pragma GCC diagnostic ignored "-Wunused-macros"
 #define COLR_TOOL_H
 #ifndef _GNU_SOURCE
     #define _GNU_SOURCE
 #endif
 
+#include "dbug.h"
 #include "colr.h"
+
+#pragma GCC diagnostic ignored "-Wunused-macros"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-macros"
 
 #define NAME "Colr"
 #define VERSION COLR_VERSION
@@ -54,7 +58,7 @@ void debug_args(char* text, char* fore, char* back, char* style);
 void example_color_build(void);
 int print_256(bool do_fore);
 int print_basic(bool do_fore);
-int print_rainbow_fore(void);
+int print_rainbow_fore(bool term_colors);
 int print_rgb(bool do_fore);
 void print_unrecognized_arg(const char* userarg);
 int print_usage(const char* reason);

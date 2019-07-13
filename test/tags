@@ -25,18 +25,18 @@ BasicValue	../colr.h	/^} BasicValue;$/;"	t	typeref:enum:BasicValue_t
 BasicValue_from_str	../colr.c	/^BasicValue BasicValue_from_str(const char* arg) {$/;"	f
 BasicValue_t	../colr.h	/^typedef enum BasicValue_t {$/;"	g
 BasicValue_to_ansi	../colr.c	/^int BasicValue_to_ansi(ArgType type, BasicValue bval) {$/;"	f
-CODEX_LEN	../colr.h	110;"	d
-CODE_ANY_LEN	../colr.h	137;"	d
-CODE_LEN	../colr.h	108;"	d
-CODE_RESET_ALL	../colr.h	97;"	d
-CODE_RESET_LEN	../colr.h	103;"	d
-CODE_RGB_LEN	../colr.h	123;"	d
-COLORARG_MARKER	../colr.h	147;"	d
-COLORTEXT_MARKER	../colr.h	154;"	d
-COLOR_INVALID	../colr.h	159;"	d
-COLOR_INVALID_RANGE	../colr.h	161;"	d
-COLOR_LEN	../colr.h	120;"	d
-COLOR_RGB_LEN	../colr.h	131;"	d
+CODEX_LEN	../colr.h	108;"	d
+CODE_ANY_LEN	../colr.h	135;"	d
+CODE_LEN	../colr.h	106;"	d
+CODE_RESET_ALL	../colr.h	96;"	d
+CODE_RESET_LEN	../colr.h	102;"	d
+CODE_RGB_LEN	../colr.h	121;"	d
+COLORARG_MARKER	../colr.h	145;"	d
+COLORTEXT_MARKER	../colr.h	152;"	d
+COLOR_INVALID	../colr.h	157;"	d
+COLOR_INVALID_RANGE	../colr.h	159;"	d
+COLOR_LEN	../colr.h	118;"	d
+COLOR_RGB_LEN	../colr.h	129;"	d
 COLR_H	../colr.h	31;"	d
 COLR_VERSION	../colr.h	37;"	d
 CYAN	../colr.h	/^    CYAN = 6,$/;"	e	enum:BasicValue_t
@@ -111,9 +111,9 @@ LIGHTYELLOW	../colr.h	/^    LIGHTYELLOW = 13,$/;"	e	enum:BasicValue_t
 LIGHTYELLOW	../colr.h	727;"	d
 MAGENTA	../colr.h	/^    MAGENTA = 5,$/;"	e	enum:BasicValue_t
 MAGENTA	../colr.h	719;"	d
-MAX_COLOR_NAME_LEN	../colr.h	140;"	d
-M_PI	../colr.h	94;"	d
-NC	../colr.h	101;"	d
+MAX_COLOR_NAME_LEN	../colr.h	138;"	d
+M_PI	../colr.h	93;"	d
+NC	../colr.h	100;"	d
 NORMAL	../colr.h	/^    NORMAL = 22$/;"	e	enum:StyleValue_t
 NORMAL	../colr.h	793;"	d
 RED	../colr.h	/^    RED = 1,$/;"	e	enum:BasicValue_t
@@ -130,7 +130,7 @@ SNOW_COLOR_FAIL	snow.h	122;"	d
 SNOW_COLOR_MAYBE	snow.h	126;"	d
 SNOW_COLOR_RESET	snow.h	114;"	d
 SNOW_COLOR_SUCCESS	snow.h	118;"	d
-SNOW_ENABLED	test_ColrC.h	31;"	d
+SNOW_ENABLED	test_ColrC.h	27;"	d
 SNOW_H	snow.h	27;"	d
 SNOW_USE_FNMATCH	snow.h	73;"	d
 SNOW_USE_FNMATCH	snow.h	80;"	d
@@ -140,7 +140,7 @@ SNOW_VERSION	snow.h	95;"	d
 STYLE	../colr.h	/^    STYLE = 2,$/;"	e	enum:ArgType_t
 STYLE_INVALID	../colr.h	/^    STYLE_INVALID = COLOR_INVALID,$/;"	e	enum:StyleValue_t
 STYLE_INVALID	../colr.h	784;"	d
-STYLE_LEN	../colr.h	113;"	d
+STYLE_LEN	../colr.h	111;"	d
 STYLE_NONE	../colr.h	/^    STYLE_NONE = -1,$/;"	e	enum:StyleValue_t
 STYLE_NONE	../colr.h	785;"	d
 StyleInfo	../colr.h	/^struct StyleInfo {$/;"	s
@@ -160,7 +160,7 @@ UNDERLINE	../colr.h	/^    UNDERLINE = 4,$/;"	e	enum:StyleValue_t
 UNDERLINE	../colr.h	790;"	d
 UNUSED	../colr.h	/^    UNUSED = 8,$/;"	e	enum:BasicValue_t
 UNUSED	../colr.h	722;"	d
-WCODE_RESET_ALL	../colr.h	99;"	d
+WCODE_RESET_ALL	../colr.h	98;"	d
 WHITE	../colr.h	/^    WHITE = 7,$/;"	e	enum:BasicValue_t
 WHITE	../colr.h	721;"	d
 XBLACK	../colr.h	733;"	d
@@ -246,18 +246,18 @@ after_each	snow.h	1162;"	d
 after_each	snow.h	37;"	d
 after_jmp	snow.h	/^	jmp_buf after_jmp;$/;"	m	struct:_snow_desc
 after_jmp_ret	snow.h	/^		jmp_buf after_jmp_ret;$/;"	m	struct:_snow::__anon3
-alloc_basic	../colr.h	169;"	d
-alloc_extended	../colr.h	177;"	d
-alloc_rgb	../colr.h	186;"	d
-alloc_style	../colr.h	194;"	d
+alloc_basic	../colr.h	167;"	d
+alloc_extended	../colr.h	175;"	d
+alloc_rgb	../colr.h	184;"	d
+alloc_style	../colr.h	192;"	d
 allocated	snow.h	/^	size_t allocated;$/;"	m	struct:_snow_arr
-argeq	../colr.h	205;"	d
-array_length	test_ColrC.h	34;"	d
+argeq	../colr.h	203;"	d
+array_length	test_ColrC.h	30;"	d
 assert	snow.h	1193;"	d
 assert	snow.h	41;"	d
-assert	test_ColrC.h	30;"	d
+assert	test_ColrC.h	26;"	d
 assert_ColorType_name_equal	test_ColorType.c	8;"	d	file:
-assert_range	test_ColrC.h	36;"	d
+assert_range	test_ColrC.h	32;"	d
 asserteq	snow.h	1420;"	d
 asserteq	snow.h	51;"	d
 asserteq_any	snow.h	1336;"	d
@@ -293,7 +293,7 @@ back	../colr.h	460;"	d
 back_arg	../colr.h	480;"	d
 back_str	../colr.h	499;"	d
 basic	../colr.h	/^    BasicValue basic;$/;"	m	struct:ColorValue
-basic	../colr.h	215;"	d
+basic	../colr.h	213;"	d
 basic_names	../colr.c	/^const struct BasicInfo basic_names[] = {$/;"	v	typeref:struct:BasicInfo
 basic_names_len	../colr.c	/^const size_t basic_names_len = sizeof(basic_names) \/ sizeof(basic_names[0]);$/;"	v
 before_each	snow.h	1154;"	d
@@ -301,23 +301,25 @@ before_each	snow.h	36;"	d
 before_jmp	snow.h	/^	jmp_buf before_jmp;$/;"	m	struct:_snow_desc
 before_jmp_ret	snow.h	/^		jmp_buf before_jmp_ret;$/;"	m	struct:_snow::__anon3
 blue	../colr.h	/^    unsigned char blue;$/;"	m	struct:RGB
-bool_colr_enum	../colr.h	228;"	d
+bool_colr_enum	../colr.h	226;"	d
 boolval	snow.h	/^		int boolval;$/;"	m	union:_snow_opt::__anon2
 bufs	snow.h	/^	} bufs;$/;"	m	struct:_snow	typeref:struct:_snow::__anon6
 char_escape_char	../colr.c	/^char char_escape_char(char c) {$/;"	f
 char_should_escape	../colr.c	/^bool char_should_escape(char c) {$/;"	f
-color_arg	../colr.h	278;"	d
+color_arg	../colr.h	276;"	d
 color_name_is_invalid	../colr.h	673;"	d
 color_name_is_valid	../colr.h	644;"	d
-color_val	../colr.h	297;"	d
+color_val	../colr.h	295;"	d
 colr	../colr.h	570;"	d
 colr_empty_str	../colr.c	/^char* colr_empty_str(void) {$/;"	f
 colr_join	../colr.h	597;"	d
-colr_repr	../colr.h	327;"	d
+colr_repr	../colr.h	325;"	d
+colr_streq	../colr.h	263;"	d
 current_case	snow.h	/^	} current_case;$/;"	m	struct:_snow	typeref:struct:_snow::__anon3
 current_desc	snow.h	/^	struct _snow_desc *current_desc;$/;"	m	struct:_snow	typeref:struct:_snow::_snow_desc
-debug_repr	../colr.h	352;"	d
-debug_repr	../colr.h	359;"	d
+dbug	../colr.h	357;"	d
+dbug_repr	../colr.h	349;"	d
+dbug_repr	../colr.h	359;"	d
 defer	snow.h	1143;"	d
 defer	snow.h	35;"	d
 defer_jmp_ret	snow.h	/^		jmp_buf defer_jmp_ret;$/;"	m	struct:_snow::__anon3
@@ -338,7 +340,7 @@ elems	snow.h	/^	char *elems;$/;"	m	struct:_snow_arr
 enabled	snow.h	/^	int enabled;$/;"	m	struct:_snow_desc
 exit_code	snow.h	/^	int exit_code;$/;"	m	struct:_snow
 ext	../colr.h	/^    ExtendedValue ext;$/;"	m	struct:ColorValue
-ext	../colr.h	238;"	d
+ext	../colr.h	236;"	d
 extended_names	../colr.c	/^const struct ExtendedInfo extended_names[] = {$/;"	v	typeref:struct:ExtendedInfo
 extended_names_len	../colr.c	/^const size_t extended_names_len = sizeof(extended_names) \/ sizeof(extended_names[0]);$/;"	v
 fail	snow.h	1170;"	d
@@ -369,7 +371,7 @@ has_before_jmp	snow.h	/^	int has_before_jmp;$/;"	m	struct:_snow_desc
 in_after_each	snow.h	/^	int in_after_each;$/;"	m	struct:_snow
 in_before_each	snow.h	/^	int in_before_each;$/;"	m	struct:_snow
 in_case	snow.h	/^	int in_case;$/;"	m	struct:_snow
-in_range	test_ColrC.h	35;"	d
+in_range	test_ColrC.h	31;"	d
 is_bool	snow.h	/^	int is_bool;$/;"	m	struct:_snow_opt
 is_overwritten	snow.h	/^	int is_overwritten;$/;"	m	struct:_snow_opt
 it	snow.h	1133;"	d
@@ -392,13 +394,13 @@ opts	snow.h	/^	struct _snow_opt opts[_SNOW_OPT_LAST];$/;"	m	struct:_snow	typeref
 prev_print	snow.h	/^		} prev_print;$/;"	m	struct:_snow::__anon4	typeref:enum:_snow::__anon4::__anon5
 print	snow.h	/^	} print;$/;"	m	struct:_snow	typeref:struct:_snow::__anon4
 printed	snow.h	/^	int printed;$/;"	m	struct:_snow_desc
-printferr	../colr.h	241;"	d
+printferr	../colr.h	239;"	d
 rainbow_fg	../colr.c	/^char* rainbow_fg(const char* s, double freq, size_t offset) {$/;"	f
 red	../colr.h	/^    unsigned char red;$/;"	m	struct:RGB
 rerun	snow.h	/^		jmp_buf rerun;$/;"	m	struct:_snow::__anon3
 rerunning_case	snow.h	/^	int rerunning_case;$/;"	m	struct:_snow
 rgb	../colr.h	/^    struct RGB rgb;$/;"	m	struct:ColorValue	typeref:struct:ColorValue::RGB
-rgb	../colr.h	253;"	d
+rgb	../colr.h	251;"	d
 rgb_from_str	../colr.c	/^int rgb_from_str(const char* arg, unsigned char* r, unsigned char* g, unsigned char* b) {$/;"	f
 shortname	snow.h	/^	char shortname;$/;"	m	struct:_snow_opt
 snow_break	snow.h	42;"	d
@@ -416,13 +418,13 @@ start_time	snow.h	/^	double start_time;$/;"	m	struct:_snow_desc
 str_append_reset	../colr.c	/^void str_append_reset(char *s) {$/;"	f
 str_copy	../colr.c	/^char* str_copy(char* dest, const char* src, size_t length) {$/;"	f
 str_endswith	../colr.c	/^bool str_endswith(const char* str, const char* suf) {$/;"	f
+str_has_codes	../colr.c	/^bool str_has_codes(const char* s) {$/;"	f
 str_is_digits	../colr.c	/^bool str_is_digits(const char* s) {$/;"	f
 str_lower	../colr.c	/^void str_lower(char* s) {$/;"	f
 str_repr	../colr.c	/^char* str_repr(const char* s) {$/;"	f
 str_startswith	../colr.c	/^bool str_startswith(const char* s, const char* prefix) {$/;"	f
 str_to_lower	../colr.c	/^void str_to_lower(char* out, const char* s) {$/;"	f
 str_to_wide	../colr.c	/^wchar_t* str_to_wide(const char* s) {$/;"	f
-streq	../colr.h	265;"	d
 strval	snow.h	/^		char *strval;$/;"	m	union:_snow_opt::__anon2
 style	../colr.h	/^    StyleValue style;$/;"	m	struct:ColorValue
 style	../colr.h	/^    struct ColorArg *style;$/;"	m	struct:ColorText	typeref:struct:ColorText::ColorArg

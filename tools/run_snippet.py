@@ -34,7 +34,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 VERSIONSTR = '{} v. {}'.format(NAME, VERSION)
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -46,9 +46,9 @@ USAGESTR = f"""{VERSIONSTR}
     Usage:
         {SCRIPT} -c | -h | -v
         {SCRIPT} [-D] -l
-        {SCRIPT} [-D] [-n] [-q] -e [PATTERN]
-        {SCRIPT} [-D] [-n] [-q] [CODE]
-        {SCRIPT} [-D] [-n] [-q] [-f file]
+        {SCRIPT} [-D] [-n] [-q] [-r exe] -e [PATTERN]
+        {SCRIPT} [-D] [-n] [-q] [-r exe] [CODE]
+        {SCRIPT} [-D] [-n] [-q] [-r exe] [-f file]
 
     Options:
         CODE                 : Code to compile. It is wrapped in a main()
@@ -66,12 +66,15 @@ USAGESTR = f"""{VERSIONSTR}
         -n,--name            : Print the resulting binary name, for further
                                testing.
         -q,--quiet           : Don't print any status messages.
+        -r exe,--run exe     : Run a program on the compiled binary, like
+                               `gdb` or `kdbg`.
         -v,--version         : Show version.
 """
 
 COLR_DIR = os.path.abspath(os.path.join(SCRIPTDIR, '..'))
 COLRC_FILE = os.path.join(COLR_DIR, 'colr.c')
 COLRH_FILE = os.path.join(COLR_DIR, 'colr.h')
+DBUGH_FILE = os.path.join(COLR_DIR, 'dbug.h')
 EXAMPLES_SRC = (COLRC_FILE, COLRH_FILE)
 
 
@@ -87,7 +90,7 @@ def main(argd):
         return list_examples()
     elif argd['--examples']:
         pat = try_repat(argd['PATTERN'])
-        return run_examples(pat=pat)
+        return run_examples(pat=pat, exe=argd['--run'])
 
     if argd['--file']:
         snippets = [
@@ -97,7 +100,7 @@ def main(argd):
     else:
         snippets = [Snippet(argd['CODE'], name='cmdline') or read_stdin()]
 
-    return run_snippets(snippets, show_name=argd['--name'])
+    return run_snippets(snippets, exe=argd['--run'], show_name=argd['--name'])
 
 
 def clean_objects(filepaths):
@@ -362,17 +365,17 @@ def run_compile_cmd(filepath, args):
     return proc.wait()
 
 
-def run_compiled_exe(filepath):
+def run_compiled_exe(filepath, exe=None):
     """ Run an executable (the compiled snippet). """
     if not filepath.startswith(TMPDIR):
         newpath = os.path.join(TMPDIR, os.path.split(filepath)[-1])
         os.move(filepath, newpath)
         filepath = newpath
-
-    debug(f'Trying to run: {filepath}')
+    cmd = [exe, filepath] if exe else [filepath]
+    debug(f'Trying to run: {" ".join(cmd)}')
     try:
         proc = subprocess.run(
-            [filepath],
+            cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
@@ -396,7 +399,7 @@ def run_compiled_exe(filepath):
     return proc.returncode
 
 
-def run_examples(pat=None, show_name=False):
+def run_examples(pat=None, exe=None, show_name=False):
     """ Compile and run source examples, with optional filtering pattern.
     """
     errs = 0
@@ -427,7 +430,7 @@ def run_examples(pat=None, show_name=False):
             count = C(allsnipscnt, 'blue', style='bright')
         plural = 'snippet' if count == 1 else 'snippets'
         status(f'\nCompiling {count} {plural} for: {filefmt}')
-        errs += run_snippets(usesnippets, show_name=show_name)
+        errs += run_snippets(usesnippets, exe=exe, show_name=show_name)
         success += (snipscnt - errs)
 
     status(C(' ').join(
@@ -456,17 +459,20 @@ def run_examples(pat=None, show_name=False):
     return errs
 
 
-def run_snippets(snippets, show_name=False):
+def run_snippets(snippets, exe=None, show_name=False):
     """ Compile and run several c code snippets. """
     errs = 0
     for snippet in snippets:
         binaryname = snippet.compile()
         if show_name:
+            namefmt = C(binaryname, 'blue', style='bright')
+            if exe:
+                namefmt = C(' ').join(C(exe, 'blue'), namefmt)
             status(C(': ').join(
                 C('  Running', 'cyan'),
-                C(binaryname, 'blue', style='bright'),
+                namefmt,
             ))
-        errs += run_compiled_exe(binaryname)
+        errs += run_compiled_exe(binaryname, exe=exe)
     return errs
 
 
@@ -517,9 +523,15 @@ def wrap_code(s):
         If colr.h is already included, no duplicate include is added.
     """
     include_colr_h = '#include "colr.h"' not in s
+    include_dbug_h = '#include "dbug.h"' not in s
     wrap_main = 'main(' not in s
 
     lines = []
+    if include_dbug_h:
+        debug('Including dbug.h...')
+        lines.append('#include "dbug.h"')
+    else:
+        debug('Not including dbug.h!')
     if include_colr_h:
         debug('Including colr.h...')
         lines.append('#include "colr.h"')

@@ -7,6 +7,7 @@
 #include "test_ColrC.h"
 
 describe(helper_functions) {
+// char_escape_char
     subdesc(char_escape_char) {
         it("should recognize valid escape sequence chars") {
             struct TestItem {
@@ -53,7 +54,7 @@ describe(helper_functions) {
             }
         }
     }
-
+// char_should_escape
     subdesc(char_should_escape) {
         it("should detect valid escape sequence chars") {
             struct TestItem {
@@ -96,7 +97,7 @@ describe(helper_functions) {
             }
         }
     }
-
+// colr_empty_str
     subdesc(colr_empty_str) {
         it("sanity check for colr_empty_str()") {
             char* s = colr_empty_str();
@@ -104,7 +105,7 @@ describe(helper_functions) {
             free(s);
         }
     }
-
+// str_endswith
     subdesc(str_endswith) {
         it("str_endswith") {
             // Common uses.
@@ -155,7 +156,37 @@ describe(helper_functions) {
             );
         }
     }
+// str_has_codes
+    subdesc(str_has_codes) {
+        it("should detect escape codes") {
+            // NULL should just return false.
+            assert(str_has_codes(NULL) == false);
 
+            // Normal strings should not trigger this.
+            assert(str_has_codes("This is a string.") == false);
+
+            // Empty strings should not trigger this.
+            assert(str_has_codes("") == false);
+
+            // Colors should though.
+            struct ColorArg* args[] = {
+                fore(RED),
+                back(LIGHTBLUE),
+                style(UNDERLINE),
+                fore(ext(32)),
+                back(ext(254)),
+                fore(rgb(12, 34, 56)),
+                back(rgb(78, 89, 90)),
+            };
+            size_t args_len = array_length(args);
+            for (size_t i = 0; i < args_len; i++) {
+                char* s = colr("This prefix.", args[i], "This suffix.");
+                assert(str_has_codes(s));
+                free(s);
+            }
+        }
+    }
+// str_lower
     subdesc(str_lower) {
         it("should handle empty strings") {
             // Should not fail.
@@ -201,7 +232,7 @@ describe(helper_functions) {
             }
         }
     }
-
+// str_repr
     subdesc(str_repr) {
         it("escapes properly") {
             struct TestItem {
@@ -236,7 +267,7 @@ describe(helper_functions) {
             }
         }
     }
-
+// str_startswith
     subdesc(str_startswith) {
         it("recognizes string prefixes") {
             // Common uses.
