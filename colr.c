@@ -1341,6 +1341,8 @@ char* ColorText_to_str(struct ColorText ctext) {
     \retval TYPE_INVALID_RGB_RANGE for rgb values outside of 0-255.
 
     \examplecodefor{ColorType_from_str,.c}
+    #include "colr.h"
+
     int main(int argc, char** argv) {
         char* userarg;
         if (argc == 1) {

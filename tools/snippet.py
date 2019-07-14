@@ -4,6 +4,13 @@
 """ run_snippet.py
     Compiles a small ColrC snippet and runs it. This is for small testing
     and debugging purposes.
+
+    Example Usage:
+        ./tools/snippet.py 'char* s = colr(fore(BLUE), "Okay."); print(s);'
+
+    To run examples found in the source code:
+        ./tools/snippet.py -E
+
     -Christopher Welborn 07-04-2019
 """
 
@@ -35,7 +42,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.0.2'
+VERSION = '0.0.3'
 VERSIONSTR = '{} v. {}'.format(NAME, VERSION)
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -66,6 +73,10 @@ DBUGH_FILE = os.path.join(COLR_DIR, 'dbug.h')
 EXAMPLES_SRC = (COLRC_FILE, COLRH_FILE)
 
 MACROS = {
+    'print': {
+        'define': '#define print(s) printf("%s\\n", s)',
+        'desc': 'Wrapper for print("%s\\n", s).',
+    },
     'print_repr': {
         'define': '#define print_repr(x) printf("%s\\n", colr_repr(x))',
         'desc': 'Wrapper for printf("%s\\n", colr_repr(x)).',
@@ -79,8 +90,8 @@ USAGE_MACROS = '\n'.join(
 
 USAGESTR = f"""{VERSIONSTR}
     Usage:
-        {SCRIPT} -c | -h | -v
-        {SCRIPT} [-D] -L
+        {SCRIPT} -h | -v
+        {SCRIPT} [-D] (-c | -L)
         {SCRIPT} [-D] [-n] [-q] [-r exe] -b
         {SCRIPT} [-D] [-n] [-q] [-r exe] -E [PATTERN]
         {SCRIPT} [-D] [-n] [-q] [-r exe] [CODE]
@@ -162,7 +173,9 @@ def main(argd):
             raise InvalidArg('no "last snippet" found.')
         snippets = [Snippet(config['last_snippet'], name='last-snippet')]
     else:
-        snippets = [Snippet(argd['CODE'], name='cmdline') or read_stdin()]
+        snippets = [
+            Snippet(argd['CODE'], name='cmdline-snippet') or read_stdin()
+        ]
 
     return run_snippets(snippets, exe=argd['--run'], show_name=argd['--name'])
 
@@ -176,13 +189,16 @@ def clean_objects(filepaths):
 
 def clean_tmp():
     tmpfiles = [
-        s
+        os.path.join(TMPDIR, s)
         for s in os.listdir(TMPDIR)
         if s.startswith(TMPPREFIX)
     ]
+    tmplen = len(tmpfiles)
+    plural = 'file' if tmplen == 1 else 'files'
+    debug(f'Found {tmplen} {plural} in {TMPDIR}.')
     for filepath in tmpfiles:
-        if os.path.exists(filepath):
-            os.remove(filepath)
+        os.remove(filepath)
+        debug(f'Removed: {filepath}', align=True)
 
     tmplen = len(tmpfiles)
     plural = 'file' if tmplen == 1 else 'files'
@@ -193,7 +209,7 @@ def clean_tmp():
 
 def edit_snippet(filepath=None, text=None):
     if not (filepath or text):
-        raise EditError('Missing file path or initial text! Developer error.')
+        raise EditError('Developer Error: Missing file path or initial text!')
     marker = f'// {NAME} - Snippet Editing'
     header = '\n'.join((
         marker,
@@ -695,11 +711,11 @@ class Snippet(object):
     """ A Snippet is just a string, with an optional name. """
     def __init__(self, code, name=None):
         self.code = code
-        self.name = name or 'unknown snippet'
+        self.name = str(name or 'unknown snippet')
         if self.name.startswith('//'):
-            self.name = format_leader(self.name)
+            self.name = str(format_leader(self.name))
         else:
-            self.name = C(self.name, 'blue')
+            self.name = str(C(self.name, 'blue'))
 
     def __bool__(self):
         return bool(self.code)
@@ -715,6 +731,14 @@ class Snippet(object):
             f'\n    {self.name}:',
             f'    {code}'
         )
+
+    def __repr__(self):
+        return '\n'.join((
+            f'{type(self).__name__}(',
+            f'    code=({type(self.code).__name__}) {self.code!r}',
+            f'    name=({type(self.name).__name__}) {self.name!r}',
+            ')',
+        ))
 
     def __str__(self):
         return str(self.code)
@@ -779,7 +803,6 @@ class Snippet(object):
         """ Returns True if the `line` looks like a main() signature. """
         return (
             line.startswith('int main') or
-            # Non-standard:
             line.startswith('void main') or
             line.startswith('main(')
         )
@@ -789,7 +812,7 @@ class Snippet(object):
             If main() is already defined, the snippet is not wrapped.
             If colr.h is already included, no duplicate include is added.
         """
-        line_table = set(s.strip() for s in code)
+        line_table = set(line.strip() for line in code.splitlines())
         includes = ('colr.h', 'dbug.h')
         lines = []
         for includename in includes:
@@ -810,30 +833,33 @@ class Snippet(object):
             lines.append(f'#endif // ifdef {macroname}')
             debug(f'Including macro: {macroname}')
 
-        main_sigs = [self.is_main_sig(s) for s in line_table]
+        main_sigs = [s for s in line_table if self.is_main_sig(s)]
         main_sig = main_sigs[0] if main_sigs else None
-
         if main_sig:
             debug('No main() needed.')
             lines.append(code)
         else:
-            lines.append(self.wrap_main(code))
+            indent = 4 if code.lstrip()[0] == code[0] else 0
+            lines.append(self.wrap_main(code.rstrip(), indent=indent))
         return '\n'.join(lines)
 
-    def wrap_main(self, code):
+    def wrap_main(self, code, indent=0):
         """ Wrap a piece of code in a main() function. """
         debug('Wrapping in main()...')
         if ('argc' in code) or ('argv' in code):
-            mainsig = 'int main(int argv, char** argv)'
+            mainsig = 'int main(int argc, char* argv[])'
             debug('Using argc and argv.', align=True)
         else:
             mainsig = 'int main(void)'
             debug('Not using argc or argv.', align=True)
-        if code.endswith(';'):
+        if code.endswith(';') or code.endswith(';'):
             debug('No semi-colon needed.', align=True)
         else:
             debug('Adding semi-colon to code.', align=True)
             code = f'{code};'
+        if indent:
+            spaces = ' ' * indent
+            code = '\n'.join(f'{spaces}{s}' for s in code.splitlines())
         return f'{mainsig} {{\n{code}\n}}'
 
     def write_code(self, s, ext='.c'):
