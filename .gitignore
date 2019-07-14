@@ -10,4 +10,4 @@ examples/*_example
 run_snippet
 run_valgrind
 snippet
-tools/run_snippet.json
+tools/*.json
