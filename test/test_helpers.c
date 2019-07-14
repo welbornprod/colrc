@@ -26,7 +26,7 @@ describe(helpers) {
                 {'\t', 't'},
                 {'\v', 'v'},
             };
-            for_each_test(tests, i) {
+            for_each(tests, i) {
                 asserteq(
                     char_escape_char(tests[i].input),
                     tests[i].expected,
@@ -68,10 +68,11 @@ describe(helpers) {
                 {'X', "endingwith the z", false},
                 {'X', "endingwith the z", false}
             };
-            for_each_test(tests, i) {
+            for_each(tests, i) {
                 asserteq(
                     char_in_str(tests[i].c, tests[i].s),
-                    tests[i].expected
+                    tests[i].expected,
+                    "Known char was not detected."
                 );
             }
         }
@@ -94,7 +95,7 @@ describe(helpers) {
                 {'\t'},
                 {'\v'},
             };
-            for_each_test(tests, i) {
+            for_each(tests, i) {
                 assert(
                     char_should_escape(tests[i].input),
                     "Known escape char returned false."
@@ -202,8 +203,8 @@ describe(helpers) {
             size_t args_len = array_length(args);
             for (size_t i = 0; i < args_len; i++) {
                 char* s = colr("This prefix.", args[i], "This suffix.");
+                defer(free(s));
                 assert(str_has_codes(s));
-                free(s);
             }
         }
     }
@@ -224,7 +225,7 @@ describe(helpers) {
                 {"apple", 'a', false},
                 {"xaaa", 'a', false},
             };
-            for_each_test(tests, i) {
+            for_each(tests, i) {
                 asserteq(str_is_all(tests[i].s, tests[i].c), tests[i].expected);
             }
         }
@@ -245,7 +246,7 @@ describe(helpers) {
                 {"111a", false},
                 {"a1111", false},
             };
-            for_each_test(tests, i) {
+            for_each(tests, i) {
                 asserteq(str_is_digits(tests[i].s), tests[i].expected);
             }
         }
@@ -282,7 +283,7 @@ describe(helpers) {
                 {"mAcRoS aRe eViL!?%%$!", "macros are evil!?%%$!"},
             };
 
-            for_each_test(tests, i) {
+            for_each(tests, i) {
                 char* input;
                 asprintf(&input, "%s", tests[i].input);
                 str_lower(input);
@@ -314,7 +315,7 @@ describe(helpers) {
                 {" \t \t\n test", " \n\t", "test"},
                 {"aabbcctest", "cba", "test"},
             };
-            for_each_test(tests, i) {
+            for_each(tests, i) {
                 char* result = str_lstrip_chars(tests[i].s, tests[i].chars);
                 if (!result) {
                     if (tests[i].expected) {
@@ -357,7 +358,7 @@ describe(helpers) {
                     "\"All\\'together\\\"now\\?\\\\\\a\\b\\f\\n\\r\\t\\vokay.\""
                 },
             };
-            for_each_test(tests, i) {
+            for_each(tests, i) {
                 char* repr = colr_repr(tests[i].input);
                 asserteq(
                     repr,
@@ -371,52 +372,28 @@ describe(helpers) {
 // str_startswith
     subdesc(str_startswith) {
         it("recognizes string prefixes") {
-            // Common uses.
-            assert(
-                str_startswith("lightblue", "light"),
-                "Known prefix was not detected."
-            );
-            assert(
-                str_startswith("xred", "x"),
-                "Known prefix was not detected."
-            );
-            assert(
-                str_startswith("yellow", "yel"),
-                "Known prefix was not detected."
-            );
-            assert(
-                str_startswith("!@#$^&*", "!@"),
-                "Known prefix was not detected."
-            );
-            assert(
-                str_startswith("    test", "    "),
-                "Known prefix was not detected."
-            );
-            // Should not trigger a match.
-            assert(
-                !str_startswith("test", "a"),
-                "Bad prefix was falsey detected."
-            );
-            assert(
-                !str_startswith(" test", "test"),
-                "Bad prefix was falsey detected."
-            );
-            assert(
-                !str_startswith("t", "apple"),
-                "Bad prefix was falsey detected."
-            );
-            assert(
-                !str_startswith(NULL, "a"),
-                "Null argument should not return true."
-            );
-            assert(
-                !str_startswith("test", NULL),
-                "Null argument should not return true."
-            );
-            assert(
-                !str_startswith(NULL, NULL),
-                "Null arguments should not return true."
-            );
+            struct {
+                char* s;
+                char* prefix;
+                bool expected;
+            } tests[] = {
+                // Common uses.
+                {"lightblue", "light", true},
+                {"xred", "x", true},
+                {"yellow", "yel", true},
+                {"!@#$^&*", "!@", true},
+                {"    test", "    ", true},
+                // Should not trigger a match.
+                {"test", "a", false},
+                {" test", "test", false},
+                {"t", "apple", false},
+                {NULL, "a", false},
+                {"test", NULL, false},
+                {NULL, NULL, false},
+            };
+            for_each(tests, i) {
+                asserteq(str_startswith(tests[i].s, tests[i].prefix), tests[i].expected);
+            }
         }
     }
 // str_to_lower
@@ -432,12 +409,12 @@ describe(helpers) {
                 {"ABCDEFGHIJKLMNOP", "abcdefghijklmnop"},
                 {"  TeSt  ", "  test  "}
             };
-            for_each_test(tests, i) {
+            for_each(tests, i) {
                 char* result = str_to_lower(tests[i].s);
                 if (tests[i].expected) {
-                    assertneq(result, NULL);
+                    assert(result != NULL, "Unexpected NULL from str_to_lower()");
                 } else {
-                    assert(result == NULL, "Expected NULL!");
+                    assert(result == NULL, "Expected NULL from str_to_lower()");
                     continue;
                 }
                 asserteq(result, tests[i].expected);

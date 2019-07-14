@@ -33,8 +33,7 @@ describe(ColorType) {
                 {"234,234,234", TYPE_RGB},
                 {"355,255,255", TYPE_INVALID_RGB_RANGE},
             };
-            size_t test_item_len = array_length(tests);
-            for (size_t i = 0; i < test_item_len; i++) {
+            for_each(tests, i) {
                 const char* arg = tests[i].arg;
                 ColorType ret = tests[i].ret;
                 assert_ColorType_name_equal(arg, ret);
