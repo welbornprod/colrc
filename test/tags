@@ -265,8 +265,7 @@ assert	snow.h	41;"	d
 assert	test_ColrC.h	26;"	d
 assert_ColorType_name_equal	test_ColorType.c	8;"	d	file:
 assert_RGB_eq	test_RGB.h	8;"	d
-assert_expected_null	test_ColrC.h	33;"	d
-assert_range	test_ColrC.h	32;"	d
+assert_range	test_ColrC.h	31;"	d
 assert_rgb_from	test_RGB.h	19;"	d
 assert_rgb_from_either	test_RGB.h	34;"	d
 asserteq	snow.h	1420;"	d
@@ -337,8 +336,8 @@ current_desc	snow.h	/^	struct _snow_desc *current_desc;$/;"	m	struct:_snow	typer
 dbug	../colr.h	360;"	d
 dbug_repr	../colr.h	352;"	d
 dbug_repr	../colr.h	362;"	d
-def_test_struct	test_ColrC.h	42;"	d
-def_tests	test_ColrC.h	43;"	d
+def_test_struct	test_ColrC.h	35;"	d
+def_tests	test_ColrC.h	36;"	d
 defer	snow.h	1143;"	d
 defer	snow.h	35;"	d
 defer_jmp_ret	snow.h	/^		jmp_buf defer_jmp_ret;$/;"	m	struct:_snow::__anon3
@@ -368,7 +367,7 @@ fail	snow.h	40;"	d
 file	snow.h	/^		FILE *file;$/;"	m	struct:_snow::__anon4
 file_opened	snow.h	/^		int file_opened;$/;"	m	struct:_snow::__anon4
 filename	snow.h	/^	const char *filename;$/;"	m	struct:_snow
-for_each	test_ColrC.h	45;"	d
+for_each	test_ColrC.h	38;"	d
 fore	../colr.h	/^    struct ColorArg *fore;$/;"	m	struct:ColorText	typeref:struct:ColorText::ColorArg
 fore	../colr.h	394;"	d
 fore_arg	../colr.h	412;"	d
@@ -396,7 +395,7 @@ hex_tests_len	test_RGB.h	/^size_t hex_tests_len = array_length(hex_tests);$/;"	v
 in_after_each	snow.h	/^	int in_after_each;$/;"	m	struct:_snow
 in_before_each	snow.h	/^	int in_before_each;$/;"	m	struct:_snow
 in_case	snow.h	/^	int in_case;$/;"	m	struct:_snow
-in_range	test_ColrC.h	31;"	d
+in_range	test_ColrC.h	32;"	d
 is_bool	snow.h	/^	int is_bool;$/;"	m	struct:_snow_opt
 is_overwritten	snow.h	/^	int is_overwritten;$/;"	m	struct:_snow_opt
 it	snow.h	1133;"	d

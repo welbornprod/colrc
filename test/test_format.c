@@ -126,5 +126,5 @@ describe(format_functions) {
             assert(str_endswith(codeonly, "m"));
         }
     }
-
+    // TODO: Rainbow formatters.
 }

@@ -19,6 +19,7 @@ from colr import (
     auto_disable as colr_auto_disable,
     docopt,
 )
+from easysettings import load_json_settings
 from printdebug import DebugColrPrinter
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
@@ -39,16 +40,44 @@ VERSIONSTR = '{} v. {}'.format(NAME, VERSION)
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
 
+CONFIGFILE = os.path.join(SCRIPTDIR, 'run_snippet.json')
+config = load_json_settings(
+    CONFIGFILE,
+    default={
+        'last_snippet': None,
+        'last_binary': None,
+        'last_c_file': None,
+    }
+)
 TMPPREFIX = NAME.replace(' ', '').lower()
 TMPDIR = tempfile.gettempdir()
+
+COLR_DIR = os.path.abspath(os.path.join(SCRIPTDIR, '..'))
+COLRC_FILE = os.path.join(COLR_DIR, 'colr.c')
+COLRH_FILE = os.path.join(COLR_DIR, 'colr.h')
+DBUGH_FILE = os.path.join(COLR_DIR, 'dbug.h')
+EXAMPLES_SRC = (COLRC_FILE, COLRH_FILE)
+
+MACROS = {
+    'print_repr': {
+        'define': '#define print_repr(x) printf("%s\\n", colr_repr(x))',
+        'desc': 'Wrapper for printf("%s\\n", colr_repr(x)).',
+    },
+}
+
+USAGE_MACROS = '\n'.join(
+    f'{name:>27}  : {MACROS[name]["desc"]}'
+    for name in sorted(MACROS)
+)
 
 USAGESTR = f"""{VERSIONSTR}
     Usage:
         {SCRIPT} -c | -h | -v
-        {SCRIPT} [-D] -l
-        {SCRIPT} [-D] [-n] [-q] [-r exe] -e [PATTERN]
+        {SCRIPT} [-D] -L
+        {SCRIPT} [-D] [-n] [-q] [-r exe] -E [PATTERN]
         {SCRIPT} [-D] [-n] [-q] [-r exe] [CODE]
         {SCRIPT} [-D] [-n] [-q] [-r exe] [-f file]
+        {SCRIPT} [-D] [-n] [-q] [-r exe] (-e | -l)
 
     Options:
         CODE                 : Code to compile. It is wrapped in a main()
@@ -59,23 +88,22 @@ USAGESTR = f"""{VERSIONSTR}
         -c,--clean           : Clean {TMPDIR} files, even though they will be
                                cleaned when the OS reboots.
         -D,--debug           : Show some debug info while running.
-        -e,--examples        : Use source examples as the snippets.
+        -E,--examples        : Use source examples as the snippets.
+        -e,--editlast        : Edit the last snippet in $EDITOR and run it.
         -f name,--file name  : Read file to get snippet to compile.
         -h,--help            : Show this help message.
-        -l,--listexamples    : List example code snippets in the source.
+        -L,--listexamples    : List example code snippets in the source.
+        -l,--last            : Re-run the last snippet.
         -n,--name            : Print the resulting binary name, for further
                                testing.
         -q,--quiet           : Don't print any status messages.
         -r exe,--run exe     : Run a program on the compiled binary, like
                                `gdb` or `kdbg`.
         -v,--version         : Show version.
-"""
 
-COLR_DIR = os.path.abspath(os.path.join(SCRIPTDIR, '..'))
-COLRC_FILE = os.path.join(COLR_DIR, 'colr.c')
-COLRH_FILE = os.path.join(COLR_DIR, 'colr.h')
-DBUGH_FILE = os.path.join(COLR_DIR, 'dbug.h')
-EXAMPLES_SRC = (COLRC_FILE, COLRH_FILE)
+    Predefined Macros:
+{USAGE_MACROS}
+"""
 
 
 def main(argd):
@@ -97,6 +125,17 @@ def main(argd):
             read_file(s)
             for s in argd['--file']
         ]
+    elif argd['--editlast']:
+        if not config['last_snippet']:
+            raise InvalidArg('no "last snippet" found.')
+        snippet = edit_snippet(config['last_snippet'])
+        if not snippet:
+            raise UserCancelled()
+        snippets = [Snippet(snippet, name='edited-snippet')]
+    elif argd['--last']:
+        if not config['last_snippet']:
+            raise InvalidArg('no "last snippet" found.')
+        snippets = [Snippet(config['last_snippet'], name='last-snippet')]
     else:
         snippets = [Snippet(argd['CODE'], name='cmdline') or read_stdin()]
 
@@ -125,6 +164,37 @@ def clean_tmp():
     tmpfmt = C(tmplen, 'blue', style='bright')
     status(f'Cleaned {tmpfmt} temporary {plural} in: {TMPDIR}')
     return 0 if tmpfiles else 1
+
+
+def edit_snippet(initial_text=None):
+    fd, filepath = temp_file(extra_prefix='last_snippet')
+    os.write(fd, '\n'.join((
+        '// If this file is empty, or all lines are commented out with',
+        '// single-line comments, the process is cancelled.',
+        '',
+    )).encode())
+    if initial_text:
+        os.write(fd, initial_text.encode())
+    os.close(fd)
+    editor = os.environ.get('EDITOR', 'vim')
+    try:
+        ret = os.system(' '.join((editor, filepath)))
+    except Exception as ex:
+        raise EditError(f'Failed to edit last snippet: {ex}')
+    else:
+        if ret != 0:
+            raise EditError(f'Editor ({editor}) returned non-zero!')
+
+    with open(filepath, 'r') as f:
+        usablelines = [
+            s
+            for s in f
+            if not s.lstrip().startswith('//')
+        ]
+    if not usablelines:
+        raise UserCancelled()
+
+    return ''.join(usablelines)
 
 
 def find_src_examples():
@@ -490,15 +560,23 @@ def status(*args, **kwargs):
     print(*args, **kwargs)
 
 
-def temp_file(ext='.c'):
+def temp_file(ext='.c', extra_prefix=None):
     """ Return a temporary (open) fd and name. """
-    fd, name = tempfile.mkstemp(prefix=TMPPREFIX, suffix=ext)
+    if extra_prefix:
+        prefix = f'{TMPPREFIX}-{extra_prefix}'
+    else:
+        prefix = TMPPREFIX
+    fd, name = tempfile.mkstemp(prefix=prefix, suffix=ext)
     return fd, name
 
 
-def temp_file_name(ext=None):
+def temp_file_name(ext=None, extra_prefix=None):
     """ Return a temporary file name. """
-    return tempfile.mktemp(prefix=TMPPREFIX, suffix=ext)
+    if extra_prefix:
+        prefix = f'{TMPPREFIX}-{extra_prefix}'
+    else:
+        prefix = TMPPREFIX
+    return tempfile.mktemp(prefix=prefix, suffix=ext)
 
 
 def try_repat(s):
@@ -537,6 +615,14 @@ def wrap_code(s):
         lines.append('#include "colr.h"')
     else:
         debug('Not including colr.h!')
+
+    for macroname in sorted(MACROS):
+        lines.append(f'#ifndef {macroname}')
+        defline = MACROS[macroname]['define']
+        lines.append(defline)
+        lines.append(f'#endif // ifdef {macroname}')
+        debug(f'Including macro: {macroname}')
+
     if wrap_main:
         debug('Wrapping in main()...')
         lines.append('int main(void) {')
@@ -569,6 +655,14 @@ class CompileError(ValueError):
         return f'Can\'t compile snippet: {self.filepath}'
 
 
+class EditError(CompileError):
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return f'Failed to edit last snippet: {self.msg}'
+
+
 class InvalidArg(ValueError):
     """ Raised when the user has used an invalid argument. """
     def __init__(self, msg=None):
@@ -580,29 +674,33 @@ class InvalidArg(ValueError):
         return 'Invalid argument!'
 
 
+class UserCancelled(KeyboardInterrupt):
+    def __str__(self):
+        return 'User cancelled.'
+
+
 class Snippet(object):
     """ A Snippet is just a string, with an optional name. """
     def __init__(self, code, name=None):
         self.code = code
         self.name = name or 'unknown snippet'
+        if self.name.startswith('//'):
+            self.name = format_leader(self.name)
+        else:
+            self.name = C(self.name, 'blue')
 
     def __bool__(self):
         return bool(self.code)
 
     def __colr__(self):
-        debug(f'NAME: {self.name!r}')
         if self.code.startswith(self.name):
             # It may not, because not all snippets have an id/name.
             code = '\n'.join(self.code.split('\n')[1:])
         else:
             code = self.code
-        if self.name.startswith('//'):
-            name = format_leader(self.name)
-        else:
-            name = C(self.name, 'blue')
         code = highlight_snippet(code).replace('\n', '\n    ')
         return C('\n').join(
-            f'\n    {name}:',
+            f'\n    {self.name}:',
             f'    {code}'
         )
 
@@ -612,10 +710,12 @@ class Snippet(object):
     def compile(self, user_args=None):
         status(C(': ').join(
             C('Compiling', 'cyan'),
-            format_leader(self.name)
+            self.name,
         ))
 
         filepath = write_code(wrap_code(self.code), ext='.c')
+        config['last_c_file'] = filepath
+        config['last_snippet'] = self.code
         basename = os.path.split(os.path.splitext(filepath)[0])[-1]
         objname = f'{basename}.o'
         cfiles = [filepath, COLRC_FILE]
@@ -659,6 +759,7 @@ class Snippet(object):
             raise CompileError(filepath)
         debug('Making the binary executable...')
         os.chmod(binaryname, stat.S_IRWXU)
+        config['last_binary'] = binaryname
         return binaryname
 
 
@@ -674,4 +775,5 @@ if __name__ == '__main__':
     except BrokenPipeError:
         print_err('\nBroken pipe, input/output was interrupted.\n')
         mainret = 3
+    config.save()
     sys.exit(mainret)

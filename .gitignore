@@ -7,3 +7,7 @@ examples/*_example
 *.gcov
 *.gcno
 *.gcda
+run_snippet
+run_valgrind
+snippet
+tools/run_snippet.json

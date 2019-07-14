@@ -28,12 +28,13 @@ binobjects:=$(notdir $(objects))
 .PHONY: all, coverage, debug, debugnotags, release
 all: debug
 
+coverage: clean
 coverage: CFLAGS+=-O0 -DDEBUG
 coverage: CFLAGS+=-fprofile-arcs -ftest-coverage
 coverage: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
 coverage: $(binary)
 coverage:
-	@$(cov_cmd) "$(realpath $(binary))" "$(cov_dir)"
+	@$(cov_cmd) "$(realpath $(binary))" "$(realpath $(cov_dir))"
 
 debug: tags
 debug: CFLAGS+=-g3 -DDEBUG

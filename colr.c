@@ -587,8 +587,12 @@ char* str_repr(const char* s) {
     \return False if one of the strings is null, or the prefix isn't found.
 */
 bool str_startswith(const char* s, const char* prefix) {
-    if (!s || !prefix) {
+    if (!(s && prefix)) {
         // One of the strings is null.
+        return false;
+    }
+    if ((s[0] == '\0') || (prefix[0] == '\0')) {
+        // One of the strings is empty.
         return false;
     }
     size_t pre_len = strlen(prefix);
@@ -2129,7 +2133,7 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
     \pi freq Frequency ("tightness") of the colors.
     \pi step Starting offset in the rainbow.
 
-    \return [description]
+    \return  An RGB value with the next "step" in the "rainbow".
 */
 struct RGB rainbow_step(double freq, size_t step) {
     double redval = sin(freq * step + 0) * 127 + 128;
