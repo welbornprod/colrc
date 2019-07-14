@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
     }
 
     StyleValue styleval = StyleValue_from_str(stylearg);
-    struct ColorArg style_carg = style_arg(styleval);
+    ColorArg style_carg = style_arg(styleval);
     if (!validate_color_arg(style_carg, stylearg)) {
         free(forearg);
         free(backarg);
@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
     }
     dbug_repr("Style: %s\n", style_carg);
 
-    struct ColorArg fore_carg = fore_arg(forearg);
+    ColorArg fore_carg = fore_arg(forearg);
     if (!validate_color_arg(fore_carg, forearg)) {
         free(forearg);
         free(backarg);
@@ -104,7 +104,7 @@ int main(int argc, char* argv[]) {
     }
     dbug_repr("Fore: %s\n", fore_carg);
 
-    struct ColorArg back_carg = back_arg(backarg);
+    ColorArg back_carg = back_arg(backarg);
     if (!validate_color_arg(back_carg, backarg)) {
         free(forearg);
         free(backarg);
@@ -114,7 +114,7 @@ int main(int argc, char* argv[]) {
     }
     dbug_repr("Back: %s\n", back_carg);
 
-    struct ColorText *ctext = Colr(textarg, &fore_carg, &back_carg, &style_carg);
+    ColorText *ctext = Colr(textarg, &fore_carg, &back_carg, &style_carg);
     dbug_repr("ColorText: %s\n", *ctext);
     char* text = ColorText_to_str(*ctext);
     printf("%s\n", text);
@@ -146,7 +146,7 @@ int print_256(bool do_fore) {
         The function choice is passed as an argument.
     */
     char num[4];
-    struct ColorArg carg;
+    ColorArg carg;
     char* text;
     for (int i = 0; i < 56; i++) {
         snprintf(num, 4, "%03d", i);
@@ -229,8 +229,8 @@ int print_rgb(bool do_fore) {
                 // Make the rgb text.
                 snprintf(num, 12, "%03d;%03d;%03d", r, g, b);
                 // Colorize it.
-                struct RGB vals = {r, g, b};
-                struct RGB othervals = do_fore ? (struct RGB){0, 0, 0} : (struct RGB){255, 255, 255};
+                RGB vals = {r, g, b};
+                RGB othervals = do_fore ? (RGB){0, 0, 0} : (RGB){255, 255, 255};
                 if (do_fore) {
                     text = colr(fore(vals), back(othervals), num);
                 } else {
@@ -328,7 +328,7 @@ char* read_stdin_arg(void) {
 }
 
 
-bool validate_color_arg(struct ColorArg carg, const char* name) {
+bool validate_color_arg(ColorArg carg, const char* name) {
     /*  Checks `nametype` for TYPE_INVALID*, and prints the usage string
         with a warning message if it is invalid.
         If the code is not invalid, it simply returns `true`.

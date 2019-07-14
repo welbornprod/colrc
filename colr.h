@@ -1,6 +1,10 @@
 /*! \file colr.h
     Declarations for ColrC functions, enums, structs, etc.
 
+    \internal
+    \author Christopher Welborn
+    \date 06-22-2019
+
     \details
     To use ColrC in your project, you will need to include colr.h
     and compile colr.c with the rest of your files.
@@ -33,7 +37,7 @@
     #define _GNU_SOURCE
 #endif
 
-//! Current version for Colr.
+//! Current version for ColrC.
 #define COLR_VERSION "0.2.2"
 
 #ifndef DOXYGEN_SKIP
@@ -250,7 +254,7 @@
 
     \sa fore back colr Colr
 */
-#define rgb(r, g, b) ((struct RGB){.red=r, .green=g, .blue=b})
+#define rgb(r, g, b) ((RGB){.red=r, .green=g, .blue=b})
 
 /*! \def colr_streq
     Convenience macro for `!strcmp(s1, s2)`.
@@ -281,7 +285,7 @@
         BasicValue: ColorArg_from_value(type, TYPE_BASIC, &x), \
         ExtendedValue: ColorArg_from_value(type, TYPE_EXTENDED, &x), \
         StyleValue: ColorArg_from_value(type, TYPE_STYLE, &x), \
-        struct RGB: ColorArg_from_value(type, TYPE_RGB, &x) \
+        RGB: ColorArg_from_value(type, TYPE_RGB, &x) \
     )
 
 /*! \def color_val
@@ -300,7 +304,7 @@
         BasicValue: ColorValue_from_value(TYPE_BASIC, &x), \
         ExtendedValue: ColorValue_from_value(TYPE_EXTENDED, &x), \
         StyleValue: ColorValue_from_value(TYPE_STYLE, &x), \
-        struct RGB: ColorValue_from_value(TYPE_RGB, &x) \
+        RGB: ColorValue_from_value(TYPE_RGB, &x) \
     )
 
 
@@ -327,10 +331,10 @@
 #define colr_repr(x) \
     _Generic( \
         (x), \
-        struct ColorArg: ColorArg_repr, \
-        struct ColorText: ColorText_repr, \
-        struct ColorValue: ColorValue_repr, \
-        struct RGB: RGB_repr, \
+        ColorArg: ColorArg_repr, \
+        ColorText: ColorText_repr, \
+        ColorValue: ColorValue_repr, \
+        RGB: RGB_repr, \
         ArgType: ArgType_repr, \
         ColorType: ColorType_repr, \
         char*: str_repr \
@@ -413,7 +417,7 @@
     _Generic( \
         (x), \
         char* : ColorArg_from_str, \
-        struct RGB: ColorArg_from_RGB, \
+        RGB: ColorArg_from_RGB, \
         BasicValue: ColorArg_from_BasicValue, \
         ExtendedValue: ColorArg_from_ExtendedValue, \
         StyleValue: ColorArg_from_StyleValue \
@@ -484,7 +488,7 @@
     _Generic( \
         (x), \
         char* : ColorArg_from_str, \
-        struct RGB: ColorArg_from_RGB, \
+        RGB: ColorArg_from_RGB, \
         BasicValue: ColorArg_from_BasicValue, \
         ExtendedValue: ColorArg_from_ExtendedValue, \
         StyleValue: ColorArg_from_StyleValue \
@@ -732,7 +736,10 @@ typedef enum BasicValue_t {
 #define LIGHTMAGENTA basic(LIGHTMAGENTA)
 #define LIGHTCYAN basic(LIGHTCYAN)
 #define LIGHTWHITE basic(LIGHTWHITE)
-//! Convenience 256 color names.
+/*! \internal
+    Convenience 256 color names.
+    \endinternal
+*/
 # define XBLACK ((ExtendedValue)0)
 # define XRED ((ExtendedValue)1)
 # define XGREEN ((ExtendedValue)2)
@@ -763,11 +770,11 @@ typedef unsigned char ExtendedValue;
 #define EXTENDED_INVALID COLOR_INVALID
 
 //! Container for RGB values.
-struct RGB {
+typedef struct RGB_t {
     unsigned char red;
     unsigned char blue;
     unsigned char green;
-};
+} RGB;
 
 //! Style values.
 typedef enum StyleValue_t {
@@ -823,28 +830,28 @@ typedef enum ColorType_t {
     \details
     This is used for the `basic_names` array in colr.c.
 */
-struct BasicInfo {
+typedef struct BasicInfo_t {
     char* name;
     BasicValue value;
-};
+} BasicInfo;
 /*! Holds a known color name and it's `ExtendedValue`.
 
     \details
     This is used for the `basic_names` array in colr.c.
 */
-struct ExtendedInfo {
+typedef struct ExtendedInfo_t {
     char* name;
     ExtendedValue value;
-};
+} ExtendedInfo;
 /*! Holds a known style name and it's `StyleValue`.
 
     \details
     This is used for the `style_names` array in colr.c.
 */
-struct StyleInfo {
+typedef struct StyleInfo_t {
     char* name;
     StyleValue value;
-};
+} StyleInfo;
 
 /*! Holds a color type and it's value.
 
@@ -855,44 +862,47 @@ struct StyleInfo {
     This is internal. It's used to make the final interface easier to use.
     You probably shouldn't be using it.
 */
-struct ColorValue {
+typedef struct ColorValue_t {
     ColorType type;
     BasicValue basic;
     ExtendedValue ext;
-    struct RGB rgb;
+    RGB rgb;
     StyleValue style;
-};
+} ColorValue;
 
 /*! Holds an ArgType, and a ColorValue.
 */
-struct ColorArg {
+typedef struct ColorArg_t {
+    //! A marker used to inspect void pointers and determine if they are ColorArgs.
     unsigned int marker;
+    //! Fore, back, style, invalid.
     ArgType type;
-    struct ColorValue value;
-};
+    //! Color type and value.
+    ColorValue value;
+} ColorArg;
 
 
 /*! Holds a string of text, and optional fore, back, and style ColorArgs.
 */
-struct ColorText {
+typedef struct ColorText_t {
     unsigned int marker;
     char* text;
-    struct ColorArg *fore;
-    struct ColorArg *back;
-    struct ColorArg *style;
-};
+    ColorArg *fore;
+    ColorArg *back;
+    ColorArg *style;
+} ColorText;
 
 #ifndef DOXYGEN_SKIP
 //! A list of BasicInfo items, used with BasicValue_from_str().
-extern const struct BasicInfo basic_names[];
+extern const BasicInfo basic_names[];
 //! Length of basic_names.
 extern const size_t basic_names_len;
 //! A list of ExtendedInfo, used with ExtendedValue_from_str().
-extern const struct ExtendedInfo extended_names[];
+extern const ExtendedInfo extended_names[];
 //! Length of extended_names.
 extern const size_t extended_names_len;
 //! A list of StyleInfo items, used with StyleName_from_str().
-extern const struct StyleInfo style_names[];
+extern const StyleInfo style_names[];
 //! Length of style_names.
 extern const size_t style_names_len;
 #endif
@@ -909,13 +919,13 @@ char* colr_empty_str(void);
 void format_bgx(char* out, unsigned char num);
 void format_bg(char* out, BasicValue value);
 void format_bg_rgb(char* out, unsigned char red, unsigned char green, unsigned char blue);
-void format_bg_RGB(char* out, struct RGB rgb);
-void format_bg_RGB_term(char* out, struct RGB rgb);
+void format_bg_RGB(char* out, RGB rgb);
+void format_bg_RGB_term(char* out, RGB rgb);
 void format_fgx(char* out, unsigned char num);
 void format_fg(char* out, BasicValue value);
 void format_fg_rgb(char* out, unsigned char red, unsigned char green, unsigned char blue);
-void format_fg_RGB(char* out, struct RGB rgb);
-void format_fg_RGB_term(char* out, struct RGB rgb);
+void format_fg_RGB(char* out, RGB rgb);
+void format_fg_RGB_term(char* out, RGB rgb);
 void format_style(char* out, StyleValue style);
 /*! \internal
     A function that formats in the rainbow style.
@@ -925,17 +935,19 @@ void format_style(char* out, StyleValue style);
     Some are for fore colors, others are for back colors.
     \endinternal
 */
-typedef void (*RGB_fmter)(char* out, struct RGB rgb);
+/*! A function type that knows how to fill a string with an rgb escape code.
+*/
+typedef void (*RGB_fmter)(char* out, RGB rgb);
 char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t step);
 /*! \internal
     Specialized functions.
     \endinternal
 */
 char* rainbow_fg(const char* s, double freq, size_t offset);
-char* rainbow_term_fg(const char* s, double freq, size_t offset);
+char* rainbow_fg_term(const char* s, double freq, size_t offset);
 char* rainbow_bg(const char* s, double freq, size_t offset);
-char* rainbow_term_bg(const char* s, double freq, size_t offset);
-struct RGB rainbow_step(double freq, size_t step);
+char* rainbow_bg_term(const char* s, double freq, size_t offset);
+RGB rainbow_step(double freq, size_t step);
 
 /*! \internal
     String-based functions.
@@ -977,31 +989,31 @@ char* ArgType_to_str(ArgType type);
     ColorArg functions that deal with an ArgType, and a ColorValue.
     \endinternal
 */
-void ColorArg_free(struct ColorArg *p);
-struct ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value);
-struct ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value);
-struct ColorArg ColorArg_from_RGB(ArgType type, struct RGB value);
-struct ColorArg ColorArg_from_str(ArgType type, char* colorname);
-struct ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value);
-struct ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p);
-bool ColorArg_is_invalid(struct ColorArg carg);
+void ColorArg_free(ColorArg *p);
+ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value);
+ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value);
+ColorArg ColorArg_from_RGB(ArgType type, RGB value);
+ColorArg ColorArg_from_str(ArgType type, char* colorname);
+ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value);
+ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p);
+bool ColorArg_is_invalid(ColorArg carg);
 bool ColorArg_is_ptr(void *p);
-bool ColorArg_is_valid(struct ColorArg carg);
-struct ColorArg *ColorArg_to_ptr(struct ColorArg carg);
-char* ColorArg_repr(struct ColorArg carg);
-char* ColorArg_to_str(struct ColorArg carg);
+bool ColorArg_is_valid(ColorArg carg);
+ColorArg *ColorArg_to_ptr(ColorArg carg);
+char* ColorArg_repr(ColorArg carg);
+char* ColorArg_to_str(ColorArg carg);
 
 /*! \internal
     ColorText functions that deal with a string of text, and fore/back/style
     ColorArgs.
     \endinternal
 */
-void ColorText_free(struct ColorText *p);
-struct ColorText ColorText_from_values(char* text, ...);
+void ColorText_free(ColorText *p);
+ColorText ColorText_from_values(char* text, ...);
 bool ColorText_is_ptr(void *p);
-char* ColorText_repr(struct ColorText);
-struct ColorText *ColorText_to_ptr(struct ColorText ctext);
-char* ColorText_to_str(struct ColorText ctext);
+char* ColorText_repr(ColorText);
+ColorText *ColorText_to_ptr(ColorText ctext);
+char* ColorText_to_str(ColorText ctext);
 
 /*! \internal
     ColorType functions that deal with the type of ColorValue (basic, ext, rgb.)
@@ -1016,11 +1028,11 @@ char* ColorType_repr(ColorType type);
     ColorValue functions that deal with a specific color value (basic, ext, rgb).
     \endinternal
 */
-struct ColorValue ColorValue_from_str(char* s);
-struct ColorValue ColorValue_from_value(ColorType type, void *p);
-bool ColorValue_is_invalid(struct ColorValue cval);
-char* ColorValue_repr(struct ColorValue cval);
-char* ColorValue_to_str(ArgType type, struct ColorValue cval);
+ColorValue ColorValue_from_str(char* s);
+ColorValue ColorValue_from_value(ColorType type, void *p);
+bool ColorValue_is_invalid(ColorValue cval);
+char* ColorValue_repr(ColorValue cval);
+char* ColorValue_to_str(ArgType type, ColorValue cval);
 
 
 /*! \internal
@@ -1032,12 +1044,12 @@ int BasicValue_to_ansi(ArgType type, BasicValue bval);
 int ExtendedValue_from_str(const char* arg);
 int rgb_from_hex(const char *hexstr, unsigned char* r, unsigned char* g, unsigned char*b);
 int rgb_from_str(const char* arg, unsigned char* r, unsigned char* g, unsigned char* b);
-bool RGB_eq(struct RGB a, struct RGB b);
-int RGB_from_hex(const char* arg, struct RGB *rgb);
-int RGB_from_str(const char* arg, struct RGB* rgb);
-char* RGB_to_hex(struct RGB rgb);
-struct RGB RGB_to_term_RGB(struct RGB rgb);
-char* RGB_repr(struct RGB rgb);
+bool RGB_eq(RGB a, RGB b);
+int RGB_from_hex(const char* arg, RGB *rgb);
+int RGB_from_str(const char* arg, RGB* rgb);
+char* RGB_to_hex(RGB rgb);
+RGB RGB_to_term_RGB(RGB rgb);
+char* RGB_repr(RGB rgb);
 
 StyleValue StyleValue_from_str(const char* arg);
 

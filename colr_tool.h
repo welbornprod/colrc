@@ -64,6 +64,6 @@ void print_unrecognized_arg(const char* userarg);
 int print_usage(const char* reason);
 int print_usage_full(void);
 char* read_stdin_arg(void);
-bool validate_color_arg(struct ColorArg carg, const char* name);
+bool validate_color_arg(ColorArg carg, const char* name);
 #endif // COLR_TOOL_H
 #endif // DOXYGEN_SKIP
