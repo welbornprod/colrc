@@ -77,6 +77,272 @@ const StyleInfo style_names[] = {
 //! Length of style_names.
 const size_t style_names_len = sizeof(style_names) / sizeof(style_names[0]);
 
+/*! A map from RGB value to ExtendedValue (256-color), where the index is the
+    is the ExtendedValue.
+*/
+const RGB rgb2term_map[] = {
+    {0, 0, 0},
+    {128, 0, 0},
+    {0, 128, 0},
+    {128, 128, 0},
+    {0, 0, 128},
+    {128, 0, 128},
+    {0, 128, 128},
+    {192, 192, 192},
+    {128, 128, 128},
+    {255, 0, 0},
+    {0, 255, 0},
+    {255, 255, 0},
+    {0, 0, 255},
+    {255, 0, 255},
+    {0, 255, 255},
+    {255, 255, 255},
+    {0, 0, 0},
+    {0, 0, 95},
+    {0, 0, 135},
+    {0, 0, 175},
+    {0, 0, 215},
+    {0, 0, 255},
+    {0, 95, 0},
+    {0, 95, 95},
+    {0, 95, 135},
+    {0, 95, 175},
+    {0, 95, 215},
+    {0, 95, 255},
+    {0, 135, 0},
+    {0, 135, 95},
+    {0, 135, 135},
+    {0, 135, 175},
+    {0, 135, 215},
+    {0, 135, 255},
+    {0, 175, 0},
+    {0, 175, 95},
+    {0, 175, 135},
+    {0, 175, 175},
+    {0, 175, 215},
+    {0, 175, 255},
+    {0, 215, 0},
+    {0, 215, 95},
+    {0, 215, 135},
+    {0, 215, 175},
+    {0, 215, 215},
+    {0, 215, 255},
+    {0, 255, 0},
+    {0, 255, 95},
+    {0, 255, 135},
+    {0, 255, 175},
+    {0, 255, 215},
+    {0, 255, 255},
+    {95, 0, 0},
+    {95, 0, 95},
+    {95, 0, 135},
+    {95, 0, 175},
+    {95, 0, 215},
+    {95, 0, 255},
+    {95, 95, 0},
+    {95, 95, 95},
+    {95, 95, 135},
+    {95, 95, 175},
+    {95, 95, 215},
+    {95, 95, 255},
+    {95, 135, 0},
+    {95, 135, 95},
+    {95, 135, 135},
+    {95, 135, 175},
+    {95, 135, 215},
+    {95, 135, 255},
+    {95, 175, 0},
+    {95, 175, 95},
+    {95, 175, 135},
+    {95, 175, 175},
+    {95, 175, 215},
+    {95, 175, 255},
+    {95, 215, 0},
+    {95, 215, 95},
+    {95, 215, 135},
+    {95, 215, 175},
+    {95, 215, 215},
+    {95, 215, 255},
+    {95, 255, 0},
+    {95, 255, 95},
+    {95, 255, 135},
+    {95, 255, 175},
+    {95, 255, 215},
+    {95, 255, 255},
+    {135, 0, 0},
+    {135, 0, 95},
+    {135, 0, 135},
+    {135, 0, 175},
+    {135, 0, 215},
+    {135, 0, 255},
+    {135, 95, 0},
+    {135, 95, 95},
+    {135, 95, 135},
+    {135, 95, 175},
+    {135, 95, 215},
+    {135, 95, 255},
+    {135, 135, 0},
+    {135, 135, 95},
+    {135, 135, 135},
+    {135, 135, 175},
+    {135, 135, 215},
+    {135, 135, 255},
+    {135, 175, 0},
+    {135, 175, 95},
+    {135, 175, 135},
+    {135, 175, 175},
+    {135, 175, 215},
+    {135, 175, 255},
+    {135, 215, 0},
+    {135, 215, 95},
+    {135, 215, 135},
+    {135, 215, 175},
+    {135, 215, 215},
+    {135, 215, 255},
+    {135, 255, 0},
+    {135, 255, 95},
+    {135, 255, 135},
+    {135, 255, 175},
+    {135, 255, 215},
+    {135, 255, 255},
+    {175, 0, 0},
+    {175, 0, 95},
+    {175, 0, 135},
+    {175, 0, 175},
+    {175, 0, 215},
+    {175, 0, 255},
+    {175, 95, 0},
+    {175, 95, 95},
+    {175, 95, 135},
+    {175, 95, 175},
+    {175, 95, 215},
+    {175, 95, 255},
+    {175, 135, 0},
+    {175, 135, 95},
+    {175, 135, 135},
+    {175, 135, 175},
+    {175, 135, 215},
+    {175, 135, 255},
+    {175, 175, 0},
+    {175, 175, 95},
+    {175, 175, 135},
+    {175, 175, 175},
+    {175, 175, 215},
+    {175, 175, 255},
+    {175, 215, 0},
+    {175, 215, 95},
+    {175, 215, 135},
+    {175, 215, 175},
+    {175, 215, 215},
+    {175, 215, 255},
+    {175, 255, 0},
+    {175, 255, 95},
+    {175, 255, 135},
+    {175, 255, 175},
+    {175, 255, 215},
+    {175, 255, 255},
+    {215, 0, 0},
+    {215, 0, 95},
+    {215, 0, 135},
+    {215, 0, 175},
+    {215, 0, 215},
+    {215, 0, 255},
+    {215, 95, 0},
+    {215, 95, 95},
+    {215, 95, 135},
+    {215, 95, 175},
+    {215, 95, 215},
+    {215, 95, 255},
+    {215, 135, 0},
+    {215, 135, 95},
+    {215, 135, 135},
+    {215, 135, 175},
+    {215, 135, 215},
+    {215, 135, 255},
+    {215, 175, 0},
+    {215, 175, 95},
+    {215, 175, 135},
+    {215, 175, 175},
+    {215, 175, 215},
+    {215, 175, 255},
+    {215, 215, 0},
+    {215, 215, 95},
+    {215, 215, 135},
+    {215, 215, 175},
+    {215, 215, 215},
+    {215, 215, 255},
+    {215, 255, 0},
+    {215, 255, 95},
+    {215, 255, 135},
+    {215, 255, 175},
+    {215, 255, 215},
+    {215, 255, 255},
+    {255, 0, 0},
+    {255, 0, 95},
+    {255, 0, 135},
+    {255, 0, 175},
+    {255, 0, 215},
+    {255, 0, 255},
+    {255, 95, 0},
+    {255, 95, 95},
+    {255, 95, 135},
+    {255, 95, 175},
+    {255, 95, 215},
+    {255, 95, 255},
+    {255, 135, 0},
+    {255, 135, 95},
+    {255, 135, 135},
+    {255, 135, 175},
+    {255, 135, 215},
+    {255, 135, 255},
+    {255, 175, 0},
+    {255, 175, 95},
+    {255, 175, 135},
+    {255, 175, 175},
+    {255, 175, 215},
+    {255, 175, 255},
+    {255, 215, 0},
+    {255, 215, 95},
+    {255, 215, 135},
+    {255, 215, 175},
+    {255, 215, 215},
+    {255, 215, 255},
+    {255, 255, 0},
+    {255, 255, 95},
+    {255, 255, 135},
+    {255, 255, 175},
+    {255, 255, 215},
+    {255, 255, 255},
+    {8, 8, 8},
+    {18, 18, 18},
+    {28, 28, 28},
+    {38, 38, 38},
+    {48, 48, 48},
+    {58, 58, 58},
+    {68, 68, 68},
+    {78, 78, 78},
+    {88, 88, 88},
+    {98, 98, 98},
+    {108, 108, 108},
+    {118, 118, 118},
+    {128, 128, 128},
+    {138, 138, 138},
+    {148, 148, 148},
+    {158, 158, 158},
+    {168, 168, 168},
+    {178, 178, 178},
+    {188, 188, 188},
+    {198, 198, 198},
+    {208, 208, 208},
+    {218, 218, 218},
+    {228, 228, 228},
+    {238, 238, 238},
+};
+
+//! Length of rgb2term_map  (should always be 256).
+const size_t rgb2term_map_len = sizeof(rgb2term_map) / sizeof(rgb2term_map[0]);
+
+
 /*! Returns the char needed to represent an escape sequence in C.
 
     \details
@@ -197,6 +463,38 @@ char* colr_empty_str(void) {
     return s;
 }
 
+/*! Determine whether the current environment support RGB (True Colors).
+
+    \details
+    This checks `$COLORTERM` for the appropriate value (`'truecolor'` or `'24bit'`).
+    On "dumber" terminals, RGB codes are probably ignored or "downgraded".
+
+    \details
+    For instance, RGB is supported in `konsole`, but not in `xterm` or `linux`
+    ttys. Using RGB codes in `xterm` makes the colors appear as though a 256-color
+    value was used (closest matching value, like RGB_to_term_RGB()).
+    Using RGB codes in a dumb `linux` tty makes them appear as though an 8-color
+    value was used. Very ugly, but not a disaster.
+
+    \details
+    I haven't seen a modern linux terminal spew garbage across the screen
+    from using RGB codes when they are not supported, but I could be wrong.
+    I would like to see that terminal if you know of one.
+
+    \return `true` if support is detected, otherwise `false`.
+*/
+bool colr_supports_rgb(void) {
+    char* colorterm;
+    // Check $COLORTERM for 'truecolor' or '24bit'
+    if ((colorterm = getenv("COLORTERM"))) {
+        if (colr_istr_either(colorterm, "truecolor", "24bit")) return true;
+    }
+    // TODO: Send an rgb code, test the terminal response?
+    // char* testcode = "\033[38:2:255:255:255m\033P$qm\033\\\n";
+    // Should get: 2:255:255:255m
+    return false;
+}
+
 /*! Create an escape code for a background color.
 
     \po out   Memory allocated for the escape code string.
@@ -229,7 +527,7 @@ void format_bgx(char* out, unsigned char num) {
 */
 void format_bg_rgb(char* out, unsigned char redval, unsigned char greenval, unsigned char blueval) {
     if (!out) return;
-    snprintf(out, CODE_RGB_LEN, "\033[48;2;%d;%d;%dm", redval, greenval, blueval);
+    format_bg_RGB(out, rgb(redval, greenval, blueval));
 }
 
 /*! Create an escape code for a true color (rgb) background color
@@ -241,8 +539,9 @@ void format_bg_rgb(char* out, unsigned char redval, unsigned char greenval, unsi
 */
 void format_bg_RGB(char* out, RGB rgb) {
     if (!out) return;
-    format_bg_rgb(out, rgb.red, rgb.green, rgb.blue);
+    snprintf(out, CODE_RGB_LEN, "\033[48;2;%d;%d;%dm", rgb.red, rgb.green, rgb.blue);
 }
+
 /*! Create an escape code for a true color (rgb) fore color using an
     RGB struct's values, approximating 256-color values.
 
@@ -250,7 +549,7 @@ void format_bg_RGB(char* out, RGB rgb) {
     \pi rgb Pointer to an RGB struct.
 */
 void format_bg_RGB_term(char* out, RGB rgb) {
-    format_bg_RGB(out, RGB_to_term_RGB(rgb));
+    format_bgx(out, RGB_to_ExtendedValue(rgb));
 }
 
 /*! Create an escape code for a fore color.
@@ -285,7 +584,7 @@ void format_fgx(char* out, unsigned char num) {
 */
 void format_fg_rgb(char* out, unsigned char redval, unsigned char greenval, unsigned char blueval) {
     if (!out) return;
-    snprintf(out, CODE_RGB_LEN, "\033[38;2;%d;%d;%dm", redval, greenval, blueval);
+    format_fg_RGB(out, rgb(redval, greenval, blueval));
 }
 
 /*! Create an escape code for a true color (rgb) fore color using an
@@ -296,8 +595,9 @@ void format_fg_rgb(char* out, unsigned char redval, unsigned char greenval, unsi
 */
 void format_fg_RGB(char* out, RGB rgb) {
     if (!out) return;
-    format_fg_rgb(out, rgb.red, rgb.green, rgb.blue);
+        snprintf(out, CODE_RGB_LEN, "\033[38;2;%d;%d;%dm", rgb.red, rgb.green, rgb.blue);
 }
+
 /*! Create an escape code for a true color (rgb) fore color using an
     RGB struct's values, approximating 256-color values.
 
@@ -305,7 +605,7 @@ void format_fg_RGB(char* out, RGB rgb) {
     \pi rgb Pointer to an RGB struct.
 */
 void format_fg_RGB_term(char* out, RGB rgb) {
-    format_fg_RGB(out, RGB_to_term_RGB(rgb));
+    format_fgx(out, RGB_to_ExtendedValue(rgb));
 }
 
 /*! Create an escape code for a style.
@@ -2068,6 +2368,19 @@ RGB RGB_to_term_RGB(RGB rgb) {
     }
     // Convert back into nearest hex value.
     return (RGB){.red=res[0], .blue=res[1], .green=res[2]};
+}
+
+/*! Convert an RGB value into the closest matching ExtendedValue.
+*/
+ExtendedValue RGB_to_ExtendedValue(RGB rgb) {
+    RGB closestrgb = RGB_to_term_RGB(rgb);
+    for (size_t i = 0; i < rgb2term_map_len; i++) {
+        if (RGB_eq(closestrgb, rgb2term_map[i])) {
+            return ext(i);
+        }
+    }
+    assert(false);
+    return ext(0);
 }
 
 /*! Creates a string representation for an RGB value.

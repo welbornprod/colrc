@@ -83,6 +83,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <wchar.h>
+#include <ttyent.h>
 
 #include "dbug.h"
 
@@ -259,14 +260,42 @@
 /*! \def colr_streq
     Convenience macro for `!strcmp(s1, s2)`.
 
-    \pi s1 The first string to compare.
-    \pi s2 The second string to compare.
+    \pi s1  The first string to compare.
+    \pi s2  The second string to compare.
 
-    \retval 0 if \p s1 and \p s2 are equal.
-    \retval 1 if \p s1 is greater than \p s2.
-    \retval 1 if \p s1 is less than \p s2.
+    \return `1` if \p s1 and \p s2 are equal, otherwise `0`.
 */
-#define colr_streq(s1, s2) ((s1 && s2) ? !strcmp(s1, s2) : false)
+#define colr_streq(s1, s2) ((s1 && s2) ? !strcmp(s1, s2) : 0)
+/*! \def colr_istreq
+    Convenience macro for `!strcasecmp(s1, s2)`.
+
+    \pi s1  The first string to compare.
+    \pi s2  The second string to compare.
+
+    \return `1` if \p s1 and \p s2 are equal, otherwise `0`.
+*/
+#define colr_istreq(s1, s2) ((s1 && s2) ? !strcasecmp(s1, s2) : 0)
+
+/*! \def colr_str_either
+    Convenience macro for `!strcmp(s1, s2) || !strcmp(s1, s3)`.
+
+    \pi s1 The string to compare against the other two strings.
+    \pi s2 The first string to compare with.
+    \pi s3 The second string to compare with.
+
+    \return `1` if \p s1 is equal to \p s2 or \p s3, otherwise `0`.
+*/
+#define colr_str_either(s1, s2, s3) ((s1 && s2 && s3) ? (colr_streq(s1, s2) || colr_streq(s1, s3)) : 0)
+/*! \def colr_istr_either
+    Convenience macro for `!strcasecmp(s1, s2) || !strcasecmp(s1, s3)`.
+
+    \pi s1 The string to compare against the other two strings.
+    \pi s2 The first string to compare with.
+    \pi s3 The second string to compare with.
+
+    \return `1` if \p s1 is equal to \p s2 or \p s3, otherwise `0`.
+*/
+#define colr_istr_either(s1, s2, s3) ((s1 && s2 && s3) ? (colr_istreq(s1, s2) || colr_istreq(s1, s3)) : 0)
 
 /*! \def color_arg
     Builds a correct ColorArg struct according to the type of it's second
@@ -905,6 +934,12 @@ extern const size_t extended_names_len;
 extern const StyleInfo style_names[];
 //! Length of style_names.
 extern const size_t style_names_len;
+
+//! A map of RGB values to ExtendedValue (256-color).
+extern const RGB rgb2term_map[];
+//! Length of rgb2term_map (should be 256).
+extern const size_t rgb2term_map_len;
+
 #endif
 
 
@@ -916,6 +951,7 @@ char char_escape_char(const char c);
 bool char_in_str(const char c, const char* s);
 bool char_should_escape(const char c);
 char* colr_empty_str(void);
+bool colr_supports_rgb(void);
 void format_bgx(char* out, unsigned char num);
 void format_bg(char* out, BasicValue value);
 void format_bg_rgb(char* out, unsigned char red, unsigned char green, unsigned char blue);
@@ -940,7 +976,7 @@ void format_style(char* out, StyleValue style);
 typedef void (*RGB_fmter)(char* out, RGB rgb);
 char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t step);
 /*! \internal
-    Specialized functions.
+    Rainbow-related functions.
     \endinternal
 */
 char* rainbow_fg(const char* s, double freq, size_t offset);
@@ -1049,6 +1085,7 @@ int RGB_from_hex(const char* arg, RGB *rgb);
 int RGB_from_str(const char* arg, RGB* rgb);
 char* RGB_to_hex(RGB rgb);
 RGB RGB_to_term_RGB(RGB rgb);
+ExtendedValue RGB_to_ExtendedValue(RGB rgb);
 char* RGB_repr(RGB rgb);
 
 StyleValue StyleValue_from_str(const char* arg);
