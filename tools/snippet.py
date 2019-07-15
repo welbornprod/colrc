@@ -93,12 +93,13 @@ USAGESTR = f"""{VERSIONSTR}
         {SCRIPT} -h | -v
         {SCRIPT} [-D] (-c | -L)
         {SCRIPT} [-D] [-n] [-q] [-r exe] -b
-        {SCRIPT} [-D] [-n] [-q] [-r exe] -E [PATTERN]
-        {SCRIPT} [-D] [-n] [-q] [-r exe] [CODE]
-        {SCRIPT} [-D] [-n] [-q] [-r exe] [-f file]
-        {SCRIPT} [-D] [-n] [-q] [-r exe] [-w] (-e | -l)
+        {SCRIPT} [-D] [-n] [-q] [-r exe] -E [PATTERN] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-r exe] [CODE] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-r exe] [-f file] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-r exe] [-w] (-e | -l) [-- ARGS...]
 
     Options:
+        ARGS                 : Extra arguments for the compiler.
         CODE                 : Code to compile. It is wrapped in a main()
                                function, with colr.h included.
                                Default: stdin
@@ -141,7 +142,11 @@ def main(argd):
         return list_examples()
     elif argd['--examples']:
         pat = try_repat(argd['PATTERN'])
-        return run_examples(pat=pat, exe=argd['--run'])
+        return run_examples(
+            pat=pat,
+            exe=argd['--run'],
+            compiler_args=argd['ARGS'],
+        )
     elif argd['--lastbinary']:
         if not config['last_binary']:
             raise InvalidArg('no "last binary" found.')
@@ -177,7 +182,12 @@ def main(argd):
             Snippet(argd['CODE'], name='cmdline-snippet') or read_stdin()
         ]
 
-    return run_snippets(snippets, exe=argd['--run'], show_name=argd['--name'])
+    return run_snippets(
+        snippets,
+        exe=argd['--run'],
+        show_name=argd['--name'],
+        compiler_args=argd['ARGS'],
+    )
 
 
 def clean_objects(filepaths):
@@ -557,7 +567,7 @@ def run_compiled_exe(filepath, exe=None, show_name=False):
     return proc.returncode
 
 
-def run_examples(pat=None, exe=None, show_name=False):
+def run_examples(pat=None, exe=None, show_name=False, compiler_args=None):
     """ Compile and run source examples, with optional filtering pattern.
     """
     errs = 0
@@ -588,7 +598,12 @@ def run_examples(pat=None, exe=None, show_name=False):
             count = C(allsnipscnt, 'blue', style='bright')
         plural = 'snippet' if count == 1 else 'snippets'
         status(f'\nCompiling {count} {plural} for: {filefmt}')
-        errs += run_snippets(usesnippets, exe=exe, show_name=show_name)
+        errs += run_snippets(
+            usesnippets,
+            exe=exe,
+            show_name=show_name,
+            compiler_args=compiler_args,
+        )
         success += (snipscnt - errs)
 
     status(C(' ').join(
@@ -617,11 +632,11 @@ def run_examples(pat=None, exe=None, show_name=False):
     return errs
 
 
-def run_snippets(snippets, exe=None, show_name=False):
+def run_snippets(snippets, exe=None, show_name=False, compiler_args=None):
     """ Compile and run several c code snippets. """
     errs = 0
     for snippet in snippets:
-        binaryname = snippet.compile()
+        binaryname = snippet.compile(user_args=compiler_args)
         errs += run_compiled_exe(binaryname, exe=exe, show_name=show_name)
     return errs
 
