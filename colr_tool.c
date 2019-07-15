@@ -71,12 +71,16 @@ int main(int argc, char* argv[]) {
     }
     // Rainbowize the text arg.
     bool do_rainbow = colr_streq(forearg, "rainbow");
-    bool do_term_rainbow = colr_streq(forearg, "RAINBOW");
+    bool do_term_rainbow = (
+        colr_streq(forearg, "RAINBOW") ||
+        colr_streq(forearg, "rainbow256") ||
+        colr_streq(forearg, "256rainbow")
+    );
     if (do_rainbow || do_term_rainbow) {
         free(forearg);
         free(backarg);
         free(stylearg);
-        char* rainbowized = do_rainbow ? rainbow_fg(textarg, 0.1, 3) : rainbow_term_fg(textarg, 0.1, 3);
+        char* rainbowized = do_rainbow ? rainbow_fg(textarg, 0.1, 3) : rainbow_fg_term(textarg, 0.1, 3);
         free(textarg);
         printf("%s\n", rainbowized);
         free(rainbowized);
@@ -210,7 +214,7 @@ int print_basic(bool do_fore) {
 int print_rainbow_fore(bool term_colors) {
     /* Demo the rainbow method. */
     char text[] = "This is a demo of the rainbow function.";
-    char* textfmt = term_colors ? rainbow_term_fg(text, 0.1, 3) : rainbow_fg(text, 0.1, 3);
+    char* textfmt = term_colors ? rainbow_fg_term(text, 0.1, 3) : rainbow_fg(text, 0.1, 3);
     printf("%s\n", textfmt);
     free(textfmt);
     return 0;
