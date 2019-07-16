@@ -225,7 +225,13 @@ help targets:
     test            : Build debug (if needed), build the test debug (if needed),\n\
                       and run the tests.\n\
     testcoverage    : Delete previous test build files, and build the tests for coverage.\n\
+    testgdb         : Build debug (if needed), build the test debug (if needed),\n\
+                      and run the tests through GDB.\n\
+    testkdbg        : Build debug (if needed), build the test debug (if needed),\n\
+                      and run the tests through KDbg.\n\
     testmemcheck    : Build  debug tests (if needed), and run them through valgrind.\n\
+    testquiet       : Build debug (if needed), build the test debug (if needed),\n\
+                      and run the tests with --quiet.\n\
     testsummary     : View a summary of previously built test coverage reports.\n\
     testview        : View previously generated html test coverage reports.\n\
     memcheck        : Run valgrind's memcheck on the executable.\n\
@@ -233,17 +239,43 @@ help targets:
 
 .PHONY: cleantest, test
 cleantest:
-	-@$(MAKE) $(MAKEFLAGS) --no-print-directory clean debug && { cd test; $(MAKE) $(MAKEFLAGS) --no-print-directory cleantest; };
+	-@$(MAKE) $(MAKEFLAGS) --no-print-directory clean debug && { \
+		cd test && \
+			TEST_ARGS=$(TEST_ARGS) $(MAKE) $(MAKEFLAGS) --no-print-directory cleantest; \
+	};
 
 test:
-	-@$(MAKE) $(MAKEFLAGS) --no-print-directory debug && { cd test; $(MAKE) $(MAKEFLAGS) --no-print-directory test; };
+	-@$(MAKE) $(MAKEFLAGS) --no-print-directory debug && { \
+		cd test && \
+			TEST_ARGS=$(TEST_ARGS) $(MAKE) $(MAKEFLAGS) --no-print-directory test; \
+	};
 
 .PHONY: testcoverage, testmemcheck, testsummary, testview
 testcoverage:
-	-@cd test && $(MAKE) $(MAKEFLAGS) --no-print-directory clean coverage
+	-@cd test && \
+		TEST_ARGS=$(TEST_ARGS) $(MAKE) $(MAKEFLAGS) --no-print-directory clean coverage
+
+testgdb:
+	-@$(MAKE) $(MAKEFLAGS) --no-print-directory debug && { \
+		cd test && \
+			TEST_ARGS=$(TEST_ARGS) $(MAKE) $(MAKEFLAGS) --no-print-directory debug testgdb; \
+		};
+
+testkdbg:
+	-@$(MAKE) $(MAKEFLAGS) --no-print-directory debug && { \
+		cd test && \
+			TEST_ARGS=$(TEST_ARGS) $(MAKE) $(MAKEFLAGS) --no-print-directory debug testkdbg; \
+		};
 
 testmemcheck:
-	-@cd test && $(MAKE) $(MAKEFLAGS) --no-print-directory debug memcheck
+	-@cd test && \
+		TEST_ARGS=$(TEST_ARGS) $(MAKE) $(MAKEFLAGS) --no-print-directory debug memcheck
+
+testquiet:
+	-@$(MAKE) $(MAKEFLAGS) --no-print-directory debug && { \
+		cd test && \
+		TEST_ARGS=$(TEST_ARGS) $(MAKE) $(MAKEFLAGS) --no-print-directory debug testquiet; \
+	};
 
 testsummary:
 	-@cd test && $(MAKE) $(MAKEFLAGS) --no-print-directory coveragesummary

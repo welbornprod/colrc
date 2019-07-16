@@ -7,7 +7,7 @@ int main(void) {
         ColorText_free().
         Again, you must always free the plain text if you allocated for it.
     */
-    struct ColorText* ctext = Colr("I didn't allocate this.", fore(BLUE));
+    ColorText* ctext = Colr("I didn't allocate this.", fore(BLUE));
     /*
         If you use the *to_str functions directly,
         you must free the resulting string.
@@ -20,7 +20,7 @@ int main(void) {
     free(ctext_str);
 
     // Another way to do that would be:
-    struct ColorText* piece = Colr("Just another string", back(ext(255)), fore(ext(0)));
+    ColorText* piece = Colr("Just another string", back(ext(255)), fore(ext(0)));
     char *text_str = colr(piece);
     printf("%s\n", text_str);
     // The ColorText `piece` is gone. `colr()` called `free()` on it.

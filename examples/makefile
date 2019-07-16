@@ -58,6 +58,11 @@ clang: all
 clean:
 	-@../tools/clean.sh - $(binaries) $(example_objects) colr.o
 
+.PHONY: run
+run: all
+run:
+	-@./run_examples.sh
+
 .PHONY: help, targets
 help targets:
 	-@printf "Make targets available:\n\

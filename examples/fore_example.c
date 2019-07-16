@@ -21,12 +21,12 @@ int main(void) {
 
     // Extended (256) colors:
     char* e = colr(fore(ext(35)), "Extended colors.");
-    printf("%s", e);
+    printf("%s\n", e);
     free(e);
 
     // RGB (True Color) colors:
     char* r = colr(fore(rgb(35, 0, 155)), "RGB");
-    printf("%s", r);
+    printf("%s\n", r);
     free(r);
 
     /*
@@ -36,7 +36,7 @@ int main(void) {
     char* mystr = colr(
         Colr("This is red.", fore(RED)),
         Colr("This is also red.", back("white"), fore("red")),
-        "This is not."
+        "This is not.\n"
     );
     printf("%s\n", mystr);
     free(mystr);

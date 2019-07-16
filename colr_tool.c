@@ -21,7 +21,7 @@
 int main(int argc, char* argv[]) {
     /* TODO: parse_args() for flag arguments, while keeping positionals. */
     char *locale = setlocale(LC_ALL, "");
-    debug("Using locale: %s\n", locale); (void)locale; // Stupid clang linter in sublime text.
+    dbug("Using locale: %s\n", locale); (void)locale; // Stupid clang linter in sublime text.
     // Declare args and setup some defaults.
     char* textarg = NULL;
     char* forearg = NULL;
@@ -51,15 +51,16 @@ int main(int argc, char* argv[]) {
     }
 
     if (argeq(textarg, "-h", "--help")) return print_usage_full();
-    if (streq(textarg, "-basic")) return print_basic(true);
-    if (streq(textarg, "-bbasic") || streq(textarg, "-basicb")) return print_basic(false);
-    if streq(textarg, "-rainbow") return print_rainbow_fore();
-    if (streq(textarg, "-256")) return print_256(true);
-    if (streq(textarg, "-b256") || streq(textarg, "-256b")) return print_256(false);
-    if (streq(textarg, "-rgb")) return print_rgb(true);
-    if (streq(textarg, "-brgb") || streq(textarg, "-rgbb")) return print_rgb(false);
+    if (colr_streq(textarg, "-basic")) return print_basic(true);
+    if (colr_streq(textarg, "-bbasic") || colr_streq(textarg, "-basicb")) return print_basic(false);
+    if colr_streq(textarg, "-rainbow") return print_rainbow_fore(false);
+    if colr_streq(textarg, "-RAINBOW") return print_rainbow_fore(true);
+    if (colr_streq(textarg, "-256")) return print_256(true);
+    if (colr_streq(textarg, "-b256") || colr_streq(textarg, "-256b")) return print_256(false);
+    if (colr_streq(textarg, "-rgb")) return print_rgb(true);
+    if (colr_streq(textarg, "-brgb") || colr_streq(textarg, "-rgbb")) return print_rgb(false);
 
-    if (streq(textarg, "-")) {
+    if (colr_streq(textarg, "-")) {
         // Read from stdin.
         free(textarg);
         textarg = read_stdin_arg();
@@ -69,11 +70,17 @@ int main(int argc, char* argv[]) {
         }
     }
     // Rainbowize the text arg.
-    if (streq(forearg, "rainbow")) {
+    bool do_rainbow = colr_streq(forearg, "rainbow");
+    bool do_term_rainbow = (
+        colr_streq(forearg, "RAINBOW") ||
+        colr_streq(forearg, "rainbow256") ||
+        colr_streq(forearg, "256rainbow")
+    );
+    if (do_rainbow || do_term_rainbow) {
         free(forearg);
         free(backarg);
         free(stylearg);
-        char* rainbowized = rainbow_fg(textarg, 0.1, 3.0);
+        char* rainbowized = do_rainbow ? rainbow_fg(textarg, 0.1, 3) : rainbow_fg_term(textarg, 0.1, 3);
         free(textarg);
         printf("%s\n", rainbowized);
         free(rainbowized);
@@ -81,7 +88,7 @@ int main(int argc, char* argv[]) {
     }
 
     StyleValue styleval = StyleValue_from_str(stylearg);
-    struct ColorArg style_carg = style_arg(styleval);
+    ColorArg style_carg = style_arg(styleval);
     if (!validate_color_arg(style_carg, stylearg)) {
         free(forearg);
         free(backarg);
@@ -89,9 +96,9 @@ int main(int argc, char* argv[]) {
         free(textarg);
         return 1;
     }
-    debug_repr("Style: %s\n", style_carg);
+    dbug_repr("Style: %s\n", style_carg);
 
-    struct ColorArg fore_carg = fore_arg(forearg);
+    ColorArg fore_carg = fore_arg(forearg);
     if (!validate_color_arg(fore_carg, forearg)) {
         free(forearg);
         free(backarg);
@@ -99,9 +106,9 @@ int main(int argc, char* argv[]) {
         free(textarg);
         return 1;
     }
-    debug_repr("Fore: %s\n", fore_carg);
+    dbug_repr("Fore: %s\n", fore_carg);
 
-    struct ColorArg back_carg = back_arg(backarg);
+    ColorArg back_carg = back_arg(backarg);
     if (!validate_color_arg(back_carg, backarg)) {
         free(forearg);
         free(backarg);
@@ -109,10 +116,10 @@ int main(int argc, char* argv[]) {
         free(textarg);
         return 1;
     }
-    debug_repr("Back: %s\n", back_carg);
+    dbug_repr("Back: %s\n", back_carg);
 
-    struct ColorText *ctext = Colr(textarg, &fore_carg, &back_carg, &style_carg);
-    debug_repr("ColorText: %s\n", *ctext);
+    ColorText *ctext = Colr(textarg, &fore_carg, &back_carg, &style_carg);
+    dbug_repr("ColorText: %s\n", *ctext);
     char* text = ColorText_to_str(*ctext);
     printf("%s\n", text);
     free(text);
@@ -125,7 +132,7 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void debug_args(char* text, char* fore, char* back, char* style) {
+void dbug_args(char* text, char* fore, char* back, char* style) {
     /*  This just pretty-prints the arguments, to verify arg-parsing logic.
     */
     printferr("Arguments:\n\
@@ -143,7 +150,7 @@ int print_256(bool do_fore) {
         The function choice is passed as an argument.
     */
     char num[4];
-    struct ColorArg carg;
+    ColorArg carg;
     char* text;
     for (int i = 0; i < 56; i++) {
         snprintf(num, 4, "%03d", i);
@@ -186,7 +193,7 @@ int print_basic(bool do_fore) {
     for (size_t i = 0; i < basic_names_len; i++) {
         char* name = basic_names[i].name;
         BasicValue val = basic_names[i].value;
-        if (streq(name, "black")) {
+        if (colr_streq(name, "black")) {
             puts("");
         }
         BasicValue otherval = str_endswith(name, "black") ? WHITE : BLACK;
@@ -204,10 +211,10 @@ int print_basic(bool do_fore) {
     return 0;
 }
 
-int print_rainbow_fore() {
+int print_rainbow_fore(bool term_colors) {
     /* Demo the rainbow method. */
     char text[] = "This is a demo of the rainbow function.";
-    char* textfmt = rainbow_fg(text, 0.1, 30);
+    char* textfmt = term_colors ? rainbow_fg_term(text, 0.1, 3) : rainbow_fg(text, 0.1, 3);
     printf("%s\n", textfmt);
     free(textfmt);
     return 0;
@@ -226,8 +233,8 @@ int print_rgb(bool do_fore) {
                 // Make the rgb text.
                 snprintf(num, 12, "%03d;%03d;%03d", r, g, b);
                 // Colorize it.
-                struct RGB vals = {r, g, b};
-                struct RGB othervals = do_fore ? (struct RGB){0, 0, 0} : (struct RGB){255, 255, 255};
+                RGB vals = {r, g, b};
+                RGB othervals = do_fore ? (RGB){0, 0, 0} : (RGB){255, 255, 255};
                 if (do_fore) {
                     text = colr(fore(vals), back(othervals), num);
                 } else {
@@ -309,7 +316,7 @@ char* read_stdin_arg(void) {
     size_t line_length = 1024;
     char* buffer = NULL;
     if (isatty(fileno(stdin)) && isatty(fileno(stderr))) {
-        debug("\nReading from stdin until EOF (Ctrl + D)...\n");
+        dbug("\nReading from stdin until EOF (Ctrl + D)...\n");
     }
     while ((fgets(line, line_length, stdin))) {
         if (!buffer) {
@@ -325,7 +332,7 @@ char* read_stdin_arg(void) {
 }
 
 
-bool validate_color_arg(struct ColorArg carg, const char* name) {
+bool validate_color_arg(ColorArg carg, const char* name) {
     /*  Checks `nametype` for TYPE_INVALID*, and prints the usage string
         with a warning message if it is invalid.
         If the code is not invalid, it simply returns `true`.
@@ -333,7 +340,7 @@ bool validate_color_arg(struct ColorArg carg, const char* name) {
     if (!name) {
         #ifdef DEBUG
         char* argtype = ArgType_to_str(carg.type);
-        debug("No %s arg given.\n", argtype);
+        dbug("No %s arg given.\n", argtype);
         free(argtype);
         #endif
         return true;
@@ -357,7 +364,7 @@ bool validate_color_arg(struct ColorArg carg, const char* name) {
             break;
         default:
             // Valid color arg passed.
-            // debug("Valid color arg passed for %s: %s\n", type, name);
+            // dbug("Valid color arg passed for %s: %s\n", type, name);
             return true;
     }
 

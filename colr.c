@@ -1,13 +1,15 @@
 /*! \file colr.c
     Implements everything in the colr.h header.
 
+    \internal
     \author Christopher Welborn
     \date 06-22-2019
+    \endinternal
 */
 #include "colr.h"
 
 //! A list of BasicInfo items, used with BasicValue_from_str().
-const struct BasicInfo basic_names[] = {
+const BasicInfo basic_names[] = {
     {"none", BASIC_NONE},
     {"reset", RESET},
     {"black", BLACK},
@@ -35,7 +37,7 @@ const size_t basic_names_len = sizeof(basic_names) / sizeof(basic_names[0]);
 
 
 //! A list of ExtendedInfo, used with ExtendedValue_from_str().
-const struct ExtendedInfo extended_names[] = {
+const ExtendedInfo extended_names[] = {
     {"xred", XRED},
     {"xgreen", XGREEN},
     {"xyellow", XYELLOW},
@@ -59,7 +61,7 @@ const struct ExtendedInfo extended_names[] = {
 const size_t extended_names_len = sizeof(extended_names) / sizeof(extended_names[0]);
 
 //! A list of StyleInfo items, used with StyleName_from_str().
-const struct StyleInfo style_names[] = {
+const StyleInfo style_names[] = {
     {"none", STYLE_NONE},
     {"reset", RESET_ALL},
     {"bold", BRIGHT},
@@ -74,6 +76,275 @@ const struct StyleInfo style_names[] = {
 
 //! Length of style_names.
 const size_t style_names_len = sizeof(style_names) / sizeof(style_names[0]);
+
+/*! A map from RGB value to ExtendedValue (256-color), where the index is the
+    is the ExtendedValue.
+*/
+const RGB rgb2term_map[] = {
+    // Primary 3-bit colors (8 colors, 0-7)
+    {0, 0, 0},
+    {128, 0, 0},
+    {0, 128, 0},
+    {128, 128, 0},
+    {0, 0, 128},
+    {128, 0, 128},
+    {0, 128, 128},
+    {192, 192, 192},
+    // "Bright" versions of the original 8 colors (8-15).
+    {128, 128, 128},
+    {255, 0, 0},
+    {0, 255, 0},
+    {255, 255, 0},
+    {0, 0, 255},
+    {255, 0, 255},
+    {0, 255, 255},
+    {255, 255, 255},
+    // Strictly ascending.
+    {0, 0, 0},
+    {0, 0, 95},
+    {0, 0, 135},
+    {0, 0, 175},
+    {0, 0, 215},
+    {0, 0, 255},
+    {0, 95, 0},
+    {0, 95, 95},
+    {0, 95, 135},
+    {0, 95, 175},
+    {0, 95, 215},
+    {0, 95, 255},
+    {0, 135, 0},
+    {0, 135, 95},
+    {0, 135, 135},
+    {0, 135, 175},
+    {0, 135, 215},
+    {0, 135, 255},
+    {0, 175, 0},
+    {0, 175, 95},
+    {0, 175, 135},
+    {0, 175, 175},
+    {0, 175, 215},
+    {0, 175, 255},
+    {0, 215, 0},
+    {0, 215, 95},
+    {0, 215, 135},
+    {0, 215, 175},
+    {0, 215, 215},
+    {0, 215, 255},
+    {0, 255, 0},
+    {0, 255, 95},
+    {0, 255, 135},
+    {0, 255, 175},
+    {0, 255, 215},
+    {0, 255, 255},
+    {95, 0, 0},
+    {95, 0, 95},
+    {95, 0, 135},
+    {95, 0, 175},
+    {95, 0, 215},
+    {95, 0, 255},
+    {95, 95, 0},
+    {95, 95, 95},
+    {95, 95, 135},
+    {95, 95, 175},
+    {95, 95, 215},
+    {95, 95, 255},
+    {95, 135, 0},
+    {95, 135, 95},
+    {95, 135, 135},
+    {95, 135, 175},
+    {95, 135, 215},
+    {95, 135, 255},
+    {95, 175, 0},
+    {95, 175, 95},
+    {95, 175, 135},
+    {95, 175, 175},
+    {95, 175, 215},
+    {95, 175, 255},
+    {95, 215, 0},
+    {95, 215, 95},
+    {95, 215, 135},
+    {95, 215, 175},
+    {95, 215, 215},
+    {95, 215, 255},
+    {95, 255, 0},
+    {95, 255, 95},
+    {95, 255, 135},
+    {95, 255, 175},
+    {95, 255, 215},
+    {95, 255, 255},
+    {135, 0, 0},
+    {135, 0, 95},
+    {135, 0, 135},
+    {135, 0, 175},
+    {135, 0, 215},
+    {135, 0, 255},
+    {135, 95, 0},
+    {135, 95, 95},
+    {135, 95, 135},
+    {135, 95, 175},
+    {135, 95, 215},
+    {135, 95, 255},
+    {135, 135, 0},
+    {135, 135, 95},
+    {135, 135, 135},
+    {135, 135, 175},
+    {135, 135, 215},
+    {135, 135, 255},
+    {135, 175, 0},
+    {135, 175, 95},
+    {135, 175, 135},
+    {135, 175, 175},
+    {135, 175, 215},
+    {135, 175, 255},
+    {135, 215, 0},
+    {135, 215, 95},
+    {135, 215, 135},
+    {135, 215, 175},
+    {135, 215, 215},
+    {135, 215, 255},
+    {135, 255, 0},
+    {135, 255, 95},
+    {135, 255, 135},
+    {135, 255, 175},
+    {135, 255, 215},
+    {135, 255, 255},
+    {175, 0, 0},
+    {175, 0, 95},
+    {175, 0, 135},
+    {175, 0, 175},
+    {175, 0, 215},
+    {175, 0, 255},
+    {175, 95, 0},
+    {175, 95, 95},
+    {175, 95, 135},
+    {175, 95, 175},
+    {175, 95, 215},
+    {175, 95, 255},
+    {175, 135, 0},
+    {175, 135, 95},
+    {175, 135, 135},
+    {175, 135, 175},
+    {175, 135, 215},
+    {175, 135, 255},
+    {175, 175, 0},
+    {175, 175, 95},
+    {175, 175, 135},
+    {175, 175, 175},
+    {175, 175, 215},
+    {175, 175, 255},
+    {175, 215, 0},
+    {175, 215, 95},
+    {175, 215, 135},
+    {175, 215, 175},
+    {175, 215, 215},
+    {175, 215, 255},
+    {175, 255, 0},
+    {175, 255, 95},
+    {175, 255, 135},
+    {175, 255, 175},
+    {175, 255, 215},
+    {175, 255, 255},
+    {215, 0, 0},
+    {215, 0, 95},
+    {215, 0, 135},
+    {215, 0, 175},
+    {215, 0, 215},
+    {215, 0, 255},
+    {215, 95, 0},
+    {215, 95, 95},
+    {215, 95, 135},
+    {215, 95, 175},
+    {215, 95, 215},
+    {215, 95, 255},
+    {215, 135, 0},
+    {215, 135, 95},
+    {215, 135, 135},
+    {215, 135, 175},
+    {215, 135, 215},
+    {215, 135, 255},
+    {215, 175, 0},
+    {215, 175, 95},
+    {215, 175, 135},
+    {215, 175, 175},
+    {215, 175, 215},
+    {215, 175, 255},
+    {215, 215, 0},
+    {215, 215, 95},
+    {215, 215, 135},
+    {215, 215, 175},
+    {215, 215, 215},
+    {215, 215, 255},
+    {215, 255, 0},
+    {215, 255, 95},
+    {215, 255, 135},
+    {215, 255, 175},
+    {215, 255, 215},
+    {215, 255, 255},
+    {255, 0, 0},
+    {255, 0, 95},
+    {255, 0, 135},
+    {255, 0, 175},
+    {255, 0, 215},
+    {255, 0, 255},
+    {255, 95, 0},
+    {255, 95, 95},
+    {255, 95, 135},
+    {255, 95, 175},
+    {255, 95, 215},
+    {255, 95, 255},
+    {255, 135, 0},
+    {255, 135, 95},
+    {255, 135, 135},
+    {255, 135, 175},
+    {255, 135, 215},
+    {255, 135, 255},
+    {255, 175, 0},
+    {255, 175, 95},
+    {255, 175, 135},
+    {255, 175, 175},
+    {255, 175, 215},
+    {255, 175, 255},
+    {255, 215, 0},
+    {255, 215, 95},
+    {255, 215, 135},
+    {255, 215, 175},
+    {255, 215, 215},
+    {255, 215, 255},
+    {255, 255, 0},
+    {255, 255, 95},
+    {255, 255, 135},
+    {255, 255, 175},
+    {255, 255, 215},
+    {255, 255, 255},
+    {8, 8, 8},
+    {18, 18, 18},
+    {28, 28, 28},
+    {38, 38, 38},
+    {48, 48, 48},
+    {58, 58, 58},
+    {68, 68, 68},
+    {78, 78, 78},
+    {88, 88, 88},
+    {98, 98, 98},
+    {108, 108, 108},
+    {118, 118, 118},
+    {128, 128, 128},
+    {138, 138, 138},
+    {148, 148, 148},
+    {158, 158, 158},
+    {168, 168, 168},
+    {178, 178, 178},
+    {188, 188, 188},
+    {198, 198, 198},
+    {208, 208, 208},
+    {218, 218, 218},
+    {228, 228, 228},
+    {238, 238, 238},
+};
+
+//! Length of rgb2term_map  (should always be 256).
+const size_t rgb2term_map_len = sizeof(rgb2term_map) / sizeof(rgb2term_map[0]);
+
 
 /*! Returns the char needed to represent an escape sequence in C.
 
@@ -109,7 +380,7 @@ const size_t style_names_len = sizeof(style_names) / sizeof(style_names[0]);
         asprintf(&escaped, "\\%c", char_escape_char('\t'));
     \endexamplecode
 */
-char char_escape_char(char c) {
+char char_escape_char(const char c) {
     switch (c) {
         case '\'': return '\''; break;
         case '\"': return '"'; break;
@@ -125,6 +396,21 @@ char char_escape_char(char c) {
         default:
             return c;
     }
+}
+
+/*! Determines if a character exists in the given string.
+    \pi c Character to search for.
+    \pi s String to check.
+          \mustnullin
+
+    \return `true` if \p c is found in \p s, otherwise `false`.
+*/
+bool char_in_str(const char c, const char* s) {
+    size_t length = strlen(s);
+    for (size_t i = 0; i < length; i++) {
+        if (s[i] == c) return true;
+    }
+    return false;
 }
 
 /*! Determines if an ascii character has an escape sequence in C.
@@ -148,7 +434,7 @@ char char_escape_char(char c) {
     \pi c   The character to check.
     \return `true` if the character needs an escape sequence, otherwise `false`.
 */
-bool char_should_escape(char c) {
+bool char_should_escape(const char c) {
     switch (c) {
         case '\'': return true; break;
         case '\"': return true; break;
@@ -178,6 +464,38 @@ char* colr_empty_str(void) {
     if (!s) return NULL;
     s[0] = '\0';
     return s;
+}
+
+/*! Determine whether the current environment support RGB (True Colors).
+
+    \details
+    This checks `$COLORTERM` for the appropriate value (`'truecolor'` or `'24bit'`).
+    On "dumber" terminals, RGB codes are probably ignored or "downgraded".
+
+    \details
+    For instance, RGB is supported in `konsole`, but not in `xterm` or `linux`
+    ttys. Using RGB codes in `xterm` makes the colors appear as though a 256-color
+    value was used (closest matching value, like RGB_to_term_RGB()).
+    Using RGB codes in a dumb `linux` tty makes them appear as though an 8-color
+    value was used. Very ugly, but not a disaster.
+
+    \details
+    I haven't seen a modern linux terminal spew garbage across the screen
+    from using RGB codes when they are not supported, but I could be wrong.
+    I would like to see that terminal if you know of one.
+
+    \return `true` if support is detected, otherwise `false`.
+*/
+bool colr_supports_rgb(void) {
+    char* colorterm;
+    // Check $COLORTERM for 'truecolor' or '24bit'
+    if ((colorterm = getenv("COLORTERM"))) {
+        if (colr_istr_either(colorterm, "truecolor", "24bit")) return true;
+    }
+    // TODO: Send an rgb code, test the terminal response?
+    // char* testcode = "\033[38:2:255:255:255m\033P$qm\033\\\n";
+    // Should get: 2:255:255:255m
+    return false;
 }
 
 /*! Create an escape code for a background color.
@@ -212,7 +530,7 @@ void format_bgx(char* out, unsigned char num) {
 */
 void format_bg_rgb(char* out, unsigned char redval, unsigned char greenval, unsigned char blueval) {
     if (!out) return;
-    snprintf(out, CODE_RGB_LEN, "\033[48;2;%d;%d;%dm", redval, greenval, blueval);
+    format_bg_RGB(out, rgb(redval, greenval, blueval));
 }
 
 /*! Create an escape code for a true color (rgb) background color
@@ -222,9 +540,19 @@ void format_bg_rgb(char* out, unsigned char redval, unsigned char greenval, unsi
             _Must have enough room for `CODE_RGB_LEN`._
     \pi rgb RGB struct to get red, blue, and green values from.
 */
-void format_bg_RGB(char* out, struct RGB rgb) {
+void format_bg_RGB(char* out, RGB rgb) {
     if (!out) return;
-    format_bg_rgb(out, rgb.red, rgb.green, rgb.blue);
+    snprintf(out, CODE_RGB_LEN, "\033[48;2;%d;%d;%dm", rgb.red, rgb.green, rgb.blue);
+}
+
+/*! Create an escape code for a true color (rgb) fore color using an
+    RGB struct's values, approximating 256-color values.
+
+    \po out Memory allocated for the escape code string.
+    \pi rgb Pointer to an RGB struct.
+*/
+void format_bg_RGB_term(char* out, RGB rgb) {
+    format_bgx(out, ExtendedValue_from_RGB(rgb));
 }
 
 /*! Create an escape code for a fore color.
@@ -259,7 +587,7 @@ void format_fgx(char* out, unsigned char num) {
 */
 void format_fg_rgb(char* out, unsigned char redval, unsigned char greenval, unsigned char blueval) {
     if (!out) return;
-    snprintf(out, CODE_RGB_LEN, "\033[38;2;%d;%d;%dm", redval, greenval, blueval);
+    format_fg_RGB(out, rgb(redval, greenval, blueval));
 }
 
 /*! Create an escape code for a true color (rgb) fore color using an
@@ -268,29 +596,19 @@ void format_fg_rgb(char* out, unsigned char redval, unsigned char greenval, unsi
     \po out Memory allocated for the escape code string.
     \pi rgb Pointer to an RGB struct.
 */
-void format_fg_RGB(char* out, struct RGB rgb) {
+void format_fg_RGB(char* out, RGB rgb) {
     if (!out) return;
-    format_fg_rgb(out, rgb.red, rgb.green, rgb.blue);
+        snprintf(out, CODE_RGB_LEN, "\033[38;2;%d;%d;%dm", rgb.red, rgb.green, rgb.blue);
 }
 
-/*! A single step in rainbow-izing a string.
+/*! Create an escape code for a true color (rgb) fore color using an
+    RGB struct's values, approximating 256-color values.
 
-    \po out  Memory allocated for the escape code string.
-    \pi freq Frequency ("tightness") of the colors.
-    \pi step Offset from the start of the rainbow.
-             Usually an index into a string.
+    \po out Memory allocated for the escape code string.
+    \pi rgb Pointer to an RGB struct.
 */
-void format_rainbow_fore(char* out, double freq, size_t step) {
-    if (!out) return;
-    double redval = sin(freq * step + 0) * 127 + 128;
-    double greenval = sin(freq * step + 2 * M_PI / 3) * 127 + 128;
-    double blueval = sin(freq * step + 4 * M_PI / 3) * 127 + 128;
-    format_fg_rgb(
-        out,
-        (unsigned char)redval,
-        (unsigned char)greenval,
-        (unsigned char)blueval
-    );
+void format_fg_RGB_term(char* out, RGB rgb) {
+    format_fgx(out, ExtendedValue_from_RGB(rgb));
 }
 
 /*! Create an escape code for a style.
@@ -385,13 +703,64 @@ bool str_endswith(const char* str, const char* suf) {
     return (strncmp(str + (strlength - suflength), suf, suflength) == 0);
 }
 
-/*! Determines whether all characters in a string are digits.
+/*! Determines if a string (`char*`) has ANSI escape codes in it.
+
+    \details
+    This will detect any ansi escape code, not just colors.
+
+    \pi s   The string to check. Can be `NULL`.
+            \mustnullin
+
+    \return `true` if the string has at least one escape code, otherwise `false`.
+*/
+bool str_has_codes(const char* s) {
+    if (!s) return false;
+    size_t length = strlen(s);
+    size_t i = 0;
+    while ((i < length) && s[i]) {
+        if ((s[i] == '\033') && s[i + 1] && (s[i + 1] == '[')) {
+            // Skip past "\033["
+            i += 2;
+            while ((i < length) && s[i]) {
+                if (s[i] == 'm') return true;
+                if (!(isdigit(s[i]) || s[i] == ';')) return false;
+                i++;
+            }
+        }
+        i++;
+    }
+    return false;
+}
+
+/*! Determines whether a string consists of only one character, possibly repeated.
 
     \pi s   String to check.
-            \mustnull
+    \pi c   Character to test for. Must not be `0`.
+
+    \return `true` if \p s contains only the character \p c, otherwise `false`.
+*/
+bool str_is_all(const char* s, const char c) {
+    if (!(s && c)) return false;
+    size_t i = 0;
+    while (s[i]) {
+        if (s[i] != c) return false;
+        i++;
+    }
+    return true;
+}
+/*! Determines whether all characters in a string are digits.
+
+    \details
+    If \p s is NULL or an empty string (`""`), `false` is returned.
+
+    \pi s   String to check.
+            \mustnullin
     \return `true` if all characters are digits (0-9), otherwise `false`.
 */
 bool str_is_digits(const char* s) {
+    if (!s) return false;
+    if (s[0] == '\0') return false;
+
     size_t i = 0;
     while (s[i]) {
         if (!isdigit(s[i])) return false;
@@ -421,9 +790,51 @@ void str_lower(char* s) {
     if (s[i] != '\0') s[i] = '\0';
 }
 
+/*! Removes certain characters from the start of a string.
+    \details
+    The order of the characters in \p chars does not matter. If any of them
+    are found at the start of a string, they will be removed.
+
+    `str_lstrip_chars("aabbccTEST", "bca") == "TEST"`
+
+
+    \pi s     The string to strip.
+              \p s \mustnull
+    \pi chars A string of characters to remove. Each will be removed from the start
+              of the string.
+              \p chars \mustnull
+    \return   An allocated string with the result. May return NULL if the allocation
+              fails, or if \p s or \p chars is NULL.
+              \mustfree
+*/
+char* str_lstrip_chars(const char* s, const char* chars) {
+    if (!(s && chars)) return NULL;
+    if ((s[0] == '\0') || (chars[0] == '\0')) return NULL;
+
+    size_t length = strlen(s);
+    char* result = calloc(length + 1, sizeof(char));
+    size_t result_pos = 0;
+    bool done_trimming = false;
+    for (size_t i = 0; i < length; i++) {
+        if ((!done_trimming) && char_in_str(s[i], chars)) {
+            continue;
+        } else {
+            // First non-`chars` character. We're done.
+            done_trimming = true;
+        }
+        result[result_pos] = s[i];
+        result_pos++;
+    }
+    return result;
+}
+
 
 /*! Convert a string into a representation of a string, by wrapping it in
     quotes and escaping characters that need escaping.
+
+    \details
+    If \p s is NULL, then an allocated string containing the string "NULL" is
+    returned (without quotes).
 
     \pi     s The string to represent.
     \return An allocated string with the respresentation.
@@ -439,6 +850,11 @@ void str_lower(char* s) {
     \endexamplecode
 */
 char* str_repr(const char* s) {
+    if (!s) {
+        char* nullrepr;
+        asprintf(&nullrepr, "NULL");
+        return nullrepr;
+    }
     size_t length = strlen(s);
     size_t esc_chars = 0;
     size_t i;
@@ -476,8 +892,12 @@ char* str_repr(const char* s) {
     \return False if one of the strings is null, or the prefix isn't found.
 */
 bool str_startswith(const char* s, const char* prefix) {
-    if (!s || !prefix) {
+    if (!(s && prefix)) {
         // One of the strings is null.
+        return false;
+    }
+    if ((s[0] == '\0') || (prefix[0] == '\0')) {
+        // One of the strings is empty.
         return false;
     }
     size_t pre_len = strlen(prefix);
@@ -494,22 +914,28 @@ bool str_startswith(const char* s, const char* prefix) {
     return true;
 }
 
-/*! Converts a string into lower case, and copies it into `out`.
+/*! Allocate a new lowercase version of a string.
+
     \details
     \mustnullin
+    \mustfree
 
-    \po out Memory allocated for the result.
-            _Must have capacity for `strlen(s) + 1`._
     \pi s   The input string to convert to lower case.
+    \return The allocated string, or `NULL` if \p s is `NULL` or the allocation fails.
 */
-void str_to_lower(char* out, const char* s) {
-    if (!out) return;
+char* str_to_lower(const char* s) {
+    if (!s) return NULL;
+    size_t length = strlen(s);
+    char* out = calloc(length + 1, sizeof(char));
+    if (!out) return NULL;
+    if (s[0] == '\0') return out;
+
     size_t i = 0;
     while (s[i]) {
         out[i] = tolower(s[i]);
         i++;
     }
-    out[i] = '\0';
+    return out;
 }
 
 /*! Converts a regular string (with possible multibyte characters) into a
@@ -546,7 +972,7 @@ wchar_t* str_to_wide(const char* s) {
     memset(&state, 0, sizeof(state));
     size_t wlen = mbsrtowcs(NULL, &s, 0, &state);
     if (wlen == (size_t) - 1) {
-        debug("Error converting to wide-chars: %s\n", strerror(errno));
+        dbug("Error converting to wide-chars: %s\n", strerror(errno));
         return NULL;
     }
     wlen++;
@@ -587,7 +1013,7 @@ char* wide_to_str(const wchar_t* s) {
     memset(&state, 0, sizeof(state));
     size_t len = wcsrtombs(NULL, &s, 0, &state);
     if (len == (size_t) - 1) {
-        debug("Error converting wide-chars to str: %s\n", strerror(errno));
+        dbug("Error converting wide-chars to str: %s\n", strerror(errno));
         return NULL;
     }
     len++;
@@ -596,7 +1022,7 @@ char* wide_to_str(const wchar_t* s) {
     return out;
 }
 
-/* ---------------------------- Colr Functions ---------------------------- */
+/* ---------------------------- ColrC Functions ---------------------------- */
 
 /*! Joins ColorArgs, ColorTexts, and strings into one long string.
 
@@ -606,7 +1032,7 @@ char* wide_to_str(const wchar_t* s) {
 
     \details
     Any plain strings that are passed in are left alone. It is up to the caller
-    to free those. Colr only manages the temporary Colr-based objects needed
+    to free those. ColrC only manages the temporary Colr-based objects needed
     to build up these strings.
 
     \pi p   The first of any ColorArg, ColorText, or strings to join.
@@ -625,8 +1051,8 @@ char* _colr(void *p, ...) {
     va_list args;
     va_start(args, p);
     char* s;
-    struct ColorArg *cargp = NULL;
-    struct ColorText *ctextp = NULL;
+    ColorArg *cargp = NULL;
+    ColorText *ctextp = NULL;
     if (ColorArg_is_ptr(p)) {
         // It's a ColorArg.
         cargp = p;
@@ -657,7 +1083,7 @@ char* _colr(void *p, ...) {
         cargp = NULL;
         ctextp = NULL;
         // These ColorArgs/ColorTexts were heap allocated through the fore,
-        // back, style, and Colr macros. I'm going to free them, so the user
+        // back, style, and ColrC macros. I'm going to free them, so the user
         // doesn't have to keep track of all the temporary pieces that built
         // this string.
         if (ColorArg_is_ptr(arg)) {
@@ -693,7 +1119,7 @@ char* _colr(void *p, ...) {
 
     \details
     Any plain strings that are passed in are left alone. It is up to the caller
-    to free those. Colr only manages the temporary Colr-based objects needed
+    to free those. ColrC only manages the temporary Colr-based objects needed
     to build up these strings.
 
     \pi joinerp The joiner (any ColorArg, ColorText, or string).
@@ -711,11 +1137,11 @@ char* _colr_join(void *joinerp, ...) {
     va_list args;
     va_start(args, joinerp);
     char* joiner;
-    struct ColorArg* joiner_cargp = NULL;
-    struct ColorText* joiner_ctextp = NULL;
+    ColorArg* joiner_cargp = NULL;
+    ColorText* joiner_ctextp = NULL;
     char* piece;
-    struct ColorArg* cargp = NULL;
-    struct ColorText* ctextp = NULL;
+    ColorArg* cargp = NULL;
+    ColorText* ctextp = NULL;
     if (ColorArg_is_ptr(joinerp)) {
         // It's a ColorArg.
         joiner_cargp = joinerp;
@@ -742,7 +1168,7 @@ char* _colr_join(void *joinerp, ...) {
         cargp = NULL;
         ctextp = NULL;
         // These ColorArgs/ColorTexts were heap allocated through the fore,
-        // back, style, and Colr macros. I'm going to free them, so the user
+        // back, style, and ColrC macros. I'm going to free them, so the user
         // doesn't have to keep track of all the temporary pieces that built
         // this string.
         if (ColorArg_is_ptr(arg)) {
@@ -782,7 +1208,10 @@ char* _colr_join(void *joinerp, ...) {
 /*! Creates a string representation of a ArgType.
 
     \pi type A ArgType to get the type from.
-    \return  A pointer to an allocated string. You must free() it.
+    \return  A pointer to an allocated string.
+             \mustfree
+
+    \sa ArgType
 */
 char* ArgType_repr(ArgType type) {
     char* typestr;
@@ -806,7 +1235,10 @@ char* ArgType_repr(ArgType type) {
 /*! Creates a string from an ArgType.
 
     \pi type A ArgType to get the type from.
-    \return  A pointer to an allocated string. You must free() it.
+    \return  A pointer to an allocated string.
+             \mustfree
+
+    \sa ArgType
 */
 char* ArgType_to_str(ArgType type) {
     char* typestr;
@@ -834,8 +1266,10 @@ char* ArgType_to_str(ArgType type) {
     debugging, and may be extended in the future. It's better just to use it.
 
     \pi p ColorArg to free.
+
+    \sa ColorArg
 */
-void ColorArg_free(struct ColorArg *p) {
+void ColorArg_free(ColorArg *p) {
     free(p);
 }
 
@@ -848,12 +1282,14 @@ void ColorArg_free(struct ColorArg *p) {
     \pi value BasicValue to use.
 
     \return A ColorArg, with the `.value.type` member possibly set to `TYPE_INVALID`.
+
+    \sa ColorArg
 */
-struct ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value) {
+ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value) {
     // Saving a copy on the stack, in case an anonymous value was given.
     // As long as the address is good through _from_value() we're good.
     BasicValue val = value;
-    return (struct ColorArg){
+    return (ColorArg){
         .marker=COLORARG_MARKER,
         .type=type,
         .value=ColorValue_from_value(TYPE_BASIC, &val),
@@ -869,12 +1305,14 @@ struct ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value) {
     \pi value ExtendedValue to use.
 
     \return A ColorArg, with the `.value.type` member possibly set to `TYPE_INVALID`.
+
+    \sa ColorArg
 */
-struct ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value) {
+ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value) {
     // Saving a copy on the stack, in case an anonymous value was given.
     // As long as the address is good through _from_value() we're good.
     ExtendedValue val = value;
-    return (struct ColorArg){
+    return (ColorArg){
         .marker=COLORARG_MARKER,
         .type=type,
         .value=ColorValue_from_value(TYPE_EXTENDED, &val),
@@ -890,12 +1328,14 @@ struct ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value) {
     \pi value RGB struct to use.
 
     \return A ColorArg, with the `.value.type` member possibly set to `TYPE_INVALID`.
+
+    \sa ColorArg
 */
-struct ColorArg ColorArg_from_RGB(ArgType type, struct RGB value) {
+ColorArg ColorArg_from_RGB(ArgType type, RGB value) {
     // Saving a copy on the stack, in case an anonymous value was given.
     // As long as the address is good through _from_value() we're good.
-    struct RGB val = value;
-    return (struct ColorArg){
+    RGB val = value;
+    return (ColorArg){
         .marker=COLORARG_MARKER,
         .type=type,
         .value=ColorValue_from_value(TYPE_RGB, &val),
@@ -912,10 +1352,12 @@ struct ColorArg ColorArg_from_RGB(ArgType type, struct RGB value) {
     \pi colorname A known color name/style.
 
     \return A ColorArg struct with usable values.
+
+    \sa ColorArg
 */
-struct ColorArg ColorArg_from_str(ArgType type, char* colorname) {
-    struct ColorValue cval = ColorValue_from_str(colorname);
-    return (struct ColorArg){
+ColorArg ColorArg_from_str(ArgType type, char* colorname) {
+    ColorValue cval = ColorValue_from_str(colorname);
+    return (ColorArg){
         .marker=COLORARG_MARKER,
         .type=type,
         .value=cval
@@ -932,12 +1374,14 @@ struct ColorArg ColorArg_from_str(ArgType type, char* colorname) {
     \pi value StyleValue to use.
 
     \return A ColorArg, with the `.value.type` member possibly set to `TYPE_INVALID`.
+
+    \sa ColorArg
 */
-struct ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value) {
+ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value) {
     // Saving a copy on the stack, in case an anonymous value was given.
     // As long as the address is good through _from_value() we're good.
     StyleValue val = value;
-    return (struct ColorArg){
+    return (ColorArg){
         .marker=COLORARG_MARKER,
         .type=type,
         .value=ColorValue_from_value(TYPE_STYLE, &val),
@@ -949,7 +1393,7 @@ struct ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value) {
 
     \pi type     ArgType value, to mark the type of ColorArg.
     \pi colrtype ColorType value, to mark the type of ColorValue.
-    \pi p        A pointer to either a BasicValue, ExtendedValue, or a struct RGB.
+    \pi p        A pointer to either a BasicValue, ExtendedValue, or a RGB.
 
     \return A ColorArg struct with the appropriate `.value.type` member set for
             the value that was passed. For invalid types the `.value.type` member may
@@ -957,16 +1401,18 @@ struct ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value) {
         - TYPE_INVALID
         - TYPE_INVALID_EXTENDED_RANGE
         - TYPE_INVALID_RGB_RANGE
+
+    \sa ColorArg
 */
-struct ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p) {
+ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p) {
     if (!p) {
-        return (struct ColorArg){
+        return (ColorArg){
             .marker=COLORARG_MARKER,
             .type=ARGTYPE_NONE,
             .value=ColorValue_from_value(TYPE_INVALID, NULL)
         };
     }
-    struct ColorArg carg = {
+    ColorArg carg = {
         .marker=COLORARG_MARKER,
         .type=type,
         .value=ColorValue_from_value(colrtype, p),
@@ -982,8 +1428,10 @@ struct ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p) {
 
     \pi carg ColorArg struct to check.
     \return `true` if the value is invalid, otherwise `false`.
+
+    \sa ColorArg
 */
-bool ColorArg_is_invalid(struct ColorArg carg) {
+bool ColorArg_is_invalid(ColorArg carg) {
     return !(bool_colr_enum(carg.value.type) && bool_colr_enum(carg.type));
 }
 
@@ -993,11 +1441,13 @@ bool ColorArg_is_invalid(struct ColorArg carg) {
 
     \pi     p A void pointer to check.
     \return `true` if the pointer is a ColorArg, otherwise `false`.
+
+    \sa ColorArg
 */
 bool ColorArg_is_ptr(void *p) {
     if (!p) return false;
     // The head of a ColorArg is always a valid marker.
-    struct ColorArg *cargp = p;
+    ColorArg *cargp = p;
     return cargp->marker == COLORARG_MARKER;
 }
 
@@ -1005,26 +1455,31 @@ bool ColorArg_is_ptr(void *p) {
 
     \pi carg ColorArg struct to check.
     \return `true` if the value is valid, otherwise `false`.
+
+    \sa ColorArg
 */
-bool ColorArg_is_valid(struct ColorArg carg) {
+bool ColorArg_is_valid(ColorArg carg) {
     return bool_colr_enum(carg.value.type) && bool_colr_enum(carg.type);
 }
 
 
 
 /*! Creates a string representation for a ColorArg.
+
     \details
     Allocates memory for the string representation.
 
     \pi carg ColorArg struct to get the representation for.
     \return Allocated string for the representation.
-            You must free() it.
+            \mustfree
+
+    \sa ColorArg
 */
-char* ColorArg_repr(struct ColorArg carg) {
+char* ColorArg_repr(ColorArg carg) {
     char* type = ArgType_repr(carg.type);
     char* value = ColorValue_repr(carg.value);
     char* repr;
-    asprintf(&repr, "struct ColorArg {.type=%s, .value=%s}", type, value);
+    asprintf(&repr, "ColorArg {.type=%s, .value=%s}", type, value);
     free(type);
     free(value);
     return repr;
@@ -1037,14 +1492,17 @@ char* ColorArg_repr(struct ColorArg carg) {
 
     \pi carg ColorArg to copy/allocate for.
     \return Pointer to a heap-allocated ColorArg.
+
+    \sa ColorArg
 */
-struct ColorArg *ColorArg_to_ptr(struct ColorArg carg) {
-    struct ColorArg *p = malloc(sizeof(carg));
+ColorArg *ColorArg_to_ptr(ColorArg carg) {
+    ColorArg *p = malloc(sizeof(carg));
     *p = carg;
     return p;
 }
 
 /*! Converts a ColorArg into an escape code string.
+
     \details
     Allocates memory for the string.
 
@@ -1054,9 +1512,11 @@ struct ColorArg *ColorArg_to_ptr(struct ColorArg carg) {
 
     \pi carg ColorArg to get the ArgType and ColorValue from.
     \return Allocated string for the escape code.
-            You must free() it.
+            \mustfree
+
+    \sa ColorArg
 */
-char* ColorArg_to_str(struct ColorArg carg) {
+char* ColorArg_to_str(ColorArg carg) {
     return ColorValue_to_str(carg.type, carg.value);
 }
 
@@ -1064,11 +1524,13 @@ char* ColorArg_to_str(struct ColorArg carg) {
 /*! Frees a ColorText and it's ColorArgs.
 
     \details
-    The text member is left alone, because it wasn't created by Colr.
+    The text member is left alone, because it wasn't created by ColrC.
 
     \pi p Pointer to ColorText to free, along with it's Colr-based members.
+
+    \sa ColorText
 */
-void ColorText_free(struct ColorText *p) {
+void ColorText_free(ColorText *p) {
     if (!p) return;
     if (p->fore) free(p->fore);
     if (p->back) free(p->back);
@@ -1082,10 +1544,12 @@ void ColorText_free(struct ColorText *p) {
     \pi text Text to colorize (a regular string).
     \pi ... ColorArgs for fore, back, and style, in any order.
     \return An initialized ColorText struct.
+
+    \sa ColorText
 */
-struct ColorText ColorText_from_values(char* text, ...) {
+ColorText ColorText_from_values(char* text, ...) {
     // Argument list must have ColorArg with NULL members at the end.
-    struct ColorText ctext = {
+    ColorText ctext = {
         .marker=COLORTEXT_MARKER,
         .text=text,
         .fore=NULL,
@@ -1094,8 +1558,8 @@ struct ColorText ColorText_from_values(char* text, ...) {
     };
     va_list colrargs;
     va_start(colrargs, text);
-    struct ColorArg *arg;
-    while ((arg = va_arg(colrargs, struct ColorArg*))) {
+    ColorArg *arg;
+    while ((arg = va_arg(colrargs, ColorArg*))) {
         assert(ColorArg_is_ptr(arg));
         // It's a ColorArg.
         if (arg->type == FORE) {
@@ -1117,11 +1581,13 @@ struct ColorText ColorText_from_values(char* text, ...) {
 
     \pi     p A void pointer to check.
     \return `true` if the pointer is a ColorText, otherwise `false`.
+
+    \sa ColorText
 */
 bool ColorText_is_ptr(void *p) {
     if (!p) return false;
     // The head of a ColorText is always a valid marker.
-    struct ColorText *ctextp = p;
+    ColorText *ctextp = p;
     return ctextp->marker == COLORTEXT_MARKER;
 }
 
@@ -1129,8 +1595,10 @@ bool ColorText_is_ptr(void *p) {
 
     \pi ctext ColorText to get the string representation for.
     \return Allocated string for the ColorText.
+
+    \sa ColorText
 */
-char* ColorText_repr(struct ColorText ctext) {
+char* ColorText_repr(ColorText ctext) {
     char* s;
     char* stext = ctext.text ? str_repr(ctext.text) : NULL;
     char* sfore = ctext.fore ? ColorArg_repr(*(ctext.fore)) : NULL;
@@ -1139,7 +1607,7 @@ char* ColorText_repr(struct ColorText ctext) {
 
     asprintf(
         &s,
-        "struct ColorText {.text=%s, .fore=%s, .back=%s, .style=%s}\n",
+        "ColorText {.text=%s, .fore=%s, .back=%s, .style=%s}\n",
         stext ? stext : "NULL",
         sfore ? sfore : "NULL",
         sback ? sback : "NULL",
@@ -1158,11 +1626,13 @@ char* ColorText_repr(struct ColorText ctext) {
 
     \pi ctext ColorText to copy/allocate for.
     \return Pointer to a heap-allocated ColorText.
+
+    \sa ColorText
 */
-struct ColorText *ColorText_to_ptr(struct ColorText ctext) {
-    size_t length = sizeof(struct ColorText);
+ColorText *ColorText_to_ptr(ColorText ctext) {
+    size_t length = sizeof(ColorText);
     if (ctext.text) length += strlen(ctext.text) + 1;
-    struct ColorText *p = malloc(length);
+    ColorText *p = malloc(length);
     *p = ctext;
     if (!(p->marker)) p->marker = COLORTEXT_MARKER;
     return p;
@@ -1174,8 +1644,10 @@ struct ColorText *ColorText_to_ptr(struct ColorText ctext) {
     You must free() the resulting string.
     \pi ctext ColorText to stringify.
     \return An allocated string. _You must `free()` it_.
+
+    \sa ColorText
 */
-char* ColorText_to_str(struct ColorText ctext) {
+char* ColorText_to_str(ColorText ctext) {
     if (!ctext.text) return colr_empty_str();
     size_t length = strlen(ctext.text) + 1;
     // Make room for any fore/back/style code combo plus the reset_all code.
@@ -1218,6 +1690,8 @@ char* ColorText_to_str(struct ColorText ctext) {
     \retval TYPE_INVALID_RGB_RANGE for rgb values outside of 0-255.
 
     \examplecodefor{ColorType_from_str,.c}
+    #include "colr.h"
+
     int main(int argc, char** argv) {
         char* userarg;
         if (argc == 1) {
@@ -1236,6 +1710,8 @@ char* ColorText_to_str(struct ColorText ctext) {
         free(userarg);
     }
     \endexamplecode
+
+    \sa ColorType
 */
 ColorType ColorType_from_str(const char* arg) {
     if (!arg) {
@@ -1271,6 +1747,8 @@ ColorType ColorType_from_str(const char* arg) {
 
     \pi type ColorType value to check.
     \return  `true` if the value is considered invalid, otherwise `false`.
+
+    \sa ColorType
 */
 bool ColorType_is_invalid(ColorType type) {
     return !(bool_colr_enum(type));
@@ -1280,6 +1758,8 @@ bool ColorType_is_invalid(ColorType type) {
 
     \pi type ColorType value to check.
     \return  `true` if the value is considered valid, otherwise `false`.
+
+    \sa ColorType
 */
 bool ColorType_is_valid(ColorType type) {
     return bool_colr_enum(type);
@@ -1288,7 +1768,10 @@ bool ColorType_is_valid(ColorType type) {
 /*! Creates a string representation of a ColorType.
 
     \pi type A ColorType to get the type from.
-    \return  A pointer to an allocated string. You must free() it.
+    \return  A pointer to an allocated string.
+             \mustfree
+
+    \sa ColorType
 */
 char* ColorType_repr(ColorType type) {
     char* typestr;
@@ -1325,18 +1808,19 @@ char* ColorType_repr(ColorType type) {
 
     \pi s    A string to parse the color name from (can be an RGB string).
     \return  A ColorValue (with no fore/back information, only the color type and value).
+
+    \sa ColorValue
 */
-struct ColorValue ColorValue_from_str(char* s) {
-    if (!s) {
-        return ColorValue_from_value(TYPE_INVALID, NULL);
-    }
+ColorValue ColorValue_from_str(char* s) {
+    if (!s || s[0] == '\0') return ColorValue_from_value(TYPE_INVALID, NULL);
+
     // Get the actual type, even if it's invalid.
     ColorType type = ColorType_from_str(s);
     if (ColorType_is_invalid(type)) {
         return ColorValue_from_value(type, NULL);
     }
     // Try rgb first.
-    struct RGB rgb;
+    RGB rgb;
     int rgb_ret = RGB_from_str(s, &rgb);
     if (rgb_ret == COLOR_INVALID_RANGE) {
         return ColorValue_from_value(TYPE_INVALID_RGB_RANGE, NULL);
@@ -1351,7 +1835,7 @@ struct ColorValue ColorValue_from_str(char* s) {
         // Need to cast back into a real ExtendedValue now that I know it's
         // not invalid. Also, ColorValue_from_value expects a pointer, to
         // help with it's "dynamic" uses.
-        ExtendedValue xval = (ExtendedValue)x_ret;
+        ExtendedValue xval = ext(x_ret);
         return ColorValue_from_value(type, &xval);
     }
     // Try styles.
@@ -1374,7 +1858,7 @@ struct ColorValue ColorValue_from_str(char* s) {
     on it's argument type.
 
     \pi type A ColorType value, to mark the type of ColorValue.
-    \pi p    A pointer to either a BasicValue, ExtendedValue, or a struct RGB.
+    \pi p    A pointer to either a BasicValue, ExtendedValue, or a RGB.
 
     \return A ColorValue struct with the appropriate `.type` member set for
             the value that was passed. For invalid types the `.type` member may
@@ -1382,44 +1866,48 @@ struct ColorValue ColorValue_from_str(char* s) {
         - TYPE_INVALID
         - TYPE_INVALID_EXTENDED_RANGE
         - TYPE_INVALID_RGB_RANGE
+
+    \sa ColorValue
 */
-struct ColorValue ColorValue_from_value(ColorType type, void *p) {
+ColorValue ColorValue_from_value(ColorType type, void *p) {
     if (!p) {
-        return (struct ColorValue){.type=TYPE_INVALID};
+        return (ColorValue){.type=TYPE_INVALID};
     }
     if (
         type == TYPE_INVALID ||
         type == TYPE_INVALID_EXTENDED_RANGE ||
         type == TYPE_INVALID_RGB_RANGE
         ) {
-        return (struct ColorValue){.type=type};
+        return (ColorValue){.type=type};
     }
     if (!p) {
-        return (struct ColorValue){.type=TYPE_INVALID};
+        return (ColorValue){.type=TYPE_INVALID};
     }
     if (type == TYPE_BASIC) {
         BasicValue *bval = p;
-        return (struct ColorValue){.type=TYPE_BASIC, .basic=*bval};
+        return (ColorValue){.type=TYPE_BASIC, .basic=*bval};
     } else if (type == TYPE_EXTENDED) {
         ExtendedValue *eval = p;
-        return (struct ColorValue){.type=TYPE_EXTENDED, .ext=*eval};
+        return (ColorValue){.type=TYPE_EXTENDED, .ext=*eval};
     } else if (type == TYPE_STYLE) {
         StyleValue *sval = p;
         ColorType ctype = (*sval == STYLE_INVALID) ? TYPE_INVALID_STYLE : TYPE_STYLE;
-        return (struct ColorValue){.type=ctype, .style=*sval};
+        return (ColorValue){.type=ctype, .style=*sval};
     } else if (type == TYPE_RGB) {
-        struct RGB *rgbval = p;
-        return (struct ColorValue){.type=TYPE_RGB, .rgb=*rgbval};
+        RGB *rgbval = p;
+        return (ColorValue){.type=TYPE_RGB, .rgb=*rgbval};
     }
-    return (struct ColorValue){.type=type};
+    return (ColorValue){.type=type};
 }
 
 /*! Checks to see if a ColorValue holds an invalid value.
 
     \pi cval ColorValue struct to check.
     \return `true` if the value is invalid, otherwise `false`.
+
+    \sa ColorValue
 */
-bool ColorValue_is_invalid(struct ColorValue cval) {
+bool ColorValue_is_invalid(ColorValue cval) {
     return !(bool_colr_enum(cval.type));
 }
 
@@ -1427,56 +1915,51 @@ bool ColorValue_is_invalid(struct ColorValue cval) {
 
     \pi cval ColorValue struct to check.
     \return `true` if the value is valid, otherwise `false`.
+
+    \sa ColorValue
 */
-bool ColorValue_is_valid(struct ColorValue cval) {
+bool ColorValue_is_valid(ColorValue cval) {
     return bool_colr_enum(cval.type);
 }
 
 /*! Creates a string representation of a ColorValue.
 
     \pi cval    A ColorValue to get the type and value from.
-    \return     A pointer to an allocated string. You must free() it.
+    \return     A pointer to an allocated string.
+                \mustfree
+
+    \sa ColorValue
 */
-char* ColorValue_repr(struct ColorValue cval) {
-    char* argstr;
+char* ColorValue_repr(ColorValue cval) {
     switch (cval.type) {
         case TYPE_RGB:
-            asprintf(
-                &argstr,
-                "struct RGB {.red=%d, .green=%d, .blue=%d}",
-                cval.rgb.red,
-                cval.rgb.green,
-                cval.rgb.blue
-            );
-            break;
+            return RGB_repr(cval.rgb);
         case TYPE_BASIC:
-            asprintf(&argstr, "(BasicValue) %d", cval.basic);
-            break;
+            return BasicValue_repr(cval.basic);
         case TYPE_EXTENDED:
-            asprintf(&argstr, "(ExtendedValue) %d", cval.ext);
-            break;
+            return ExtendedValue_repr(cval.ext);
         case TYPE_STYLE:
-            asprintf(&argstr, "(StyleValue) %d", cval.style);
-            break;
+            return StyleValue_repr(cval.style);
         default:
             return ColorType_repr(cval.type);
     }
-    return argstr;
 }
 
 /*! Converts a ColorValue into an escape code string.
 
     \details
     Memory is allocated for the string.
-    You must free() it.
+    \mustfree
 
     \pi type ArgType (FORE, BACK, STYLE) to build the escape code for.
     \pi cval ColorValue to get the color value from.
 
     \return  An allocated string with the appropriate escape code.
              For invalid values, an empty string is returned.
+
+    \sa ColorValue
 */
-char* ColorValue_to_str(ArgType type, struct ColorValue cval) {
+char* ColorValue_to_str(ArgType type, ColorValue cval) {
     char* codes;
     switch (type) {
         case FORE:
@@ -1555,19 +2038,37 @@ char* ColorValue_to_str(ArgType type, struct ColorValue cval) {
 
     \pi arg Color name to find the BasicValue for.
     \return BasicValue value on success, or BASIC_INVALID on error.
+
+    \sa BasicValue
 */
 BasicValue BasicValue_from_str(const char* arg) {
     if (!arg) {
         return BASIC_INVALID;
     }
-    char arglower[MAX_COLOR_NAME_LEN];
-    str_to_lower(arglower, arg);
+    char* arglower = str_to_lower(arg);
+    if (!arglower) return BASIC_INVALID;
     for (size_t i=0; i < basic_names_len; i++) {
         if (!strcmp(arglower, basic_names[i].name)) {
+            free(arglower);
             return basic_names[i].value;
         }
     }
+    free(arglower);
     return BASIC_INVALID;
+}
+
+/*! Creates a string representation of a BasicValue.
+
+    \pi bval    A BasicValue to get the value from.
+    \return     A pointer to an allocated string.
+                \mustfree
+
+    \sa BasicValue
+*/
+char* BasicValue_repr(BasicValue bval) {
+    char* repr;
+    asprintf(&repr, "(BasicValue) %d", bval);
+    return repr;
 }
 
 /*! Converts a fore/back BasicValue to the actual 4bit ansi code number.
@@ -1575,6 +2076,8 @@ BasicValue BasicValue_from_str(const char* arg) {
     \pi type ArgType (FORE/BACK).
     \pi bval BasicValue to convert.
     \return An integer usable with basic escape code fore/back colors.
+
+    \sa BasicValue
 */
 int BasicValue_to_ansi(ArgType type, BasicValue bval) {
     int use_value = (int)bval;
@@ -1590,42 +2093,213 @@ int BasicValue_to_ansi(ArgType type, BasicValue bval) {
     return use_value + (type == BACK ? 90 : 80);
 }
 
-/*! Converts an integer string (0-255) into an ExtendedValue suitable
-    for the extended-value-based functions.
+/*! Create an ExtendedValue from a hex string.
+
+    \details
+    This is not a 1:1 translation of hex to rgb. Use RGB_from_hex() for that.
+    This will convert the hex string to the closest matching ExtendedValue value.
+
+    \details
+    The format for hex strings can be one of:
+        - "[#]ffffff" (Leading hash symbol is optional)
+        - "[#]fff" (short-form)
+
+    \pi hexstr Hex string to convert.
+    \return    A value between 0 and 255 on success.
+    \retval    COLOR_INVALID on error or bad values.
+
+    \sa ExtendedValue
+*/
+int ExtendedValue_from_hex(const char* hexstr) {
+    RGB rgb;
+    if (RGB_from_hex(hexstr, &rgb) != 0) return COLOR_INVALID;
+    return ExtendedValue_from_RGB(rgb);
+}
+
+/*! Create an ExtendedValue from a hex string, but return a default value if
+    the hex string is invalid.
+
+    \details
+    This is not a 1:1 translation of hex to rgb. Use RGB_from_hex_default() for that.
+    This will convert the hex string to the closest matching ExtendedValue value.
+
+    \details
+    The format for hex strings can be one of:
+        - "[#]ffffff" (Leading hash symbol is optional)
+        - "[#]fff" (short-form)
+
+    \pi hexstr         Hex string to convert.
+    \pi default_value  ExtendedValue to use for bad hex strings.
+    \return            An ExtendedValue on success, or `default_value` on error.
+
+    \sa ExtendedValue
+    \sa ExtendedValue_from_hex
+*/
+ExtendedValue ExtendedValue_from_hex_default(const char* hexstr, ExtendedValue default_value) {
+    int ret = ExtendedValue_from_hex(hexstr);
+    if (ret < 0) return default_value;
+    return ret;
+}
+
+/*! Convert an RGB value into the closest matching ExtendedValue.
+
+    \pi rgb RGB value to convert.
+    \return An ExtendedValue that closely matches the original RGB value.
+
+    \sa ExtendedValue
+*/
+ExtendedValue ExtendedValue_from_RGB(RGB rgb) {
+    RGB closestrgb = RGB_to_term_RGB(rgb);
+    for (size_t i = 0; i < rgb2term_map_len; i++) {
+        if (RGB_eq(closestrgb, rgb2term_map[i])) {
+            return ext(i);
+        }
+    }
+    // Should never happen.
+    return ext(0);
+}
+
+/*! Converts a known name, integer string (0-255), or a hex string, into an
+    ExtendedValue suitable for the extended-value-based functions.
+
+    \details
+    Hex strings can be used:
+        - "#ffffff" (Leading hash symbol is __NOT__ optional)
+        - "#fff" (short-form)
+
+    \details
+    The `'#'` is not optional for hex strings because it is impossible to tell
+    the difference between the hex value '111' and the extended value '111'
+    without it.
 
     \pi arg Color name to find the ExtendedValue for.
 
     \return A value between 0 and 255 on success.
     \retval COLOR_INVALID on error or bad values.
+
+    \sa ExtendedValue
 */
 int ExtendedValue_from_str(const char* arg) {
-    if (!arg) {
-        return COLOR_INVALID;
-    }
-    char arglower[MAX_COLOR_NAME_LEN];
-    str_to_lower(arglower, arg);
+    if (!arg) return COLOR_INVALID;
+    if (arg[0] == '\0') return COLOR_INVALID;
+
+    char* arglower = str_to_lower(arg);
+    if (!arglower) return COLOR_INVALID;
     for (size_t i=0; i < extended_names_len; i++) {
         if (!strcmp(arglower, extended_names[i].name)) {
+            // A known extended value name.
+            free(arglower);
             return extended_names[i].value;
+        }
+    }
+    if (arglower[0] == '#') {
+        // Possibly a hex string.
+        int hex_ret = ExtendedValue_from_hex(arglower);
+        if (hex_ret >= 0) {
+            // A valid hex string.
+            return hex_ret;
         }
     }
     if (!str_is_digits(arg)) {
         if ((arg[0] == '-') && (strlen(arg) > 1) && str_is_digits(arg + 1)) {
+            free(arglower);
             // Negative number given.
             return COLOR_INVALID_RANGE;
         }
+        free(arglower);
         return COLOR_INVALID;
     }
+
+    // Regular number, hopefully 0-255, but I'll check that in a second.
     // Using long to combat easy overflow.
     long usernum;
-    if (!sscanf(arg, "%ld", &usernum)) {
-        // Not a number.
+    if (sscanf(arg, "%ld", &usernum)) {
+        if (usernum < 0 || usernum > 255) {
+            free(arglower);
+            return COLOR_INVALID_RANGE;
+        }
+        free(arglower);
+        return (int)usernum;
+    }
+
+    // Not a number or hex string.
+    free(arglower);
+    return COLOR_INVALID;
+
+}
+
+/*! Creates a string representation of a ExtendedValue.
+
+    \pi eval    A ExtendedValue to get the value from.
+    \return     A pointer to an allocated string.
+                \mustfree
+
+    \sa ExtendedValue
+*/
+char* ExtendedValue_repr(ExtendedValue eval) {
+    char* repr;
+    asprintf(&repr, "(ExtendedValue) %d", eval);
+    return repr;
+}
+
+/*! Convert a hex color into separate red, green, blue values.
+    \details
+    The format for hex strings can be one of:
+        - "[#]ffffff" (Leading hash symbol is optional)
+        - "[#]fff" (short-form)
+
+    \details
+    Three-digit numbers are valid hex strings, so values like `011` are accepted
+    and transformed into `#001111`.
+
+    \pi hexstr String to convert into red, green, blue values.
+               \mustnullin
+    \po r      Pointer to an unsigned char for red value on success.
+    \po g      Pointer to an unsigned char for green value on success.
+    \po b      Pointer to an unsigned char for blue value on success.
+
+    \retval 0 on success, with \p r, \p g, and \p b filled with the values.
+    \retval COLOR_INVALID for non-hex strings.
+*/
+int rgb_from_hex(const char* hexstr, unsigned char* r, unsigned char* g, unsigned char* b) {
+    if (!hexstr) return COLOR_INVALID;
+    size_t length = strnlen(hexstr, 7);
+    if ((length < 3) || (length > 7)) return COLOR_INVALID;
+    // Strip leading #'s.
+    char* copy = str_lstrip_chars(hexstr, "#");
+    if (!copy) return COLOR_INVALID;
+    size_t copy_length = strlen(copy);
+    if (copy_length < length - 1) {
+        // There was more then one # symbol, I'm not gonna be *that* nice.
+        free(copy);
         return COLOR_INVALID;
     }
-    if (usernum < 0 || usernum > 255) {
-        return COLOR_INVALID_RANGE;
+    unsigned int redval, greenval, blueval;
+    switch (copy_length) {
+        case 3:
+            copy[5] = copy[2];
+            copy[4] = copy[2];
+            copy[3] = copy[1];
+            copy[2] = copy[1];
+            copy[1] = copy[0];
+            /* fall through */
+        case 6:
+            if (sscanf(copy, "%02x%02x%02x", &redval, &greenval, &blueval) != 3) {
+                free(copy);
+                return COLOR_INVALID;
+            }
+            break;
+        default:
+            // Not a valid length.
+            free(copy);
+            return COLOR_INVALID;
     }
-    return (int)usernum;
+    free(copy);
+
+    *r = redval;
+    *g = greenval;
+    *b = blueval;
+    return 0;
 }
 
 /*! Convert an RGB string into separate red, green, blue values.
@@ -1636,20 +2310,21 @@ int ExtendedValue_from_str(const char* arg) {
         - "RED GREEN BLUE"
         - "RED:GREEN:BLUE"
         - "RED;GREEN;BLUE"
+    Or hex strings can be used:
+        - "#ffffff" (Leading hash symbol is __NOT__ optional)
+        - "#fff" (short-form)
 
     \pi arg String to check for RGB values.
     \po r   Pointer to an unsigned char for red value on success.
     \po g   Pointer to an unsigned char for green value on success.
     \po b   Pointer to an unsigned char for blue value on success.
 
-    \retval 0 on success, with \p rgbval filled with the values.
+    \retval 0 on success, with \p r, \p g, and \p b filled with the values.
     \retval COLOR_INVALID for non-rgb strings.
     \retval COLOR_INVALID_RANGE for rgb values outside of 0-255.
 */
 int rgb_from_str(const char* arg, unsigned char* r, unsigned char* g, unsigned char* b) {
-    if (!arg) {
-        return COLOR_INVALID;
-    }
+    if (!arg) return COLOR_INVALID;
     const char* formats[] = {
         "%ld,%ld,%ld",
         "%ld %ld %ld",
@@ -1673,21 +2348,98 @@ int rgb_from_str(const char* arg, unsigned char* r, unsigned char* g, unsigned c
         }
         i++;
     }
-    return COLOR_INVALID;
+    return arg[0] == '#' ? rgb_from_hex(arg, r, g, b) : COLOR_INVALID;
 }
 
-/*! Convert an RGB string into a RGB struct suitable for the
-    colr*RGB functions.
+/*! Compare two RGB structs.
+
+    \pi a First RGB value to check.
+    \pi b Second RGB value to check.
+    \return `true` if \p a and \p b have the same `r`, `g`, and `b` values, otherwise `false`.
+
+    \sa RGB
+*/
+bool RGB_eq(RGB a, RGB b) {
+    return (
+        (a.red == b.red) &&
+        (a.green == b.green) &&
+        (a.blue == b.blue)
+    );
+}
+
+/*! Convert a hex color into an RGB value.
+    \details
+    The format for hex strings can be one of:
+        - "[#]ffffff" (Leading hash symbol is optional)
+        - "[#]fff" (short-form)
+
+    \pi arg String to check for RGB values.
+            \mustnullin
+    \po rgb Pointer to an RGB struct to fill in the values for.
+
+    \retval 0 on success, with \p rgbval filled with the values.
+    \retval COLOR_INVALID for non-hex strings.
+
+    \sa RGB
+*/
+int RGB_from_hex(const char* arg, RGB *rgb) {
+    if (!arg) return COLOR_INVALID;
+    unsigned char r = 0;
+    unsigned char g = 0;
+    unsigned char b = 0;
+    int ret = rgb_from_hex(arg, &r, &g, &b);
+    if (ret) {
+        // An error occurred.
+        return ret;
+    }
+    rgb->red = r;
+    rgb->green = g;
+    rgb->blue = b;
+    return 0;
+}
+
+/*! Convert a hex color into an RGB value, but use a default value when errors
+    occur.
+
+    \details
+    The format for hex strings can be one of:
+        - "[#]ffffff" (Leading hash symbol is optional)
+        - "[#]fff" (short-form)
+
+    \pi arg           String to check for RGB values.
+                      \mustnullin
+    \po default_value An RGB value to use when errors occur.
+
+    \return           A valid RGB value on success, or `default_value` on error.
+
+    \sa RGB
+    \sa hex
+*/
+RGB RGB_from_hex_default(const char* arg, RGB default_value) {
+    if (!arg) return default_value;
+    unsigned char r = 0;
+    unsigned char g = 0;
+    unsigned char b = 0;
+    int ret = rgb_from_hex(arg, &r, &g, &b);
+    if (ret) {
+        // An error occurred.
+        return default_value;
+    }
+    return rgb(r, g, b);
+}
+/*! Convert an RGB string into an RGB value.
 
     \details
     The format for RGB strings can be one of:
         - "RED,GREEN,BLUE"
         - "RED GREEN BLUE"
         - "RED:GREEN:BLUE"
-
-    \details
+    Or hex strings can be used:
+        - "#ffffff" (Leading hash symbol is __NOT__ optional)
+        - "#fff" (short-form)
 
     \pi arg    String to check for RGB values.
+               \mustnullin
     \po rgbval Pointer to an RGB struct to fill in the values for.
 
     \retval 0 on success, with \p rgbval filled with the values.
@@ -1695,7 +2447,7 @@ int rgb_from_str(const char* arg, unsigned char* r, unsigned char* g, unsigned c
     \retval COLOR_INVALID_RANGE for rgb values outside of 0-255.
 
     \examplecodefor{RGB_from_str,.c}
-    struct RGB rgbval;
+    RGB rgbval;
     int ret = RGB_from_str("123,0,234", &rgbval);
     if (ret != COLOR_INVALID) {
         char* s = colr(Colr("Test", fore(rgbval)));
@@ -1703,11 +2455,11 @@ int rgb_from_str(const char* arg, unsigned char* r, unsigned char* g, unsigned c
         free(s);
     }
     \endexamplecode
+
+    \sa RGB
 */
-int RGB_from_str(const char* arg, struct RGB *rgbval) {
-    if (!arg) {
-        return COLOR_INVALID;
-    }
+int RGB_from_str(const char* arg, RGB *rgbval) {
+    if (!arg) return COLOR_INVALID;
     unsigned char r = 0;
     unsigned char g = 0;
     unsigned char b = 0;
@@ -1722,25 +2474,161 @@ int RGB_from_str(const char* arg, struct RGB *rgbval) {
     return 0;
 }
 
+/*! Converts an RGB value into a hex string.
+
+    \pi rgb RGB value to convert.
+    \return An allocated string.
+            \mustfree
+
+    \sa RGB
+*/
+char* RGB_to_hex(RGB rgb) {
+    char* s;
+    asprintf(&s, "%02x%02x%02x", rgb.red, rgb.green, rgb.blue);
+    return s;
+}
+
+/*! Convert an RGB value into it's nearest terminal-friendly RGB value.
+    \details
+    This is a helper for the 'to_term' functions.
+
+    \pi rgb RGB to convert.
+    \return A new RGB with values close to a terminal code color.
+
+    \sa RGB
+*/
+RGB RGB_to_term_RGB(RGB rgb) {
+    int incs[6] = {0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff};
+    size_t inc_len = sizeof(incs) / sizeof(incs[0]);
+    size_t inc_max = inc_len -1 ;
+    unsigned char res[3] = {-1, -1, -1};
+    size_t res_pos = 0;
+    unsigned char parts[3] = {rgb.red, rgb.blue, rgb.green};
+    size_t part_len = sizeof(parts) / sizeof(parts[0]);
+    for (size_t part_num = 0; part_num < part_len; part_num++) {
+        unsigned char part = parts[part_num];
+        for (size_t inc_num = 0; inc_num < inc_max; inc_num++) {
+            int s = incs[inc_num]; // smaller
+            int b = incs[inc_num + 1]; // bigger
+            if ((s <= part) && (part <= b)) {
+                int s1 = abs(s - part);
+                int b1 = abs(b - part);
+                unsigned char closest = b;
+                if (s1 < b1) closest = s;
+                res[res_pos] = closest;
+                res_pos++;
+                break;
+            }
+        }
+    }
+    // Convert back into nearest hex value.
+    return (RGB){.red=res[0], .blue=res[1], .green=res[2]};
+}
+
+
+/*! Creates a string representation for an RGB value.
+    \details
+    Allocates memory for the string representation.
+
+    \pi rgb RGB struct to get the representation for.
+    \return Allocated string for the representation.
+            \mustfree
+
+    \sa RGB
+*/
+char* RGB_repr(RGB rgb) {
+    char* repr;
+    asprintf(
+        &repr,
+        "RGB {.red=%d, .green=%d, .blue=%d}",
+        rgb.red,
+        rgb.green,
+        rgb.blue
+    );
+    return repr;
+}
+
 /*! Convert named argument to actual StyleValue enum value.
 
     \pi arg Style name to convert into a StyleValue.
     \return A usable StyleValue value on success, or STYLE_INVALID on error.
+
+    \sa StyleValue
 */
 StyleValue StyleValue_from_str(const char* arg) {
     if (!arg) {
         return STYLE_INVALID;
     }
-    char arglower[MAX_COLOR_NAME_LEN];
-    str_to_lower(arglower, arg);
+    char* arglower = str_to_lower(arg);
+    if (!arglower) return STYLE_INVALID;
     for (size_t i=0; i < style_names_len; i++) {
         if (!strcmp(arglower, style_names[i].name)) {
+            free(arglower);
             return style_names[i].value;
         }
     }
+    free(arglower);
     return STYLE_INVALID;
 }
 
+/*! Creates a string representation of a StyleValue.
+
+    \pi sval    A StyleValue to get the value from.
+    \return     A pointer to an allocated string.
+                \mustfree
+
+    \sa StyleValue
+*/
+char* StyleValue_repr(StyleValue sval) {
+    char* repr;
+    asprintf(&repr, "(StyleValue) %d", sval);
+    return repr;
+}
+
+/*! Rainbow-ize some text using rgb back colors, lolcat style.
+
+    \details
+    This prepends a color code to every character in the input string.
+    To handle multibyte characters, the string is first converted to
+    `wchar_t*`. The end result is converted back into a regular `char*` string.
+
+    \details
+    The `CODE_RESET_ALL` code is appended to the result.
+
+    \pi s      The string to colorize.
+               \mustnullin
+    \pi freq   Frequency ("tightness") for the colors.
+    \pi offset Starting offset in the rainbow.
+    \return    The allocated/formatted string on success.
+               \mustfree
+               If the allocation fails, `NULL` is returned.
+*/
+char* rainbow_bg(const char* s, double freq, size_t offset) {
+    return _rainbow(format_bg_RGB, s, freq, offset);
+}
+
+/*! This is exactly like rainbow_bg(), except it uses colors that are
+    closer to the standard 256-color values.
+
+    \details
+    This prepends a color code to every character in the input string.
+    To handle multibyte characters, the string is first converted to
+    `wchar_t*`. The end result is converted back into a regular `char*` string.
+
+    \details
+    The `CODE_RESET_ALL` code is appended to the result.
+
+    \pi s      The string to colorize.
+               \mustnullin
+    \pi freq   Frequency ("tightness") for the colors.
+    \pi offset Starting offset in the rainbow.
+    \return    The allocated/formatted string on success.
+               \mustfree
+               If the allocation fails, `NULL` is returned.
+*/
+char* rainbow_bg_term(const char* s, double freq, size_t offset) {
+    return _rainbow(format_bg_RGB_term, s, freq, offset);
+}
 
 /*! Rainbow-ize some text using rgb fore colors, lolcat style.
 
@@ -1753,7 +2641,7 @@ StyleValue StyleValue_from_str(const char* arg) {
     The `CODE_RESET_ALL` code is appended to the result.
 
     \pi s      The string to colorize.
-               _Must be null-terminated._
+               \mustnullin
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
     \return    The allocated/formatted string on success.
@@ -1761,6 +2649,46 @@ StyleValue StyleValue_from_str(const char* arg) {
                If the allocation fails, `NULL` is returned.
 */
 char* rainbow_fg(const char* s, double freq, size_t offset) {
+    return _rainbow(format_fg_RGB, s, freq, offset);
+}
+
+/*! This is exactly like rainbow_fg(), except it uses colors that are
+    closer to the standard 256-color values.
+
+    \details
+    This prepends a color code to every character in the input string.
+    To handle multibyte characters, the string is first converted to
+    `wchar_t*`. The end result is converted back into a regular `char*` string.
+
+    \details
+    The `CODE_RESET_ALL` code is appended to the result.
+
+    \pi s      The string to colorize.
+               \mustnullin
+    \pi freq   Frequency ("tightness") for the colors.
+    \pi offset Starting offset in the rainbow.
+    \return    The allocated/formatted string on success.
+               \mustfree
+               If the allocation fails, `NULL` is returned.
+*/
+char* rainbow_fg_term(const char* s, double freq, size_t offset) {
+    return _rainbow(format_fg_RGB_term, s, freq, offset);
+}
+
+/*! Handles wide character string conversion and character iteration for
+    all of the rainbow_ functions.
+
+    \pi fmter  A formatter function (RGB_fmter) that can create escape codes
+               from RGB values.
+    \pi s      The string to "rainbowize".
+               \mustnullin
+    \pi freq   The "tightness" for colors.
+    \pi offset The starting offset into the rainbow.
+
+    \return    An allocated string (`char*`) with the result.
+               \mustfree
+*/
+char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
     if (!s) {
         return NULL;
     }
@@ -1784,7 +2712,8 @@ char* rainbow_fg(const char* s, double freq, size_t offset) {
     size_t singlecharlen = CODE_RGB_LEN + 1;
     wchar_t singlewchar[singlecharlen];
     for (size_t i = 0; i < charlen; i++) {
-        format_rainbow_fore(codes, freq, offset + i);
+
+        fmter(codes, rainbow_step(freq, offset + i));
         swprintf(wcodes, CODE_RGB_LEN, L"%s", codes);
         swprintf(singlewchar, singlecharlen, L"%ls%lc", wcodes, chars[i]);
         wcscat(wc_out, singlewchar);
@@ -1795,4 +2724,19 @@ char* rainbow_fg(const char* s, double freq, size_t offset) {
     char* out = wide_to_str(wc_out);
     free(wc_out);
     return out;
+}
+
+/*! A single step in rainbow-izing produces the next color in the "rainbow" as
+    an RGB value.
+
+    \pi freq Frequency ("tightness") of the colors.
+    \pi step Starting offset in the rainbow.
+
+    \return  An RGB value with the next "step" in the "rainbow".
+*/
+RGB rainbow_step(double freq, size_t step) {
+    double redval = sin(freq * step + 0) * 127 + 128;
+    double greenval = sin(freq * step + 2 * M_PI / 3) * 127 + 128;
+    double blueval = sin(freq * step + 4 * M_PI / 3) * 127 + 128;
+    return rgb(redval, greenval, blueval);
 }

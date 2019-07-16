@@ -4,6 +4,13 @@
 """ run_snippet.py
     Compiles a small ColrC snippet and runs it. This is for small testing
     and debugging purposes.
+
+    Example Usage:
+        ./tools/snippet.py 'char* s = colr(fore(BLUE), "Okay."); print(s);'
+
+    To run examples found in the source code:
+        ./tools/snippet.py -E
+
     -Christopher Welborn 07-04-2019
 """
 
@@ -19,6 +26,7 @@ from colr import (
     auto_disable as colr_auto_disable,
     docopt,
 )
+from easysettings import load_json_settings
 from printdebug import DebugColrPrinter
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
@@ -34,45 +42,107 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.0.1'
+VERSION = '0.0.3'
 VERSIONSTR = '{} v. {}'.format(NAME, VERSION)
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
 
+CONFIGFILE = os.path.join(SCRIPTDIR, 'snippet.json')
+config = load_json_settings(
+    CONFIGFILE,
+    default={
+        'last_snippet': None,
+        'last_binary': None,
+        'last_c_file': None,
+    }
+)
 TMPPREFIX = NAME.replace(' ', '').lower()
 TMPDIR = tempfile.gettempdir()
 
+EDITOR = os.environ.get('EDITOR', None)
+if EDITOR:
+    EDITOR_DESC = f'set to: {EDITOR}'
+else:
+    EDITOR = 'vim'
+    EDITOR_DESC = 'not set, using: vim'
+
+COLR_DIR = os.path.abspath(os.path.join(SCRIPTDIR, '..'))
+COLRC_FILE = os.path.join(COLR_DIR, 'colr.c')
+COLRH_FILE = os.path.join(COLR_DIR, 'colr.h')
+DBUGH_FILE = os.path.join(COLR_DIR, 'dbug.h')
+EXAMPLES_SRC = (COLRC_FILE, COLRH_FILE)
+
+os.chdir(COLR_DIR)
+
+MACROS = {
+    'print': {
+        'define': '#define print(s) printf("%s\\n", s)',
+        'desc': 'Wrapper for print("%s\\n", s).',
+    },
+    'printferr': {
+        'define': '#define printferr(...) fprintf(stderr, __VA_ARGS__)',
+        'desc': 'Wrapper for fprintf(stderr, ...).',
+    },
+    'printerr': {
+        'define': '#define printerr(s) fprintf(stderr, "%s\\n", s)',
+        'desc': 'Wrapper for fprintf(stderr, "%s\\n", s).',
+    },
+    'print_repr': {
+        'define': '#define print_repr(x) printf("%s\\n", colr_repr(x))',
+        'desc': 'Wrapper for printf("%s\\n", colr_repr(x)).',
+    },
+}
+
+USAGE_MACROS = '\n'.join(
+    f'{name:>27}  : {MACROS[name]["desc"]}'
+    for name in sorted(MACROS)
+)
+
 USAGESTR = f"""{VERSIONSTR}
     Usage:
-        {SCRIPT} -c | -h | -v
-        {SCRIPT} [-D] -l
-        {SCRIPT} [-D] [-n] [-q] -e [PATTERN]
-        {SCRIPT} [-D] [-n] [-q] [CODE]
-        {SCRIPT} [-D] [-n] [-q] [-f file]
+        {SCRIPT} -h | -v
+        {SCRIPT} [-D] (-c | -L)
+        {SCRIPT} [-D] [-n] [-q] [-r exe] -b
+        {SCRIPT} [-D] [-n] [-q] [-r exe] -x [PATTERN] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-r exe] [CODE] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-r exe] [-f file...] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-r exe] [-w] (-e | -l) [-- ARGS...]
+        {SCRIPT} [-D] -E [CODE] [-- ARGS...]
+        {SCRIPT} [-D] -E [-f file...] [-- ARGS...]
+        {SCRIPT} [-D] -E [-w] (-e | -l) [-- ARGS...]
 
     Options:
+        ARGS                 : Extra arguments for the compiler.
         CODE                 : Code to compile. It is wrapped in a main()
                                function, with colr.h included.
                                Default: stdin
         PATTERN              : Only run examples with a leading comment that
                                matches this text/regex pattern.
+        -b,--lastbinary      : Re-run the last binary that was compiled.
         -c,--clean           : Clean {TMPDIR} files, even though they will be
                                cleaned when the OS reboots.
         -D,--debug           : Show some debug info while running.
-        -e,--examples        : Use source examples as the snippets.
+        -E,--preprocessor    : Run through gcc's preprocessor and print the
+                               output.
+        -e,--editlast        : Edit the last snippet in $EDITOR and run it.
+                               $EDITOR is {EDITOR_DESC}
         -f name,--file name  : Read file to get snippet to compile.
         -h,--help            : Show this help message.
-        -l,--listexamples    : List example code snippets in the source.
+        -L,--listexamples    : List example code snippets in the source.
+        -l,--last            : Re-run the last snippet.
         -n,--name            : Print the resulting binary name, for further
                                testing.
         -q,--quiet           : Don't print any status messages.
+        -r exe,--run exe     : Run a program on the compiled binary, like
+                               `gdb` or `kdbg`.
         -v,--version         : Show version.
-"""
+        -w,--wrapped         : Use the "wrapped" version, which is the resulting
+                               `.c` file for snippets.
+        -x,--examples        : Use source examples as the snippets.
 
-COLR_DIR = os.path.abspath(os.path.join(SCRIPTDIR, '..'))
-COLRC_FILE = os.path.join(COLR_DIR, 'colr.c')
-COLRH_FILE = os.path.join(COLR_DIR, 'colr.h')
-EXAMPLES_SRC = (COLRC_FILE, COLRH_FILE)
+    Predefined Macros:
+{USAGE_MACROS}
+"""
 
 
 def main(argd):
@@ -87,17 +157,55 @@ def main(argd):
         return list_examples()
     elif argd['--examples']:
         pat = try_repat(argd['PATTERN'])
-        return run_examples(pat=pat)
+        return run_examples(
+            pat=pat,
+            exe=argd['--run'],
+            compiler_args=argd['ARGS'],
+        )
+    elif argd['--lastbinary']:
+        if not config['last_binary']:
+            raise InvalidArg('no "last binary" found.')
+        return run_compiled_exe(
+            config['last_binary'],
+            exe=argd['--run'],
+            show_name=argd['--name'],
+        )
 
     if argd['--file']:
         snippets = [
             read_file(s)
             for s in argd['--file']
         ]
+    elif argd['--editlast']:
+        if not config['last_snippet']:
+            raise InvalidArg('no "last snippet" found.')
+        if argd['--wrapped']:
+            if not config['last_c_file']:
+                raise InvalidArg('no "last file" found.')
+            snippet = edit_snippet(filepath=config['last_c_file'])
+        else:
+            snippet = edit_snippet(text=config['last_snippet'])
+        if not snippet:
+            raise UserCancelled()
+        snippets = [snippet]
+    elif argd['--last']:
+        if not config['last_snippet']:
+            raise InvalidArg('no "last snippet" found.')
+        snippets = [Snippet(config['last_snippet'], name='last-snippet')]
     else:
-        snippets = [Snippet(argd['CODE'], name='cmdline') or read_stdin()]
+        snippets = [
+            Snippet(argd['CODE'], name='cmdline-snippet') or read_stdin()
+        ]
 
-    return run_snippets(snippets, show_name=argd['--name'])
+    if argd['--preprocessor']:
+        return preprocess_snippets(snippets, compiler_args=argd['ARGS'])
+
+    return run_snippets(
+        snippets,
+        exe=argd['--run'],
+        show_name=argd['--name'],
+        compiler_args=argd['ARGS'],
+    )
 
 
 def clean_objects(filepaths):
@@ -109,19 +217,62 @@ def clean_objects(filepaths):
 
 def clean_tmp():
     tmpfiles = [
-        s
+        os.path.join(TMPDIR, s)
         for s in os.listdir(TMPDIR)
         if s.startswith(TMPPREFIX)
     ]
+    tmplen = len(tmpfiles)
+    plural = 'file' if tmplen == 1 else 'files'
+    debug(f'Found {tmplen} {plural} in {TMPDIR}.')
     for filepath in tmpfiles:
-        if os.path.exists(filepath):
-            os.remove(filepath)
+        os.remove(filepath)
+        debug(f'Removed: {filepath}', align=True)
 
     tmplen = len(tmpfiles)
     plural = 'file' if tmplen == 1 else 'files'
     tmpfmt = C(tmplen, 'blue', style='bright')
     status(f'Cleaned {tmpfmt} temporary {plural} in: {TMPDIR}')
     return 0 if tmpfiles else 1
+
+
+def edit_snippet(filepath=None, text=None):
+    if not (filepath or text):
+        raise EditError('Developer Error: Missing file path or initial text!')
+    marker = f'// {NAME} - Snippet Editing'
+    header = '\n'.join((
+        marker,
+        '// If this file is empty, or all lines are commented out with',
+        '// single-line comments, the process is cancelled.',
+        '',
+    ))
+    if text:
+        fd, filepath = temp_file(extra_prefix='last_snippet')
+        os.write(fd, header.encode())
+        os.write(fd, text.encode())
+        os.close(fd)
+        name = 'edited-snippet'
+    elif filepath:
+        prepend_to_file(filepath, header, cond_first_line=marker)
+        name = filepath
+
+    try:
+        ret = os.system(' '.join((EDITOR, filepath)))
+    except Exception as ex:
+        raise EditError(f'Failed to edit last snippet: {ex}')
+    else:
+        if ret != 0:
+            raise EditError(f'Editor ({EDITOR}) returned non-zero!')
+
+    with open(filepath, 'r') as f:
+        usablelines = [
+            s
+            for s in f
+            if not s.lstrip().startswith('//')
+        ]
+    if not usablelines:
+        raise UserCancelled()
+
+    return Snippet(''.join(usablelines), name=name)
 
 
 def find_src_examples():
@@ -203,11 +354,14 @@ def format_leader(code):
     return fmted
 
 
-def get_gcc_cmd(input_files, output_file=None, user_args=None):
+def get_gcc_cmd(
+        input_files, output_file=None, user_args=None, preprocess=False):
     """ Get the cmd needed to run gcc on a file (without -c or -o). """
     c_files = [s for s in input_files if s.endswith('.c')]
     cmd = ['gcc']
-    if c_files:
+    if preprocess:
+        cmd.append('-E')
+    elif c_files:
         cmd.append('-c')
     cmd.extend(input_files)
     if output_file:
@@ -315,6 +469,36 @@ def no_output_str(filepath):
     return f'{msg}\n'
 
 
+def prepend_to_file(filepath, s, cond_first_line=None):
+    """ Prepend a string to a file's contents.
+        If `cond_first_line` is set, and the first line in the file matches,
+        then nothing is prepended.
+
+        Returns True if the file was modified, otherwise False.
+    """
+    try:
+        with open(filepath, 'r') as f:
+            lines = f.readlines()
+    except EnvironmentError as ex:
+        raise EditError(
+            f'Failed to prepend header to file: {filepath}\nError: {ex}'
+        )
+
+    if (not cond_first_line) or (cond_first_line not in lines[0]):
+        lines.insert(0, s)
+    else:
+        # No need to re-write the file, with nothing changed.
+        return False
+    try:
+        with open(filepath, 'w') as f:
+            f.writelines(lines)
+    except EnvironmentError as ex:
+        EditError(
+            f'Failed to write header to file: {filepath}\nError: {ex}'
+        )
+    return True
+
+
 def print_err(*args, **kwargs):
     """ A wrapper for print() that uses stderr by default.
         Colorizes messages, unless a Colr itself is passed in.
@@ -362,17 +546,25 @@ def run_compile_cmd(filepath, args):
     return proc.wait()
 
 
-def run_compiled_exe(filepath):
+def run_compiled_exe(filepath, exe=None, show_name=False):
     """ Run an executable (the compiled snippet). """
     if not filepath.startswith(TMPDIR):
         newpath = os.path.join(TMPDIR, os.path.split(filepath)[-1])
         os.move(filepath, newpath)
         filepath = newpath
-
-    debug(f'Trying to run: {filepath}')
+    if show_name:
+        namefmt = C(filepath, 'blue', style='bright')
+        if exe:
+            namefmt = C(' ').join(C(exe, 'blue'), namefmt)
+        status(C(': ').join(
+            C('  Running', 'cyan'),
+            namefmt,
+        ))
+    cmd = [exe, filepath] if exe else [filepath]
+    debug(f'Trying to run: {" ".join(cmd)}')
     try:
         proc = subprocess.run(
-            [filepath],
+            cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
@@ -396,7 +588,7 @@ def run_compiled_exe(filepath):
     return proc.returncode
 
 
-def run_examples(pat=None, show_name=False):
+def run_examples(pat=None, exe=None, show_name=False, compiler_args=None):
     """ Compile and run source examples, with optional filtering pattern.
     """
     errs = 0
@@ -427,12 +619,17 @@ def run_examples(pat=None, show_name=False):
             count = C(allsnipscnt, 'blue', style='bright')
         plural = 'snippet' if count == 1 else 'snippets'
         status(f'\nCompiling {count} {plural} for: {filefmt}')
-        errs += run_snippets(usesnippets, show_name=show_name)
+        errs += run_snippets(
+            usesnippets,
+            exe=exe,
+            show_name=show_name,
+            compiler_args=compiler_args,
+        )
         success += (snipscnt - errs)
 
     status(C(' ').join(
         C(': ').join(
-            C('\nSnippets', 'cyan'),
+            C('\nSource Examples', 'cyan'),
             C(', ').join(
                 C(': ').join(
                     C('Success', 'cyan'),
@@ -456,17 +653,12 @@ def run_examples(pat=None, show_name=False):
     return errs
 
 
-def run_snippets(snippets, show_name=False):
+def run_snippets(snippets, exe=None, show_name=False, compiler_args=None):
     """ Compile and run several c code snippets. """
     errs = 0
     for snippet in snippets:
-        binaryname = snippet.compile()
-        if show_name:
-            status(C(': ').join(
-                C('  Running', 'cyan'),
-                C(binaryname, 'blue', style='bright'),
-            ))
-        errs += run_compiled_exe(binaryname)
+        binaryname = snippet.compile(user_args=compiler_args)
+        errs += run_compiled_exe(binaryname, exe=exe, show_name=show_name)
     return errs
 
 
@@ -477,6 +669,14 @@ def noop(*args, **kwargs):
     return None
 
 
+def preprocess_snippets(snippets, compiler_args=None):
+    """ Compile and run several c code snippets. """
+    errs = 0
+    for snippet in snippets:
+        errs += snippet.preprocess(user_args=compiler_args)
+    return errs
+
+
 def status(*args, **kwargs):
     """ Wrapper for print() that may be replaced with noop() when --quiet
         is used.
@@ -484,15 +684,23 @@ def status(*args, **kwargs):
     print(*args, **kwargs)
 
 
-def temp_file(ext='.c'):
+def temp_file(ext='.c', extra_prefix=None):
     """ Return a temporary (open) fd and name. """
-    fd, name = tempfile.mkstemp(prefix=TMPPREFIX, suffix=ext)
+    if extra_prefix:
+        prefix = f'{TMPPREFIX}-{extra_prefix}'
+    else:
+        prefix = TMPPREFIX
+    fd, name = tempfile.mkstemp(prefix=prefix, suffix=ext)
     return fd, name
 
 
-def temp_file_name(ext=None):
+def temp_file_name(ext=None, extra_prefix=None):
     """ Return a temporary file name. """
-    return tempfile.mktemp(prefix=TMPPREFIX, suffix=ext)
+    if extra_prefix:
+        prefix = f'{TMPPREFIX}-{extra_prefix}'
+    else:
+        prefix = TMPPREFIX
+    return tempfile.mktemp(prefix=prefix, suffix=ext)
 
 
 def try_repat(s):
@@ -511,50 +719,20 @@ def try_repat(s):
     return p
 
 
-def wrap_code(s):
-    """ Wrap a C snippet in a main() definition, with colr.h included.
-        If main() is already defined, the snippet is not wrapped.
-        If colr.h is already included, no duplicate include is added.
-    """
-    include_colr_h = '#include "colr.h"' not in s
-    wrap_main = 'main(' not in s
-
-    lines = []
-    if include_colr_h:
-        debug('Including colr.h...')
-        lines.append('#include "colr.h"')
-    else:
-        debug('Not including colr.h!')
-    if wrap_main:
-        debug('Wrapping in main()...')
-        lines.append('int main(void) {')
-    else:
-        debug('Not wrapping in main()!')
-    lines.append(s)
-
-    if wrap_main and (not s.rstrip().endswith(';')):
-        debug('Adding semi-colon...')
-        lines[-1] = ''.join((lines[-1], ';'))
-    if wrap_main:
-        lines.append('}')
-    return '\n'.join(lines)
-
-
-def write_code(s, ext='.c'):
-    """ Write a string to a temporary file, and return the file name. """
-    fd, filepath = temp_file(ext=ext)
-    os.write(fd, s.encode())
-    os.close(fd)
-    debug(f'Wrote code to: {filepath}')
-    return filepath
-
-
 class CompileError(ValueError):
     def __init__(self, filepath):
         self.filepath = filepath
 
     def __str__(self):
         return f'Can\'t compile snippet: {self.filepath}'
+
+
+class EditError(CompileError):
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return f'Failed to edit last snippet: {self.msg}'
 
 
 class InvalidArg(ValueError):
@@ -568,31 +746,43 @@ class InvalidArg(ValueError):
         return 'Invalid argument!'
 
 
+class UserCancelled(KeyboardInterrupt):
+    def __str__(self):
+        return 'User cancelled.'
+
+
 class Snippet(object):
     """ A Snippet is just a string, with an optional name. """
     def __init__(self, code, name=None):
         self.code = code
-        self.name = name or 'unknown snippet'
+        self.name = str(name or 'unknown snippet')
+        if self.name.startswith('//'):
+            self.name = str(format_leader(self.name))
+        else:
+            self.name = str(C(self.name, 'blue'))
 
     def __bool__(self):
         return bool(self.code)
 
     def __colr__(self):
-        debug(f'NAME: {self.name!r}')
         if self.code.startswith(self.name):
             # It may not, because not all snippets have an id/name.
             code = '\n'.join(self.code.split('\n')[1:])
         else:
             code = self.code
-        if self.name.startswith('//'):
-            name = format_leader(self.name)
-        else:
-            name = C(self.name, 'blue')
         code = highlight_snippet(code).replace('\n', '\n    ')
         return C('\n').join(
-            f'\n    {name}:',
+            f'\n    {self.name}:',
             f'    {code}'
         )
+
+    def __repr__(self):
+        return '\n'.join((
+            f'{type(self).__name__}(',
+            f'    code=({type(self.code).__name__}) {self.code!r}',
+            f'    name=({type(self.name).__name__}) {self.name!r}',
+            ')',
+        ))
 
     def __str__(self):
         return str(self.code)
@@ -600,10 +790,12 @@ class Snippet(object):
     def compile(self, user_args=None):
         status(C(': ').join(
             C('Compiling', 'cyan'),
-            format_leader(self.name)
+            self.name,
         ))
 
-        filepath = write_code(wrap_code(self.code), ext='.c')
+        filepath = self.write_code(self.wrap_code(self.code), ext='.c')
+        config['last_c_file'] = filepath
+        config['last_snippet'] = self.code
         basename = os.path.split(os.path.splitext(filepath)[0])[-1]
         objname = f'{basename}.o'
         cfiles = [filepath, COLRC_FILE]
@@ -647,7 +839,104 @@ class Snippet(object):
             raise CompileError(filepath)
         debug('Making the binary executable...')
         os.chmod(binaryname, stat.S_IRWXU)
+        config['last_binary'] = binaryname
         return binaryname
+
+    @staticmethod
+    def is_main_sig(line):
+        """ Returns True if the `line` looks like a main() signature. """
+        return (
+            line.startswith('int main') or
+            line.startswith('void main') or
+            line.startswith('main(')
+        )
+
+    def preprocess(self, user_args=None):
+        """ Run this snippet through gcc's preprocessor and print the output.
+        """
+        status(C(': ').join(
+            C('Compiling', 'cyan'),
+            self.name,
+        ))
+
+        filepath = self.write_code(self.wrap_code(self.code), ext='.c')
+        config['last_c_file'] = filepath
+        config['last_snippet'] = self.code
+        cfiles = [filepath, COLRC_FILE]
+        cmd = get_gcc_cmd(cfiles, user_args=user_args, preprocess=True)
+        try:
+            debug('Preprocessing C files:')
+            debug(' '.join(cmd), align=True)
+            compret = run_compile_cmd(filepath, cmd)
+        except subprocess.CalledProcessError:
+            raise CompileError(filepath)
+        else:
+            if compret != 0:
+                raise CompileError(filepath)
+        return 0
+
+    def wrap_code(self, code):
+        """ Wrap a C snippet in a main() definition, with colr.h included.
+            If main() is already defined, the snippet is not wrapped.
+            If colr.h is already included, no duplicate include is added.
+        """
+        line_table = set(line.strip() for line in code.splitlines())
+        includes = ('colr.h', 'dbug.h')
+        lines = []
+        for includename in includes:
+            includedef = f'#include "{includename}"'
+            if includedef in line_table:
+                debug(f'Not including {includename}')
+                continue
+            lines.append(includedef)
+            debug(f'Including {includename}')
+
+        for macroname in sorted(MACROS):
+            defline = MACROS[macroname]['define']
+            if defline in line_table:
+                debug(f'Not including macro: {macroname}')
+                continue
+            lines.append(f'#ifndef {macroname}')
+            lines.append(defline)
+            lines.append(f'#endif // ifdef {macroname}')
+            debug(f'Including macro: {macroname}')
+
+        main_sigs = [s for s in line_table if self.is_main_sig(s)]
+        main_sig = main_sigs[0] if main_sigs else None
+        if main_sig:
+            debug('No main() needed.')
+            lines.append(code)
+        else:
+            indent = 4 if code.lstrip()[0] == code[0] else 0
+            lines.append(self.wrap_main(code.rstrip(), indent=indent))
+        return '\n'.join(lines)
+
+    def wrap_main(self, code, indent=0):
+        """ Wrap a piece of code in a main() function. """
+        debug('Wrapping in main()...')
+        if ('argc' in code) or ('argv' in code):
+            mainsig = 'int main(int argc, char* argv[])'
+            debug('Using argc and argv.', align=True)
+        else:
+            mainsig = 'int main(void)'
+            debug('Not using argc or argv.', align=True)
+        if code.endswith(';') or code.endswith(';'):
+            debug('No semi-colon needed.', align=True)
+        else:
+            debug('Adding semi-colon to code.', align=True)
+            code = f'{code};'
+        if indent:
+            spaces = ' ' * indent
+            code = '\n'.join(f'{spaces}{s}' for s in code.splitlines())
+        return f'{mainsig} {{\n{code}\n}}'
+
+    def write_code(self, s, ext='.c'):
+        """ Write a string to a temporary file, and return the file name. """
+        fd, filepath = temp_file(ext=ext)
+        os.write(fd, s.encode())
+        os.close(fd)
+        debug(f'Wrote code to: {filepath}')
+        return filepath
 
 
 if __name__ == '__main__':
@@ -662,4 +951,5 @@ if __name__ == '__main__':
     except BrokenPipeError:
         print_err('\nBroken pipe, input/output was interrupted.\n')
         mainret = 3
+    config.save()
     sys.exit(mainret)
