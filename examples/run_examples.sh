@@ -27,6 +27,13 @@ function fail_usage {
     exit 1
 }
 
+function merge_patterns {
+    # Print all arguments wrapped in parens, joined by '|'.
+    local wrapped
+    IFS=$'\n' declare -a wrapped=($(printf "(%s)|\n" "$@"))
+    printf "%s" "${wrapped::-1}"
+}
+
 function pattern_matches {
     local pat=$1 s=$2
     # No pattern? Everything matches.
@@ -46,11 +53,15 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
-        $appscript PATTERN...
+        $appscript [-a | -s] PATTERN...
 
     Options:
         PATTERN       : Only run executables matching these regex/text patterns.
+        -a,--all      : Run all examples, including the source code examples.
         -h,--help     : Show this message.
+        -s,--source   : Use examples found in the source code.
+                        This is a shortcut for:
+                            \`../tools/snippet.py -x [PATTERN...]\`
         -v,--version  : Show $appname version and exit.
     "
 }
@@ -66,12 +77,22 @@ function run_exe {
 ((${#binaries})) || fail "No binaries built yet. Run \`make\`."
 
 declare -a patterns
+do_all=0
+do_source=0
 
 for arg; do
     case "$arg" in
+        "-a" | "--all")
+            do_all=1
+            do_source=1
+            ;;
         "-h" | "--help")
             print_usage ""
             exit 0
+            ;;
+        "-s" | "--source")
+            do_source=1
+            do_all=0
             ;;
         "-v" | "--version")
             echo -e "$appname v. $appversion\n"
@@ -84,6 +105,11 @@ for arg; do
             patterns+=("$arg")
     esac
 done
+
+((do_source)) && {
+    ../tools/snippet.py --examples "$(merge_patterns "${patterns[@]}")"
+    ((do_all)) || exit $?
+}
 
 let count=0
 let errs=0

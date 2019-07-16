@@ -191,7 +191,7 @@ describe(helpers) {
             assert(str_has_codes("") == false);
 
             // Colors should though.
-            struct ColorArg* args[] = {
+            ColorArg* args[] = {
                 fore(RED),
                 back(LIGHTBLUE),
                 style(UNDERLINE),
@@ -203,8 +203,8 @@ describe(helpers) {
             size_t args_len = array_length(args);
             for (size_t i = 0; i < args_len; i++) {
                 char* s = colr("This prefix.", args[i], "This suffix.");
-                defer(free(s));
                 assert(str_has_codes(s));
+                free(s);
             }
         }
     }
@@ -415,9 +415,11 @@ describe(helpers) {
                     assert(result != NULL, "Unexpected NULL from str_to_lower()");
                 } else {
                     assert(result == NULL, "Expected NULL from str_to_lower()");
+                    free(result);
                     continue;
                 }
                 asserteq(result, tests[i].expected);
+                free(result);
             }
         }
     }

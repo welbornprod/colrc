@@ -57,7 +57,7 @@ describe(RGB) {
         it("recognizes hex strings") {
             for (size_t i = 0; i < hex_tests_len; i++) {
                 rgb_test_item item = hex_tests[i];
-                struct RGB rgb;
+                RGB rgb;
                 // The call should return 0 itself.
                 assert_rgb_from(item.teststr, RGB_from_hex, 0, &rgb);
                 // The values returned should match the expected tests.
@@ -69,7 +69,7 @@ describe(RGB) {
             for (size_t i = 0; i < bad_hex_tests_len; i++) {
                 char* badstr = bad_hex_tests[i];
                 // Should be COLOR_INVALID.
-                struct RGB rgb;
+                RGB rgb;
                 assert_rgb_from(badstr, RGB_from_hex, COLOR_INVALID, &rgb);
             }
         }
@@ -78,7 +78,7 @@ describe(RGB) {
         it("recognizes valid RGB strings") {
             for (size_t i = 0; i < str_tests_len; i++) {
                 rgb_test_item item = str_tests[i];
-                struct RGB rgb;
+                RGB rgb;
                 // The call should return 0 itself.
                 assert_rgb_from(item.teststr, RGB_from_str, 0, &rgb);
                 // The values returned should match the expected tests.
@@ -90,7 +90,7 @@ describe(RGB) {
             for (size_t i = 0; i < bad_str_tests_len; i++) {
                 char* badstr = bad_str_tests[i];
                 // Should be COLOR_INVALID.
-                struct RGB rgb;
+                RGB rgb;
                 assert_rgb_from_either(
                     badstr,
                     RGB_from_str,

@@ -81,6 +81,7 @@ const size_t style_names_len = sizeof(style_names) / sizeof(style_names[0]);
     is the ExtendedValue.
 */
 const RGB rgb2term_map[] = {
+    // Primary 3-bit colors (8 colors, 0-7)
     {0, 0, 0},
     {128, 0, 0},
     {0, 128, 0},
@@ -89,6 +90,7 @@ const RGB rgb2term_map[] = {
     {128, 0, 128},
     {0, 128, 128},
     {192, 192, 192},
+    // "Bright" versions of the original 8 colors (8-15).
     {128, 128, 128},
     {255, 0, 0},
     {0, 255, 0},
@@ -97,6 +99,7 @@ const RGB rgb2term_map[] = {
     {255, 0, 255},
     {0, 255, 255},
     {255, 255, 255},
+    // Strictly ascending.
     {0, 0, 0},
     {0, 0, 95},
     {0, 0, 135},
@@ -549,7 +552,7 @@ void format_bg_RGB(char* out, RGB rgb) {
     \pi rgb Pointer to an RGB struct.
 */
 void format_bg_RGB_term(char* out, RGB rgb) {
-    format_bgx(out, RGB_to_ExtendedValue(rgb));
+    format_bgx(out, ExtendedValue_from_RGB(rgb));
 }
 
 /*! Create an escape code for a fore color.
@@ -605,7 +608,7 @@ void format_fg_RGB(char* out, RGB rgb) {
     \pi rgb Pointer to an RGB struct.
 */
 void format_fg_RGB_term(char* out, RGB rgb) {
-    format_fgx(out, RGB_to_ExtendedValue(rgb));
+    format_fgx(out, ExtendedValue_from_RGB(rgb));
 }
 
 /*! Create an escape code for a style.
@@ -1809,9 +1812,8 @@ char* ColorType_repr(ColorType type) {
     \sa ColorValue
 */
 ColorValue ColorValue_from_str(char* s) {
-    if (!s) {
-        return ColorValue_from_value(TYPE_INVALID, NULL);
-    }
+    if (!s || s[0] == '\0') return ColorValue_from_value(TYPE_INVALID, NULL);
+
     // Get the actual type, even if it's invalid.
     ColorType type = ColorType_from_str(s);
     if (ColorType_is_invalid(type)) {
@@ -1833,7 +1835,7 @@ ColorValue ColorValue_from_str(char* s) {
         // Need to cast back into a real ExtendedValue now that I know it's
         // not invalid. Also, ColorValue_from_value expects a pointer, to
         // help with it's "dynamic" uses.
-        ExtendedValue xval = (ExtendedValue)x_ret;
+        ExtendedValue xval = ext(x_ret);
         return ColorValue_from_value(type, &xval);
     }
     // Try styles.
@@ -1929,24 +1931,18 @@ bool ColorValue_is_valid(ColorValue cval) {
     \sa ColorValue
 */
 char* ColorValue_repr(ColorValue cval) {
-    char* argstr;
     switch (cval.type) {
         case TYPE_RGB:
-            argstr = RGB_repr(cval.rgb);
-            break;
+            return RGB_repr(cval.rgb);
         case TYPE_BASIC:
-            asprintf(&argstr, "(BasicValue) %d", cval.basic);
-            break;
+            return BasicValue_repr(cval.basic);
         case TYPE_EXTENDED:
-            asprintf(&argstr, "(ExtendedValue) %d", cval.ext);
-            break;
+            return ExtendedValue_repr(cval.ext);
         case TYPE_STYLE:
-            asprintf(&argstr, "(StyleValue) %d", cval.style);
-            break;
+            return StyleValue_repr(cval.style);
         default:
             return ColorType_repr(cval.type);
     }
-    return argstr;
 }
 
 /*! Converts a ColorValue into an escape code string.
@@ -2061,6 +2057,20 @@ BasicValue BasicValue_from_str(const char* arg) {
     return BASIC_INVALID;
 }
 
+/*! Creates a string representation of a BasicValue.
+
+    \pi bval    A BasicValue to get the value from.
+    \return     A pointer to an allocated string.
+                \mustfree
+
+    \sa BasicValue
+*/
+char* BasicValue_repr(BasicValue bval) {
+    char* repr;
+    asprintf(&repr, "(BasicValue) %d", bval);
+    return repr;
+}
+
 /*! Converts a fore/back BasicValue to the actual 4bit ansi code number.
 
     \pi type ArgType (FORE/BACK).
@@ -2083,8 +2093,84 @@ int BasicValue_to_ansi(ArgType type, BasicValue bval) {
     return use_value + (type == BACK ? 90 : 80);
 }
 
-/*! Converts an integer string (0-255) into an ExtendedValue suitable
-    for the extended-value-based functions.
+/*! Create an ExtendedValue from a hex string.
+
+    \details
+    This is not a 1:1 translation of hex to rgb. Use RGB_from_hex() for that.
+    This will convert the hex string to the closest matching ExtendedValue value.
+
+    \details
+    The format for hex strings can be one of:
+        - "[#]ffffff" (Leading hash symbol is optional)
+        - "[#]fff" (short-form)
+
+    \pi hexstr Hex string to convert.
+    \return    A value between 0 and 255 on success.
+    \retval    COLOR_INVALID on error or bad values.
+
+    \sa ExtendedValue
+*/
+int ExtendedValue_from_hex(const char* hexstr) {
+    RGB rgb;
+    if (RGB_from_hex(hexstr, &rgb) != 0) return COLOR_INVALID;
+    return ExtendedValue_from_RGB(rgb);
+}
+
+/*! Create an ExtendedValue from a hex string, but return a default value if
+    the hex string is invalid.
+
+    \details
+    This is not a 1:1 translation of hex to rgb. Use RGB_from_hex_default() for that.
+    This will convert the hex string to the closest matching ExtendedValue value.
+
+    \details
+    The format for hex strings can be one of:
+        - "[#]ffffff" (Leading hash symbol is optional)
+        - "[#]fff" (short-form)
+
+    \pi hexstr         Hex string to convert.
+    \pi default_value  ExtendedValue to use for bad hex strings.
+    \return            An ExtendedValue on success, or `default_value` on error.
+
+    \sa ExtendedValue
+    \sa ExtendedValue_from_hex
+*/
+ExtendedValue ExtendedValue_from_hex_default(const char* hexstr, ExtendedValue default_value) {
+    int ret = ExtendedValue_from_hex(hexstr);
+    if (ret < 0) return default_value;
+    return ret;
+}
+
+/*! Convert an RGB value into the closest matching ExtendedValue.
+
+    \pi rgb RGB value to convert.
+    \return An ExtendedValue that closely matches the original RGB value.
+
+    \sa ExtendedValue
+*/
+ExtendedValue ExtendedValue_from_RGB(RGB rgb) {
+    RGB closestrgb = RGB_to_term_RGB(rgb);
+    for (size_t i = 0; i < rgb2term_map_len; i++) {
+        if (RGB_eq(closestrgb, rgb2term_map[i])) {
+            return ext(i);
+        }
+    }
+    // Should never happen.
+    return ext(0);
+}
+
+/*! Converts a known name, integer string (0-255), or a hex string, into an
+    ExtendedValue suitable for the extended-value-based functions.
+
+    \details
+    Hex strings can be used:
+        - "#ffffff" (Leading hash symbol is __NOT__ optional)
+        - "#fff" (short-form)
+
+    \details
+    The `'#'` is not optional for hex strings because it is impossible to tell
+    the difference between the hex value '111' and the extended value '111'
+    without it.
 
     \pi arg Color name to find the ExtendedValue for.
 
@@ -2094,15 +2180,24 @@ int BasicValue_to_ansi(ArgType type, BasicValue bval) {
     \sa ExtendedValue
 */
 int ExtendedValue_from_str(const char* arg) {
-    if (!arg) {
-        return COLOR_INVALID;
-    }
+    if (!arg) return COLOR_INVALID;
+    if (arg[0] == '\0') return COLOR_INVALID;
+
     char* arglower = str_to_lower(arg);
     if (!arglower) return COLOR_INVALID;
     for (size_t i=0; i < extended_names_len; i++) {
         if (!strcmp(arglower, extended_names[i].name)) {
+            // A known extended value name.
             free(arglower);
             return extended_names[i].value;
+        }
+    }
+    if (arglower[0] == '#') {
+        // Possibly a hex string.
+        int hex_ret = ExtendedValue_from_hex(arglower);
+        if (hex_ret >= 0) {
+            // A valid hex string.
+            return hex_ret;
         }
     }
     if (!str_is_digits(arg)) {
@@ -2114,20 +2209,39 @@ int ExtendedValue_from_str(const char* arg) {
         free(arglower);
         return COLOR_INVALID;
     }
+
+    // Regular number, hopefully 0-255, but I'll check that in a second.
     // Using long to combat easy overflow.
     long usernum;
-    if (!sscanf(arg, "%ld", &usernum)) {
-        // Not a number.
+    if (sscanf(arg, "%ld", &usernum)) {
+        if (usernum < 0 || usernum > 255) {
+            free(arglower);
+            return COLOR_INVALID_RANGE;
+        }
         free(arglower);
-        return COLOR_INVALID;
+        return (int)usernum;
     }
-    if (usernum < 0 || usernum > 255) {
-        free(arglower);
-        return COLOR_INVALID_RANGE;
-    }
+
+    // Not a number or hex string.
     free(arglower);
-    return (int)usernum;
+    return COLOR_INVALID;
+
 }
+
+/*! Creates a string representation of a ExtendedValue.
+
+    \pi eval    A ExtendedValue to get the value from.
+    \return     A pointer to an allocated string.
+                \mustfree
+
+    \sa ExtendedValue
+*/
+char* ExtendedValue_repr(ExtendedValue eval) {
+    char* repr;
+    asprintf(&repr, "(ExtendedValue) %d", eval);
+    return repr;
+}
+
 /*! Convert a hex color into separate red, green, blue values.
     \details
     The format for hex strings can be one of:
@@ -2157,6 +2271,7 @@ int rgb_from_hex(const char* hexstr, unsigned char* r, unsigned char* g, unsigne
     size_t copy_length = strlen(copy);
     if (copy_length < length - 1) {
         // There was more then one # symbol, I'm not gonna be *that* nice.
+        free(copy);
         return COLOR_INVALID;
     }
     unsigned int redval, greenval, blueval;
@@ -2241,6 +2356,8 @@ int rgb_from_str(const char* arg, unsigned char* r, unsigned char* g, unsigned c
     \pi a First RGB value to check.
     \pi b Second RGB value to check.
     \return `true` if \p a and \p b have the same `r`, `g`, and `b` values, otherwise `false`.
+
+    \sa RGB
 */
 bool RGB_eq(RGB a, RGB b) {
     return (
@@ -2262,6 +2379,8 @@ bool RGB_eq(RGB a, RGB b) {
 
     \retval 0 on success, with \p rgbval filled with the values.
     \retval COLOR_INVALID for non-hex strings.
+
+    \sa RGB
 */
 int RGB_from_hex(const char* arg, RGB *rgb) {
     if (!arg) return COLOR_INVALID;
@@ -2277,6 +2396,36 @@ int RGB_from_hex(const char* arg, RGB *rgb) {
     rgb->green = g;
     rgb->blue = b;
     return 0;
+}
+
+/*! Convert a hex color into an RGB value, but use a default value when errors
+    occur.
+
+    \details
+    The format for hex strings can be one of:
+        - "[#]ffffff" (Leading hash symbol is optional)
+        - "[#]fff" (short-form)
+
+    \pi arg           String to check for RGB values.
+                      \mustnullin
+    \po default_value An RGB value to use when errors occur.
+
+    \return           A valid RGB value on success, or `default_value` on error.
+
+    \sa RGB
+    \sa hex
+*/
+RGB RGB_from_hex_default(const char* arg, RGB default_value) {
+    if (!arg) return default_value;
+    unsigned char r = 0;
+    unsigned char g = 0;
+    unsigned char b = 0;
+    int ret = rgb_from_hex(arg, &r, &g, &b);
+    if (ret) {
+        // An error occurred.
+        return default_value;
+    }
+    return rgb(r, g, b);
 }
 /*! Convert an RGB string into an RGB value.
 
@@ -2306,6 +2455,8 @@ int RGB_from_hex(const char* arg, RGB *rgb) {
         free(s);
     }
     \endexamplecode
+
+    \sa RGB
 */
 int RGB_from_str(const char* arg, RGB *rgbval) {
     if (!arg) return COLOR_INVALID;
@@ -2328,6 +2479,8 @@ int RGB_from_str(const char* arg, RGB *rgbval) {
     \pi rgb RGB value to convert.
     \return An allocated string.
             \mustfree
+
+    \sa RGB
 */
 char* RGB_to_hex(RGB rgb) {
     char* s;
@@ -2341,6 +2494,8 @@ char* RGB_to_hex(RGB rgb) {
 
     \pi rgb RGB to convert.
     \return A new RGB with values close to a terminal code color.
+
+    \sa RGB
 */
 RGB RGB_to_term_RGB(RGB rgb) {
     int incs[6] = {0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff};
@@ -2370,18 +2525,6 @@ RGB RGB_to_term_RGB(RGB rgb) {
     return (RGB){.red=res[0], .blue=res[1], .green=res[2]};
 }
 
-/*! Convert an RGB value into the closest matching ExtendedValue.
-*/
-ExtendedValue RGB_to_ExtendedValue(RGB rgb) {
-    RGB closestrgb = RGB_to_term_RGB(rgb);
-    for (size_t i = 0; i < rgb2term_map_len; i++) {
-        if (RGB_eq(closestrgb, rgb2term_map[i])) {
-            return ext(i);
-        }
-    }
-    assert(false);
-    return ext(0);
-}
 
 /*! Creates a string representation for an RGB value.
     \details
@@ -2390,6 +2533,8 @@ ExtendedValue RGB_to_ExtendedValue(RGB rgb) {
     \pi rgb RGB struct to get the representation for.
     \return Allocated string for the representation.
             \mustfree
+
+    \sa RGB
 */
 char* RGB_repr(RGB rgb) {
     char* repr;
@@ -2407,6 +2552,8 @@ char* RGB_repr(RGB rgb) {
 
     \pi arg Style name to convert into a StyleValue.
     \return A usable StyleValue value on success, or STYLE_INVALID on error.
+
+    \sa StyleValue
 */
 StyleValue StyleValue_from_str(const char* arg) {
     if (!arg) {
@@ -2422,6 +2569,20 @@ StyleValue StyleValue_from_str(const char* arg) {
     }
     free(arglower);
     return STYLE_INVALID;
+}
+
+/*! Creates a string representation of a StyleValue.
+
+    \pi sval    A StyleValue to get the value from.
+    \return     A pointer to an allocated string.
+                \mustfree
+
+    \sa StyleValue
+*/
+char* StyleValue_repr(StyleValue sval) {
+    char* repr;
+    asprintf(&repr, "(StyleValue) %d", sval);
+    return repr;
 }
 
 /*! Rainbow-ize some text using rgb back colors, lolcat style.

@@ -72,10 +72,20 @@ COLRH_FILE = os.path.join(COLR_DIR, 'colr.h')
 DBUGH_FILE = os.path.join(COLR_DIR, 'dbug.h')
 EXAMPLES_SRC = (COLRC_FILE, COLRH_FILE)
 
+os.chdir(COLR_DIR)
+
 MACROS = {
     'print': {
         'define': '#define print(s) printf("%s\\n", s)',
         'desc': 'Wrapper for print("%s\\n", s).',
+    },
+    'printferr': {
+        'define': '#define printferr(...) fprintf(stderr, __VA_ARGS__)',
+        'desc': 'Wrapper for fprintf(stderr, ...).',
+    },
+    'printerr': {
+        'define': '#define printerr(s) fprintf(stderr, "%s\\n", s)',
+        'desc': 'Wrapper for fprintf(stderr, "%s\\n", s).',
     },
     'print_repr': {
         'define': '#define print_repr(x) printf("%s\\n", colr_repr(x))',
@@ -93,10 +103,13 @@ USAGESTR = f"""{VERSIONSTR}
         {SCRIPT} -h | -v
         {SCRIPT} [-D] (-c | -L)
         {SCRIPT} [-D] [-n] [-q] [-r exe] -b
-        {SCRIPT} [-D] [-n] [-q] [-r exe] -E [PATTERN] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-r exe] -x [PATTERN] [-- ARGS...]
         {SCRIPT} [-D] [-n] [-q] [-r exe] [CODE] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-r exe] [-f file] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-r exe] [-f file...] [-- ARGS...]
         {SCRIPT} [-D] [-n] [-q] [-r exe] [-w] (-e | -l) [-- ARGS...]
+        {SCRIPT} [-D] -E [CODE] [-- ARGS...]
+        {SCRIPT} [-D] -E [-f file...] [-- ARGS...]
+        {SCRIPT} [-D] -E [-w] (-e | -l) [-- ARGS...]
 
     Options:
         ARGS                 : Extra arguments for the compiler.
@@ -109,7 +122,8 @@ USAGESTR = f"""{VERSIONSTR}
         -c,--clean           : Clean {TMPDIR} files, even though they will be
                                cleaned when the OS reboots.
         -D,--debug           : Show some debug info while running.
-        -E,--examples        : Use source examples as the snippets.
+        -E,--preprocessor    : Run through gcc's preprocessor and print the
+                               output.
         -e,--editlast        : Edit the last snippet in $EDITOR and run it.
                                $EDITOR is {EDITOR_DESC}
         -f name,--file name  : Read file to get snippet to compile.
@@ -124,6 +138,7 @@ USAGESTR = f"""{VERSIONSTR}
         -v,--version         : Show version.
         -w,--wrapped         : Use the "wrapped" version, which is the resulting
                                `.c` file for snippets.
+        -x,--examples        : Use source examples as the snippets.
 
     Predefined Macros:
 {USAGE_MACROS}
@@ -181,6 +196,9 @@ def main(argd):
         snippets = [
             Snippet(argd['CODE'], name='cmdline-snippet') or read_stdin()
         ]
+
+    if argd['--preprocessor']:
+        return preprocess_snippets(snippets, compiler_args=argd['ARGS'])
 
     return run_snippets(
         snippets,
@@ -336,11 +354,14 @@ def format_leader(code):
     return fmted
 
 
-def get_gcc_cmd(input_files, output_file=None, user_args=None):
+def get_gcc_cmd(
+        input_files, output_file=None, user_args=None, preprocess=False):
     """ Get the cmd needed to run gcc on a file (without -c or -o). """
     c_files = [s for s in input_files if s.endswith('.c')]
     cmd = ['gcc']
-    if c_files:
+    if preprocess:
+        cmd.append('-E')
+    elif c_files:
         cmd.append('-c')
     cmd.extend(input_files)
     if output_file:
@@ -608,7 +629,7 @@ def run_examples(pat=None, exe=None, show_name=False, compiler_args=None):
 
     status(C(' ').join(
         C(': ').join(
-            C('\nSnippets', 'cyan'),
+            C('\nSource Examples', 'cyan'),
             C(', ').join(
                 C(': ').join(
                     C('Success', 'cyan'),
@@ -646,6 +667,14 @@ def noop(*args, **kwargs):
         to disable them.
     """
     return None
+
+
+def preprocess_snippets(snippets, compiler_args=None):
+    """ Compile and run several c code snippets. """
+    errs = 0
+    for snippet in snippets:
+        errs += snippet.preprocess(user_args=compiler_args)
+    return errs
 
 
 def status(*args, **kwargs):
@@ -821,6 +850,30 @@ class Snippet(object):
             line.startswith('void main') or
             line.startswith('main(')
         )
+
+    def preprocess(self, user_args=None):
+        """ Run this snippet through gcc's preprocessor and print the output.
+        """
+        status(C(': ').join(
+            C('Compiling', 'cyan'),
+            self.name,
+        ))
+
+        filepath = self.write_code(self.wrap_code(self.code), ext='.c')
+        config['last_c_file'] = filepath
+        config['last_snippet'] = self.code
+        cfiles = [filepath, COLRC_FILE]
+        cmd = get_gcc_cmd(cfiles, user_args=user_args, preprocess=True)
+        try:
+            debug('Preprocessing C files:')
+            debug(' '.join(cmd), align=True)
+            compret = run_compile_cmd(filepath, cmd)
+        except subprocess.CalledProcessError:
+            raise CompileError(filepath)
+        else:
+            if compret != 0:
+                raise CompileError(filepath)
+        return 0
 
     def wrap_code(self, code):
         """ Wrap a C snippet in a main() definition, with colr.h included.

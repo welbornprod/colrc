@@ -50,7 +50,7 @@ describe(format_functions) {
     subdesc(format_bg_RGB) {
         it("basic format_bg_RGB usage.") {
             char codeonly[CODE_RGB_LEN];
-            struct RGB rgb = {25, 35, 45};
+            RGB rgb = {25, 35, 45};
             format_bg_RGB(codeonly, rgb);
             size_t bg_RGBlen = strlen(codeonly);
              assert_range(
@@ -113,7 +113,7 @@ describe(format_functions) {
     subdesc(format_fg_RGB) {
         it("basic format_fg_RGB usage.") {
             char codeonly[CODE_RGB_LEN];
-            struct RGB rgb = {25, 35, 45};
+            RGB rgb = {25, 35, 45};
             format_fg_RGB(codeonly, rgb);
             size_t fg_RGBlen = strlen(codeonly);
              assert_range(
