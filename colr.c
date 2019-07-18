@@ -378,6 +378,7 @@ const size_t rgb2term_map_len = sizeof(rgb2term_map) / sizeof(rgb2term_map[0]);
         // The actual escape sequence would need the backslash added to it:
         char* escaped;
         asprintf(&escaped, "\\%c", char_escape_char('\t'));
+        free(escaped);
     \endexamplecode
 */
 char char_escape_char(const char c) {
@@ -790,6 +791,7 @@ void str_lower(char* s) {
     if (s[i] != '\0') s[i] = '\0';
 }
 
+
 /*! Removes certain characters from the start of a string.
     \details
     The order of the characters in \p chars does not matter. If any of them
@@ -847,6 +849,7 @@ char* str_lstrip_chars(const char* s, const char* chars) {
     // The string `s` contains an escaped string, it *looks like* the definition,
     // but no real newlines, backspaces, or tabs are in it.
     assert(strcmp(s, "\"This\\nhas \\bspecial\\tchars.\"") == 0);
+    free(s);
     \endexamplecode
 */
 char* str_repr(const char* s) {
@@ -1071,10 +1074,8 @@ char* _colr(void *p, ...) {
     // Allocate enough for the reset code at the end.
     char* final = calloc(length, sizeof(char));
     sprintf(final, "%s", s);
-    if (cargp) {
-        free(s);
-    }
-    if (ctextp) {
+    if (cargp || ctextp) {
+        // Free the temporary string created with Color(Arg/Text)_to_str().
         free(s);
     }
 
@@ -1082,6 +1083,7 @@ char* _colr(void *p, ...) {
     while ((arg = va_arg(args, void*))) {
         cargp = NULL;
         ctextp = NULL;
+        bool is_string = false;
         // These ColorArgs/ColorTexts were heap allocated through the fore,
         // back, style, and ColrC macros. I'm going to free them, so the user
         // doesn't have to keep track of all the temporary pieces that built
@@ -1098,10 +1100,16 @@ char* _colr(void *p, ...) {
         } else {
             // It better be a string.
             s = (char* )arg;
+            is_string = true;
         }
         length += strlen(s) + 1;
+        // String was passed, add the reset code.
+        if (is_string) length += CODE_RESET_LEN;
         final = realloc(final, length);
+
         sprintf(final, "%s%s", final, s);
+        if (is_string) str_append_reset(final);
+
         // Free the temporary string from those ColorArgs/ColorTexts.
         if (cargp || ctextp) free(s);
     }
@@ -1479,7 +1487,12 @@ char* ColorArg_repr(ColorArg carg) {
     char* type = ArgType_repr(carg.type);
     char* value = ColorValue_repr(carg.value);
     char* repr;
-    asprintf(&repr, "ColorArg {.type=%s, .value=%s}", type, value);
+    asprintf(
+        &repr,
+        "ColorArg {.type=%s, .value=%s}",
+        type,
+        value
+    );
     free(type);
     free(value);
     return repr;
@@ -1599,14 +1612,14 @@ bool ColorText_is_ptr(void *p) {
     \sa ColorText
 */
 char* ColorText_repr(ColorText ctext) {
-    char* s;
+    char* repr;
     char* stext = ctext.text ? str_repr(ctext.text) : NULL;
     char* sfore = ctext.fore ? ColorArg_repr(*(ctext.fore)) : NULL;
     char* sback = ctext.back ? ColorArg_repr(*(ctext.back)) : NULL;
     char* sstyle = ctext.style ? ColorArg_repr(*(ctext.style)) : NULL;
 
     asprintf(
-        &s,
+        &repr,
         "ColorText {.text=%s, .fore=%s, .back=%s, .style=%s}\n",
         stext ? stext : "NULL",
         sfore ? sfore : "NULL",
@@ -1617,7 +1630,7 @@ char* ColorText_repr(ColorText ctext) {
     free(sfore);
     free(sback);
     free(sstyle);
-    return s;
+    return repr;
 }
 /*! Copies a ColorText into memory and returns the pointer.
 
@@ -2266,17 +2279,17 @@ int rgb_from_hex(const char* hexstr, unsigned char* r, unsigned char* g, unsigne
     size_t length = strnlen(hexstr, 7);
     if ((length < 3) || (length > 7)) return COLOR_INVALID;
     // Strip leading #'s.
-    char* copy = str_lstrip_chars(hexstr, "#");
-    if (!copy) return COLOR_INVALID;
+    char copy[] = "\0\0\0\0\0\0\0\0";
+    inline_str_lstrip_char(copy, hexstr, length, '#');
     size_t copy_length = strlen(copy);
     if (copy_length < length - 1) {
         // There was more then one # symbol, I'm not gonna be *that* nice.
-        free(copy);
         return COLOR_INVALID;
     }
     unsigned int redval, greenval, blueval;
     switch (copy_length) {
         case 3:
+            // Even though the `strlen()` is 3, there is room for 7.
             copy[5] = copy[2];
             copy[4] = copy[2];
             copy[3] = copy[1];
@@ -2285,16 +2298,14 @@ int rgb_from_hex(const char* hexstr, unsigned char* r, unsigned char* g, unsigne
             /* fall through */
         case 6:
             if (sscanf(copy, "%02x%02x%02x", &redval, &greenval, &blueval) != 3) {
-                free(copy);
+
                 return COLOR_INVALID;
             }
             break;
         default:
             // Not a valid length.
-            free(copy);
             return COLOR_INVALID;
     }
-    free(copy);
 
     *r = redval;
     *g = greenval;

@@ -102,11 +102,11 @@ USAGESTR = f"""{VERSIONSTR}
     Usage:
         {SCRIPT} -h | -v
         {SCRIPT} [-D] (-c | -L)
-        {SCRIPT} [-D] [-n] [-q] [-r exe] -b
-        {SCRIPT} [-D] [-n] [-q] [-r exe] -x [PATTERN] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-r exe] [CODE] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-r exe] [-f file...] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-r exe] [-w] (-e | -l) [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-m | -r exe] -b
+        {SCRIPT} [-D] [-n] [-q] [-m | -r exe] -x [PATTERN] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-m | -r exe] [CODE] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-m | -r exe] [-f file...] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-m | -r exe] [-w] (-e | -l) [-- ARGS...]
         {SCRIPT} [-D] -E [CODE] [-- ARGS...]
         {SCRIPT} [-D] -E [-f file...] [-- ARGS...]
         {SCRIPT} [-D] -E [-w] (-e | -l) [-- ARGS...]
@@ -130,6 +130,7 @@ USAGESTR = f"""{VERSIONSTR}
         -h,--help            : Show this help message.
         -L,--listexamples    : List example code snippets in the source.
         -l,--last            : Re-run the last snippet.
+        -m,--memcheck        : Run the snippet through `valgrind`.
         -n,--name            : Print the resulting binary name, for further
                                testing.
         -q,--quiet           : Don't print any status messages.
@@ -161,6 +162,7 @@ def main(argd):
             pat=pat,
             exe=argd['--run'],
             compiler_args=argd['ARGS'],
+            memcheck=argd['--memcheck'],
         )
     elif argd['--lastbinary']:
         if not config['last_binary']:
@@ -169,6 +171,7 @@ def main(argd):
             config['last_binary'],
             exe=argd['--run'],
             show_name=argd['--name'],
+            memcheck=argd['--memcheck'],
         )
 
     if argd['--file']:
@@ -205,6 +208,7 @@ def main(argd):
         exe=argd['--run'],
         show_name=argd['--name'],
         compiler_args=argd['ARGS'],
+        memcheck=argd['--memcheck'],
     )
 
 
@@ -546,7 +550,7 @@ def run_compile_cmd(filepath, args):
     return proc.wait()
 
 
-def run_compiled_exe(filepath, exe=None, show_name=False):
+def run_compiled_exe(filepath, exe=None, show_name=False, memcheck=False):
     """ Run an executable (the compiled snippet). """
     if not filepath.startswith(TMPDIR):
         newpath = os.path.join(TMPDIR, os.path.split(filepath)[-1])
@@ -556,11 +560,39 @@ def run_compiled_exe(filepath, exe=None, show_name=False):
         namefmt = C(filepath, 'blue', style='bright')
         if exe:
             namefmt = C(' ').join(C(exe, 'blue'), namefmt)
+        elif memcheck:
+            namefmt = C(' ').join(
+                C('valgrind', 'magenta'),
+                C('=').join(
+                    C('--tool', 'blue'),
+                    C('memcheck', 'lightblue', style='bright')
+                ),
+                C('=').join(
+                    C('--show-leak-kinds', 'blue'),
+                    C('all', 'lightblue', style='bright')
+                ),
+                C('=').join(
+                    C('--track-origins', 'blue'),
+                    C('yes', 'lightblue', style='bright')
+                ),
+                namefmt,
+            )
         status(C(': ').join(
             C('  Running', 'cyan'),
             namefmt,
         ))
-    cmd = [exe, filepath] if exe else [filepath]
+    if exe:
+        cmd = [exe, filepath]
+    elif memcheck:
+        cmd = [
+            'valgrind',
+            '--tool=memcheck',
+            '--show-leak-kinds=all',
+            '--track-origins=yes',
+            filepath,
+        ]
+    else:
+        cmd = [filepath]
     debug(f'Trying to run: {" ".join(cmd)}')
     try:
         proc = subprocess.run(
@@ -588,7 +620,9 @@ def run_compiled_exe(filepath, exe=None, show_name=False):
     return proc.returncode
 
 
-def run_examples(pat=None, exe=None, show_name=False, compiler_args=None):
+def run_examples(
+        pat=None, exe=None, show_name=False, compiler_args=None,
+        memcheck=False):
     """ Compile and run source examples, with optional filtering pattern.
     """
     errs = 0
@@ -624,6 +658,7 @@ def run_examples(pat=None, exe=None, show_name=False, compiler_args=None):
             exe=exe,
             show_name=show_name,
             compiler_args=compiler_args,
+            memcheck=memcheck,
         )
         success += (snipscnt - errs)
 
@@ -653,12 +688,19 @@ def run_examples(pat=None, exe=None, show_name=False, compiler_args=None):
     return errs
 
 
-def run_snippets(snippets, exe=None, show_name=False, compiler_args=None):
+def run_snippets(
+        snippets, exe=None, show_name=False, compiler_args=None,
+        memcheck=False):
     """ Compile and run several c code snippets. """
     errs = 0
     for snippet in snippets:
         binaryname = snippet.compile(user_args=compiler_args)
-        errs += run_compiled_exe(binaryname, exe=exe, show_name=show_name)
+        errs += run_compiled_exe(
+            binaryname,
+            exe=exe,
+            show_name=show_name,
+            memcheck=memcheck,
+        )
     return errs
 
 

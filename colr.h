@@ -36,6 +36,9 @@
 #ifndef _GNU_SOURCE
     #define _GNU_SOURCE
 #endif
+#ifndef __STDC_WANT_LIB_EXT1__
+    #define __STDC_WANT_LIB_EXT1__ 1
+#endif
 
 //! Current version for ColrC.
 #define COLR_VERSION "0.2.2"
@@ -619,7 +622,7 @@
     \pi x   Value to cast to `unsigned char`/`ExtendedValue`.
     \return An ExtendedValue.
 
-    \sa fore back colr Colr
+    \sa fore back colr Colr ext_hex ext_hex_or
 */
 #define ext(x) ((ExtendedValue)x)
 
@@ -628,6 +631,8 @@
 
     \pi s   A hex string to convert.
     \return The closest matching ExtendedValue, or 0 for bad hex strings.
+
+    \sa ext ext_hex_or hex hex_or
 */
 #define ext_hex(s) ext_hex_or(s, ext(0))
 
@@ -640,6 +645,8 @@
     \pi s              A hex string to convert.
     \pi default_value  ExtendedValue to use if the hex string is not valid.
     \return            The closest matching ExtendedValue, or `default_value` for bad hex strings.
+
+    \sa ext ext_hex hex hex_or
 */
 #define ext_hex_or(s, default_value) ExtendedValue_from_hex_default(s, default_value)
 
@@ -717,9 +724,7 @@
     \pi s   A hex string to convert.
     \return A valid RGB value, or `rgb(0, 0, 0)` for bad hex strings.
 
-    \sa hex_or
-    \sa ext_hex
-    \sa ext_hex_or
+    \sa hex_or ext_hex ext_hex_or
 */
 #define hex(s) hex_or(s, rgb(0, 0, 0))
 
@@ -730,9 +735,7 @@
     \pi default_rgb  Default RGB value to use if the hex string is not valid.
     \return          A valid RGB value, or `default_rgb` for bad hex strings.
 
-    \sa hex
-    \sa ext_hex
-    \sa ext_hex_or
+    \sa hex ext_hex ext_hex_or
 */
 #define hex_or(s, default_rgb) RGB_from_hex_default(s, default_rgb)
 
@@ -751,6 +754,23 @@
 */
 #define rgb(r, g, b) ((RGB){.red=r, .green=g, .blue=b})
 
+/*! Strip a leading character from a string, filling a  `char` array with the
+    result.
+
+    \po dest   Destination `char` array. Must have room for `strlen(s) + 1`.
+    \pi s      String to strip the character from.
+    \pi length Length of \p s, the input string.
+    \pi c      Character to strip.
+*/
+#define inline_str_lstrip_char(dest, s, length, c) \
+    do { \
+        size_t _st_l_c_dest_i = 0; \
+        for (size_t _st_l_c_i = 0; _st_l_c_i < length; _st_l_c_i++) { \
+            if (s[_st_l_c_i] == c) continue; \
+            dest[_st_l_c_dest_i] = s[_st_l_c_i]; \
+            _st_l_c_dest_i++; \
+        } \
+    } while (0);
 /*! \def style
     Create a style suitable for use with the colr() and Colr() macros.
 
@@ -1012,10 +1032,15 @@ typedef struct ColorArg_t {
 /*! Holds a string of text, and optional fore, back, and style ColorArgs.
 */
 typedef struct ColorText_t {
+    //! A marker used to inspect void pointers and determine if they are ColorTexts.
     unsigned int marker;
+    //! Text to colorize.
     char* text;
+    //! ColorArg for fore color. Can be `NULL`.
     ColorArg *fore;
+    //! ColorArg for back color. Can be `NULL`.
     ColorArg *back;
+    //! ColorArg for style value. Can be `NULL`.
     ColorArg *style;
 } ColorText;
 

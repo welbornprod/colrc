@@ -4,10 +4,8 @@ int main(void) {
     // Basic colors:
     char* s = colr(
         fore(BLACK),
-        back(RED),
-        "This is a test",
-        back(BLUE),
-        " and only a test."
+        back(RED), "This is a test",
+        back(BLUE), " and only a test."
     );
     printf("%s\n", s);
     free(s);
@@ -27,9 +25,26 @@ int main(void) {
     free(e);
 
     // RGB (True Color) colors:
-    char* r = colr(back(rgb(35, 0, 155)), "RGB\n");
-    printf("%s", r);
+    char* r = colr(back(rgb(35, 0, 155)), "RGB");
+    printf("%s\n", r);
     free(r);
+
+    // Hex (RGB style) colors:
+    char* h = colr(
+        back("#ff0000"), "Hex RGB\n",
+        back(hex("fff")), fore(hex("000000")), "Hex macro RGB\n",
+        back(hex_or("NOTHEX", rgb(255, 255, 255))), "Using default for bad hex str"
+    );
+    printf("%s\n", h);
+    free(h);
+
+    // Hex (Closest ExtendedValue) colors:
+    char* he = colr(
+        back(ext_hex("ff0000")), "Closest ExtendedValue Hex\n",
+        back(ext_hex_or("NOTAHEX", ext(255))), "Using default for bad hex str"
+    );
+    printf("%s\n", he);
+    free(he);
 
     /*
         Colr() accepts a back() as one of it's arguments.
