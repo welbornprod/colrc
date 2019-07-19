@@ -20,141 +20,240 @@
 
 int main(int argc, char* argv[]) {
     /* TODO: parse_args() for flag arguments, while keeping positionals. */
-    char *locale = setlocale(LC_ALL, "");
-    dbug("Using locale: %s\n", locale); (void)locale; // Stupid clang linter in sublime text.
-    // Declare args and setup some defaults.
-    char* textarg = NULL;
-    char* forearg = NULL;
-    char* backarg = NULL;
-    char* stylearg = NULL;
+    // Needed for str_to_wide(), and wide_to_str(), and the rainbow() funcs.
+    setlocale(LC_ALL, "");
+    ColrToolOptions colr_opts = ColrToolOptions_new();
+    if (!parse_args(argc, argv, &colr_opts)) return 1;
 
-    switch (argc) {
-        case 5:
-            return_on_null(asprintf(&stylearg, "%s", argv[4]));
-            /* fall through */
-        case 4:
-            return_on_null(asprintf(&backarg, "%s", argv[3]));
-            /* fall through */
-        case 3:
-            return_on_null(asprintf(&forearg, "%s", argv[2]));
-            /* fall through */
-        case 2:
-            return_on_null(asprintf(&textarg, "%s", argv[1]));
-            break;
-        case 1:
-            // No arguments.
-            return_on_null(asprintf(&textarg, "%s", "-"));
-            break;
-        default:
-            print_usage("Too many arguments!");
-            return 1;
-    }
-
-    if (argeq(textarg, "-h", "--help")) return print_usage_full();
-    if (colr_streq(textarg, "-basic")) return print_basic(true);
-    if (colr_streq(textarg, "-bbasic") || colr_streq(textarg, "-basicb")) return print_basic(false);
-    if colr_streq(textarg, "-rainbow") return print_rainbow_fore(false);
-    if colr_streq(textarg, "-RAINBOW") return print_rainbow_fore(true);
-    if (colr_streq(textarg, "-256")) return print_256(true);
-    if (colr_streq(textarg, "-b256") || colr_streq(textarg, "-256b")) return print_256(false);
-    if (colr_streq(textarg, "-rgb")) return print_rgb(true);
-    if (colr_streq(textarg, "-brgb") || colr_streq(textarg, "-rgbb")) return print_rgb(false);
-
-    if (colr_streq(textarg, "-")) {
+    if (colr_opts.print_basic) return print_basic(colr_opts.print_back);
+    if (colr_opts.print_256) return print_256(colr_opts.print_back);
+    if (colr_opts.print_rgb) return print_rgb(colr_opts.print_back);
+    if (colr_opts.print_rainbow) return print_rainbow_fore();
+    bool free_text = false;
+    if (colr_streq(colr_opts.text, "-")) {
         // Read from stdin.
-        free(textarg);
-        textarg = read_stdin_arg();
-        if (!textarg) {
+        colr_opts.text = read_stdin_arg();
+        if (!colr_opts.text) {
             printferr("\nFailed to allocate for stdin data!\n");
             return 1;
         }
+        free_text = true;
     }
     // Rainbowize the text arg.
-    bool do_rainbow = colr_streq(forearg, "rainbow");
-    bool do_term_rainbow = (
-        colr_streq(forearg, "RAINBOW") ||
-        colr_streq(forearg, "rainbow256") ||
-        colr_streq(forearg, "256rainbow")
-    );
-    if (do_rainbow || do_term_rainbow) {
-        free(forearg);
-        free(backarg);
-        free(stylearg);
-        char* rainbowized = do_rainbow ? rainbow_fg(textarg, 0.1, 3) : rainbow_fg_term(textarg, 0.1, 3);
-        free(textarg);
+    bool do_term_rainbow = false;
+    if (colr_opts.rainbow_fore) {
+        do_term_rainbow = !colr_supports_rgb();
+        char* rainbowized = (
+            do_term_rainbow ?
+            rainbow_fg_term(colr_opts.text, 0.1, 3) :
+            rainbow_fg(colr_opts.text, 0.1, 3)
+        );
+        // TODO: Stylized rainbows, with optional back colors.
         printf("%s\n", rainbowized);
         free(rainbowized);
         return 0;
     }
 
-    StyleValue styleval = StyleValue_from_str(stylearg);
-    ColorArg style_carg = style_arg(styleval);
-    if (!validate_color_arg(style_carg, stylearg)) {
-        free(forearg);
-        free(backarg);
-        free(stylearg);
-        free(textarg);
-        return 1;
-    }
-    dbug_repr("Style: %s\n", style_carg);
-
-    ColorArg fore_carg = fore_arg(forearg);
-    if (!validate_color_arg(fore_carg, forearg)) {
-        free(forearg);
-        free(backarg);
-        free(stylearg);
-        free(textarg);
-        return 1;
-    }
-    dbug_repr("Fore: %s\n", fore_carg);
-
-    ColorArg back_carg = back_arg(backarg);
-    if (!validate_color_arg(back_carg, backarg)) {
-        free(forearg);
-        free(backarg);
-        free(stylearg);
-        free(textarg);
-        return 1;
-    }
-    dbug_repr("Back: %s\n", back_carg);
-
-    ColorText *ctext = Colr(textarg, &fore_carg, &back_carg, &style_carg);
+    ColorText *ctext = Colr(
+        colr_opts.text,
+        colr_opts.fore,
+        colr_opts.back,
+        colr_opts.style
+    );
     dbug_repr("ColorText: %s\n", *ctext);
     char* text = ColorText_to_str(*ctext);
     printf("%s\n", text);
     free(text);
-    free(ctext);
-    free(forearg);
-    free(backarg);
-    free(stylearg);
-    free(textarg);
-
+    if (free_text) free(colr_opts.text);
     return 0;
 }
 
-void dbug_args(char* text, char* fore, char* back, char* style) {
-    /*  This just pretty-prints the arguments, to verify arg-parsing logic.
-    */
-    printferr("Arguments:\n\
-    Text: \n\
-        %s\n\
-    Fore: %s\n\
-    Back: %s\n\
-    Style: %s\n\n", text, fore, back, style
+ColrToolOptions ColrToolOptions_new(void) {
+    return (ColrToolOptions){
+        .text=NULL,
+        .fore=NULL,
+        .back=NULL,
+        .style=NULL,
+        .print_back=false,
+        .print_256=false,
+        .print_basic=false,
+        .print_rainbow=false,
+        .print_rgb=false,
+    };
+}
+
+char* ColrToolOptions_repr(ColrToolOptions colropts) {
+    char* text_repr = colropts.text ? colr_repr(colropts.text) : NULL;
+    char* fore_repr = colropts.fore ? colr_repr(*(colropts.fore)) : NULL;
+    char* back_repr = colropts.back ? colr_repr(*(colropts.back)) : NULL;
+    char* style_repr = colropts.style ? colr_repr(*(colropts.style)) : NULL;
+    char* repr;
+    asprintf(
+        &repr,
+        "ColrToolOptions(\n\
+    .text=%s,\n\
+    .fore=%s,\n\
+    .back=%s,\n\
+    .style=%s,\n\
+    .rainbow_fore=%s,\n\
+    .print_back=%s,\n\
+    .print_256=%s,\n\
+    .print_basic=%s,\n\
+    .print_rgb=%s,\n\
+    .print_rainbow=%s,\n\
+)",
+        text_repr ? text_repr : "NULL",
+        fore_repr ? fore_repr : "NULL",
+        back_repr ? back_repr : "NULL",
+        style_repr ? style_repr : "NULL",
+        colropts.rainbow_fore ? "true" : "false",
+        colropts.print_back ? "true" : "false",
+        colropts.print_256 ? "true" : "false",
+        colropts.print_basic ? "true" : "false",
+        colropts.print_rgb ? "true" : "false",
+        colropts.print_rainbow ? "true" : "false"
     );
+    if (text_repr) free(text_repr);
+    if (fore_repr) free(fore_repr);
+    if (back_repr) free(back_repr);
+    if (style_repr) free(style_repr);
+
+    return repr;
 }
 
 
-int print_256(bool do_fore) {
-    /*  Print the 256 color range using either colrfgx or colorbgx.
-        The function choice is passed as an argument.
-    */
+bool parse_args(int argc, char** argv, ColrToolOptions* colropts) {
+    int c;
+    char* unknownmsg = NULL;
+
+    // Tell getopt that I'll handle the bad-argument messages.
+    opterr = 0;
+    while (1) {
+        int option_index = 0;
+        static struct option long_options[] = {
+            {"help", no_argument, 0, 'h'},
+            {"fore", required_argument, 0,  'f'},
+            {"back", required_argument, 0, 'b'},
+            {"style", required_argument, 0, 's'},
+            {"basic", no_argument, 0, 0 },
+            {"basicbg", no_argument, 0, 0 },
+            {"256", no_argument, 0, 0},
+            {"256bg", no_argument, 0, 0},
+            {"rainbow", no_argument, 0, 0},
+            {"rainbowbg", no_argument, 0, 0},
+            {"rgb", no_argument, 0, 0},
+            {"rgbbg", no_argument, 0, 0},
+            {0, 0, 0, 0}
+        };
+
+        c = getopt_long(argc, argv, "hf:b:s:", long_options, &option_index);
+        if (c == -1) break;
+
+        switch (c) {
+            case 0:
+                if (colr_streq(long_options[option_index].name, "basic")) {
+                    colropts->print_basic = true;
+                } else if (colr_streq(long_options[option_index].name, "256")) {
+                    colropts->print_256 = true;
+                } else if (colr_streq(long_options[option_index].name, "rainbow")) {
+                    colropts->print_rainbow = true;
+                } else if (colr_streq(long_options[option_index].name, "rgb")) {
+                    colropts->print_rgb = true;
+                } else if (colr_streq(long_options[option_index].name, "basicbg")) {
+                    colropts->print_back = true;
+                    colropts->print_basic = true;
+                } else if (colr_streq(long_options[option_index].name, "256bg")) {
+                    colropts->print_back = true;
+                    colropts->print_256 = true;
+                } else if (colr_streq(long_options[option_index].name, "rainbowbg")) {
+                    colropts->print_back = true;
+                    colropts->print_rainbow = true;
+                } else if (colr_streq(long_options[option_index].name, "rgbbg")) {
+                    colropts->print_back = true;
+                    colropts->print_rgb = true;
+                } else {
+                    printferr(
+                        "Unhandled long-only option!: %s\n",
+                        long_options[option_index].name
+                    );
+                }
+                break;
+
+            case 'h':
+                print_usage_full();
+                return false;
+            case 'f':
+                if (colr_streq(optarg, "rainbow")) {
+                    colropts->rainbow_fore = true;
+                } else  {
+                    colropts->fore = fore(optarg);
+                    if (!validate_color_arg(*(colropts->fore), optarg)) return false;
+                }
+                break;
+            case 'b':
+                colropts->back = back(optarg);
+                if (!validate_color_arg(*(colropts->back), optarg)) return false;
+                break;
+
+            case 's':
+                colropts->style = style(optarg);
+                if (!validate_color_arg(*(colropts->style), optarg)) return false;
+                break;
+            case '?':
+                asprintf(&unknownmsg, "Unknown argument: %c", optopt);
+                print_usage(unknownmsg);
+                free(unknownmsg);
+                return false;
+                break;
+            default:
+                printferr("Unknown option!: %c\n", c);
+                return false;
+        }
+    }
+    if (optind == argc) {
+       print_usage("No text given!");
+       return false;
+    }
+    // Remaining non-option arguments.
+    while (optind < argc) {
+        if (!(colropts->text)) {
+            colropts->text = argv[optind];
+            optind++;
+        } else if (!(colropts->fore)) {
+            if (colr_streq(argv[optind], "rainbow")) {
+                colropts->rainbow_fore = true;
+            } else {
+                colropts->fore = fore(argv[optind]);
+                if (!validate_color_arg(*(colropts->fore), argv[optind])) return false;
+            }
+            optind++;
+        } else if (!(colropts->back)) {
+            colropts->back = back(argv[optind]);
+            if (!validate_color_arg(*(colropts->back), argv[optind])) return false;
+            optind++;
+        } else if (!(colropts->style)) {
+            colropts->style = style(argv[optind]);
+            if (!validate_color_arg(*(colropts->style), argv[optind])) return false;
+            optind++;
+        } else {
+            print_usage("Too many arguments!");
+            return false;
+        }
+    }
+    return true;
+}
+
+
+/*! Print the 256 color range using either colrfgx or colorbgx.
+    The function choice is passed as an argument.
+*/
+int print_256(bool do_back) {
     char num[4];
     ColorArg carg;
     char* text;
     for (int i = 0; i < 56; i++) {
         snprintf(num, 4, "%03d", i);
-        carg = do_fore ? fore_arg(ext(i)) : back_arg(ext(i));
+        carg = do_back ? back_arg(ext(i)) : fore_arg(ext(i));
         free(text);
         if (i < 16) {
             text = ColorArg_to_str(carg);
@@ -167,7 +266,7 @@ int print_256(bool do_fore) {
             for (int k=0; k < 5; k++) {
                 j = j + 36;
                 snprintf(num, 4, "%03d", j);
-                carg = do_fore ? fore_arg(ext(i)) : back_arg(ext(i));
+                carg = do_back ? back_arg(ext(i)) : fore_arg(ext(i));
                 text = ColorArg_to_str(carg);
                 printf("%s ", text);
                 free(text);
@@ -177,7 +276,7 @@ int print_256(bool do_fore) {
     }
     for (int i = 232; i < 256; i++) {
         snprintf(num, 4, "%03d", i);
-        carg = do_fore ? fore_arg(ext(i)) : back_arg(ext(i));
+        carg = do_back ? back_arg(ext(i)) : fore_arg(ext(i));
         text = ColorArg_to_str(carg);
         printf("%s ", text);
         free(text);
@@ -186,22 +285,23 @@ int print_256(bool do_fore) {
     return 0;
 }
 
-int print_basic(bool do_fore) {
-    /* Print basic color names and escape codes. */
-    char* text = NULL;
-    char* namefmt = NULL;
+/*! Print basic color names and escape codes.
+*/
+int print_basic(bool do_back) {
     for (size_t i = 0; i < basic_names_len; i++) {
+    char* namefmt = NULL;
+    char* text = NULL;
         char* name = basic_names[i].name;
         BasicValue val = basic_names[i].value;
         if (colr_streq(name, "black")) {
             puts("");
         }
-        BasicValue otherval = str_endswith(name, "black") ? WHITE : BLACK;
+        BasicValue otherval = str_ends_with(name, "black") ? WHITE : BLACK;
         asprintf(&namefmt, "%-14s", name);
-        if (do_fore) {
-            text = colr(fore(val), back(otherval), namefmt);
-        } else {
+        if (do_back) {
             text = colr(back(val), fore(otherval), namefmt);
+        } else {
+            text = colr(fore(val), back(otherval), namefmt);
         }
         printf("%s", text);
         free(namefmt);
@@ -211,19 +311,20 @@ int print_basic(bool do_fore) {
     return 0;
 }
 
-int print_rainbow_fore(bool term_colors) {
-    /* Demo the rainbow method. */
+/*! Demo the rainbow method.
+*/
+int print_rainbow_fore(void) {
     char text[] = "This is a demo of the rainbow function.";
-    char* textfmt = term_colors ? rainbow_fg_term(text, 0.1, 3) : rainbow_fg(text, 0.1, 3);
+    char* textfmt =colr_supports_rgb() ? rainbow_fg(text, 0.1, 3) : rainbow_fg_term(text, 0.1, 3);
     printf("%s\n", textfmt);
     free(textfmt);
     return 0;
 }
 
-int print_rgb(bool do_fore) {
-    /*  Print part of the RGB range using either colrfgrgb, or .
-        The function choice is passed as an argument.
-    */
+/*! Print part of the RGB range using either colrfgrgb, or .
+    The function choice is passed as an argument.
+*/
+int print_rgb(bool do_back) {
     char num[12];
     char* text;
     int count = 0;
@@ -234,11 +335,11 @@ int print_rgb(bool do_fore) {
                 snprintf(num, 12, "%03d;%03d;%03d", r, g, b);
                 // Colorize it.
                 RGB vals = {r, g, b};
-                RGB othervals = do_fore ? (RGB){0, 0, 0} : (RGB){255, 255, 255};
-                if (do_fore) {
-                    text = colr(fore(vals), back(othervals), num);
-                } else {
+                RGB othervals = do_back ? (RGB){255, 255, 255} : (RGB){0, 0, 0};
+                if (do_back) {
                     text = colr(back(vals), fore(othervals), num);
+                } else {
+                    text = colr(fore(vals), back(othervals), num);
                 }
                 count++;
                 printf("%s ", text);
@@ -254,20 +355,10 @@ int print_rgb(bool do_fore) {
     return 0;
 }
 
-void print_unrecognized_arg(const char* userarg) {
-    /*   Print an error message, and the short usage string for an
-        unrecognized argument.
-    */
-    char errmsg[] = "Unrecognized argument: ";
-    size_t maxerrlen = strlen(errmsg) + strlen(userarg) + 1;
-    char errfmt[maxerrlen];
-    snprintf(errfmt, maxerrlen, "%s%s", errmsg, userarg);
-    print_usage(errfmt);
-}
 
-
+/*! Print the short usage string with optional `reason`
+*/
 int print_usage(const char* reason) {
-    /* Print the short usage string with optional `reason` */
     if (reason) {
         printferr("\n%s\n\n", reason);
     }
@@ -281,8 +372,9 @@ int print_usage(const char* reason) {
 }
 
 
+/*! Print the usage string.
+*/
 int print_usage_full() {
-    /* Print the usage string. */
     print_usage(NULL);
     printf("\
 \n\
@@ -308,10 +400,10 @@ int print_usage_full() {
     return 0;
 }
 
+/*! Read stdin data into `textarg`.
+    This only reads up to `length - 1` characters.
+*/
 char* read_stdin_arg(void) {
-    /*  Read stdin data into `textarg`.
-        This only reads up to `length - 1` characters.
-    */
     char line[1024];
     size_t line_length = 1024;
     char* buffer = NULL;
@@ -332,11 +424,11 @@ char* read_stdin_arg(void) {
 }
 
 
+/*! Checks `nametype` for TYPE_INVALID*, and prints the usage string
+    with a warning message if it is invalid.
+    If the code is valid, it simply returns `true`.
+*/
 bool validate_color_arg(ColorArg carg, const char* name) {
-    /*  Checks `nametype` for TYPE_INVALID*, and prints the usage string
-        with a warning message if it is invalid.
-        If the code is not invalid, it simply returns `true`.
-    */
     if (!name) {
         #ifdef DEBUG
         char* argtype = ArgType_to_str(carg.type);

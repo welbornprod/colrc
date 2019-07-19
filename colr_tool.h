@@ -17,6 +17,7 @@
     #define _GNU_SOURCE
 #endif
 
+#include <getopt.h>
 #include "dbug.h"
 #include "colr.h"
 
@@ -54,11 +55,28 @@
         free(_pcae_valrepr); \
     } while(0)
 
+typedef struct ColrToolOptions_s {
+    char* text;
+    ColorArg* fore;
+    ColorArg* back;
+    ColorArg* style;
+    bool rainbow_fore;
+    bool print_back;
+    bool print_256;
+    bool print_basic;
+    bool print_rgb;
+    bool print_rainbow;
+} ColrToolOptions;
+
+ColrToolOptions ColrToolOptions_new(void);
+char* ColrToolOptions_repr(ColrToolOptions colropts);
+
 void debug_args(char* text, char* fore, char* back, char* style);
 void example_color_build(void);
+bool parse_args(int argc, char** argv, ColrToolOptions* colropts);
 int print_256(bool do_fore);
 int print_basic(bool do_fore);
-int print_rainbow_fore(bool term_colors);
+int print_rainbow_fore(void);
 int print_rgb(bool do_fore);
 void print_unrecognized_arg(const char* userarg);
 int print_usage(const char* reason);

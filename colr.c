@@ -471,13 +471,14 @@ char* colr_empty_str(void) {
 
     \details
     This checks `$COLORTERM` for the appropriate value (`'truecolor'` or `'24bit'`).
-    On "dumber" terminals, RGB codes are probably ignored or "downgraded".
+    On "dumber" terminals, RGB codes are probably ignored or mistaken for a
+    256-color or even 8-color value.
 
     \details
     For instance, RGB is supported in `konsole`, but not in `xterm` or `linux`
     ttys. Using RGB codes in `xterm` makes the colors appear as though a 256-color
     value was used (closest matching value, like RGB_to_term_RGB()).
-    Using RGB codes in a dumb `linux` tty makes them appear as though an 8-color
+    Using RGB codes in a simpler `linux` tty makes them appear as though an 8-color
     value was used. Very ugly, but not a disaster.
 
     \details
@@ -485,7 +486,7 @@ char* colr_empty_str(void) {
     from using RGB codes when they are not supported, but I could be wrong.
     I would like to see that terminal if you know of one.
 
-    \return `true` if support is detected, otherwise `false`.
+    \return `true` if 24-bit (true color, or "rgb") support is detected, otherwise `false`.
 */
 bool colr_supports_rgb(void) {
     char* colorterm;
@@ -691,7 +692,7 @@ char* str_copy(char* dest, const char* src, size_t length) {
     \return True if `str` ends with `suf`.
     \return False if either is NULL, or the string doesn't end with the suffix.
 */
-bool str_endswith(const char* str, const char* suf) {
+bool str_ends_with(const char* str, const char* suf) {
     if (!str || !suf) {
         return false;
     }
@@ -894,7 +895,7 @@ char* str_repr(const char* s) {
     \return True if the string `s` starts with prefix.
     \return False if one of the strings is null, or the prefix isn't found.
 */
-bool str_startswith(const char* s, const char* prefix) {
+bool str_starts_with(const char* s, const char* prefix) {
     if (!(s && prefix)) {
         // One of the strings is null.
         return false;
@@ -2080,7 +2081,71 @@ BasicValue BasicValue_from_str(const char* arg) {
 */
 char* BasicValue_repr(BasicValue bval) {
     char* repr;
-    asprintf(&repr, "(BasicValue) %d", bval);
+    switch (bval) {
+        case BASIC_INVALID:
+            asprintf(&repr, "(BasicValue) BASIC_INVALID");
+            break;
+        case BASIC_NONE:
+            asprintf(&repr, "(BasicValue) BASIC_NONE");
+            break;
+        case BLACK:
+            asprintf(&repr, "(BasicValue) BLACK");
+            break;
+        case RED:
+            asprintf(&repr, "(BasicValue) RED");
+            break;
+        case GREEN:
+            asprintf(&repr, "(BasicValue) GREEN");
+            break;
+        case YELLOW:
+            asprintf(&repr, "(BasicValue) YELLOW");
+            break;
+        case BLUE:
+            asprintf(&repr, "(BasicValue) BLUE");
+            break;
+        case MAGENTA:
+            asprintf(&repr, "(BasicValue) MAGENTA");
+            break;
+        case CYAN:
+            asprintf(&repr, "(BasicValue) CYAN");
+            break;
+        case WHITE:
+            asprintf(&repr, "(BasicValue) WHITE");
+            break;
+        case UNUSED:
+            asprintf(&repr, "(BasicValue) UNUSED");
+            break;
+        case RESET:
+            asprintf(&repr, "(BasicValue) RESET");
+            break;
+        case LIGHTBLACK:
+            asprintf(&repr, "(BasicValue) LIGHTBLACK");
+            break;
+        case LIGHTRED:
+            asprintf(&repr, "(BasicValue) LIGHTRED");
+            break;
+        case LIGHTGREEN:
+            asprintf(&repr, "(BasicValue) LIGHTGREEN");
+            break;
+        case LIGHTYELLOW:
+            asprintf(&repr, "(BasicValue) LIGHTYELLOW");
+            break;
+        case LIGHTBLUE:
+            asprintf(&repr, "(BasicValue) LIGHTBLUE");
+            break;
+        case LIGHTMAGENTA:
+            asprintf(&repr, "(BasicValue) LIGHTMAGENTA");
+            break;
+        case LIGHTCYAN:
+            asprintf(&repr, "(BasicValue) LIGHTCYAN");
+            break;
+        case LIGHTWHITE:
+            asprintf(&repr, "(BasicValue) LIGHTWHITE");
+            break;
+        default:
+            // Should never happen, but the value will be known if it does.
+            asprintf(&repr, "(BasicValue) %d", bval);
+    }
     return repr;
 }
 
@@ -2592,7 +2657,42 @@ StyleValue StyleValue_from_str(const char* arg) {
 */
 char* StyleValue_repr(StyleValue sval) {
     char* repr;
-    asprintf(&repr, "(StyleValue) %d", sval);
+    switch (sval) {
+        case STYLE_INVALID:
+            asprintf(&repr, "(StyleValue) STYLE_INVALID");
+            break;
+        case STYLE_NONE:
+            asprintf(&repr, "(StyleValue) STYLE_NONE");
+            break;
+        case RESET_ALL:
+            asprintf(&repr, "(StyleValue) RESET_ALL");
+            break;
+        case BRIGHT:
+            asprintf(&repr, "(StyleValue) BRIGHT");
+            break;
+        case DIM:
+            asprintf(&repr, "(StyleValue) DIM");
+            break;
+        case ITALIC:
+            asprintf(&repr, "(StyleValue) ITALIC");
+            break;
+        case UNDERLINE:
+            asprintf(&repr, "(StyleValue) UNDERLINE");
+            break;
+        case FLASH:
+            asprintf(&repr, "(StyleValue) FLASH");
+            break;
+        case HIGHLIGHT:
+            asprintf(&repr, "(StyleValue) HIGHLIGHT");
+            break;
+        case NORMAL:
+            asprintf(&repr, "(StyleValue) NORMAL");
+            break;
+        default:
+            // Should never happen, but at least the value will be known
+            // if it does.
+            asprintf(&repr, "(StyleValue) %d", sval);
+    }
     return repr;
 }
 
