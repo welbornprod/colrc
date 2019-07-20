@@ -210,7 +210,7 @@ _GNU_SOURCE	colr.h	37;"	d
 _GNU_SOURCE	colr_tool.h	17;"	d
 _colr	colr.c	/^char* _colr(void *p, ...) {$/;"	f
 _colr_join	colr.c	/^char* _colr_join(void *joinerp, ...) {$/;"	f
-_concat	colr.h	1237;"	d
+_concat	colr.h	1236;"	d
 _rainbow	colr.c	/^char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {$/;"	f
 alloc_basic	colr.h	167;"	d
 alloc_extended	colr.h	175;"	d
@@ -247,7 +247,7 @@ colr_repr	colr.h	564;"	d
 colr_str_either	colr.h	533;"	d
 colr_streq	colr.h	522;"	d
 colr_supports_rgb	colr.c	/^bool colr_supports_rgb(void) {$/;"	f
-concat	colr.h	1236;"	d
+concat	colr.h	1235;"	d
 dbug	colr.h	600;"	d
 dbug_repr	colr.h	592;"	d
 dbug_repr	colr.h	602;"	d

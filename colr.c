@@ -489,7 +489,7 @@ char* colr_empty_str(void) {
     value was used. Very ugly, but not a disaster.
 
     \details
-    I haven't seen a modern linux terminal spew garbage across the screen
+    I haven't seen a <em>modern</em> linux terminal spew garbage across the screen
     from using RGB codes when they are not supported, but I could be wrong.
     I would like to see that terminal if you know of one.
 
@@ -2954,6 +2954,25 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
     \return  An RGB value with the next "step" in the "rainbow".
 */
 RGB rainbow_step(double freq, size_t step) {
+    /*  A note about the libm (math.h) dependency:
+
+        libm's sin() function works on every machine, gives better results
+        than any hand-written sin() that I've found, and is faster.
+
+        Something like this produces ugly "steps" in the rainbow, and `i`
+        would have to be large enough for the entire string that is being
+        "rainbowized". Just keep libm:
+            float sin(float x) {
+                float res = 0, pow = x, fact = 1;
+                for(int i = 0; i < 5; ++i) {
+                    res += pow / fact;
+                    pow *= -1 * x * x;
+                    fact *= (2 * (i + 1)) * (2 * (i + 1) + 1);
+                }
+
+                return res;
+            }
+    */
     double redval = sin(freq * step + 0) * 127 + 128;
     double greenval = sin(freq * step + 2 * M_PI / 3) * 127 + 128;
     double blueval = sin(freq * step + 4 * M_PI / 3) * 127 + 128;
