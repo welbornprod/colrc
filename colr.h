@@ -36,12 +36,9 @@
 #ifndef _GNU_SOURCE
     #define _GNU_SOURCE
 #endif
-#ifndef __STDC_WANT_LIB_EXT1__
-    #define __STDC_WANT_LIB_EXT1__ 1
-#endif
 
 //! Current version for ColrC.
-#define COLR_VERSION "0.2.2"
+#define COLR_VERSION "0.2.3"
 
 #ifndef DOXYGEN_SKIP
 /*! \def IS_C11
@@ -68,7 +65,7 @@
 #endif
 // Without _Generic, ColrC is useless.
 #ifndef IS_C11
-    #error "ColrC cannot compile without C11 generic selections (_Generic).")
+    #error "ColrC cannot compile without C11+ generic selections (_Generic).")
 #endif
 
 #include <assert.h>
@@ -94,22 +91,19 @@
 #pragma GCC diagnostic ignored "-Wunused-macros"
 /* Tell gcc to ignore clang pragmas, for linting. */
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
-/* Tell gcc to ignore overridden struct initializers, it's part of ColrC's interface. */
-#pragma CCC diagnostic ignored "-Woverride-init"
+
 /* Tell clang to ignore unused macros. */
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-macros"
 
-#ifndef M_PI
-    //! Definition of PI for `libm` and the rainbow functions.
-    #define M_PI (3.14159265358979323846)
-#endif
 //! Convenience definition, because this is used a lot.
 #define CODE_RESET_ALL "\033[0m"
 //! Convenience definition for wide chars.
 #define WCODE_RESET_ALL L"\033[0m"
 //! Short-hand for CODE_RESET_ALL, stands for "No Color".
 #define NC CODE_RESET_ALL
+//! Short-hand for WCODE_RESET_ALL, stands for "Wide No Color".
+#define WNC WCODE_RESET_ALL
 //! Length of CODE_RESET_ALL, including `'\0'`.
 #define CODE_RESET_LEN 5
 /*! Maximum length for a basic fore/back escape code, including `'\0'`.
@@ -118,20 +112,16 @@
 #define CODE_LEN 7
 //! Maximum length for an extended fore/back escape code, including `'\0'`.
 #define CODEX_LEN 12
-
 //! Maximum length for a style escape code, including `'\0'`.
 #define STYLE_LEN 6
-
 /*! Maximum length in chars for any combination of basic/extended escape codes.
 
     Should be `(CODEX_LEN * 2) + STYLE_LEN`.
     Allocating for a string that will be colorized must account for this.
 */
 #define COLOR_LEN 30
-
 //! Maximum length in chars for an RGB fore/back escape code, including '\0'.
 #define CODE_RGB_LEN 20
-
 /*! Maximum length in chars added to a rgb colorized string.
 
     Should be `CODE_RGB_LEN + STYLE_LEN`
@@ -145,9 +135,6 @@
     (basically `(CODE_RGB_LEN * 2) + STYLE_LEN` since rgb codes are the longest).
 */
 #define CODE_ANY_LEN 46
-
-//! Maximim string length for a fore, back, or style name.
-#define MAX_COLOR_NAME_LEN 14
 
 /*! \internal
     Marker for the ColroArg struct, for identifying a void pointer as a
@@ -517,14 +504,13 @@
 #define colr_istreq(s1, s2) ((s1 && s2) ? !strcasecmp(s1, s2) : 0)
 
 /*! \def colr_max
-    Macro for `(b > a ? b : a)`.
+    Macro for `(a > b ? a : b)`.
 
     \pi a   First value to compare.
     \pi b   Second value to compare.
-    \return `b` if `b > a`, otherwise `a`.
+    \return `a` if `a > b`, otherwise `b`.
 */
-#define colr_max(a, b) (b > a ? b : a)
-
+#define colr_max(a, b) ({ typeof (a) _a = (a); typeof (b) _b = (b); _a > _b ? _a : _b; })
 /*! \def colr_streq
     Convenience macro for `!strcmp(s1, s2)`.
 
@@ -771,6 +757,7 @@
             _st_l_c_dest_i++; \
         } \
     } while (0);
+
 /*! \def style
     Create a style suitable for use with the colr() and Colr() macros.
 
@@ -880,22 +867,22 @@ typedef enum BasicValue_t {
     Convenience 256 color names.
     \endinternal
 */
-# define XBLACK ((ExtendedValue)0)
-# define XRED ((ExtendedValue)1)
-# define XGREEN ((ExtendedValue)2)
-# define XYELLOW ((ExtendedValue)3)
-# define XBLUE ((ExtendedValue)4)
-# define XMAGENTA ((ExtendedValue)5)
-# define XCYAN ((ExtendedValue)6)
-# define XWHITE ((ExtendedValue)7)
-# define XLIGHTBLACK ((ExtendedValue)8)
-# define XLIGHTRED ((ExtendedValue)9)
-# define XLIGHTGREEN ((ExtendedValue)10)
-# define XLIGHTYELLOW ((ExtendedValue)11)
-# define XLIGHTBLUE ((ExtendedValue)12)
-# define XLIGHTMAGENTA ((ExtendedValue)13)
-# define XLIGHTCYAN ((ExtendedValue)14)
-# define XLIGHTWHITE ((ExtendedValue)15)
+#define XBLACK ((ExtendedValue)0)
+#define XRED ((ExtendedValue)1)
+#define XGREEN ((ExtendedValue)2)
+#define XYELLOW ((ExtendedValue)3)
+#define XBLUE ((ExtendedValue)4)
+#define XMAGENTA ((ExtendedValue)5)
+#define XCYAN ((ExtendedValue)6)
+#define XWHITE ((ExtendedValue)7)
+#define XLIGHTBLACK ((ExtendedValue)8)
+#define XLIGHTRED ((ExtendedValue)9)
+#define XLIGHTGREEN ((ExtendedValue)10)
+#define XLIGHTYELLOW ((ExtendedValue)11)
+#define XLIGHTBLUE ((ExtendedValue)12)
+#define XLIGHTMAGENTA ((ExtendedValue)13)
+#define XLIGHTCYAN ((ExtendedValue)14)
+#define XLIGHTWHITE ((ExtendedValue)15)
 #endif // DOXYGEN_SKIP
 
 //! Convenience `typedef` for clarity when dealing with extended (256) colors.
@@ -932,9 +919,14 @@ typedef enum StyleValue_t {
     DIM = 2,
     ITALIC = 3,
     UNDERLINE = 4,
-    FLASH = 5,
+    FLASH = 5, // DOS has a "rapid flash" for 6 also.
     HIGHLIGHT = 7,
-    NORMAL = 22
+    STRIKETHRU = 9,
+    NORMAL = 22,
+    // May not be supported.
+    FRAME = 51,
+    ENCIRCLE = 52,
+    OVERLINE = 53, // Supported in Konsole.
 } StyleValue;
 
 #ifndef DOXYGEN_SKIP
@@ -950,7 +942,7 @@ typedef enum StyleValue_t {
 #define NORMAL ((enum StyleValue_t)NORMAL)
 #endif // DOXYGEN_SKIP
 
-//! Argument types (fore, back).
+//! Argument types (fore, back, style).
 typedef enum ArgType_t {
     ARGTYPE_NONE = -1,
     FORE = 0,
@@ -960,6 +952,7 @@ typedef enum ArgType_t {
 
 //! Color/Style code types. Used with ColorType_from_str() and ColorValue.
 typedef enum ColorType_t {
+    TYPE_NONE = -6,
     TYPE_INVALID_EXTENDED_RANGE = -5,
     TYPE_INVALID_RGB_RANGE = -4,
     TYPE_INVALID_STYLE = -3,
@@ -977,7 +970,7 @@ typedef enum ColorType_t {
     \details
     This is used for the `basic_names` array in colr.c.
 */
-typedef struct BasicInfo_t {
+typedef struct BasicInfo_s {
     char* name;
     BasicValue value;
 } BasicInfo;
@@ -986,7 +979,7 @@ typedef struct BasicInfo_t {
     \details
     This is used for the `basic_names` array in colr.c.
 */
-typedef struct ExtendedInfo_t {
+typedef struct ExtendedInfo_s {
     char* name;
     ExtendedValue value;
 } ExtendedInfo;
@@ -995,7 +988,7 @@ typedef struct ExtendedInfo_t {
     \details
     This is used for the `style_names` array in colr.c.
 */
-typedef struct StyleInfo_t {
+typedef struct StyleInfo_s {
     char* name;
     StyleValue value;
 } StyleInfo;
@@ -1009,7 +1002,7 @@ typedef struct StyleInfo_t {
     This is internal. It's used to make the final interface easier to use.
     You probably shouldn't be using it.
 */
-typedef struct ColorValue_t {
+typedef struct ColorValue_s {
     ColorType type;
     BasicValue basic;
     ExtendedValue ext;
@@ -1019,7 +1012,7 @@ typedef struct ColorValue_t {
 
 /*! Holds an ArgType, and a ColorValue.
 */
-typedef struct ColorArg_t {
+typedef struct ColorArg_s {
     //! A marker used to inspect void pointers and determine if they are ColorArgs.
     unsigned int marker;
     //! Fore, back, style, invalid.
@@ -1031,7 +1024,7 @@ typedef struct ColorArg_t {
 
 /*! Holds a string of text, and optional fore, back, and style ColorArgs.
 */
-typedef struct ColorText_t {
+typedef struct ColorText_s {
     //! A marker used to inspect void pointers and determine if they are ColorTexts.
     unsigned int marker;
     //! Text to colorize.
@@ -1087,7 +1080,7 @@ void format_fg_RGB(char* out, RGB rgb);
 void format_fg_RGB_term(char* out, RGB rgb);
 void format_style(char* out, StyleValue style);
 /*! \internal
-    A function that formats in the rainbow style.
+    A function that formats with RGB codes.
     \details
     This is used to implement the different rainbow formatters,
     one will use straight RGB values. The other uses the "closest terminal code".
@@ -1112,16 +1105,17 @@ RGB rainbow_step(double freq, size_t step);
     String-based functions.
     \endinternal
 */
+
 void str_append_reset(char* s);
 char* str_copy(char* dest, const char* src, size_t length);
-bool str_endswith(const char* s, const char* suffix);
+bool str_ends_with(const char* s, const char* suffix);
 bool str_has_codes(const char* s);
 bool str_is_all(const char* s, const char c);
 bool str_is_digits(const char* s);
 void str_lower(char* s);
 char* str_lstrip_chars(const char* s, const char* chars);
 char* str_repr(const char* s);
-bool str_startswith(const char* s, const char* prefix);
+bool str_starts_with(const char* s, const char* prefix);
 char* str_to_lower(const char* s);
 wchar_t* str_to_wide(const char* s);
 char* wide_to_str(const wchar_t* s);
@@ -1148,6 +1142,7 @@ char* ArgType_to_str(ArgType type);
     ColorArg functions that deal with an ArgType, and a ColorValue.
     \endinternal
 */
+ColorArg ColorArg_empty(void);
 void ColorArg_free(ColorArg *p);
 ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value);
 ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value);
@@ -1155,6 +1150,7 @@ ColorArg ColorArg_from_RGB(ArgType type, RGB value);
 ColorArg ColorArg_from_str(ArgType type, char* colorname);
 ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value);
 ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p);
+bool ColorArg_is_empty(ColorArg carg);
 bool ColorArg_is_invalid(ColorArg carg);
 bool ColorArg_is_ptr(void *p);
 bool ColorArg_is_valid(ColorArg carg);
@@ -1187,9 +1183,11 @@ char* ColorType_repr(ColorType type);
     ColorValue functions that deal with a specific color value (basic, ext, rgb).
     \endinternal
 */
+ColorValue ColorValue_empty(void);
 ColorValue ColorValue_from_str(char* s);
 ColorValue ColorValue_from_value(ColorType type, void *p);
 bool ColorValue_is_invalid(ColorValue cval);
+bool ColorValue_is_valid(ColorValue cval);
 char* ColorValue_repr(ColorValue cval);
 char* ColorValue_to_str(ArgType type, ColorValue cval);
 
@@ -1210,6 +1208,8 @@ ExtendedValue ExtendedValue_from_hex_default(const char* hexstr, ExtendedValue d
 ExtendedValue ExtendedValue_from_RGB(RGB rgb);
 int ExtendedValue_from_str(const char* arg);
 char* ExtendedValue_repr(ExtendedValue eval);
+char* ExtendedValue_to_str(ExtendedValue eval);
+
 /*! \internal
     StyleValue functions.
     \endinternal
@@ -1228,8 +1228,12 @@ int RGB_from_hex(const char* arg, RGB *rgb);
 RGB RGB_from_hex_default(const char* arg, RGB default_value);
 int RGB_from_str(const char* arg, RGB* rgb);
 char* RGB_to_hex(RGB rgb);
+char* RGB_to_str(RGB rgb);
 RGB RGB_to_term_RGB(RGB rgb);
 char* RGB_repr(RGB rgb);
 
+// Private macros, not used outside of colr.h
+#undef concat
+#undef _concat
 
 #endif // COLR_H

@@ -127,53 +127,53 @@ describe(helpers) {
             free(s);
         }
     }
-// str_endswith
-    subdesc(str_endswith) {
-        it("str_endswith") {
+// str_ends_with
+    subdesc(str_ends_with) {
+        it("str_ends_with") {
             // Common uses.
             assert(
-                str_endswith("lightblue", "blue"),
+                str_ends_with("lightblue", "blue"),
                 "Known suffix was not detected."
             );
             assert(
-                str_endswith("xred", "red"),
+                str_ends_with("xred", "red"),
                 "Known suffix was not detected."
             );
             assert(
-                str_endswith("yellow", "low"),
+                str_ends_with("yellow", "low"),
                 "Known suffix was not detected."
             );
             assert(
-                str_endswith("!@#$^&*", "&*"),
+                str_ends_with("!@#$^&*", "&*"),
                 "Known suffix was not detected."
             );
             assert(
-                str_endswith("    test    ", "    "),
+                str_ends_with("    test    ", "    "),
                 "Known suffix was not detected."
             );
             // Should not trigger a match.
             assert(
-                !str_endswith("test", "a"),
+                !str_ends_with("test", "a"),
                 "Bad suffix was falsey detected."
             );
             assert(
-                !str_endswith(" test ", "test"),
+                !str_ends_with(" test ", "test"),
                 "Bad suffix was falsey detected."
             );
             assert(
-                !str_endswith("t", "apple"),
+                !str_ends_with("t", "apple"),
                 "Bad suffix was falsey detected."
             );
             assert(
-                !str_endswith(NULL, "a"),
+                !str_ends_with(NULL, "a"),
                 "Null argument did not return false."
             );
             assert(
-                !str_endswith("test", NULL),
+                !str_ends_with("test", NULL),
                 "Null argument did not return false."
             );
             assert(
-                !str_endswith(NULL, NULL),
+                !str_ends_with(NULL, NULL),
                 "Null arguments did not return false."
             );
         }
@@ -369,8 +369,8 @@ describe(helpers) {
             }
         }
     }
-// str_startswith
-    subdesc(str_startswith) {
+// str_starts_with
+    subdesc(str_starts_with) {
         it("recognizes string prefixes") {
             struct {
                 char* s;
@@ -392,7 +392,7 @@ describe(helpers) {
                 {NULL, NULL, false},
             };
             for_each(tests, i) {
-                asserteq(str_startswith(tests[i].s, tests[i].prefix), tests[i].expected);
+                asserteq(str_starts_with(tests[i].s, tests[i].prefix), tests[i].expected);
             }
         }
     }

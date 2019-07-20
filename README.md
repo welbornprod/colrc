@@ -87,12 +87,12 @@ There is also a "snippet runner" that can build and run
 arbitrary C code snippets, but is useful for building and running all example
 code snippets found in the ColrC source code itself:
 ```bash
-./run_snippet.py --examples
+./tools/snippet.py --examples
 ```
 
 To see the source-based examples in the terminal you can run:
 ```bash
-./run_snippet.py --listexamples
+./tools/snippet.py --listexamples
 ```
 
 ## Why
