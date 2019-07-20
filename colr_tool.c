@@ -55,6 +55,8 @@ int main(int argc, char* argv[]) {
                     rainbow_bg(colropts.text, freq, offset)
                 )
         );
+        // Text was allocated from stdin input, it's safe to free.
+        if (free_text) free(colropts.text);
         // Some or all of the fore/back/style args are "empty" (not null).
         // They will not be used if they are empty, but they will be free'd.
         char* styled = colr(
