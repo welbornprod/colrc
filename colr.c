@@ -84,10 +84,27 @@ const StyleInfo style_names[] = {
 //! Length of style_names.
 const size_t style_names_len = sizeof(style_names) / sizeof(style_names[0]);
 
-/*! A map from RGB value to ExtendedValue (256-color), where the index is the
-    is the ExtendedValue.
+/*! A map from ExtendedValue (256-color) to RGB value, where the index is the
+    is the ExtendedValue, and the value is the RGB.
+
+    \details
+    This is used in several RGB/ExtendedValue functions.
+
+    \sa ExtendedValue_from_RGB RGB_to_term_RGB
+
+    \examplecodefor{ext2rgb_map,.c}
+    // Fast map an ExtendedValue to an RGB value.
+    ExtendedValue eval = 9; // 9 happens to be XRED (255;0;0 in RGB).
+    RGB rgbval = ext2rgb_map[eval];
+
+    // The result from ExtendedValue_from_RGB should always match the map.
+    assert(ExtendedValue_from_RGB(rgbval) == eval);
+
+    // Also, the result of RGB_to_term_RGB() should always be in the map.
+    assert(RGB_eq(ext2rgb_map[eval], RGB_to_term_RGB(rgb(255, 47, 23))));
+    \endexamplecode
 */
-const RGB rgb2term_map[] = {
+const RGB ext2rgb_map[] = {
     // Primary 3-bit colors (8 colors, 0-7)
     {0, 0, 0},
     {128, 0, 0},
@@ -349,8 +366,8 @@ const RGB rgb2term_map[] = {
     {238, 238, 238},
 };
 
-//! Length of rgb2term_map  (should always be 256).
-const size_t rgb2term_map_len = sizeof(rgb2term_map) / sizeof(rgb2term_map[0]);
+//! Length of ext2rgb_map  (should always be 256).
+const size_t ext2rgb_map_len = sizeof(ext2rgb_map) / sizeof(ext2rgb_map[0]);
 
 
 /*! Returns the char needed to represent an escape sequence in C.
@@ -2295,8 +2312,8 @@ ExtendedValue ExtendedValue_from_hex_default(const char* hexstr, ExtendedValue d
 */
 ExtendedValue ExtendedValue_from_RGB(RGB rgb) {
     RGB closestrgb = RGB_to_term_RGB(rgb);
-    for (size_t i = 0; i < rgb2term_map_len; i++) {
-        if (RGB_eq(closestrgb, rgb2term_map[i])) {
+    for (size_t i = 0; i < ext2rgb_map_len; i++) {
+        if (RGB_eq(closestrgb, ext2rgb_map[i])) {
             return ext(i);
         }
     }

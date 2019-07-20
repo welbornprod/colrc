@@ -806,6 +806,31 @@
 */
 #define style_str(x) ColorArg_to_str(style_arg(x))
 
+/*! \def with_rgbs
+    Iterate over every possible rgb combination, 0-255 for red, green, and blue.
+
+    \details
+    This macro expects a block of code after it, where the values `r`, `g`, and
+    `b` are declared as `int` in the range `0`-`255`.
+
+    \examplecodefor{with_rgbs,.c}
+    with_rgbs() {
+        // You can do whatever you want with r, g, and b.
+        if ((r % 100 == 0) && (g % 100 == 0) && (b % 100 == 0)) {
+            RGB val = rgb(r, g, b);
+            char* repr = colr_repr(val);
+            char* s = colr(fore(val), repr);
+            printf("Found RGB: %s\n", s);
+            free(s);
+            free(repr);
+        }
+    }
+    \endexamplecode
+*/
+#define with_rgbs() \
+    for (int r = 0; r < 256; r++) \
+        for (int g = 0; g < 256; g++) \
+            for (int b = 0; b < 256; b++) \
 /*! Basic color values, with a few convenience values for extended colors.
 
     \internal
@@ -1051,10 +1076,10 @@ extern const StyleInfo style_names[];
 //! Length of style_names.
 extern const size_t style_names_len;
 
-//! A map of RGB values to ExtendedValue (256-color).
-extern const RGB rgb2term_map[];
-//! Length of rgb2term_map (should be 256).
-extern const size_t rgb2term_map_len;
+//! A map of ExtendedValue (256-color) to RGB values.
+extern const RGB ext2rgb_map[];
+//! Length of ext2rgb_map (should be 256).
+extern const size_t ext2rgb_map_len;
 
 #endif
 
