@@ -101,20 +101,24 @@ USAGE_MACROS = '\n'.join(
 USAGESTR = f"""{VERSIONSTR}
     Usage:
         {SCRIPT} -h | -v
-        {SCRIPT} [-D] (-c | -L)
+        {SCRIPT} [-D] (-c | -L [PATTERN])
         {SCRIPT} [-D] [-n] [-q] [-m | -r exe] -b
         {SCRIPT} [-D] [-n] [-q] [-m | -r exe] -x [PATTERN] [-- ARGS...]
         {SCRIPT} [-D] [-n] [-q] [-m | -r exe] [CODE] [-- ARGS...]
         {SCRIPT} [-D] [-n] [-q] [-m | -r exe] [-f file...] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-m | -r exe] [-w] (-e | -l) [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-m | -r exe] [-w] (-e [CODE] | -l) [-- ARGS...]
         {SCRIPT} [-D] -E [CODE] [-- ARGS...]
         {SCRIPT} [-D] -E [-f file...] [-- ARGS...]
-        {SCRIPT} [-D] -E [-w] (-e | -l) [-- ARGS...]
+        {SCRIPT} [-D] -E [-w] (-e [CODE] | -l) [-- ARGS...]
 
     Options:
         ARGS                 : Extra arguments for the compiler.
-        CODE                 : Code to compile. It is wrapped in a main()
-                               function, with colr.h included.
+        CODE                 : Code to compile. It is auto-wrapped in a main()
+                               function if no main() signature is found.
+                               "colr.h" and "dbug.h" are included unless include
+                               lines for them are found.
+                               When used with -e, the editor is started with
+                               this as it's content.
                                Default: stdin
         PATTERN              : Only run examples with a leading comment that
                                matches this text/regex pattern.
@@ -126,6 +130,8 @@ USAGESTR = f"""{VERSIONSTR}
                                output.
         -e,--editlast        : Edit the last snippet in $EDITOR and run it.
                                $EDITOR is {EDITOR_DESC}
+                               If the CODE argument is given, the editor
+                               it will replace the contents of the last snippet.
         -f name,--file name  : Read file to get snippet to compile.
         -h,--help            : Show this help message.
         -L,--listexamples    : List example code snippets in the source.
@@ -155,7 +161,8 @@ def main(argd):
     if argd['--clean']:
         return clean_tmp()
     elif argd['--listexamples']:
-        return list_examples()
+        pat = try_repat(argd['PATTERN'])
+        return list_examples(name_pat=pat)
     elif argd['--examples']:
         pat = try_repat(argd['PATTERN'])
         return run_examples(
@@ -179,15 +186,15 @@ def main(argd):
             read_file(s)
             for s in argd['--file']
         ]
-    elif argd['--editlast']:
-        if not config['last_snippet']:
-            raise InvalidArg('no "last snippet" found.')
+    if argd['--editlast']:
         if argd['--wrapped']:
             if not config['last_c_file']:
                 raise InvalidArg('no "last file" found.')
             snippet = edit_snippet(filepath=config['last_c_file'])
         else:
-            snippet = edit_snippet(text=config['last_snippet'])
+            if not (argd['CODE'] or config['last_snippet']):
+                raise InvalidArg('no "last snippet" found, no code given.')
+            snippet = edit_snippet(text=argd['CODE'] or config['last_snippet'])
         if not snippet:
             raise UserCancelled()
         snippets = [snippet]
@@ -239,20 +246,72 @@ def clean_tmp():
     return 0 if tmpfiles else 1
 
 
+def edited_code_trim(lines):
+    """ Remove comment lines, and look for markers like '// cancel'.
+        Returns possibly compilable code on success, or None if the code
+        was empty or "cancelled".
+
+        Arguments:
+            lines  : An iterable of code lines (like a list or file object).
+
+        Returns a list of code lines on success, or None on error/cancellation.
+    """
+    # Not using a list comprehension, so I can look for "markers".
+    trimmed = []
+    cancel_markers = set(('//cancel', '/*cancel', '/*\ncancel'))
+    in_block_comment = False
+    for line in lines:
+        stripped = line.lstrip()
+        if in_block_comment:
+            if '*/' in stripped:
+                in_block_comment = False
+            debug(line, align=True)
+            continue
+        elif stripped.startswith('/*'):
+            in_block_comment = True
+            debug('Starting block comment:')
+            debug(line, align=True)
+            continue
+        # A comment line, look for markers.
+        if stripped.startswith('//'):
+            if stripped.replace(' ', '').lower() in cancel_markers:
+                debug(f'Found cancel marker: {line}')
+                return None
+            debug('Skipping comment:')
+            debug(line, align=True)
+            continue
+        # Usable code.
+        trimmed.append(line)
+
+    # Remove leading blank lines.
+    while trimmed and (not trimmed[0].strip()):
+        trimmed.pop(0)
+
+    if trimmed and (trimmed[0].lower().startswith('cancel')):
+        # Just wrote 'cancel'/'CANCEL' at the top of the file.
+        debug(f'Found plain cancel marker: {trimmed[0]!r}')
+        return None
+    return trimmed or None
+
+
 def edit_snippet(filepath=None, text=None):
     if not (filepath or text):
         raise EditError('Developer Error: Missing file path or initial text!')
     marker = f'// {NAME} - Snippet Editing'
     header = '\n'.join((
         marker,
-        '// If this file is empty, or all lines are commented out with',
-        '// single-line comments, the process is cancelled.',
         '',
+        '/*  If this file is empty, or all lines are commented out with',
+        '    single-line comments, the process is cancelled.',
+        '    You may also write "cancel" at the top of the file, or insert a',
+        '    single/block comment with the first word as "cancel" anywhere in',
+        '    the file to cancel compilation.',
+        '*/\n',
     ))
     if text:
         fd, filepath = temp_file(extra_prefix='last_snippet')
         os.write(fd, header.encode())
-        os.write(fd, text.encode())
+        os.write(fd, text.encode().strip())
         os.close(fd)
         name = 'edited-snippet'
     elif filepath:
@@ -268,15 +327,11 @@ def edit_snippet(filepath=None, text=None):
             raise EditError(f'Editor ({EDITOR}) returned non-zero!')
 
     with open(filepath, 'r') as f:
-        usablelines = [
-            s
-            for s in f
-            if not s.lstrip().startswith('//')
-        ]
-    if not usablelines:
+        codelines = edited_code_trim(f)
+    if not codelines:
         raise UserCancelled()
 
-    return Snippet(''.join(usablelines), name=name)
+    return Snippet(''.join(codelines), name=name)
 
 
 def find_src_examples():
@@ -435,7 +490,7 @@ def iter_output(cmd, stderr=subprocess.PIPE):
     )
 
 
-def list_examples():
+def list_examples(name_pat=None):
     """ List all example snippets found in the source. """
     snippetinfo = find_src_examples()
     if not snippetinfo:
@@ -446,8 +501,19 @@ def list_examples():
     for filepath in sorted(snippetinfo):
         snippets = snippetinfo[filepath]
         length += len(snippets)
-        print(C('').join(C(f'\n{filepath}', 'cyan', style='underline'), ':'))
+        printed_file = False
         for snippet in snippets:
+            if (
+                    (name_pat is not None) and
+                    (name_pat.search(snippet.name) is None)):
+                debug(f'Skipping non-matching snippet: {snippet.name}')
+                continue
+            if not printed_file:
+                printed_file = True
+                print(C('').join(
+                    C(f'\n{filepath}', 'cyan', style='underline'),
+                    ':'
+                ))
             print(C(snippet))
 
     plural = 'snippet' if length == 1 else 'snippets'
@@ -962,7 +1028,7 @@ class Snippet(object):
         else:
             mainsig = 'int main(void)'
             debug('Not using argc or argv.', align=True)
-        if code.endswith(';') or code.endswith(';'):
+        if code.endswith(';') or code.endswith('}'):
             debug('No semi-colon needed.', align=True)
         else:
             debug('Adding semi-colon to code.', align=True)
