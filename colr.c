@@ -10,7 +10,7 @@
 
 //! A list of BasicInfo items, used with BasicValue_from_str().
 const BasicInfo basic_names[] = {
-    {"none", BASIC_NONE},
+    {"none", RESET},
     {"reset", RESET},
     {"black", BLACK},
     {"blue", BLUE},
@@ -62,7 +62,7 @@ const size_t extended_names_len = sizeof(extended_names) / sizeof(extended_names
 
 //! A list of StyleInfo items, used with StyleName_from_str().
 const StyleInfo style_names[] = {
-    {"none", STYLE_NONE},
+    {"none", RESET_ALL},
     {"reset", RESET_ALL},
     {"bold", BRIGHT},
     {"bright", BRIGHT},
@@ -72,6 +72,13 @@ const StyleInfo style_names[] = {
     {"flash", FLASH},
     {"highlight", HIGHLIGHT},
     {"normal", NORMAL},
+    {"strikethru", STRIKETHRU},
+    {"strike", STRIKETHRU},
+    {"strikethrough", STRIKETHRU},
+    {"frame", FRAME},
+    {"encircle", ENCIRCLE},
+    {"circle", ENCIRCLE},
+    {"overline", OVERLINE},
 };
 
 //! Length of style_names.
@@ -383,17 +390,17 @@ const size_t rgb2term_map_len = sizeof(rgb2term_map) / sizeof(rgb2term_map[0]);
 */
 char char_escape_char(const char c) {
     switch (c) {
-        case '\'': return '\''; break;
-        case '\"': return '"'; break;
-        case '\?': return '?'; break;
-        case '\\': return '\\'; break;
-        case '\a': return 'a'; break;
-        case '\b': return 'b'; break;
-        case '\f': return 'f'; break;
-        case '\n': return 'n'; break;
-        case '\r': return 'r'; break;
-        case '\t': return 't'; break;
-        case '\v': return 'v'; break;
+        case '\'': return '\'';
+        case '\"': return '"';
+        case '\?': return '?';
+        case '\\': return '\\';
+        case '\a': return 'a';
+        case '\b': return 'b';
+        case '\f': return 'f';
+        case '\n': return 'n';
+        case '\r': return 'r';
+        case '\t': return 't';
+        case '\v': return 'v';
         default:
             return c;
     }
@@ -437,17 +444,17 @@ bool char_in_str(const char c, const char* s) {
 */
 bool char_should_escape(const char c) {
     switch (c) {
-        case '\'': return true; break;
-        case '\"': return true; break;
-        case '\?': return true; break;
-        case '\\': return true; break;
-        case '\a': return true; break;
-        case '\b': return true; break;
-        case '\f': return true; break;
-        case '\n': return true; break;
-        case '\r': return true; break;
-        case '\t': return true; break;
-        case '\v': return true; break;
+        case '\'': return true;
+        case '\"': return true;
+        case '\?': return true;
+        case '\\': return true;
+        case '\a': return true;
+        case '\b': return true;
+        case '\f': return true;
+        case '\n': return true;
+        case '\r': return true;
+        case '\t': return true;
+        case '\v': return true;
         default:
             return false;
     }
@@ -1268,6 +1275,23 @@ char* ArgType_to_str(ArgType type) {
     return typestr;
 }
 
+/*! Create a ColorArg with ARGTYPE_NONE and ColorValue.type.TYPE_NONE.
+    \details
+    This is used to pass "empty" fore/back/style args to the \colrmacros,
+    where `NULL` has a different meaning (end of argument list).
+
+    \return `(ColorArg){.type=ARGTYPE_NONE, .value.type=TYPE_NONE}`
+
+    \sa ColorArg_is_empty ColorValue_empty
+*/
+ColorArg ColorArg_empty(void) {
+    return (ColorArg){
+        .marker=COLORARG_MARKER,
+        .type=ARGTYPE_NONE,
+        .value=ColorValue_empty()
+    };
+}
+
 /*! Free allocated memory for a ColorArg.
 
     \details
@@ -1432,6 +1456,17 @@ ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p) {
     return carg;
 }
 
+/*! Checks to see if a ColorArg is an empty placeholder.
+
+    \details
+    A ColorArg is empty if it's `.type` is set to `ARGTYPE_NONE`.
+
+    \pi carg A ColorArg to check.
+    \return  `true` if the ColorArg is considered "empty", otherwise `false`.
+*/
+bool ColorArg_is_empty(ColorArg carg) {
+    return carg.type == ARGTYPE_NONE;
+}
 
 /*! Checks to see if a ColorArg holds an invalid value.
 
@@ -1521,6 +1556,9 @@ ColorArg *ColorArg_to_ptr(ColorArg carg) {
     Allocates memory for the string.
 
     \details
+    If the ColorArg is empty (`ARGTYPE_NONE`), an empty string is returned.
+
+    \details
     If the ColorValue is invalid, an empty string is returned.
     You must still free the empty string.
 
@@ -1531,6 +1569,7 @@ ColorArg *ColorArg_to_ptr(ColorArg carg) {
     \sa ColorArg
 */
 char* ColorArg_to_str(ColorArg carg) {
+    if (ColorArg_is_empty(carg)) return colr_empty_str();
     return ColorValue_to_str(carg.type, carg.value);
 }
 
@@ -1576,6 +1615,8 @@ ColorText ColorText_from_values(char* text, ...) {
     while ((arg = va_arg(colrargs, ColorArg*))) {
         assert(ColorArg_is_ptr(arg));
         // It's a ColorArg.
+        // Skip over "empty" ColorArgs.
+        if (ColorArg_is_empty(*arg)) continue;
         if (arg->type == FORE) {
             // It's the fore arg.
             ctext.fore = arg;
@@ -1790,6 +1831,9 @@ bool ColorType_is_valid(ColorType type) {
 char* ColorType_repr(ColorType type) {
     char* typestr;
     switch (type) {
+        case TYPE_NONE:
+            asprintf(&typestr, "TYPE_NONE");
+            break;
         case TYPE_BASIC:
             asprintf(&typestr, "TYPE_BASIC");
             break;
@@ -1816,6 +1860,26 @@ char* ColorType_repr(ColorType type) {
             break;
     }
     return typestr;
+}
+
+/*! Create an "empty" ColorValue.
+
+    \details
+    This is used with ColorArg_empty() to build ColorArgs that don't do anything,
+    where using `NULL` has a different meaning inside the \colrmacros.
+
+    \return `(ColorValue){.type=TYPE_NONE, .basic=0, .ext=0, .rgb=(RGB){0, 0, 0}}`
+
+    \sa ColorArg_empty ColorArg_is_empty
+*/
+ColorValue ColorValue_empty(void) {
+    return (ColorValue){
+        .type=TYPE_NONE,
+        .basic=basic(0),
+        .ext=ext(0),
+        .rgb=rgb(0, 0, 0),
+        .style=RESET_ALL,
+    };
 }
 
 /*! Create a ColorValue from a known color name, or RGB string.
@@ -1899,7 +1963,10 @@ ColorValue ColorValue_from_value(ColorType type, void *p) {
     }
     if (type == TYPE_BASIC) {
         BasicValue *bval = p;
-        return (ColorValue){.type=TYPE_BASIC, .basic=*bval};
+        BasicValue use_bval = *bval;
+        // NONE has special meaning. It's not invalid, it's just "no preference".
+        if (use_bval == BASIC_NONE) use_bval = basic(RESET);
+        return (ColorValue){.type=TYPE_BASIC, .basic=use_bval};
     } else if (type == TYPE_EXTENDED) {
         ExtendedValue *eval = p;
         return (ColorValue){.type=TYPE_EXTENDED, .ext=*eval};
@@ -2160,7 +2227,7 @@ char* BasicValue_repr(BasicValue bval) {
 int BasicValue_to_ansi(ArgType type, BasicValue bval) {
     int use_value = (int)bval;
     if (bval < 0) {
-        // Invalid, just use the RESET code.
+        // Invalid or NONE, just use the RESET code.
         return (int)RESET;
     }
     if (bval < 10) {
@@ -2317,6 +2384,21 @@ int ExtendedValue_from_str(const char* arg) {
 char* ExtendedValue_repr(ExtendedValue eval) {
     char* repr;
     asprintf(&repr, "(ExtendedValue) %d", eval);
+    return repr;
+}
+
+/*! Creates a string from an ExtendedValue's actual value, suitable for use
+    with ExtendedValue_from_str().
+
+    \pi eval    A ExtendedValue to get the value from.
+    \return     A pointer to an allocated string.
+                \mustfree
+
+    \sa ExtendedValue
+*/
+char* ExtendedValue_to_str(ExtendedValue eval) {
+    char* repr;
+    asprintf(&repr, "%d", eval);
     return repr;
 }
 
@@ -2510,6 +2592,7 @@ RGB RGB_from_hex_default(const char* arg, RGB default_value) {
         - "RED,GREEN,BLUE"
         - "RED GREEN BLUE"
         - "RED:GREEN:BLUE"
+        - "RED;GREEN;BLUE"
     Or hex strings can be used:
         - "#ffffff" (Leading hash symbol is __NOT__ optional)
         - "#fff" (short-form)
@@ -2554,6 +2637,7 @@ int RGB_from_str(const char* arg, RGB *rgbval) {
 
     \pi rgb RGB value to convert.
     \return An allocated string.
+            Returns `NULL` if the allocation failed.
             \mustfree
 
     \sa RGB
@@ -2561,6 +2645,19 @@ int RGB_from_str(const char* arg, RGB *rgbval) {
 char* RGB_to_hex(RGB rgb) {
     char* s;
     asprintf(&s, "%02x%02x%02x", rgb.red, rgb.green, rgb.blue);
+    return s;
+}
+
+/*! Convert an RGB value into an RGB string suitable for input to RGB_from_str().
+
+    \pi rgb RGB value to convert.
+    \return An allocated string in the form `"red;green;blue"`.
+            Returns `NULL` if the allocation failed.
+            \mustfree
+*/
+char* RGB_to_str(RGB rgb) {
+    char* s;
+    asprintf(&s, "%03d;%03d;%03d", rgb.red, rgb.green, rgb.blue);
     return s;
 }
 
@@ -2624,11 +2721,10 @@ char* RGB_repr(RGB rgb) {
     return repr;
 }
 
-/*! Convert named argument to actual StyleValue enum value.
+/*! Convert a named argument to actual StyleValue enum value.
 
     \pi arg Style name to convert into a StyleValue.
     \return A usable StyleValue value on success, or STYLE_INVALID on error.
-
     \sa StyleValue
 */
 StyleValue StyleValue_from_str(const char* arg) {
@@ -2687,6 +2783,18 @@ char* StyleValue_repr(StyleValue sval) {
             break;
         case NORMAL:
             asprintf(&repr, "(StyleValue) NORMAL");
+            break;
+        case STRIKETHRU:
+            asprintf(&repr, "(StyleValue) STRIKETHRU");
+            break;
+        case FRAME:
+            asprintf(&repr, "(StyleValue) FRAME");
+            break;
+        case ENCIRCLE:
+            asprintf(&repr, "(StyleValue) ENCIRCLE");
+            break;
+        case OVERLINE:
+            asprintf(&repr, "(StyleValue) OVERLINE");
             break;
         default:
             // Should never happen, but at least the value will be known

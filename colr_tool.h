@@ -25,7 +25,7 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-macros"
 
-#define NAME "Colr"
+#define NAME "ColrC"
 #define VERSION COLR_VERSION
 
 // Maximum length for user args (fore, back, style).
@@ -35,9 +35,15 @@
 // Maximum length for TEXT argument.
 #define MAX_TEXT_LEN 1024
 
+#define print_opts_repr(x) \
+    do { \
+        char* _p_o_r_s = ColrToolOptions_repr(x); \
+        printf("%s\n", _p_o_r_s); \
+        free(_p_o_r_s); \
+    } while (0)
 
 // Print a representation of a ColorArg to stdout.
-#define print_ColorArg_repr(x) \
+#define print_repr(x) \
     do { \
         char* _pcar_valrepr = colr_repr(x); \
         printf("%s\n", _pcar_valrepr); \
@@ -61,10 +67,12 @@ typedef struct ColrToolOptions_s {
     ColorArg* back;
     ColorArg* style;
     bool rainbow_fore;
+    bool rainbow_back;
     bool print_back;
     bool print_256;
     bool print_basic;
     bool print_rgb;
+    bool print_rgb_term;
     bool print_rainbow;
 } ColrToolOptions;
 
@@ -73,14 +81,15 @@ char* ColrToolOptions_repr(ColrToolOptions colropts);
 
 void debug_args(char* text, char* fore, char* back, char* style);
 void example_color_build(void);
-bool parse_args(int argc, char** argv, ColrToolOptions* colropts);
-int print_256(bool do_fore);
-int print_basic(bool do_fore);
-int print_rainbow_fore(void);
-int print_rgb(bool do_fore);
+int parse_args(int argc, char** argv, ColrToolOptions* colropts);
+int print_256(bool do_back);
+int print_basic(bool do_back);
+int print_rainbow(bool do_back);
+int print_rgb(bool do_back, bool term_rgb);
 void print_unrecognized_arg(const char* userarg);
 int print_usage(const char* reason);
 int print_usage_full(void);
+int print_version(void);
 char* read_stdin_arg(void);
 bool validate_color_arg(ColorArg carg, const char* name);
 #endif // COLR_TOOL_H

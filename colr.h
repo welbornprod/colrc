@@ -91,10 +91,10 @@
 #pragma GCC diagnostic ignored "-Wunused-macros"
 /* Tell gcc to ignore clang pragmas, for linting. */
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
+
 /* Tell clang to ignore unused macros. */
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-macros"
-
 
 //! Convenience definition, because this is used a lot.
 #define CODE_RESET_ALL "\033[0m"
@@ -504,14 +504,13 @@
 #define colr_istreq(s1, s2) ((s1 && s2) ? !strcasecmp(s1, s2) : 0)
 
 /*! \def colr_max
-    Macro for `(b > a ? b : a)`.
+    Macro for `(a > b ? a : b)`.
 
     \pi a   First value to compare.
     \pi b   Second value to compare.
-    \return `b` if `b > a`, otherwise `a`.
+    \return `a` if `a > b`, otherwise `b`.
 */
-#define colr_max(a, b) (b > a ? b : a)
-
+#define colr_max(a, b) ({ typeof (a) _a = (a); typeof (b) _b = (b); _a > _b ? _a : _b; })
 /*! \def colr_streq
     Convenience macro for `!strcmp(s1, s2)`.
 
@@ -576,15 +575,6 @@
         RGB: RGB_repr, \
         char*: str_repr \
     )(x)
-
-
-#ifndef DOXYGEN_SKIP
-    // Will expand arguments.
-    #define concat(a, b) _concat(a, b)
-    // Will not expand arguments.
-    #define _concat(a, b) a ## b
-#endif // DOXYGEN_SKIP
-
 
 /*! \def dbug_repr
     Uses colr_repr() to build a string representation of a ColrC object,
@@ -767,6 +757,7 @@
             _st_l_c_dest_i++; \
         } \
     } while (0);
+
 /*! \def style
     Create a style suitable for use with the colr() and Colr() macros.
 
@@ -928,9 +919,14 @@ typedef enum StyleValue_t {
     DIM = 2,
     ITALIC = 3,
     UNDERLINE = 4,
-    FLASH = 5,
+    FLASH = 5, // DOS has a "rapid flash" for 6 also.
     HIGHLIGHT = 7,
-    NORMAL = 22
+    STRIKETHRU = 9,
+    NORMAL = 22,
+    // May not be supported.
+    FRAME = 51,
+    ENCIRCLE = 52,
+    OVERLINE = 53, // Supported in Konsole.
 } StyleValue;
 
 #ifndef DOXYGEN_SKIP
@@ -946,7 +942,7 @@ typedef enum StyleValue_t {
 #define NORMAL ((enum StyleValue_t)NORMAL)
 #endif // DOXYGEN_SKIP
 
-//! Argument types (fore, back).
+//! Argument types (fore, back, style).
 typedef enum ArgType_t {
     ARGTYPE_NONE = -1,
     FORE = 0,
@@ -956,6 +952,7 @@ typedef enum ArgType_t {
 
 //! Color/Style code types. Used with ColorType_from_str() and ColorValue.
 typedef enum ColorType_t {
+    TYPE_NONE = -6,
     TYPE_INVALID_EXTENDED_RANGE = -5,
     TYPE_INVALID_RGB_RANGE = -4,
     TYPE_INVALID_STYLE = -3,
@@ -1145,6 +1142,7 @@ char* ArgType_to_str(ArgType type);
     ColorArg functions that deal with an ArgType, and a ColorValue.
     \endinternal
 */
+ColorArg ColorArg_empty(void);
 void ColorArg_free(ColorArg *p);
 ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value);
 ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value);
@@ -1152,6 +1150,7 @@ ColorArg ColorArg_from_RGB(ArgType type, RGB value);
 ColorArg ColorArg_from_str(ArgType type, char* colorname);
 ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value);
 ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p);
+bool ColorArg_is_empty(ColorArg carg);
 bool ColorArg_is_invalid(ColorArg carg);
 bool ColorArg_is_ptr(void *p);
 bool ColorArg_is_valid(ColorArg carg);
@@ -1184,6 +1183,7 @@ char* ColorType_repr(ColorType type);
     ColorValue functions that deal with a specific color value (basic, ext, rgb).
     \endinternal
 */
+ColorValue ColorValue_empty(void);
 ColorValue ColorValue_from_str(char* s);
 ColorValue ColorValue_from_value(ColorType type, void *p);
 bool ColorValue_is_invalid(ColorValue cval);
@@ -1208,6 +1208,8 @@ ExtendedValue ExtendedValue_from_hex_default(const char* hexstr, ExtendedValue d
 ExtendedValue ExtendedValue_from_RGB(RGB rgb);
 int ExtendedValue_from_str(const char* arg);
 char* ExtendedValue_repr(ExtendedValue eval);
+char* ExtendedValue_to_str(ExtendedValue eval);
+
 /*! \internal
     StyleValue functions.
     \endinternal
@@ -1226,6 +1228,7 @@ int RGB_from_hex(const char* arg, RGB *rgb);
 RGB RGB_from_hex_default(const char* arg, RGB default_value);
 int RGB_from_str(const char* arg, RGB* rgb);
 char* RGB_to_hex(RGB rgb);
+char* RGB_to_str(RGB rgb);
 RGB RGB_to_term_RGB(RGB rgb);
 char* RGB_repr(RGB rgb);
 
