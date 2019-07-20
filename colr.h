@@ -109,7 +109,7 @@
 /*! Maximum length for a basic fore/back escape code, including `'\0'`.
     Keep in mind that BasicValue actually has some "light" colors (104).
 */
-#define CODE_LEN 7
+#define CODE_LEN 14
 //! Maximum length for an extended fore/back escape code, including `'\0'`.
 #define CODEX_LEN 12
 //! Maximum length for a style escape code, including `'\0'`.
@@ -201,6 +201,8 @@
     \return Non-zero if \p arg matches either \p s1 or \p s2, otherwise `0`.
 */
 #define argeq(arg, s1, s2) (!strcmp(arg, s1)) || (!strcmp(arg, s2))
+
+#define asprintf_or_return(retval, ...) if (asprintf(__VA_ARGS__) < 1) return retval
 
 /*! \def back
     Create a back color suitable for use with the colr() and Colr() macros.
@@ -1046,7 +1048,6 @@ typedef struct ColorArg_s {
     ColorValue value;
 } ColorArg;
 
-
 /*! Holds a string of text, and optional fore, back, and style ColorArgs.
 */
 typedef struct ColorText_s {
@@ -1149,12 +1150,14 @@ char* wide_to_str(const wchar_t* s);
     The multi-type variadiac function behind the colr() macro.
     \endinternal
 */
+size_t _colr_length(void *p, va_list args);
 char* _colr(void *p, ...);
 /*! \internal
     The multi-type variadiac function behind the colr_join() macro.
     \endinternal
 */
-char* _colr_join(void *joinerp, ...);
+size_t _colr_join_length(void* joinerp, va_list args);
+char* _colr_join(void* joinerp, ...);
 
 /*! \internal
     ArgType functions that only deal with argument types (fore, back, style).
@@ -1169,6 +1172,7 @@ char* ArgType_to_str(ArgType type);
 */
 ColorArg ColorArg_empty(void);
 void ColorArg_free(ColorArg *p);
+size_t ColorArg_length(ColorArg carg);
 ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value);
 ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value);
 ColorArg ColorArg_from_RGB(ArgType type, RGB value);
@@ -1191,6 +1195,7 @@ char* ColorArg_to_str(ColorArg carg);
 void ColorText_free(ColorText *p);
 ColorText ColorText_from_values(char* text, ...);
 bool ColorText_is_ptr(void *p);
+size_t ColorText_length(ColorText ctext);
 char* ColorText_repr(ColorText);
 ColorText *ColorText_to_ptr(ColorText ctext);
 char* ColorText_to_str(ColorText ctext);
@@ -1213,6 +1218,7 @@ ColorValue ColorValue_from_str(char* s);
 ColorValue ColorValue_from_value(ColorType type, void *p);
 bool ColorValue_is_invalid(ColorValue cval);
 bool ColorValue_is_valid(ColorValue cval);
+size_t ColorValue_length(ArgType type, ColorValue cval);
 char* ColorValue_repr(ColorValue cval);
 char* ColorValue_to_str(ArgType type, ColorValue cval);
 

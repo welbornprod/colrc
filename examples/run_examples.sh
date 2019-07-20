@@ -92,7 +92,7 @@ function run_exe {
     shift
     local wrapper_cmd
     declare -a wrapper_cmd=("$@")
-
+    [[ -n "${wrapper_cmd[0]}" ]] || unset -v wrapper_cmd
     [[ -n "$exename" ]] || fail "No executable given to \`run_exe\`!"
     [[ -x "$exename" ]] || fail "Not an executable: $exename"
     if ((${#wrapper_cmd[@]})); then

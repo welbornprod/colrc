@@ -106,7 +106,8 @@ char* ColrToolOptions_repr(ColrToolOptions colropts) {
     char* back_repr = colropts.back ? colr_repr(*(colropts.back)) : NULL;
     char* style_repr = colropts.style ? colr_repr(*(colropts.style)) : NULL;
     char* repr;
-    asprintf(
+    asprintf_or_return(
+        NULL,
         &repr,
         "ColrToolOptions(\n\
     .text=%s,\n\
@@ -248,7 +249,7 @@ int parse_args(int argc, char** argv, ColrToolOptions* colropts) {
                 print_version();
                 return 0;
             case '?':
-                asprintf(&unknownmsg, "Unknown argument: %c", optopt);
+                asprintf_or_return(1, &unknownmsg, "Unknown argument: %c", optopt);
                 print_usage(unknownmsg);
                 free(unknownmsg);
                 return 1;
@@ -352,7 +353,7 @@ int print_basic(bool do_back) {
             puts("");
         }
         BasicValue otherval = str_ends_with(name, "black") ? WHITE : BLACK;
-        asprintf(&namefmt, "%-14s", name);
+        asprintf_or_return(1, &namefmt, "%-14s", name);
         if (do_back) {
             text = colr(back(val), fore(otherval), namefmt);
         } else {
@@ -515,10 +516,10 @@ char* read_stdin_arg(void) {
     while ((fgets(line, line_length, stdin))) {
         if (!buffer) {
             // First line.
-            asprintf(&buffer, "%s", line);
+            asprintf_or_return(NULL, &buffer, "%s", line);
         } else {
             char* oldbuffer = buffer;
-            asprintf(&buffer, "%s%s", buffer, line);
+            asprintf_or_return(NULL, &buffer, "%s%s", buffer, line);
             free(oldbuffer);
         }
     }
@@ -545,16 +546,39 @@ bool validate_color_arg(ColorArg carg, const char* name) {
 
     switch (carg.value.type) {
         case TYPE_INVALID_RGB_RANGE:
-            asprintf(&errmsg, "Invalid range (0-255) for %s RGB color: %s", argtype, name);
+            asprintf_or_return(
+                false,
+                &errmsg,
+                "Invalid range (0-255) for %s RGB color: %s",
+                argtype,
+                name
+            );
             break;
         case TYPE_INVALID_EXTENDED_RANGE:
-            asprintf(&errmsg, "Invalid range (0-255) for extended %s color: %s", argtype, name);
+            asprintf_or_return(
+                false,
+                &errmsg,
+                "Invalid range (0-255) for extended %s color: %s",
+                argtype,
+                name
+            );
             break;
         case TYPE_INVALID:
-            asprintf(&errmsg, "Invalid %s color name: %s", argtype, name);
+            asprintf_or_return(
+                false,
+                &errmsg,
+                "Invalid %s color name: %s",
+                argtype,
+                name
+            );
             break;
         case TYPE_INVALID_STYLE:
-            asprintf(&errmsg, "Invalid style name: %s", name);
+            asprintf_or_return(
+                false,
+                &errmsg,
+                "Invalid style name: %s",
+                name
+            );
             break;
         default:
             // Valid color arg passed.
