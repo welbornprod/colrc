@@ -80,24 +80,22 @@ describe(helpers) {
 // char_should_escape
     subdesc(char_should_escape) {
         it("should detect valid escape sequence chars") {
-            struct {
-                char input;
-            } tests[] = {
-                {'\''},
-                {'\"'},
-                {'\?'},
-                {'\\'},
-                {'\a'},
-                {'\b'},
-                {'\f'},
-                {'\n'},
-                {'\r'},
-                {'\t'},
-                {'\v'},
+            char tests[] = {
+                '\'',
+                '\"',
+                '\?',
+                '\\',
+                '\a',
+                '\b',
+                '\f',
+                '\n',
+                '\r',
+                '\t',
+                '\v',
             };
             for_each(tests, i) {
                 assert(
-                    char_should_escape(tests[i].input),
+                    char_should_escape(tests[i]),
                     "Known escape char returned false."
                 );
             }
@@ -125,6 +123,40 @@ describe(helpers) {
             char* s = colr_empty_str();
             asserteq(s, "", "Empty string was not equal to \"\".");
             free(s);
+        }
+    }
+// str_append_reset
+    subdesc(str_append_reset) {
+        it("accounts for newlines") {
+            struct {
+                char* input;
+                char* expected;
+            } tests[] = {
+                {"", CODE_RESET_ALL},
+                {"\n", CODE_RESET_ALL "\n"},
+                {"test\n", "test" CODE_RESET_ALL "\n"},
+                {"test\n\n\n\n", "test" CODE_RESET_ALL "\n\n\n\n"},
+                {"test\n\n\n\n\n", "test" CODE_RESET_ALL "\n\n\n\n\n"},
+                {"test\n another \n\n", "test\n another " CODE_RESET_ALL "\n\n"},
+            };
+            for_each(tests, i) {
+                size_t expected_len = strlen(tests[i].expected);
+                char s[expected_len + 1];
+                str_copy(s, tests[i].input, strlen(tests[i].input));
+                str_append_reset(s);
+                char* input_repr = str_repr(tests[i].input);
+                char* input_msg;
+                asprintf_or(&input_msg, "str_append_reset(%s) failed", input_repr) {
+                    fail("Allocation failed for failure message!");
+                }
+                free(input_repr);
+                assert_str_eq(
+                    s,
+                    tests[i].expected,
+                    input_msg
+                );
+                free(input_msg);
+            }
         }
     }
 // str_ends_with
@@ -285,7 +317,9 @@ describe(helpers) {
 
             for_each(tests, i) {
                 char* input;
-                asprintf(&input, "%s", tests[i].input);
+                asprintf_or(&input, "%s", tests[i].input) {
+                    fail("Allocation failed for test input string!");
+                }
                 str_lower(input);
                 asserteq(
                     input,

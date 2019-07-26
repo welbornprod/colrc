@@ -658,20 +658,54 @@ void format_style(char* out, StyleValue style) {
           <em>Must have extra room for CODE_RESET_ALL</em>.
 */
 void str_append_reset(char *s) {
+    if (!s) return;
+    if (s[0] == '\0') {
+        // Special case, an empty string, with room for CODE_RESET_ALL.
+        sprintf(s, "%s", CODE_RESET_ALL);
+        return;
+    }
     size_t lastindex = strlen(s) - 1;
     size_t newlines = 0;
     // Cut newlines off if needed. I'll add them after the reset code.
-    while (s[lastindex] == '\n') {
+    while ((lastindex > 0) && (s[lastindex] == '\n')) {
         s[lastindex] = '\0';
         newlines++;
         lastindex--;
     }
-
+    if ((lastindex == 0) && s[lastindex] == '\n') {
+        // String starts with a newline.
+        s[lastindex] = '\0';
+        newlines++;
+    }
     sprintf(s, "%s%s", s, CODE_RESET_ALL);
     while (newlines) {
         sprintf(s, "%s%c", s, '\n');
         newlines--;
     }
+}
+
+/*! Counts the number of characters (`c`) that are found in a string (`s`).
+
+    \details
+    Returns `0` if `s` is `NULL`, or `c` is `'\0'`.
+
+    \pi s The string to examine.
+          \mustnullin
+    \pi c The character to count.
+          \mustnotzero
+
+    \return The number of times \p c occurs in \p s.
+*/
+size_t str_char_count(const char* s, const char c) {
+    if (!(s && c)) return 0;
+    if (s[0] == '\0') return 0;
+
+    size_t i = 0;
+    size_t total = 0;
+    while (s[i]) {
+        total++;
+    }
+    return total;
 }
 
 /*! Like strncopy, but ensures null-termination.
@@ -698,8 +732,7 @@ char* str_copy(char* dest, const char* src, size_t length) {
         return NULL;
     }
     size_t pos;
-    size_t maxchars = length - 1;
-    for (pos=0; pos < maxchars && src[pos] != '\0'; pos++) {
+    for (pos=0; pos < length && src[pos] != '\0'; pos++) {
         dest[pos] = src[pos];
     }
     dest[pos] = '\0';
@@ -863,6 +896,10 @@ char* str_lstrip_chars(const char* s, const char* chars) {
     If \p s is NULL, then an allocated string containing the string "NULL" is
     returned (without quotes).
 
+    \details
+    Escape codes will be escaped, so the terminal will ignore them if the
+    result is printed.
+
     \pi     s The string to represent.
     \return An allocated string with the respresentation.
             \mustfree
@@ -880,14 +917,20 @@ char* str_lstrip_chars(const char* s, const char* chars) {
 char* str_repr(const char* s) {
     if (!s) {
         char* nullrepr;
-        asprintf(&nullrepr, "NULL");
+        asprintf_or_return(NULL, &nullrepr, "NULL");
         return nullrepr;
+    }
+    if (s[0] == '\0') {
+        char* emptyrepr;
+        asprintf_or_return(NULL, &emptyrepr, "\"\"");
+        return emptyrepr;
     }
     size_t length = strlen(s);
     size_t esc_chars = 0;
     size_t i;
     for (i = 0; i < length; i++) {
         if (char_should_escape(s[i])) esc_chars++;
+        else if (s[i] == '\033') esc_chars += 4;
     }
     size_t repr_length = length + (esc_chars * 2);
     // Make room for the wrapping quotes, and a null-terminator.
@@ -900,8 +943,13 @@ char* str_repr(const char* s) {
         if (char_should_escape(c)) {
             repr[inew++] = '\\';
             repr[inew++] = char_escape_char(c);
+        } else if (c == '\033') {
+            repr[inew++] = '\\';
+            repr[inew++] = '0';
+            repr[inew++] = '3';
+            repr[inew++] = '3';
         } else {
-            repr[inew++] = s[i];
+            repr[inew++] = c;
         }
     }
     repr[inew] = '"';
@@ -1078,6 +1126,14 @@ char* _colr(void *p, ...) {
     }
     va_list args;
     va_start(args, p);
+    va_list argcopy;
+    va_copy(argcopy, args);
+    size_t length = _colr_length(p, argcopy);
+    // If length was 1, there were no usable values in the argument list.
+    if (length == 1) return colr_empty_str();
+    // Allocate enough for the reset code at the end.
+    char* final = calloc(length, sizeof(char));
+
     char* s;
     ColorArg *cargp = NULL;
     ColorText *ctextp = NULL;
@@ -1094,10 +1150,6 @@ char* _colr(void *p, ...) {
         // It's a string, or it better be anyway.
         s = (char* )p;
     }
-    size_t length = strlen(s) + 1;
-    length += CODE_RESET_LEN;
-    // Allocate enough for the reset code at the end.
-    char* final = calloc(length, sizeof(char));
     sprintf(final, "%s", s);
     if (cargp || ctextp) {
         // Free the temporary string created with Color(Arg/Text)_to_str().
@@ -1127,12 +1179,8 @@ char* _colr(void *p, ...) {
             s = (char* )arg;
             is_string = true;
         }
-        length += strlen(s) + 1;
-        // String was passed, add the reset code.
-        if (is_string) length += CODE_RESET_LEN;
-        final = realloc(final, length);
-
         sprintf(final, "%s%s", final, s);
+        // String was passed, add the reset code.
         if (is_string) str_append_reset(final);
 
         // Free the temporary string from those ColorArgs/ColorTexts.
@@ -1141,6 +1189,69 @@ char* _colr(void *p, ...) {
     str_append_reset(final);
     va_end(args);
     return final;
+}
+
+/*! Parse arguments, just as in _colr(), but only return the length needed to
+    allocate the resulting string.
+
+    \details
+    This allows _colr() to allocate once, instead of reallocating for each
+    argument that is passed.
+
+    \pi p   The first of any ColorArg, ColorText, or strings to join.
+    \pi ... Zero or more ColorArg, ColorText, or string to join.
+
+    \return The length (in bytes) needed to allocate a string built with _colr().
+
+    \sa _colr
+*/
+size_t _colr_length(void *p, va_list args) {
+    // Argument list must have ColorArg/ColorText with NULL members at the end.
+    if (!p) {
+        return 0;
+    }
+    ColorArg *cargp = NULL;
+    ColorText *ctextp = NULL;
+    size_t length = 1;
+    if (ColorArg_is_ptr(p)) {
+        // It's a ColorArg.
+        cargp = p;
+        length += ColorArg_length(*cargp);
+    } else if (ColorText_is_ptr(p)) {
+        ctextp = p;
+        length += ColorText_length(*ctextp);
+    } else {
+        // It's a string, or it better be anyway.
+        length += strlen((char* )p);
+    }
+    length += CODE_RESET_LEN;
+    void *arg = NULL;
+    while ((arg = va_arg(args, void*))) {
+        cargp = NULL;
+        ctextp = NULL;
+        bool is_string = false;
+        // These ColorArgs/ColorTexts were heap allocated through the fore,
+        // back, style, and ColrC macros. I'm going to free them, so the user
+        // doesn't have to keep track of all the temporary pieces that built
+        // this string.
+        if (ColorArg_is_ptr(arg)) {
+            // It's a ColorArg.
+            cargp = arg;
+            length += ColorArg_length(*cargp);
+        } else if (ColorText_is_ptr(arg)) {
+            ctextp = arg;
+            length += ColorText_length(*ctextp);
+        } else {
+            // It better be a string.
+            length += strlen((char* )arg);
+            is_string = true;
+        }
+        length += 1;
+        // String was passed, add the reset code.
+        if (is_string) length += CODE_RESET_LEN;
+    }
+    va_end(args);
+    return length;
 }
 
 /*! Joins ColorArgs, ColorTexts, and strings into one long string separated
@@ -1169,6 +1280,13 @@ char* _colr_join(void *joinerp, ...) {
     }
     va_list args;
     va_start(args, joinerp);
+    va_list argcopy;
+    va_copy(argcopy, args);
+    size_t length = _colr_join_length(joinerp, argcopy);
+    // If length is 1, then no usable values were passed in.
+    if (length == 1) return colr_empty_str();
+
+    char* final = calloc(length, sizeof(char));
     char* joiner;
     ColorArg* joiner_cargp = NULL;
     ColorText* joiner_ctextp = NULL;
@@ -1188,13 +1306,7 @@ char* _colr_join(void *joinerp, ...) {
         // It's a string, or it better be anyway.
         joiner = (char* )joinerp;
     }
-    size_t joiner_len = strlen(joiner) + 1;
-    size_t length = 0;
     int count = 0;
-    joiner_len += CODE_RESET_LEN;
-    // Allocate enough for the reset code at the end.
-    char* final = calloc(joiner_len, sizeof(char));
-
     void *arg = NULL;
     while ((arg = va_arg(args, void*))) {
         count++;
@@ -1217,8 +1329,6 @@ char* _colr_join(void *joinerp, ...) {
             // It better be a string.
             piece = (char* )arg;
         }
-        length += strlen(piece) + joiner_len + 1;
-        final = realloc(final, length);
         if (count == 1) {
             sprintf(final, "%s%s", final, piece);
         } else {
@@ -1227,7 +1337,6 @@ char* _colr_join(void *joinerp, ...) {
         // Free the temporary string from those ColorArgs/ColorTexts.
         if (cargp || ctextp) free(piece);
     }
-    str_append_reset(final);
     va_end(args);
     if (joiner_cargp) {
         free(joiner);
@@ -1235,9 +1344,71 @@ char* _colr_join(void *joinerp, ...) {
     if (joiner_ctextp) {
         free(joiner);
     }
+    str_append_reset(final);
     return final;
 }
 
+/*! Parse arguments, just as in _colr_join(), but only return the length needed to
+    allocate the resulting string.
+
+    \details
+    This allows _colr_join() to allocate once, instead of reallocating for each
+    argument that is passed.
+
+    \pi p   The first of any ColorArg, ColorText, or strings to join.
+    \pi ... Zero or more ColorArg, ColorText, or string to join.
+
+    \return The length (in bytes) needed to allocate a string built with _colr().
+
+    \sa _colr
+*/
+size_t _colr_join_length(void *joinerp, va_list args) {
+    // Argument list must have ColorArg/ColorText with NULL members at the end.
+
+    // No joiner, no strings. Empty string will be returned, so just "\0".
+    if (!joinerp) return 1;
+    ColorArg* joiner_cargp = NULL;
+    ColorText* joiner_ctextp = NULL;
+    ColorArg* cargp = NULL;
+    ColorText* ctextp = NULL;
+    size_t length = 1;
+    size_t joiner_len = 0;
+    if (ColorArg_is_ptr(joinerp)) {
+        // It's a ColorArg.
+        joiner_cargp = joinerp;
+        joiner_len = ColorArg_length(*joiner_cargp);
+    } else if (ColorText_is_ptr(joinerp)) {
+        joiner_ctextp = joinerp;
+        joiner_len = ColorText_length(*joiner_ctextp);
+    } else {
+        // It's a string, or it better be anyway.
+        joiner_len = strlen((char* )joinerp);
+    }
+    int count = 0;
+    void *arg = NULL;
+    while ((arg = va_arg(args, void*))) {
+        count++;
+        cargp = NULL;
+        ctextp = NULL;
+        if (ColorArg_is_ptr(arg)) {
+            // It's a ColorArg.
+            cargp = arg;
+            length += ColorArg_length(*cargp);
+        } else if (ColorText_is_ptr(arg)) {
+            ctextp = arg;
+            length += ColorText_length(*ctextp);
+        } else {
+            // It better be a string.
+            length += strlen((char* )arg);
+        }
+        if (count > 1) {
+            length += joiner_len;
+        }
+    }
+    va_end(args);
+    length += CODE_RESET_LEN;
+    return length;
+}
 /*! Creates a string representation of a ArgType.
 
     \pi type A ArgType to get the type from.
@@ -1250,16 +1421,16 @@ char* ArgType_repr(ArgType type) {
     char* typestr;
     switch (type) {
         case ARGTYPE_NONE:
-            asprintf(&typestr, "ARGTYPE_NONE");
+            asprintf_or_return(NULL, &typestr, "ARGTYPE_NONE");
             break;
         case FORE:
-            asprintf(&typestr, "FORE");
+            asprintf_or_return(NULL, &typestr, "FORE");
             break;
         case BACK:
-            asprintf(&typestr, "BACK");
+            asprintf_or_return(NULL, &typestr, "BACK");
             break;
         case STYLE:
-            asprintf(&typestr, "STYLE");
+            asprintf_or_return(NULL, &typestr, "STYLE");
             break;
     }
     return typestr;
@@ -1277,16 +1448,16 @@ char* ArgType_to_str(ArgType type) {
     char* typestr;
     switch (type) {
         case ARGTYPE_NONE:
-            asprintf(&typestr, "none");
+            asprintf_or_return(NULL, &typestr, "none");
             break;
         case FORE:
-            asprintf(&typestr, "fore");
+            asprintf_or_return(NULL, &typestr, "fore");
             break;
         case BACK:
-            asprintf(&typestr, "back");
+            asprintf_or_return(NULL, &typestr, "back");
             break;
         case STYLE:
-            asprintf(&typestr, "style");
+            asprintf_or_return(NULL, &typestr, "style");
             break;
     }
     return typestr;
@@ -1524,6 +1695,21 @@ bool ColorArg_is_valid(ColorArg carg) {
 }
 
 
+/*! Returns the length in bytes needed to allocate a string built with
+    ColorArg_to_str().
+
+    \pi carg ColorArg to use.
+
+    \return  The length (`size_t`) needed to allocate a ColorArg's string,
+             or `1` (size of an empty string) for invalid/empty arg types/values.
+
+    \sa ColorArg
+*/
+size_t ColorArg_length(ColorArg carg) {
+    // Empty color args turn into empty strings, so just "\0".
+    if (ColorArg_is_empty(carg)) return 1;
+    return ColorValue_length(carg.type, carg.value);
+}
 
 /*! Creates a string representation for a ColorArg.
 
@@ -1540,7 +1726,8 @@ char* ColorArg_repr(ColorArg carg) {
     char* type = ArgType_repr(carg.type);
     char* value = ColorValue_repr(carg.value);
     char* repr;
-    asprintf(
+    asprintf_or_return(
+        NULL,
         &repr,
         "ColorArg {.type=%s, .value=%s}",
         type,
@@ -1563,6 +1750,7 @@ char* ColorArg_repr(ColorArg carg) {
 */
 ColorArg *ColorArg_to_ptr(ColorArg carg) {
     ColorArg *p = malloc(sizeof(carg));
+    carg.marker = COLORARG_MARKER;
     *p = carg;
     return p;
 }
@@ -1607,6 +1795,7 @@ void ColorText_free(ColorText *p) {
     if (p->style) free(p->style);
 
     free(p);
+    p = NULL;
 }
 
 /*! Builds a ColorText from 1 mandatory string, and optional fore, back, and
@@ -1663,6 +1852,28 @@ bool ColorText_is_ptr(void *p) {
     return ctextp->marker == COLORTEXT_MARKER;
 }
 
+/*! Returns the length in bytes needed to allocate a string built with
+    ColorText_to_str() with the current `text`, `fore`, `back`, and `style` members.
+
+    \pi ctext ColorText to use.
+
+    \return   The length (`size_t`) needed to allocate a ColorText's string,
+              or `1` (size of an empty string) for invalid/empty arg types/values.
+
+    \sa ColorText
+*/
+size_t ColorText_length(ColorText ctext) {
+    // Empty text yields an empty string, so just "\0".
+    if (!ctext.text) return 1;
+    size_t length = strlen(ctext.text) + 1;
+    length += ctext.fore ? ColorArg_length(*(ctext.fore)) : 0;
+    length += ctext.back ? ColorArg_length(*(ctext.back)) : 0;
+    length += ctext.style ? ColorArg_length(*(ctext.style)) : 0;
+
+    if (ctext.style || ctext.fore || ctext.back) length += CODE_RESET_LEN;
+    return length;
+}
+
 /*! Allocate a string representation for a ColorText.
 
     \pi ctext ColorText to get the string representation for.
@@ -1677,7 +1888,8 @@ char* ColorText_repr(ColorText ctext) {
     char* sback = ctext.back ? ColorArg_repr(*(ctext.back)) : NULL;
     char* sstyle = ctext.style ? ColorArg_repr(*(ctext.style)) : NULL;
 
-    asprintf(
+    asprintf_or_return(
+        NULL,
         &repr,
         "ColorText {.text=%s, .fore=%s, .back=%s, .style=%s}\n",
         stext ? stext : "NULL",
@@ -1705,8 +1917,8 @@ ColorText *ColorText_to_ptr(ColorText ctext) {
     size_t length = sizeof(ColorText);
     if (ctext.text) length += strlen(ctext.text) + 1;
     ColorText *p = malloc(length);
+    ctext.marker = COLORTEXT_MARKER;
     *p = ctext;
-    if (!(p->marker)) p->marker = COLORTEXT_MARKER;
     return p;
 }
 
@@ -1720,11 +1932,10 @@ ColorText *ColorText_to_ptr(ColorText ctext) {
     \sa ColorText
 */
 char* ColorText_to_str(ColorText ctext) {
+    // No text? No string.
     if (!ctext.text) return colr_empty_str();
-    size_t length = strlen(ctext.text) + 1;
     // Make room for any fore/back/style code combo plus the reset_all code.
-    length += CODE_ANY_LEN + CODE_RESET_LEN;
-    char* final = calloc(length, sizeof(char));
+    char* final = calloc(ColorText_length(ctext), sizeof(char));
     bool do_reset = (ctext.style || ctext.fore || ctext.back);
     if (ctext.style) {
         char* stylecode = ColorArg_to_str(*(ctext.style));
@@ -1849,31 +2060,31 @@ char* ColorType_repr(ColorType type) {
     char* typestr;
     switch (type) {
         case TYPE_NONE:
-            asprintf(&typestr, "TYPE_NONE");
+            asprintf_or_return(NULL, &typestr, "TYPE_NONE");
             break;
         case TYPE_BASIC:
-            asprintf(&typestr, "TYPE_BASIC");
+            asprintf_or_return(NULL, &typestr, "TYPE_BASIC");
             break;
         case TYPE_EXTENDED:
-            asprintf(&typestr, "TYPE_EXTENDED");
+            asprintf_or_return(NULL, &typestr, "TYPE_EXTENDED");
             break;
         case TYPE_RGB:
-            asprintf(&typestr, "TYPE_RGB");
+            asprintf_or_return(NULL, &typestr, "TYPE_RGB");
             break;
         case TYPE_STYLE:
-            asprintf(&typestr, "TYPE_STYLE");
+            asprintf_or_return(NULL, &typestr, "TYPE_STYLE");
             break;
         case TYPE_INVALID:
-            asprintf(&typestr, "TYPE_INVALID");
+            asprintf_or_return(NULL, &typestr, "TYPE_INVALID");
             break;
         case TYPE_INVALID_STYLE:
-            asprintf(&typestr, "TYPE_INVALID_STYLE");
+            asprintf_or_return(NULL, &typestr, "TYPE_INVALID_STYLE");
             break;
         case TYPE_INVALID_EXTENDED_RANGE:
-            asprintf(&typestr, "TYPE_INVALID_EXTENDED_RANGE");
+            asprintf_or_return(NULL, &typestr, "TYPE_INVALID_EXTENDED_RANGE");
             break;
         case TYPE_INVALID_RGB_RANGE:
-            asprintf(&typestr, "TYPE_INVALID_RGB_RANGE");
+            asprintf_or_return(NULL, &typestr, "TYPE_INVALID_RGB_RANGE");
             break;
     }
     return typestr;
@@ -2020,6 +2231,74 @@ bool ColorValue_is_valid(ColorValue cval) {
     return bool_colr_enum(cval.type);
 }
 
+/*! Returns the length in bytes needed to allocate a string built with
+    ColorValue_to_str() with the specified ArgType and ColorValue.
+
+    \pi type ArgType (`FORE`, `BACK`, `STYLE`)
+    \pi cval ColorValue to use.
+
+    \return  The length (`size_t`) needed to allocate a ColorValue's string,
+             or `1` (size of an empty string) for invalid/empty arg types/values.
+
+    \sa ColorValue
+*/
+size_t ColorValue_length(ArgType type, ColorValue cval) {
+    switch (type) {
+        case FORE:
+            assert(cval.type != TYPE_STYLE);
+            switch (cval.type) {
+                case TYPE_BASIC:
+                    return CODE_LEN;
+                case TYPE_EXTENDED:
+                    return CODEX_LEN;
+                case TYPE_RGB:
+                    return CODE_RGB_LEN;
+                // This case is not valid, but I will try to do the right thing.
+                case TYPE_STYLE:
+                    return STYLE_LEN;
+                default:
+                    // Empty string for invalid/empty values.
+                    return 1;
+                }
+        case BACK:
+            assert(cval.type != TYPE_STYLE);
+            switch (cval.type) {
+                case TYPE_BASIC:
+                    return CODE_LEN;
+                case TYPE_EXTENDED:
+                    return CODEX_LEN;
+                case TYPE_RGB:
+                    return CODE_RGB_LEN;
+                // This case is not even valid, but okay.
+                case TYPE_STYLE:
+                    return STYLE_LEN;
+                default:
+                    // Empty string for invalid/empty values.
+                    return 1;
+                }
+        case STYLE:
+            assert(cval.type == TYPE_STYLE);
+            switch (cval.type) {
+                case TYPE_STYLE:
+                    return STYLE_LEN;
+                // All of these other cases are a product of mismatched info.
+                case TYPE_BASIC:
+                    return CODE_LEN;
+                case TYPE_EXTENDED:
+                    return CODEX_LEN;
+                case TYPE_RGB:
+                    return CODE_RGB_LEN;
+                default:
+                    // Empty string for invalid/empty values.
+                    return 1;
+            }
+        default:
+            // Empty string for invalid/empty arg type.
+            return 1;
+    }
+    // Unreachable.
+    return 1;
+}
 /*! Creates a string representation of a ColorValue.
 
     \pi cval    A ColorValue to get the type and value from.
@@ -2167,68 +2446,68 @@ char* BasicValue_repr(BasicValue bval) {
     char* repr;
     switch (bval) {
         case BASIC_INVALID:
-            asprintf(&repr, "(BasicValue) BASIC_INVALID");
+            asprintf_or_return(NULL, &repr, "(BasicValue) BASIC_INVALID");
             break;
         case BASIC_NONE:
-            asprintf(&repr, "(BasicValue) BASIC_NONE");
+            asprintf_or_return(NULL, &repr, "(BasicValue) BASIC_NONE");
             break;
         case BLACK:
-            asprintf(&repr, "(BasicValue) BLACK");
+            asprintf_or_return(NULL, &repr, "(BasicValue) BLACK");
             break;
         case RED:
-            asprintf(&repr, "(BasicValue) RED");
+            asprintf_or_return(NULL, &repr, "(BasicValue) RED");
             break;
         case GREEN:
-            asprintf(&repr, "(BasicValue) GREEN");
+            asprintf_or_return(NULL, &repr, "(BasicValue) GREEN");
             break;
         case YELLOW:
-            asprintf(&repr, "(BasicValue) YELLOW");
+            asprintf_or_return(NULL, &repr, "(BasicValue) YELLOW");
             break;
         case BLUE:
-            asprintf(&repr, "(BasicValue) BLUE");
+            asprintf_or_return(NULL, &repr, "(BasicValue) BLUE");
             break;
         case MAGENTA:
-            asprintf(&repr, "(BasicValue) MAGENTA");
+            asprintf_or_return(NULL, &repr, "(BasicValue) MAGENTA");
             break;
         case CYAN:
-            asprintf(&repr, "(BasicValue) CYAN");
+            asprintf_or_return(NULL, &repr, "(BasicValue) CYAN");
             break;
         case WHITE:
-            asprintf(&repr, "(BasicValue) WHITE");
+            asprintf_or_return(NULL, &repr, "(BasicValue) WHITE");
             break;
         case UNUSED:
-            asprintf(&repr, "(BasicValue) UNUSED");
+            asprintf_or_return(NULL, &repr, "(BasicValue) UNUSED");
             break;
         case RESET:
-            asprintf(&repr, "(BasicValue) RESET");
+            asprintf_or_return(NULL, &repr, "(BasicValue) RESET");
             break;
         case LIGHTBLACK:
-            asprintf(&repr, "(BasicValue) LIGHTBLACK");
+            asprintf_or_return(NULL, &repr, "(BasicValue) LIGHTBLACK");
             break;
         case LIGHTRED:
-            asprintf(&repr, "(BasicValue) LIGHTRED");
+            asprintf_or_return(NULL, &repr, "(BasicValue) LIGHTRED");
             break;
         case LIGHTGREEN:
-            asprintf(&repr, "(BasicValue) LIGHTGREEN");
+            asprintf_or_return(NULL, &repr, "(BasicValue) LIGHTGREEN");
             break;
         case LIGHTYELLOW:
-            asprintf(&repr, "(BasicValue) LIGHTYELLOW");
+            asprintf_or_return(NULL, &repr, "(BasicValue) LIGHTYELLOW");
             break;
         case LIGHTBLUE:
-            asprintf(&repr, "(BasicValue) LIGHTBLUE");
+            asprintf_or_return(NULL, &repr, "(BasicValue) LIGHTBLUE");
             break;
         case LIGHTMAGENTA:
-            asprintf(&repr, "(BasicValue) LIGHTMAGENTA");
+            asprintf_or_return(NULL, &repr, "(BasicValue) LIGHTMAGENTA");
             break;
         case LIGHTCYAN:
-            asprintf(&repr, "(BasicValue) LIGHTCYAN");
+            asprintf_or_return(NULL, &repr, "(BasicValue) LIGHTCYAN");
             break;
         case LIGHTWHITE:
-            asprintf(&repr, "(BasicValue) LIGHTWHITE");
+            asprintf_or_return(NULL, &repr, "(BasicValue) LIGHTWHITE");
             break;
         default:
             // Should never happen, but the value will be known if it does.
-            asprintf(&repr, "(BasicValue) %d", bval);
+            asprintf_or_return(NULL, &repr, "(BasicValue) %d", bval);
     }
     return repr;
 }
@@ -2368,26 +2647,31 @@ int ExtendedValue_from_str(const char* arg) {
             // Negative number given.
             return COLOR_INVALID_RANGE;
         }
+        // Not a number at all.
         free(arglower);
         return COLOR_INVALID;
     }
 
     // Regular number, hopefully 0-255, but I'll check that in a second.
-    // Using long to combat easy overflow.
-    long usernum;
-    if (sscanf(arg, "%ld", &usernum)) {
-        if (usernum < 0 || usernum > 255) {
-            free(arglower);
-            return COLOR_INVALID_RANGE;
-        }
+    size_t length = strnlen(arglower, 4);
+    if (length > 3) {
+        // Definitely not 0-255.
         free(arglower);
-        return (int)usernum;
+        return COLOR_INVALID_RANGE;
     }
-
-    // Not a number or hex string.
+    short int usernum;
+    if (sscanf(arg, "%hd", &usernum) != 1) {
+        // Zero, or more than one number provided.
+        free(arglower);
+        return COLOR_INVALID;
+    }
+    if (usernum < 0 || usernum > 255) {
+        free(arglower);
+        return COLOR_INVALID_RANGE;
+    }
+    // A valid number, 0-255.
     free(arglower);
-    return COLOR_INVALID;
-
+    return (int)usernum;
 }
 
 /*! Creates a string representation of a ExtendedValue.
@@ -2398,9 +2682,18 @@ int ExtendedValue_from_str(const char* arg) {
 
     \sa ExtendedValue
 */
-char* ExtendedValue_repr(ExtendedValue eval) {
+char* ExtendedValue_repr(int eval) {
     char* repr;
-    asprintf(&repr, "(ExtendedValue) %d", eval);
+    switch (eval) {
+        case COLOR_INVALID_RANGE:
+            asprintf_or_return(NULL, &repr, "(ExtendedValue) COLOR_INVALID_RANGE");
+            break;
+        case COLOR_INVALID:
+            asprintf_or_return(NULL, &repr, "(ExtendedValue) COLOR_INVALID");
+            break;
+        default:
+            asprintf_or_return(NULL, &repr, "(ExtendedValue) %d", eval);
+    }
     return repr;
 }
 
@@ -2408,14 +2701,14 @@ char* ExtendedValue_repr(ExtendedValue eval) {
     with ExtendedValue_from_str().
 
     \pi eval    A ExtendedValue to get the value from.
-    \return     A pointer to an allocated string.
+    \return     A pointer to an allocated string, or `NULL` if the allocation fails.
                 \mustfree
 
     \sa ExtendedValue
 */
 char* ExtendedValue_to_str(ExtendedValue eval) {
     char* repr;
-    asprintf(&repr, "%d", eval);
+    asprintf_or_return(NULL, &repr, "%d", eval);
     return repr;
 }
 
@@ -2661,7 +2954,7 @@ int RGB_from_str(const char* arg, RGB *rgbval) {
 */
 char* RGB_to_hex(RGB rgb) {
     char* s;
-    asprintf(&s, "%02x%02x%02x", rgb.red, rgb.green, rgb.blue);
+    asprintf_or_return(NULL, &s, "%02x%02x%02x", rgb.red, rgb.green, rgb.blue);
     return s;
 }
 
@@ -2674,7 +2967,7 @@ char* RGB_to_hex(RGB rgb) {
 */
 char* RGB_to_str(RGB rgb) {
     char* s;
-    asprintf(&s, "%03d;%03d;%03d", rgb.red, rgb.green, rgb.blue);
+    asprintf_or_return(NULL, &s, "%03d;%03d;%03d", rgb.red, rgb.green, rgb.blue);
     return s;
 }
 
@@ -2728,7 +3021,7 @@ RGB RGB_to_term_RGB(RGB rgb) {
 */
 char* RGB_repr(RGB rgb) {
     char* repr;
-    asprintf(
+    asprintf_or_return(NULL,
         &repr,
         "RGB {.red=%d, .green=%d, .blue=%d}",
         rgb.red,
@@ -2742,6 +3035,7 @@ char* RGB_repr(RGB rgb) {
 
     \pi arg Style name to convert into a StyleValue.
     \return A usable StyleValue value on success, or STYLE_INVALID on error.
+
     \sa StyleValue
 */
 StyleValue StyleValue_from_str(const char* arg) {
@@ -2772,51 +3066,51 @@ char* StyleValue_repr(StyleValue sval) {
     char* repr;
     switch (sval) {
         case STYLE_INVALID:
-            asprintf(&repr, "(StyleValue) STYLE_INVALID");
+            asprintf_or_return(NULL, &repr, "(StyleValue) STYLE_INVALID");
             break;
         case STYLE_NONE:
-            asprintf(&repr, "(StyleValue) STYLE_NONE");
+            asprintf_or_return(NULL, &repr, "(StyleValue) STYLE_NONE");
             break;
         case RESET_ALL:
-            asprintf(&repr, "(StyleValue) RESET_ALL");
+            asprintf_or_return(NULL, &repr, "(StyleValue) RESET_ALL");
             break;
         case BRIGHT:
-            asprintf(&repr, "(StyleValue) BRIGHT");
+            asprintf_or_return(NULL, &repr, "(StyleValue) BRIGHT");
             break;
         case DIM:
-            asprintf(&repr, "(StyleValue) DIM");
+            asprintf_or_return(NULL, &repr, "(StyleValue) DIM");
             break;
         case ITALIC:
-            asprintf(&repr, "(StyleValue) ITALIC");
+            asprintf_or_return(NULL, &repr, "(StyleValue) ITALIC");
             break;
         case UNDERLINE:
-            asprintf(&repr, "(StyleValue) UNDERLINE");
+            asprintf_or_return(NULL, &repr, "(StyleValue) UNDERLINE");
             break;
         case FLASH:
-            asprintf(&repr, "(StyleValue) FLASH");
+            asprintf_or_return(NULL, &repr, "(StyleValue) FLASH");
             break;
         case HIGHLIGHT:
-            asprintf(&repr, "(StyleValue) HIGHLIGHT");
+            asprintf_or_return(NULL, &repr, "(StyleValue) HIGHLIGHT");
             break;
         case NORMAL:
-            asprintf(&repr, "(StyleValue) NORMAL");
+            asprintf_or_return(NULL, &repr, "(StyleValue) NORMAL");
             break;
         case STRIKETHRU:
-            asprintf(&repr, "(StyleValue) STRIKETHRU");
+            asprintf_or_return(NULL, &repr, "(StyleValue) STRIKETHRU");
             break;
         case FRAME:
-            asprintf(&repr, "(StyleValue) FRAME");
+            asprintf_or_return(NULL, &repr, "(StyleValue) FRAME");
             break;
         case ENCIRCLE:
-            asprintf(&repr, "(StyleValue) ENCIRCLE");
+            asprintf_or_return(NULL, &repr, "(StyleValue) ENCIRCLE");
             break;
         case OVERLINE:
-            asprintf(&repr, "(StyleValue) OVERLINE");
+            asprintf_or_return(NULL, &repr, "(StyleValue) OVERLINE");
             break;
         default:
             // Should never happen, but at least the value will be known
             // if it does.
-            asprintf(&repr, "(StyleValue) %d", sval);
+            asprintf_or_return(NULL, &repr, "(StyleValue) %d", sval);
     }
     return repr;
 }

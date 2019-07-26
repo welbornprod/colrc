@@ -41,7 +41,7 @@ describe(ColorType) {
         }
         it("honors the basic_names mapping") {
             // Test all basic names, in case of some weird regression.
-            for (size_t i = 0; i < basic_names_len; i++) {
+            for_len(basic_names_len, i) {
                 char* name = basic_names[i].name;
                 assert_ColorType_name_equal(name, (ColorType)TYPE_BASIC);
             }

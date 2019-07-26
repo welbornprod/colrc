@@ -3,6 +3,8 @@
     \author Christopher Welborn
     \date 07-13-2019
 */
+#ifndef TEST_RGB_H
+#define TEST_RGB_H
 #include "test_ColrC.h"
 
 #define assert_RGB_eq(a, b) \
@@ -116,3 +118,4 @@ char* bad_str_tests[] = {
 };
 
 size_t bad_str_tests_len = array_length(bad_str_tests);
+#endif // TEST_RGB_H

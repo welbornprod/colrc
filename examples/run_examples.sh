@@ -92,7 +92,7 @@ function run_exe {
     shift
     local wrapper_cmd
     declare -a wrapper_cmd=("$@")
-
+    [[ -n "${wrapper_cmd[0]}" ]] || unset -v wrapper_cmd
     [[ -n "$exename" ]] || fail "No executable given to \`run_exe\`!"
     [[ -x "$exename" ]] || fail "Not an executable: $exename"
     if ((${#wrapper_cmd[@]})); then
@@ -181,7 +181,7 @@ for arg; do
 done
 ((do_memcheck)) && {
     wrapper="valgrind"
-    exe_args=("--show-leak-kinds=all" "--track-origins=yes")
+    exe_args=("--show-leak-kinds=all" "--track-origins=yes" "--error-exitcode=1")
 }
 ((do_source)) && {
     declare -a snippet_args=("--examples" "$(merge_patterns "${patterns[@]}")")

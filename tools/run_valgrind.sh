@@ -16,8 +16,8 @@ else
     binary=$(realpath "$binaryname")
 fi
 default_tool="memcheck"
-cachegrind_file="${binary}.cachegrind"
-callgrind_file="${binary}.callgrind"
+cachegrind_file="cachegrind.out.${binaryname##*/}"
+callgrind_file="callgrind.out.${binaryname##*/}"
 
 function echo_err {
     # Echo to stderr.
@@ -44,12 +44,14 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
-        $appscript [-a] [-e exe] [ARG...] [TOOL] -- [EXE_ARGS...]
+        $appscript [-a] [-e exe] [TOOL] [ARG...] -- [EXE_ARGS...]
 
     Options:
         ARG              : One or more extra arguments for valgrind.
         EXE_ARGS         : Arguments for $binaryname while running the test.
-        TOOL             : Tool to use.
+        TOOL             : Tool to use. Must be the first non-flag argument if
+                           not using the --tool option.
+                           Can be one of: cachegrind, callgrind, memcheck
                            Default: $default_tool
         -a,--all         : Shortcut to --show-leak-kinds=all flag.
                            This implies TOOL=memcheck.
@@ -121,7 +123,7 @@ for arg; do
     esac
 done
 [[ -n "$binary" ]] || fail "No binary found, and none given either."
-[[ -e "$binary" ]] || fail "The binary hasn't been built yet: $binary"
+[[ -e "$binary" ]] || fail "The binary does not exist: $binary"
 
 toolname="${nonflags[0]}"
 nonflags=("${nonflags[@]:1}")
@@ -135,7 +137,11 @@ case "$toolname" in
         ;;
     "callgrind" | "call")
         toolname="callgrind"
-        nonflags+=("--callgrind-out-file=$callgrind_file")
+        nonflags+=(
+            "--callgrind-out-file=$callgrind_file"
+            "--dump-instr=yes"
+            "--collect-jumps=yes"
+        )
         ;;
     "memcheck" | "mem")
         toolname="memcheck"

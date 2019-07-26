@@ -4,15 +4,16 @@
     \date 07-01-2019
 */
 #include "test_ColrC.h"
+#include "test_ExtendedValue.h"
 
 describe(ExtendedValue) {
     subdesc(ExtendedValue_from_str) {
         subdesc(invalid_colors) {
             it("invalid color names should return COLOR_INVALID") {
-                asserteq(
-                    ExtendedValue_from_str("NOTACOLOR"),
+                assert_ext_from_str_eq(
+                    "NOTACOLOR",
                     COLOR_INVALID,
-                    "Invalid color name should be an invalid ExtendedValue."
+                    "Invalid color name should be an invalid ExtendedValue"
                 );
             }
         }
@@ -22,10 +23,10 @@ describe(ExtendedValue) {
                 for (size_t i = 0; i < extended_names_len; i++) {
                     char* name = extended_names[i].name;
                     int bval = extended_names[i].value;
-                    asserteq(
-                        ExtendedValue_from_str(name),
+                    assert_ext_from_str_eq(
+                       name,
                         bval,
-                        "Known ExtendedValue didn't match."
+                        "Known ExtendedValue didn't match"
                     );
                 }
             }
@@ -35,38 +36,55 @@ describe(ExtendedValue) {
                 for (int i = 0; i < 256; i++) {
                     sprintf(numstr, "%d", i);
                     int eval = ExtendedValue_from_str(numstr);
-                    asserteq(i, eval, "Known extended number was considered invalid.");
+                    assert_ext_eq(i, eval, "Known extended number was considered invalid");
                     assert(
                         (eval >= 0) && (eval <= 255),
                         "ExtendedValue within range returned invalid."
                     );
-                    assertneq(
+                    assert_ext_neq(
                         eval,
                         EXTENDED_INVALID,
-                        "Known extended number caused an invalid range."
+                        "Known extended number caused an invalid range"
                     );
-                    assertneq(
+                    assert_ext_neq(
                         eval,
                         COLOR_INVALID_RANGE,
-                        "Known extended number caused an invalid range."
+                        "Known extended number caused an invalid range"
                     );
 
                 }
             }
             it("returns COLOR_INVALID_RANGE for bad numbers") {
                 // Test bad numbers.
-                char numstr[4];
-                int nums[] = {-255, -1, 256, 1337};
-                size_t nums_len = array_length(nums);
-                for (size_t i = 0; i < nums_len; i++) {
-                    sprintf(numstr, "%d", nums[i]);
-                    int eval = ExtendedValue_from_str(numstr);
-                    asserteq(
+                char* nums[] = {"-255", "-1", "256", "355"};
+                for_each(nums, i) {
+                    int eval = ExtendedValue_from_str(nums[i]);
+                    assert_ext_eq(
                         eval,
                         COLOR_INVALID_RANGE,
-                        "Bad number was not considered outside of the range."
+                        "Bad number was not considered outside of the range"
                     );
                 }
+            }
+            it("returns COLOR_INVALID for really bad numbers") {
+                // numstr needs to hold the largest stringified number.
+                char* nums[] = {"-2555", "-1000", "2560", "2147483647"};
+                for_each(nums, i) {
+                    assert_ext_from_str_eq(
+                        nums[i],
+                        COLOR_INVALID_RANGE,
+                        "Bad number was not considered invalid"
+                    );
+                }
+                // Something like: 18446744073709551615
+                unsigned long long largest_num = ULLONG_MAX;
+                char largenumstr[21];
+                sprintf(largenumstr, "%llu", largest_num);
+                assert_ext_from_str_eq(
+                    largenumstr,
+                    COLOR_INVALID_RANGE,
+                    "Really long number was not considered invalid"
+                );
             }
         }
     }

@@ -35,6 +35,10 @@
 // Maximum length for TEXT argument.
 #define MAX_TEXT_LEN 1024
 
+// Short-hand for (x ? "true" : "false")
+#define colr_bool_str(x) (x ? "true" : "false")
+
+// Print ColrToolOptions.
 #define print_opts_repr(x) \
     do { \
         char* _p_o_r_s = ColrToolOptions_repr(x); \
@@ -66,6 +70,7 @@ typedef struct ColrToolOptions_s {
     ColorArg* fore;
     ColorArg* back;
     ColorArg* style;
+    bool free_text;
     bool rainbow_fore;
     bool rainbow_back;
     bool print_back;

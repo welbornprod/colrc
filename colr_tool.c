@@ -27,15 +27,14 @@ int main(int argc, char* argv[]) {
     // print_opts_repr(colropts);
     if (parse_ret >= 0) return parse_ret;
 
-    bool free_text = false;
     if (colr_streq(colropts.text, "-")) {
         // Read from stdin.
         colropts.text = read_stdin_arg();
+        colropts.free_text = true;
         if (!colropts.text) {
             printferr("\nFailed to allocate for stdin data!\n");
             return 1;
         }
-        free_text = true;
     }
     // Rainbowize the text arg.
     bool do_term_rainbow = false;
@@ -55,6 +54,8 @@ int main(int argc, char* argv[]) {
                     rainbow_bg(colropts.text, freq, offset)
                 )
         );
+        // Text was allocated from stdin input, it's safe to free.
+        if (colropts.free_text) free(colropts.text);
         // Some or all of the fore/back/style args are "empty" (not null).
         // They will not be used if they are empty, but they will be free'd.
         char* styled = colr(
@@ -75,11 +76,12 @@ int main(int argc, char* argv[]) {
         colropts.back,
         colropts.style
     );
-    dbug_repr("ColorText: %s\n", *ctext);
+    dbug_repr("Using", *ctext);
     char* text = ColorText_to_str(*ctext);
+    ColorText_free(ctext);
     printf("%s\n", text);
     free(text);
-    if (free_text) free(colropts.text);
+    if (colropts.free_text) free(colropts.text);
     return 0;
 }
 
@@ -89,6 +91,7 @@ ColrToolOptions ColrToolOptions_new(void) {
         .fore=NULL,
         .back=NULL,
         .style=NULL,
+        .free_text=false,
         .rainbow_fore=false,
         .rainbow_back=false,
         .print_back=false,
@@ -106,13 +109,15 @@ char* ColrToolOptions_repr(ColrToolOptions colropts) {
     char* back_repr = colropts.back ? colr_repr(*(colropts.back)) : NULL;
     char* style_repr = colropts.style ? colr_repr(*(colropts.style)) : NULL;
     char* repr;
-    asprintf(
+    asprintf_or_return(
+        NULL,
         &repr,
         "ColrToolOptions(\n\
     .text=%s,\n\
     .fore=%s,\n\
     .back=%s,\n\
     .style=%s,\n\
+    .free_text=%s,\n\
     .rainbow_fore=%s,\n\
     .rainbow_back=%s,\n\
     .print_back=%s,\n\
@@ -126,14 +131,15 @@ char* ColrToolOptions_repr(ColrToolOptions colropts) {
         fore_repr ? fore_repr : "NULL",
         back_repr ? back_repr : "NULL",
         style_repr ? style_repr : "NULL",
-        colropts.rainbow_fore ? "true" : "false",
-        colropts.rainbow_back ? "true" : "false",
-        colropts.print_back ? "true" : "false",
-        colropts.print_256 ? "true" : "false",
-        colropts.print_basic ? "true" : "false",
-        colropts.print_rgb ? "true" : "false",
-        colropts.print_rgb_term ? "true" : "false",
-        colropts.print_rainbow ? "true" : "false"
+        colr_bool_str(colropts.free_text),
+        colr_bool_str(colropts.rainbow_fore),
+        colr_bool_str(colropts.rainbow_back),
+        colr_bool_str(colropts.print_back),
+        colr_bool_str(colropts.print_256),
+        colr_bool_str(colropts.print_basic),
+        colr_bool_str(colropts.print_rgb),
+        colr_bool_str(colropts.print_rgb_term),
+        colr_bool_str(colropts.print_rainbow)
     );
     if (text_repr) free(text_repr);
     if (fore_repr) free(fore_repr);
@@ -248,7 +254,7 @@ int parse_args(int argc, char** argv, ColrToolOptions* colropts) {
                 print_version();
                 return 0;
             case '?':
-                asprintf(&unknownmsg, "Unknown argument: %c", optopt);
+                asprintf_or_return(1, &unknownmsg, "Unknown argument: %c", optopt);
                 print_usage(unknownmsg);
                 free(unknownmsg);
                 return 1;
@@ -352,7 +358,7 @@ int print_basic(bool do_back) {
             puts("");
         }
         BasicValue otherval = str_ends_with(name, "black") ? WHITE : BLACK;
-        asprintf(&namefmt, "%-14s", name);
+        asprintf_or_return(1, &namefmt, "%-14s", name);
         if (do_back) {
             text = colr(back(val), fore(otherval), namefmt);
         } else {
@@ -515,10 +521,10 @@ char* read_stdin_arg(void) {
     while ((fgets(line, line_length, stdin))) {
         if (!buffer) {
             // First line.
-            asprintf(&buffer, "%s", line);
+            asprintf_or_return(NULL, &buffer, "%s", line);
         } else {
             char* oldbuffer = buffer;
-            asprintf(&buffer, "%s%s", buffer, line);
+            asprintf_or_return(NULL, &buffer, "%s%s", buffer, line);
             free(oldbuffer);
         }
     }
@@ -545,16 +551,39 @@ bool validate_color_arg(ColorArg carg, const char* name) {
 
     switch (carg.value.type) {
         case TYPE_INVALID_RGB_RANGE:
-            asprintf(&errmsg, "Invalid range (0-255) for %s RGB color: %s", argtype, name);
+            asprintf_or_return(
+                false,
+                &errmsg,
+                "Invalid range (0-255) for %s RGB color: %s",
+                argtype,
+                name
+            );
             break;
         case TYPE_INVALID_EXTENDED_RANGE:
-            asprintf(&errmsg, "Invalid range (0-255) for extended %s color: %s", argtype, name);
+            asprintf_or_return(
+                false,
+                &errmsg,
+                "Invalid range (0-255) for extended %s color: %s",
+                argtype,
+                name
+            );
             break;
         case TYPE_INVALID:
-            asprintf(&errmsg, "Invalid %s color name: %s", argtype, name);
+            asprintf_or_return(
+                false,
+                &errmsg,
+                "Invalid %s color name: %s",
+                argtype,
+                name
+            );
             break;
         case TYPE_INVALID_STYLE:
-            asprintf(&errmsg, "Invalid style name: %s", name);
+            asprintf_or_return(
+                false,
+                &errmsg,
+                "Invalid style name: %s",
+                name
+            );
             break;
         default:
             // Valid color arg passed.
