@@ -1653,7 +1653,7 @@ ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p) {
     \return  `true` if the ColorArg is considered "empty", otherwise `false`.
 */
 bool ColorArg_is_empty(ColorArg carg) {
-    return carg.type == ARGTYPE_NONE;
+    return (carg.type == ARGTYPE_NONE) || ColorValue_is_empty(carg.value);
 }
 
 /*! Checks to see if a ColorArg holds an invalid value.
@@ -1821,16 +1821,23 @@ ColorText ColorText_from_values(char* text, ...) {
     while ((arg = va_arg(colrargs, ColorArg*))) {
         assert(ColorArg_is_ptr(arg));
         // It's a ColorArg.
-        // Skip over "empty" ColorArgs.
-        if (ColorArg_is_empty(*arg)) continue;
         if (arg->type == FORE) {
-            // It's the fore arg.
             ctext.fore = arg;
         } else if (arg->type == BACK) {
             ctext.back = arg;
         } else if (arg->type == STYLE) {
             ctext.style = arg;
             break;
+        } else if (ColorArg_is_empty(*arg)) {
+            // Empty ColorArgs are assigned in the order they were passed in.
+            if (!ctext.fore) {
+                ctext.fore = arg;
+            } else if (!ctext.back) {
+                ctext.back = arg;
+            } else if (!ctext.style) {
+                ctext.style = arg;
+                break;
+            }
         }
     }
     va_end(colrargs);
@@ -1937,17 +1944,17 @@ char* ColorText_to_str(ColorText ctext) {
     // Make room for any fore/back/style code combo plus the reset_all code.
     char* final = calloc(ColorText_length(ctext), sizeof(char));
     bool do_reset = (ctext.style || ctext.fore || ctext.back);
-    if (ctext.style) {
+    if (ctext.style && !ColorArg_is_empty(*(ctext.style))) {
         char* stylecode = ColorArg_to_str(*(ctext.style));
         sprintf(final, "%s%s", final, stylecode);
         free(stylecode);
     }
-    if (ctext.fore) {
+    if (ctext.fore && !ColorArg_is_empty(*(ctext.fore))) {
         char* forecode = ColorArg_to_str(*(ctext.fore));
         sprintf(final, "%s%s", final, forecode);
         free(forecode);
     }
-    if (ctext.back) {
+    if (ctext.back && !ColorArg_is_empty(*(ctext.back))) {
         char* backcode = ColorArg_to_str(*(ctext.back));
         sprintf(final, "%s%s", final, backcode);
         free(backcode);
@@ -2098,7 +2105,7 @@ char* ColorType_repr(ColorType type) {
 
     \return `(ColorValue){.type=TYPE_NONE, .basic=0, .ext=0, .rgb=(RGB){0, 0, 0}}`
 
-    \sa ColorArg_empty ColorArg_is_empty
+    \sa ColorArg ColorArg_empty ColorArg_is_empty ColorValue_is_empty
 */
 ColorValue ColorValue_empty(void) {
     return (ColorValue){
@@ -2207,6 +2214,22 @@ ColorValue ColorValue_from_value(ColorType type, void *p) {
         return (ColorValue){.type=TYPE_RGB, .rgb=*rgbval};
     }
     return (ColorValue){.type=type};
+}
+
+/*! Checks to see if a ColorValue is an empty placeholder.
+
+    \pi cval ColorValue to check.
+    \return  `true` if the ColorValue is "empty", otherwise `false`.
+
+    \sa ColorValue ColorValue_empty ColorArg_empty ColorArg_is_empty
+*/
+bool ColorValue_is_empty(ColorValue cval) {
+    return (cval.type == TYPE_NONE) || (
+        (cval.basic == basic(0)) &&
+        (cval.ext == ext(0)) &&
+        RGB_eq(cval.rgb, rgb(0, 0, 0)) &&
+        (cval.style == RESET_ALL)
+    );
 }
 
 /*! Checks to see if a ColorValue holds an invalid value.

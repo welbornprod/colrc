@@ -27,6 +27,7 @@ binary_name="${default_binary##*/}"
 }
 
 # Some colors.
+BLUE="${BLUE:-\x1b[1;34m}"
 GREEN="${GREEN:-\x1b[1;32m}"
 RED="${RED:-\x1b[1;31m}"
 NC="${NC:-\x1b[0m}"
@@ -36,6 +37,12 @@ function echo_err {
     printf "%s" "$RED" 1>&2
     echo -e "$@" 1>&2
     printf "%s" "$NC" 1>&2
+}
+
+function echo_status {
+    printf "%s" "$BLUE"
+    echo -e "$@"
+    printf "%s" "$NC"
 }
 
 function fail {
@@ -126,27 +133,60 @@ function run_everything {
         rebuild_tests="release"
         is_debug_exe "$testexe" && rebuild_tests="debug"
     }
-    COLR_ARGS="TEST red white underline" make_colrtool debug memcheck 1>/dev/null
-    make_tests debug memcheck 1>/dev/null
-    run_examples --memcheck 1>/dev/null
-    run_source_examples --memcheck 1>/dev/null
 
-    COLR_ARGS="TEST red white underline" make_colrtool coverage 1>/dev/null
+    echo_status "\nTrying to build $colrexe in debug mode..."
+    COLR_ARGS="TEST red white underline" make_colrtool debug memcheckquiet 1>/dev/null
+    echo_status "\nTrying to build $testexe in debug mode..."
+    make_tests debug memcheckquiet 1>/dev/null
+    echo_status "\nRunning examples..."
+    run_examples --memcheck --quiet 1>/dev/null
+    echo_status "\nRunning source examples..."
+    run_source_examples --memcheck --quiet 1>/dev/null
+
+    echo_status "\nBuilding test coverage..."
     make_tests coverage 1>/dev/null
 
-    COLR_ARGS="TEST red white underline" make_colrtool release memcheck 1>/dev/null
-    make_tests release memcheck 1>/dev/null
+    echo_status "\nBuilding $colrexe in release mode..."
+    COLR_ARGS="TEST red white underline" make_colrtool release memcheckquiet 1>/dev/null
+    echo_status "\nBuilding $testexe in release mode..."
+    make_tests release memcheckquiet 1>/dev/null
 
-    [[ -n "$rebuild_colr" ]] && {
+    local do_colr_rebuild=0
+    if [[ -n "$rebuild_colr" ]]; then
+        if is_debug_exe "$colrexe"; then
+             [[ "$rebuild_colr" == "debug" ]] || do_colr_rebuild=1
+        else
+            [[ "$rebuild_colr" == "release" ]] || do_colr_rebuild=1
+        fi
+    fi
+    if ((do_colr_rebuild)); then
+        echo_status "\nRebuilding $colrexe for $rebuild_colr mode..."
         make_colrtool clean "$rebuild_colr" 1>/dev/null || \
             fail "\nTried to rebuild in $rebuild_colr mode, and failed."
-    }
-    [[ -n "$rebuild_tests" ]] && {
+    else
+        rebuild_colr="release"
+    fi
+    local do_test_rebuild=0
+    if [[ -n "$rebuild_tests" ]]; then
+        if is_debug_exe "$testexe"; then
+             [[ "$rebuild_tests" == "debug" ]] || do_test_rebuild=1
+        else
+            [[ "$rebuild_tests" == "release" ]] || do_test_rebuild=1
+        fi
+    fi
+    if ((do_test_rebuild)); then
+        echo_status "\nRebuilding $testexe for $rebuild_tests mode..."
         make_tests clean "$rebuild_tests" 1>/dev/null || \
             fail "\nTried to rebuild tests in $rebuild_tests mode, and failed."
-    }
+    else
+        rebuild_tests="release"
+    fi
 
-    printf "\n%sSuccess%s, the binaries are in release mode now.\n" "$GREEN" "$NC"
+
+    [[ -n "$rebuild_colr" ]] || rebuild_colr="release"
+    [[ -n "$rebuild_tests" ]] || rebuild_tests="release"
+    binmode="${colrexe##*/}:$rebuild_colr, ${testexe##*/}:$rebuild_tests"
+    printf "\n%sSuccess%s, the binaries are: %s\n" "$GREEN" "$NC" "$binmode"
 }
 
 function run_source_examples {

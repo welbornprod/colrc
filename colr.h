@@ -1245,6 +1245,7 @@ char* ColorType_repr(ColorType type);
 ColorValue ColorValue_empty(void);
 ColorValue ColorValue_from_str(char* s);
 ColorValue ColorValue_from_value(ColorType type, void *p);
+bool ColorValue_is_empty(ColorValue cval);
 bool ColorValue_is_invalid(ColorValue cval);
 bool ColorValue_is_valid(ColorValue cval);
 size_t ColorValue_length(ArgType type, ColorValue cval);

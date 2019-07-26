@@ -44,7 +44,7 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
-        $appscript [-a] [-e exe] [TOOL] [ARG...] -- [EXE_ARGS...]
+        $appscript [-a] [-e exe] [-q] [TOOL] [ARG...] -- [EXE_ARGS...]
 
     Options:
         ARG              : One or more extra arguments for valgrind.
@@ -58,6 +58,7 @@ function print_usage {
         -e exe,--exe exe : Executable to run.
                            Default: $binaryname
         -h,--help        : Show this message.
+        -q,--quiet       : Run valgrind in quiet mode.
         -V,--version     : Show $appname version and exit.
     "
 }
@@ -67,6 +68,7 @@ declare -a flagargs
 declare -a exeargs
 in_exe_args=0
 in_binary_arg=0
+do_quiet=0
 
 for arg; do
     case "$arg" in
@@ -91,6 +93,9 @@ for arg; do
             }
             print_usage ""
             exit 0
+            ;;
+        "-q" | "--quiet")
+            do_quiet=1
             ;;
         "-V" | "--version")
             ((in_exe_args)) && {
@@ -150,6 +155,7 @@ case "$toolname" in
 esac
 
 declare -a cmd=("valgrind" "--error-exitcode=1")
+((do_quiet)) && cmd+=("--quiet")
 cmd+=("${flagargs[@]}")
 cmd+=("--tool=$toolname")
 cmd+=("${nonflags[@]}")

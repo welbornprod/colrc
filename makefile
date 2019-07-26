@@ -57,7 +57,7 @@ latex_files=\
 	$(wildcard $(latex_dir)/*.pyg) $(latex_dir)/refman.pdf
 examples_dir=examples
 examples_source=$(wildcard $(examples_dir)/*.c)
-valgrind_cmd=bash tools/run_valgrind.sh -a --
+valgrind_cmd=bash tools/run_valgrind.sh
 
 .PHONY: all, coverage, debug, release
 all: debug
@@ -170,9 +170,12 @@ docsrebuild: docs
 examples: $(examples_source)
 	@cd examples && $(MAKE) $(MAKEFLAGS) --no-print-directory $(COLR_ARGS)
 
-.PHONY: memcheck
+.PHONY: memcheck, memcheckquiet
 memcheck:
-	@$(valgrind_cmd) $(COLR_ARGS)
+	@$(valgrind_cmd) -a -- $(COLR_ARGS)
+
+memcheckquiet:
+	@$(valgrind_cmd) -a -q -- $(COLR_ARGS)
 
 .PHONY: run
 run:

@@ -69,7 +69,7 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
-        $appscript [-a | -s] [-m] [PATTERN...]
+        $appscript [-a | -s] [-m] [-q] [PATTERN...]
         $appscript [-a | -s] [-r exe] [PATTERN...] [-- ARGS...]
 
     Options:
@@ -78,6 +78,7 @@ function print_usage {
         -a,--all          : Run all examples, including the source code examples.
         -h,--help         : Show this message.
         -m,--memcheck     : Run through \`valgrind --tool=memcheck\`.
+        -q,--quiet        : Run valgrind in quiet mode.
         -r exe,--run exe  : Use example binary as an argument for another executable,
                             like \`gdb\` or \`kdbg\`.
         -s,--source       : Use examples found in the source code.
@@ -109,6 +110,7 @@ function run_exe {
 declare -a patterns exe_args
 do_all=0
 do_memcheck=0
+do_quiet=0
 do_source=0
 in_exe_arg=0
 in_exe_args=0
@@ -137,6 +139,9 @@ for arg; do
             ;;
         "-m" | "--memcheck")
             do_memcheck=1
+            ;;
+        "-q" | "--quiet")
+            do_quiet=1
             ;;
         "-r" | "--run")
             if ((in_exe_args)); then
@@ -182,7 +187,9 @@ done
 ((do_memcheck)) && {
     wrapper="valgrind"
     exe_args=("--show-leak-kinds=all" "--track-origins=yes" "--error-exitcode=1")
+    ((do_quiet)) && exe_args+=("--quiet")
 }
+
 ((do_source)) && {
     declare -a snippet_args=("--examples" "$(merge_patterns "${patterns[@]}")")
     [[ -n "$wrapper" ]] && {
@@ -191,6 +198,7 @@ done
         else
             snippet_args+=("--run" "$wrapper")
         fi
+        ((do_quiet)) && snippet_args+=("--quiet")
     }
     ../tools/snippet.py "${snippet_args[@]}"
     ((do_all)) || exit $?
