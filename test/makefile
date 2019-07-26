@@ -16,7 +16,7 @@ LIBS=-lm
 binary=test_colr
 cov_cmd=bash ../tools/gen_coverage_html.sh --
 cov_dir=coverage
-valgrind_cmd=bash ../tools/run_valgrind.sh -a --
+valgrind_cmd=bash ../tools/run_valgrind.sh
 test_source:=$(wildcard *.c)
 source:=$(test_source) ../colr.c
 test_headers:=$(wildcard *.h)
@@ -93,9 +93,12 @@ coveragesummary:
 coverageview:
 	@$(cov_cmd) "$(binary)" "$(cov_dir)" --view
 
-.PHONY: memcheck
+.PHONY: memcheck, memcheckquiet
 memcheck:
-	@$(valgrind_cmd) -a $(TEST_ARGS)
+	@$(valgrind_cmd) -a -- $(TEST_ARGS)
+
+memcheckquiet:
+	@$(valgrind_cmd) -a -q -- $(TEST_ARGS)
 
 .PHONY: strip
 strip:

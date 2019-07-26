@@ -170,6 +170,7 @@ def main(argd):
             exe=argd['--run'],
             compiler_args=argd['ARGS'],
             memcheck=argd['--memcheck'],
+            quiet=argd['--quiet'],
         )
     elif argd['--lastbinary']:
         if not config['last_binary']:
@@ -179,6 +180,7 @@ def main(argd):
             exe=argd['--run'],
             show_name=argd['--name'],
             memcheck=argd['--memcheck'],
+            quiet=argd['--quiet'],
         )
 
     if argd['--file']:
@@ -216,6 +218,7 @@ def main(argd):
         show_name=argd['--name'],
         compiler_args=argd['ARGS'],
         memcheck=argd['--memcheck'],
+        quiet=argd['--quiet'],
     )
 
 
@@ -617,7 +620,8 @@ def run_compile_cmd(filepath, args):
     return proc.wait()
 
 
-def run_compiled_exe(filepath, exe=None, show_name=False, memcheck=False):
+def run_compiled_exe(
+        filepath, exe=None, show_name=False, memcheck=False, quiet=False):
     """ Run an executable (the compiled snippet). """
     if not filepath.startswith(TMPDIR):
         newpath = os.path.join(TMPDIR, os.path.split(filepath)[-1])
@@ -628,7 +632,7 @@ def run_compiled_exe(filepath, exe=None, show_name=False, memcheck=False):
         if exe:
             namefmt = C(' ').join(C(exe, 'blue'), namefmt)
         elif memcheck:
-            namefmt = C(' ').join(
+            fmtpcs = [
                 C('valgrind', 'magenta'),
                 C('=').join(
                     C('--tool', 'blue'),
@@ -646,8 +650,11 @@ def run_compiled_exe(filepath, exe=None, show_name=False, memcheck=False):
                     C('--error-exitcode', 'blue'),
                     C('1', 'lightblue', style='bright')
                 ),
-                namefmt,
-            )
+            ]
+            if quiet:
+                fmtpcs.append(C('--quiet', 'blue'))
+            fmtpcs.append(namefmt)
+            namefmt = C(' ').join(fmtpcs)
         status(C(': ').join(
             C('  Running', 'cyan'),
             namefmt,
@@ -661,8 +668,10 @@ def run_compiled_exe(filepath, exe=None, show_name=False, memcheck=False):
             '--show-leak-kinds=all',
             '--track-origins=yes',
             '--error-exitcode=1',
-            filepath,
         ]
+        if quiet:
+            cmd.append('--quiet')
+        cmd.append(filepath)
     else:
         cmd = [filepath]
     debug(f'Trying to run: {" ".join(cmd)}')
@@ -694,7 +703,7 @@ def run_compiled_exe(filepath, exe=None, show_name=False, memcheck=False):
 
 def run_examples(
         pat=None, exe=None, show_name=False, compiler_args=None,
-        memcheck=False):
+        memcheck=False, quiet=False):
     """ Compile and run source examples, with optional filtering pattern.
     """
     errs = 0
@@ -731,6 +740,7 @@ def run_examples(
             show_name=show_name,
             compiler_args=compiler_args,
             memcheck=memcheck,
+            quiet=quiet,
         )
         success += (snipscnt - errs)
 
@@ -762,7 +772,7 @@ def run_examples(
 
 def run_snippets(
         snippets, exe=None, show_name=False, compiler_args=None,
-        memcheck=False):
+        memcheck=False, quiet=False):
     """ Compile and run several c code snippets. """
     errs = 0
     for snippet in snippets:
@@ -772,6 +782,7 @@ def run_snippets(
             exe=exe,
             show_name=show_name,
             memcheck=memcheck,
+            quiet=quiet,
         )
     return errs
 
