@@ -123,7 +123,7 @@ for arg; do
     esac
 done
 [[ -n "$binary" ]] || fail "No binary found, and none given either."
-[[ -e "$binary" ]] || fail "The binary hasn't been built yet: $binary"
+[[ -e "$binary" ]] || fail "The binary does not exist: $binary"
 
 toolname="${nonflags[0]}"
 nonflags=("${nonflags[@]:1}")
