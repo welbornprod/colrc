@@ -8,6 +8,11 @@ appversion="0.0.1"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 appdir="${apppath%/*}"
+colrdir="$(readlink -f "${appdir}/..")"
+examplesdir="${colrdir}/examples"
+toolsdir="${colrdir}/tools"
+colrexe="${colrdir}/colrc"
+testexe="${appdir}/test_colr"
 
 declare -a binaries=($(find "$appdir" -maxdepth 1 -executable -type f -name "test_*" ! -name "*.*"))
 ((${#binaries[@]})) || {
@@ -21,9 +26,16 @@ binary_name="${default_binary##*/}"
     exit 1
 }
 
+# Some colors.
+GREEN="${GREEN:-\x1b[1;32m}"
+RED="${RED:-\x1b[1;31m}"
+NC="${NC:-\x1b[0m}"
+
 function echo_err {
     # Echo to stderr.
+    printf "%s" "$RED" 1>&2
     echo -e "$@" 1>&2
+    printf "%s" "$NC" 1>&2
 }
 
 function fail {
@@ -38,6 +50,18 @@ function fail_usage {
     exit 1
 }
 
+function is_debug_exe {
+    # Returns a 0 exit status if the argument is an executable built with
+    # debug info.
+    local exe=$1
+    [[ -n "$exe" ]] || fail "No executable given to is_debug_exe()!"
+
+    if file "$exe" | grep "debug" &>/dev/null; then
+        return 0
+    fi
+    return 1
+}
+
 function print_usage {
     # Show usage reason if first arg is available.
     [[ -n "$1" ]] && echo_err "\n$1\n"
@@ -46,12 +70,14 @@ function print_usage {
 
     Usage:
         $appscript [-h | -v]
+        $appscript -A
         $appscript [ARGS...]
         $appscript -e exe [ARGS...]
         $appscript -m [ARGS...]
 
     Options:
         ARGS              : Optional arguments for the test executable.
+        -A,--all          : Run every kind of test, even examples.
         -e exe,--exe exe  : Run another executable with the test executable
                             and ARGS as arguments.
         -h,--help         : Show this message.
@@ -62,13 +88,85 @@ function print_usage {
     "
 }
 
+function make_colrtool {
+    # Clean the colr tool build, rebuild it, and run it.
+    local target="${1:-debug}"
+    shift
+    pushd "$colrdir" || fail "Unable to cd into colr directory: $colrdir"
+    make clean "$target" "$@" || fail "\nUnable to build colr tool ($target)!"
+    popd
+}
+function make_tests {
+    # Clean the test build, rebuild it, and run it.
+    local target="${1:-debug}"
+    shift
+    pushd "$appdir" || fail "Unable to cd into test directory: $appdir"
+    make clean "$target" "$@" || fail "\nCan't even build the tests ($target)!"
+    make test || fail "\nUnit tests failed."
+    popd
+}
+
+function run_examples {
+    # Clean all of the examples in ../examples, rebuild them, and run them.
+    pushd "$examplesdir" || fail "Unable to cd into examples directory: $examplesdir"
+    make clean all
+    ./run_examples.sh "$@" || fail "\nExamples failed."
+    popd
+}
+
+function run_everything {
+    # Run every single unit test, example, source-example, and anything else
+    # thay may show a failure, and run them through memcheck if possible.
+    local rebuild_colr="" rebuild_tests=""
+    [[ -e "$colrexe" ]] && {
+        rebuild_colr="release"
+        is_debug_exe "$colrexe" && rebuild_colr="debug"
+    }
+    [[ -e "$testexe" ]] && {
+        rebuild_tests="release"
+        is_debug_exe "$testexe" && rebuild_tests="debug"
+    }
+    COLR_ARGS="TEST red white underline" make_colrtool debug memcheck 1>/dev/null
+    make_tests debug memcheck 1>/dev/null
+    run_examples --memcheck 1>/dev/null
+    run_source_examples --memcheck 1>/dev/null
+
+    COLR_ARGS="TEST red white underline" make_colrtool coverage 1>/dev/null
+    make_tests coverage 1>/dev/null
+
+    COLR_ARGS="TEST red white underline" make_colrtool release memcheck 1>/dev/null
+    make_tests release memcheck 1>/dev/null
+
+    [[ -n "$rebuild_colr" ]] && {
+        make_colrtool clean "$rebuild_colr" 1>/dev/null || \
+            fail "\nTried to rebuild in $rebuild_colr mode, and failed."
+    }
+    [[ -n "$rebuild_tests" ]] && {
+        make_tests clean "$rebuild_tests" 1>/dev/null || \
+            fail "\nTried to rebuild tests in $rebuild_tests mode, and failed."
+    }
+
+    printf "\n%sSuccess%s, the binaries are in release mode now.\n" "$GREEN" "$NC"
+}
+
+function run_source_examples {
+    # Build all of the source examples, and run them.
+    pushd "$colrdir"
+    python3 "${toolsdir}/snippet.py" --examples "$@" || fail "\nSource examples failed."
+    popd
+}
+
 declare -a userargs
 in_exe=0
 exe_wrapper=""
+do_all=0
 do_memcheck=0
 
 for arg; do
     case "$arg" in
+        "-A" | "--all")
+            do_all=1
+            ;;
         "-e" | "--exe")
             if [[ -z "$exe_wrapper" ]]; then
                 in_exe=1
@@ -101,14 +199,18 @@ for arg; do
 done
 
 declare -a cmd
-if ((do_memcheck)); then
+if ((do_all)); then
+    run_everything
+    exit
+elif ((do_memcheck)); then
     cmd=(
         "valgrind"
-    "--tool=memcheck"
-    "--leak-check=full"
-    "--track-origins=yes"
-    "$default_binary"
-    "${userargs[@]}"
+        "--tool=memcheck"
+        "--leak-check=full"
+        "--track-origins=yes"
+        "--error-exitcode=1"
+        "$default_binary"
+        "${userargs[@]}"
     )
 elif [[ -n "$exe_wrapper" ]]; then
     cmd=("$exe_wrapper" "$default_binary" "${userargs[@]}")

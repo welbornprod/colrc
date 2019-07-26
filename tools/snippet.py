@@ -642,6 +642,10 @@ def run_compiled_exe(filepath, exe=None, show_name=False, memcheck=False):
                     C('--track-origins', 'blue'),
                     C('yes', 'lightblue', style='bright')
                 ),
+                C('=').join(
+                    C('--error-exitcode', 'blue'),
+                    C('1', 'lightblue', style='bright')
+                ),
                 namefmt,
             )
         status(C(': ').join(
@@ -656,6 +660,7 @@ def run_compiled_exe(filepath, exe=None, show_name=False, memcheck=False):
             '--tool=memcheck',
             '--show-leak-kinds=all',
             '--track-origins=yes',
+            '--error-exitcode=1',
             filepath,
         ]
     else:

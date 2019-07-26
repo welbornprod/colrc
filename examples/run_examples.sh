@@ -181,7 +181,7 @@ for arg; do
 done
 ((do_memcheck)) && {
     wrapper="valgrind"
-    exe_args=("--show-leak-kinds=all" "--track-origins=yes")
+    exe_args=("--show-leak-kinds=all" "--track-origins=yes" "--error-exitcode=1")
 }
 ((do_source)) && {
     declare -a snippet_args=("--examples" "$(merge_patterns "${patterns[@]}")")

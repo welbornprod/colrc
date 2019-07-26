@@ -27,15 +27,14 @@ int main(int argc, char* argv[]) {
     // print_opts_repr(colropts);
     if (parse_ret >= 0) return parse_ret;
 
-    bool free_text = false;
     if (colr_streq(colropts.text, "-")) {
         // Read from stdin.
         colropts.text = read_stdin_arg();
+        colropts.free_text = true;
         if (!colropts.text) {
             printferr("\nFailed to allocate for stdin data!\n");
             return 1;
         }
-        free_text = true;
     }
     // Rainbowize the text arg.
     bool do_term_rainbow = false;
@@ -56,7 +55,7 @@ int main(int argc, char* argv[]) {
                 )
         );
         // Text was allocated from stdin input, it's safe to free.
-        if (free_text) free(colropts.text);
+        if (colropts.free_text) free(colropts.text);
         // Some or all of the fore/back/style args are "empty" (not null).
         // They will not be used if they are empty, but they will be free'd.
         char* styled = colr(
@@ -77,11 +76,12 @@ int main(int argc, char* argv[]) {
         colropts.back,
         colropts.style
     );
-    dbug_repr("ColorText: %s\n", *ctext);
+    dbug_repr("Using", *ctext);
     char* text = ColorText_to_str(*ctext);
+    ColorText_free(ctext);
     printf("%s\n", text);
     free(text);
-    if (free_text) free(colropts.text);
+    if (colropts.free_text) free(colropts.text);
     return 0;
 }
 

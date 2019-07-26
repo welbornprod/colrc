@@ -1750,6 +1750,7 @@ char* ColorArg_repr(ColorArg carg) {
 */
 ColorArg *ColorArg_to_ptr(ColorArg carg) {
     ColorArg *p = malloc(sizeof(carg));
+    carg.marker = COLORARG_MARKER;
     *p = carg;
     return p;
 }
@@ -1794,6 +1795,7 @@ void ColorText_free(ColorText *p) {
     if (p->style) free(p->style);
 
     free(p);
+    p = NULL;
 }
 
 /*! Builds a ColorText from 1 mandatory string, and optional fore, back, and
@@ -1915,8 +1917,8 @@ ColorText *ColorText_to_ptr(ColorText ctext) {
     size_t length = sizeof(ColorText);
     if (ctext.text) length += strlen(ctext.text) + 1;
     ColorText *p = malloc(length);
+    ctext.marker = COLORTEXT_MARKER;
     *p = ctext;
-    if (!(p->marker)) p->marker = COLORTEXT_MARKER;
     return p;
 }
 
