@@ -42,7 +42,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.0.3'
+VERSION = '0.1.0'
 VERSIONSTR = '{} v. {}'.format(NAME, VERSION)
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -64,7 +64,7 @@ if EDITOR:
     EDITOR_DESC = f'set to: {EDITOR}'
 else:
     EDITOR = 'vim'
-    EDITOR_DESC = 'not set, using: vim'
+    EDITOR_DESC = f'not set, using: {EDITOR}'
 
 COLR_DIR = os.path.abspath(os.path.join(SCRIPTDIR, '..'))
 COLRC_FILE = os.path.join(COLR_DIR, 'colr.c')
@@ -426,7 +426,8 @@ def get_gcc_cmd(
     if output_file:
         cmd.extend(('-o', output_file))
     cmd.append(f'-iquote{COLR_DIR}')
-    cmd.extend(get_make_flags(user_args=user_args))
+    cmd.extend(get_make_flags())
+    cmd.extend(user_args or [])
     return cmd
 
 
