@@ -15,7 +15,11 @@ declare -a binaries=($(find "$appdir" -maxdepth 1 -executable -type f -name "tes
     exit 1
 }
 default_binary="${binaries[0]}"
-
+binary_name="${default_binary##*/}"
+[[ "$binary_name" == test_* ]] || {
+    printf "\nExecutable does not look like a test executable: %s\n" "$default_binary" 1>&2
+    exit 1
+}
 
 function echo_err {
     # Echo to stderr.
@@ -44,19 +48,24 @@ function print_usage {
         $appscript [-h | -v]
         $appscript [ARGS...]
         $appscript -e exe [ARGS...]
+        $appscript -m [ARGS...]
 
     Options:
         ARGS              : Optional arguments for the test executable.
         -e exe,--exe exe  : Run another executable with the test executable
                             and ARGS as arguments.
         -h,--help         : Show this message.
+        -m,--memcheck     : Run the test executable through valgrind.
         -v,--version      : Show $appname version and exit.
+
+    Test executable: $default_binary
     "
 }
 
 declare -a userargs
 in_exe=0
 exe_wrapper=""
+do_memcheck=0
 
 for arg; do
     case "$arg" in
@@ -70,6 +79,9 @@ for arg; do
         "-h" | "--help")
             print_usage ""
             exit 0
+            ;;
+        "-m" | "--memcheck")
+            do_memcheck=1
             ;;
         "-v" | "--version")
             echo -e "$appname v. $appversion\n"
@@ -89,7 +101,16 @@ for arg; do
 done
 
 declare -a cmd
-if [[ -n "$exe_wrapper" ]]; then
+if ((do_memcheck)); then
+    cmd=(
+        "valgrind"
+    "--tool=memcheck"
+    "--leak-check=full"
+    "--track-origins=yes"
+    "$default_binary"
+    "${userargs[@]}"
+    )
+elif [[ -n "$exe_wrapper" ]]; then
     cmd=("$exe_wrapper" "$default_binary" "${userargs[@]}")
 else
     cmd=("$default_binary" "${userargs[@]}")
