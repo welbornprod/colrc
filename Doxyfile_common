@@ -36,6 +36,7 @@ ALIASES += "mustfree=<em>You must `free()` the memory allocated by this function
 ALIASES += "mustnull=<em>must be `null`-terminated</em>."
 ALIASES += "mustnullin=Input <em>must be `null`-terminated</em>."
 ALIASES += "mustnotnull=<em>must not be `null`</em>."
+ALIASES += "mustnotzero=<em>must not be `0`</em>."
 ALIASES += "examplecode{1}=\if html_example_code \
      <div class='examplecode'> \
           <div class='examplecode-header'> \

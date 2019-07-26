@@ -658,20 +658,54 @@ void format_style(char* out, StyleValue style) {
           <em>Must have extra room for CODE_RESET_ALL</em>.
 */
 void str_append_reset(char *s) {
+    if (!s) return;
+    if (s[0] == '\0') {
+        // Special case, an empty string, with room for CODE_RESET_ALL.
+        sprintf(s, "%s", CODE_RESET_ALL);
+        return;
+    }
     size_t lastindex = strlen(s) - 1;
     size_t newlines = 0;
     // Cut newlines off if needed. I'll add them after the reset code.
-    while (s[lastindex] == '\n') {
+    while ((lastindex > 0) && (s[lastindex] == '\n')) {
         s[lastindex] = '\0';
         newlines++;
         lastindex--;
     }
-
+    if ((lastindex == 0) && s[lastindex] == '\n') {
+        // String starts with a newline.
+        s[lastindex] = '\0';
+        newlines++;
+    }
     sprintf(s, "%s%s", s, CODE_RESET_ALL);
     while (newlines) {
         sprintf(s, "%s%c", s, '\n');
         newlines--;
     }
+}
+
+/*! Counts the number of characters (`c`) that are found in a string (`s`).
+
+    \details
+    Returns `0` if `s` is `NULL`, or `c` is `'\0'`.
+
+    \pi s The string to examine.
+          \mustnullin
+    \pi c The character to count.
+          \mustnotzero
+
+    \return The number of times \p c occurs in \p s.
+*/
+size_t str_char_count(const char* s, const char c) {
+    if (!(s && c)) return 0;
+    if (s[0] == '\0') return 0;
+
+    size_t i = 0;
+    size_t total = 0;
+    while (s[i]) {
+        total++;
+    }
+    return total;
 }
 
 /*! Like strncopy, but ensures null-termination.
@@ -698,8 +732,7 @@ char* str_copy(char* dest, const char* src, size_t length) {
         return NULL;
     }
     size_t pos;
-    size_t maxchars = length - 1;
-    for (pos=0; pos < maxchars && src[pos] != '\0'; pos++) {
+    for (pos=0; pos < length && src[pos] != '\0'; pos++) {
         dest[pos] = src[pos];
     }
     dest[pos] = '\0';
@@ -863,6 +896,10 @@ char* str_lstrip_chars(const char* s, const char* chars) {
     If \p s is NULL, then an allocated string containing the string "NULL" is
     returned (without quotes).
 
+    \details
+    Escape codes will be escaped, so the terminal will ignore them if the
+    result is printed.
+
     \pi     s The string to represent.
     \return An allocated string with the respresentation.
             \mustfree
@@ -883,11 +920,17 @@ char* str_repr(const char* s) {
         asprintf_or_return(NULL, &nullrepr, "NULL");
         return nullrepr;
     }
+    if (s[0] == '\0') {
+        char* emptyrepr;
+        asprintf_or_return(NULL, &emptyrepr, "\"\"");
+        return emptyrepr;
+    }
     size_t length = strlen(s);
     size_t esc_chars = 0;
     size_t i;
     for (i = 0; i < length; i++) {
         if (char_should_escape(s[i])) esc_chars++;
+        else if (s[i] == '\033') esc_chars += 4;
     }
     size_t repr_length = length + (esc_chars * 2);
     // Make room for the wrapping quotes, and a null-terminator.
@@ -900,8 +943,13 @@ char* str_repr(const char* s) {
         if (char_should_escape(c)) {
             repr[inew++] = '\\';
             repr[inew++] = char_escape_char(c);
+        } else if (c == '\033') {
+            repr[inew++] = '\\';
+            repr[inew++] = '0';
+            repr[inew++] = '3';
+            repr[inew++] = '3';
         } else {
-            repr[inew++] = s[i];
+            repr[inew++] = c;
         }
     }
     repr[inew] = '"';
@@ -2597,26 +2645,31 @@ int ExtendedValue_from_str(const char* arg) {
             // Negative number given.
             return COLOR_INVALID_RANGE;
         }
+        // Not a number at all.
         free(arglower);
         return COLOR_INVALID;
     }
 
     // Regular number, hopefully 0-255, but I'll check that in a second.
-    // Using long to combat easy overflow.
-    long usernum;
-    if (sscanf(arg, "%ld", &usernum)) {
-        if (usernum < 0 || usernum > 255) {
-            free(arglower);
-            return COLOR_INVALID_RANGE;
-        }
+    size_t length = strnlen(arglower, 4);
+    if (length > 3) {
+        // Definitely not 0-255.
         free(arglower);
-        return (int)usernum;
+        return COLOR_INVALID_RANGE;
     }
-
-    // Not a number or hex string.
+    short int usernum;
+    if (sscanf(arg, "%hd", &usernum) != 1) {
+        // Zero, or more than one number provided.
+        free(arglower);
+        return COLOR_INVALID;
+    }
+    if (usernum < 0 || usernum > 255) {
+        free(arglower);
+        return COLOR_INVALID_RANGE;
+    }
+    // A valid number, 0-255.
     free(arglower);
-    return COLOR_INVALID;
-
+    return (int)usernum;
 }
 
 /*! Creates a string representation of a ExtendedValue.
@@ -2627,9 +2680,18 @@ int ExtendedValue_from_str(const char* arg) {
 
     \sa ExtendedValue
 */
-char* ExtendedValue_repr(ExtendedValue eval) {
+char* ExtendedValue_repr(int eval) {
     char* repr;
-    asprintf_or_return(NULL, &repr, "(ExtendedValue) %d", eval);
+    switch (eval) {
+        case COLOR_INVALID_RANGE:
+            asprintf_or_return(NULL, &repr, "(ExtendedValue) COLOR_INVALID_RANGE");
+            break;
+        case COLOR_INVALID:
+            asprintf_or_return(NULL, &repr, "(ExtendedValue) COLOR_INVALID");
+            break;
+        default:
+            asprintf_or_return(NULL, &repr, "(ExtendedValue) %d", eval);
+    }
     return repr;
 }
 
@@ -2971,6 +3033,7 @@ char* RGB_repr(RGB rgb) {
 
     \pi arg Style name to convert into a StyleValue.
     \return A usable StyleValue value on success, or STYLE_INVALID on error.
+
     \sa StyleValue
 */
 StyleValue StyleValue_from_str(const char* arg) {

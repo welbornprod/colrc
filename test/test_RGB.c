@@ -8,7 +8,7 @@
 describe(RGB) {
     subdesc(rgb_from_hex) {
         it("recognizes hex strings") {
-            for (size_t i = 0; i < hex_tests_len; i++) {
+            for_len(hex_tests_len, i) {
                 rgb_test_item item = hex_tests[i];
                 unsigned char r = 0, g = 0, b = 0;
                 // The call should return 0 itself.
@@ -18,7 +18,7 @@ describe(RGB) {
             }
         }
         it("recognizes bad hex values") {
-            for (size_t i = 0; i < bad_hex_tests_len; i++) {
+            for_len(bad_hex_tests_len, i) {
                 char* badstr = bad_hex_tests[i];
                 // Should be COLOR_INVALID.
                 unsigned char r = 0, g = 0, b = 0;
@@ -28,7 +28,7 @@ describe(RGB) {
     }
     subdesc(rgb_from_str) {
         it("recognizes valid rgb strings") {
-            for (size_t i = 0; i < str_tests_len; i++) {
+            for_len(str_tests_len, i) {
                 rgb_test_item item = str_tests[i];
                 unsigned char r = 0, g = 0, b = 0;
                 // The call should return 0 itself.
@@ -39,7 +39,7 @@ describe(RGB) {
 
         }
         it("recognizes bad str values") {
-            for (size_t i = 0; i < bad_str_tests_len; i++) {
+            for_len(bad_str_tests_len, i) {
                 char* badstr = bad_str_tests[i];
                 // Should be COLOR_INVALID.
                 unsigned char r = 0, g = 0, b = 0;
@@ -55,7 +55,7 @@ describe(RGB) {
     }
     subdesc(RGB_from_hex) {
         it("recognizes hex strings") {
-            for (size_t i = 0; i < hex_tests_len; i++) {
+            for_len(hex_tests_len, i) {
                 rgb_test_item item = hex_tests[i];
                 RGB rgb;
                 // The call should return 0 itself.
@@ -66,7 +66,7 @@ describe(RGB) {
 
         }
         it("recognizes bad hex values") {
-            for (size_t i = 0; i < bad_hex_tests_len; i++) {
+            for_len(bad_hex_tests_len, i) {
                 char* badstr = bad_hex_tests[i];
                 // Should be COLOR_INVALID.
                 RGB rgb;
@@ -76,7 +76,7 @@ describe(RGB) {
     }
     subdesc(RGB_from_str) {
         it("recognizes valid RGB strings") {
-            for (size_t i = 0; i < str_tests_len; i++) {
+            for_len(str_tests_len, i) {
                 rgb_test_item item = str_tests[i];
                 RGB rgb;
                 // The call should return 0 itself.
@@ -87,7 +87,7 @@ describe(RGB) {
 
         }
         it("recognizes bad str values") {
-            for (size_t i = 0; i < bad_str_tests_len; i++) {
+            for_len(bad_str_tests_len, i) {
                 char* badstr = bad_str_tests[i];
                 // Should be COLOR_INVALID.
                 RGB rgb;

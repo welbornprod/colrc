@@ -106,12 +106,30 @@
 #define WNC WCODE_RESET_ALL
 //! Length of CODE_RESET_ALL, including `'\0'`.
 #define CODE_RESET_LEN 5
+/*! Minimum length for the shortest basic fore/back escape code, including `'\0'`.
+
+    \details
+    Use CODE_LEN for allocation.
+*/
+#define CODE_LEN_MIN 5
 /*! Maximum length for a basic fore/back escape code, including `'\0'`.
     Keep in mind that BasicValue actually has some "light" colors (104).
 */
 #define CODE_LEN 14
+/*! Minimum length for the shortest extended fore/back escape code, including `'\0'`.
+
+    \details
+    Use CODEX_LEN for allocation.
+*/
+#define CODEX_LEN_MIN 10
 //! Maximum length for an extended fore/back escape code, including `'\0'`.
 #define CODEX_LEN 12
+/*! Minimum length for the shortest style escape code, including `'\0'`.
+
+    \details
+    Use STYLE_LEN for allocation.
+*/
+#define STYLE_LEN_MIN 5
 //! Maximum length for a style escape code, including `'\0'`.
 #define STYLE_LEN 6
 /*! Maximum length in chars for any combination of basic/extended escape codes.
@@ -120,7 +138,13 @@
     Allocating for a string that will be colorized must account for this.
 */
 #define COLOR_LEN 30
-//! Maximum length in chars for an RGB fore/back escape code, including '\0'.
+/*! Minimum length for the shortest RGB fore/back escape code, including `'\0'`.
+
+    \details
+    Use CODE_RGB_LEN for allocation.
+*/
+#define CODE_RGB_LEN_MIN 14
+//! Maximum length in chars for an RGB fore/back escape code, including `'\0'`.
 #define CODE_RGB_LEN 20
 /*! Maximum length in chars added to a rgb colorized string.
 
@@ -202,7 +226,8 @@
 */
 #define argeq(arg, s1, s2) (!strcmp(arg, s1)) || (!strcmp(arg, s2))
 
-#define asprintf_or_return(retval, ...) if (asprintf(__VA_ARGS__) < 1) return retval
+#define asprintf_or(...) if (asprintf(__VA_ARGS__) < 1)
+#define asprintf_or_return(retval, ...) asprintf_or(__VA_ARGS__) return retval
 
 /*! \def back
     Create a back color suitable for use with the colr() and Colr() macros.
@@ -1133,6 +1158,7 @@ RGB rainbow_step(double freq, size_t step);
 */
 
 void str_append_reset(char* s);
+size_t str_char_count(const char*s, const char c);
 char* str_copy(char* dest, const char* src, size_t length);
 bool str_ends_with(const char* s, const char* suffix);
 bool str_has_codes(const char* s);
@@ -1238,7 +1264,7 @@ int ExtendedValue_from_hex(const char* hexstr);
 ExtendedValue ExtendedValue_from_hex_default(const char* hexstr, ExtendedValue default_value);
 ExtendedValue ExtendedValue_from_RGB(RGB rgb);
 int ExtendedValue_from_str(const char* arg);
-char* ExtendedValue_repr(ExtendedValue eval);
+char* ExtendedValue_repr(int eval);
 char* ExtendedValue_to_str(ExtendedValue eval);
 
 /*! \internal

@@ -91,6 +91,7 @@ ColrToolOptions ColrToolOptions_new(void) {
         .fore=NULL,
         .back=NULL,
         .style=NULL,
+        .free_text=false,
         .rainbow_fore=false,
         .rainbow_back=false,
         .print_back=false,
@@ -116,6 +117,7 @@ char* ColrToolOptions_repr(ColrToolOptions colropts) {
     .fore=%s,\n\
     .back=%s,\n\
     .style=%s,\n\
+    .free_text=%s,\n\
     .rainbow_fore=%s,\n\
     .rainbow_back=%s,\n\
     .print_back=%s,\n\
@@ -129,14 +131,15 @@ char* ColrToolOptions_repr(ColrToolOptions colropts) {
         fore_repr ? fore_repr : "NULL",
         back_repr ? back_repr : "NULL",
         style_repr ? style_repr : "NULL",
-        colropts.rainbow_fore ? "true" : "false",
-        colropts.rainbow_back ? "true" : "false",
-        colropts.print_back ? "true" : "false",
-        colropts.print_256 ? "true" : "false",
-        colropts.print_basic ? "true" : "false",
-        colropts.print_rgb ? "true" : "false",
-        colropts.print_rgb_term ? "true" : "false",
-        colropts.print_rainbow ? "true" : "false"
+        colr_bool_str(colropts.free_text),
+        colr_bool_str(colropts.rainbow_fore),
+        colr_bool_str(colropts.rainbow_back),
+        colr_bool_str(colropts.print_back),
+        colr_bool_str(colropts.print_256),
+        colr_bool_str(colropts.print_basic),
+        colr_bool_str(colropts.print_rgb),
+        colr_bool_str(colropts.print_rgb_term),
+        colr_bool_str(colropts.print_rainbow)
     );
     if (text_repr) free(text_repr);
     if (fore_repr) free(fore_repr);

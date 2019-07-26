@@ -19,7 +19,7 @@ describe(BasicValue) {
         subdesc(valid_names) {
             it("returns BasicValues for known names") {
                 // Test all basic names, in case of some weird regression.
-                for (size_t i = 0; i < basic_names_len; i++) {
+                for_len(basic_names_len, i) {
                     char* name = basic_names[i].name;
                     BasicValue bval = basic_names[i].value;
                     asserteq(
