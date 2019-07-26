@@ -149,6 +149,7 @@ describe(helpers) {
                 asprintf_or(&input_msg, "str_append_reset(%s) failed", input_repr) {
                     fail("Allocation failed for failure message!");
                 }
+                free(input_repr);
                 assert_str_eq(
                     s,
                     tests[i].expected,

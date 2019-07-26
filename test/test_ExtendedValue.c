@@ -56,12 +56,9 @@ describe(ExtendedValue) {
             }
             it("returns COLOR_INVALID_RANGE for bad numbers") {
                 // Test bad numbers.
-                char numstr[4];
-                int nums[] = {-255, -1, 256, 355};
-                size_t nums_len = array_length(nums);
-                for (size_t i = 0; i < nums_len; i++) {
-                    sprintf(numstr, "%d", nums[i]);
-                    int eval = ExtendedValue_from_str(numstr);
+                char* nums[] = {"-255", "-1", "256", "355"};
+                for_each(nums, i) {
+                    int eval = ExtendedValue_from_str(nums[i]);
                     assert_ext_eq(
                         eval,
                         COLOR_INVALID_RANGE,
@@ -71,13 +68,10 @@ describe(ExtendedValue) {
             }
             it("returns COLOR_INVALID for really bad numbers") {
                 // numstr needs to hold the largest stringified number.
-                char numstr[11];
-                int nums[] = {-2555, -1000, 2560, 2147483647};
-                size_t nums_len = array_length(nums);
-                for (size_t i = 0; i < nums_len; i++) {
-                    sprintf(numstr, "%d", nums[i]);
+                char* nums[] = {"-2555", "-1000", "2560", "2147483647"};
+                for_each(nums, i) {
                     assert_ext_from_str_eq(
-                        numstr,
+                        nums[i],
                         COLOR_INVALID_RANGE,
                         "Bad number was not considered invalid"
                     );
