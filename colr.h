@@ -992,6 +992,9 @@ typedef enum StyleValue_t {
 #define FLASH ((enum StyleValue_t)FLASH)
 #define HIGHLIGHT ((enum StyleValue_t)HIGHLIGHT)
 #define NORMAL ((enum StyleValue_t)NORMAL)
+#define FRAME ((enum StyleValue_t)FRAME)
+#define ENCIRCLE ((enum StyleValue_t)ENCIRCLE)
+#define OVERLINE ((enum StyleValue_t)OVERLINE)
 #endif // DOXYGEN_SKIP
 
 //! Argument types (fore, back, style).
@@ -1289,8 +1292,5 @@ char* RGB_to_str(RGB rgb);
 RGB RGB_to_term_RGB(RGB rgb);
 char* RGB_repr(RGB rgb);
 
-// Private macros, not used outside of colr.h
-#undef concat
-#undef _concat
 
 #endif // COLR_H

@@ -2699,7 +2699,7 @@ char* ExtendedValue_repr(int eval) {
     with ExtendedValue_from_str().
 
     \pi eval    A ExtendedValue to get the value from.
-    \return     A pointer to an allocated string.
+    \return     A pointer to an allocated string, or `NULL` if the allocation fails.
                 \mustfree
 
     \sa ExtendedValue
