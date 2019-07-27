@@ -8,12 +8,19 @@
 describe(StyleValue) {
     subdesc(StyleValue_from_str) {
         subdesc(invalid_names) {
-            it("returns COLOR_INVALID for invalid names") {
-                asserteq(
-                    StyleValue_from_str("NOTASTYLE"),
-                    STYLE_INVALID,
-                    "Invalid color name should not produce a valid StyleValue."
-                );
+            it("returns STYLE_INVALID for invalid names") {
+                char* badnames[] = {
+                    NULL,
+                    "",
+                    "NOTASTYLE",
+                };
+                for_each(badnames, i) {
+                    asserteq(
+                        StyleValue_from_str(badnames[i]),
+                        STYLE_INVALID,
+                        "Invalid color name should not produce a valid StyleValue."
+                    );
+                }
             }
         }
         subdesc(valid_names) {
