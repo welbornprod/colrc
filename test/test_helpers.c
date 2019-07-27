@@ -403,6 +403,53 @@ subdesc(str_lstrip_chars) {
         }
     }
 }
+// str_noncode_len
+subdesc(str_noncode_len) {
+    it("counts non-escape-code chars") {
+        struct {
+            char* s;
+            size_t expected;
+        } tests[] = {
+            {FORE_CODE_BASIC "test", 4},
+            {"test" FORE_CODE_BASIC, 4},
+            {"test" FORE_CODE_BASIC "test", 8},
+            {FORE_CODE_EXT "test", 4},
+            {"test" FORE_CODE_EXT, 4},
+            {"test" FORE_CODE_EXT "test", 8},
+            {FORE_CODE_RGB "test", 4},
+            {"test" FORE_CODE_RGB, 4},
+            {"test" FORE_CODE_RGB "test", 8},
+            {BACK_CODE_BASIC "test", 4},
+            {"test" BACK_CODE_BASIC, 4},
+            {"test" BACK_CODE_BASIC "test", 8},
+            {BACK_CODE_EXT "test", 4},
+            {"test" BACK_CODE_EXT, 4},
+            {"test" BACK_CODE_EXT "test", 8},
+            {BACK_CODE_RGB "test", 4},
+            {"test" BACK_CODE_RGB, 4},
+            {"test" BACK_CODE_RGB "test", 8},
+            {STYLE_CODE_BRIGHT "test", 4},
+            {"test" STYLE_CODE_UL, 4},
+            {"test" STYLE_CODE_UL "test", 8},
+            {
+                FORE_CODE_RGB BACK_CODE_RGB STYLE_CODE_UL FORE_CODE_BASIC "\ntest",
+                5
+            },
+            {
+                "\ntest" FORE_CODE_RGB BACK_CODE_RGB STYLE_CODE_UL FORE_CODE_BASIC,
+                5
+            },
+            {
+                FORE_CODE_RGB " test " BACK_CODE_RGB STYLE_CODE_UL FORE_CODE_BASIC "\ntest",
+                11
+            },
+        };
+        for_each(tests, i) {
+            size_t length = str_noncode_len(tests[i].s);
+            asserteq(length, tests[i].expected, "Failed to count non-code-chars");
+        }
+    }
+}
 // str_repr
 subdesc(str_repr) {
     it("escapes properly") {

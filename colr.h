@@ -1170,6 +1170,7 @@ bool str_is_all(const char* s, const char c);
 bool str_is_digits(const char* s);
 void str_lower(char* s);
 char* str_lstrip_chars(const char* s, const char* chars);
+size_t str_noncode_len(const char* s);
 char* str_repr(const char* s);
 bool str_starts_with(const char* s, const char* prefix);
 char* str_strip_codes(const char* s);

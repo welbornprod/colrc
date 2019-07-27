@@ -915,6 +915,29 @@ char* str_lstrip_chars(const char* s, const char* chars) {
     return result;
 }
 
+/*! Returns the length of string, ignoring escape codes and the the null-terminator.
+
+    \pi s   String to get the length for.\n
+            \mustnullin
+    \return The length of the string, as if it didn't contain escape codes.\n
+            For non-escape-code strings, this is like `strlen()`.\n
+            For `NULL` or "empty" strings, `0` is returned.
+*/
+size_t str_noncode_len(const char* s) {
+    if (!s) return 0;
+    if (s[0] == '\0') return 0;
+    size_t i = 0, total = 0;
+    while (s[i]) {
+        if (s[i] == '\033') {
+            // Skip past the code.
+            while (!char_is_code_end(s[i++]));
+            continue;
+        }
+        i++;
+        total++;
+    }
+    return total;
+}
 
 /*! Convert a string into a representation of a string, by wrapping it in
     quotes and escaping characters that need escaping.
