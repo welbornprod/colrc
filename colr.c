@@ -1411,10 +1411,10 @@ char* _colr(void *p, ...) {
     This allows _colr() to allocate once, instead of reallocating for each
     argument that is passed.
 
-    \pi p   The first of any ColorArg, ColorText, or strings to join.
-    \pi ... Zero or more ColorArg, ColorText, or string to join.
+    \pi p    The first of any ColorArg, ColorText, or strings to join.
+    \pi args A `va_list` with zero or more ColorArgs, ColorTexts, or strings to join.
 
-    \return The length (in bytes) needed to allocate a string built with _colr().
+    \return  The length (in bytes) needed to allocate a string built with _colr().
 
     \sa _colr
 */
@@ -1568,10 +1568,10 @@ char* _colr_join(void *joinerp, ...) {
     This allows _colr_join() to allocate once, instead of reallocating for each
     argument that is passed.
 
-    \pi p   The first of any ColorArg, ColorText, or strings to join.
-    \pi ... Zero or more ColorArg, ColorText, or string to join.
+    \pi joinerp The first of any ColorArg, ColorText, or strings to join.
+    \pi args    A `va_list` with zero or more ColorArgs, ColorTexts, or strings to join.
 
-    \return The length (in bytes) needed to allocate a string built with _colr().
+    \return     The length (in bytes) needed to allocate a string built with _colr().
 
     \sa _colr
 */

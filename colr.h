@@ -160,17 +160,13 @@
 */
 #define CODE_ANY_LEN 46
 
-/*! \internal
-    Marker for the ColroArg struct, for identifying a void pointer as a
+/*! Marker for the ColorArg struct, for identifying a void pointer as a
     ColorArg.
-    \endinternal
 */
 #define COLORARG_MARKER UINT_MAX
 
-/*! \internal
-    Marker for the ColorText struct, for identifying a void pointer as a
+/*! Marker for the ColorText struct, for identifying a void pointer as a
     ColorText.
-    \endinternal
 */
 #define COLORTEXT_MARKER (UINT_MAX >> 1)
 
@@ -226,8 +222,13 @@
 */
 #define argeq(arg, s1, s2) (!strcmp(arg, s1)) || (!strcmp(arg, s2))
 
-#define asprintf_or(...) if (asprintf(__VA_ARGS__) < 1)
-#define asprintf_or_return(retval, ...) asprintf_or(__VA_ARGS__) return retval
+/*! \def asprintf_or_return
+    Convenience macro for bailing out of a function when asprintf fails.
+
+    \pi retval Value to return if the asprintf fails.
+    \pi ...    Arguments for asprintf.
+*/
+#define asprintf_or_return(retval, ...) if_not_asprintf(__VA_ARGS__) return retval
 
 /*! \def back
     Create a back color suitable for use with the colr() and Colr() macros.
@@ -509,26 +510,6 @@
 */
 #define colr_istreq(s1, s2) ((s1 && s2) ? !strcasecmp(s1, s2) : 0)
 
-/*! \def colr_istr_either
-    Convenience macro for `!strcasecmp(s1, s2) || !strcasecmp(s1, s3)`.
-
-    \pi s1 The string to compare against the other two strings.
-    \pi s2 The first string to compare with.
-    \pi s3 The second string to compare with.
-
-    \return `1` if \p s1 is equal to \p s2 or \p s3, otherwise `0`.
-*/
-#define colr_istr_either(s1, s2, s3) ((s1 && s2 && s3) ? (colr_istreq(s1, s2) || colr_istreq(s1, s3)) : 0)
-
-/*! \def colr_istreq
-    Convenience macro for `!strcasecmp(s1, s2)`.
-
-    \pi s1  The first string to compare.
-    \pi s2  The second string to compare.
-
-    \return `1` if \p s1 and \p s2 are equal, otherwise `0`.
-*/
-#define colr_istreq(s1, s2) ((s1 && s2) ? !strcasecmp(s1, s2) : 0)
 
 /*! \def colr_max
     Macro for `(a > b ? a : b)`.
@@ -752,6 +733,16 @@
 */
 #define hex_or(s, default_rgb) RGB_from_hex_default(s, default_rgb)
 
+/*! \def if_not_asprintf
+    Convenience macro for checking asprintf's return value.
+
+    \details
+    Should be followed by a block of code.
+
+    \pi ... Arguments for asprintf.
+*/
+#define if_not_asprintf(...) if (asprintf(__VA_ARGS__) < 1)
+
 //! Convenience macro for `fprintf(stderr, ...)`.
 #define printferr(...) fprintf(stderr, __VA_ARGS__)
 
@@ -858,8 +849,8 @@
     for (int r = 0; r < 256; r++) \
         for (int g = 0; g < 256; g++) \
             for (int b = 0; b < 256; b++) \
-/*! Basic color values, with a few convenience values for extended colors.
 
+/*! Basic color values, with a few convenience values for extended colors.
     \internal
     The enum values are immediately defined to be explicit casts to the
     BasicValue_t type, this ensure no confusion between StyleValue and

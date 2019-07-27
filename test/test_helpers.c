@@ -203,7 +203,7 @@ subdesc(colr_center) {
             char* input_repr = colr_repr(tests[i].s);
             char* c_repr = char_repr(tests[i].padchar);
             char* msg;
-            asprintf_or(&msg, "colr_center(%s, %s, %d) failed", input_repr, c_repr, tests[i].width) {
+            if_not_asprintf(&msg, "colr_center(%s, %s, %d) failed", input_repr, c_repr, tests[i].width) {
                 fail("Failed to allocated for failure message!");
             }
             free(input_repr);
@@ -358,7 +358,7 @@ subdesc(str_append_reset) {
             str_append_reset(s);
             char* input_repr = str_repr(tests[i].input);
             char* input_msg;
-            asprintf_or(&input_msg, "str_append_reset(%s) failed", input_repr) {
+            if_not_asprintf(&input_msg, "str_append_reset(%s) failed", input_repr) {
                 fail("Allocation failed for failure message!");
             }
             free(input_repr);
@@ -552,7 +552,7 @@ subdesc(str_lower) {
 
         for_each(tests, i) {
             char* input;
-            asprintf_or(&input, "%s", tests[i].input) {
+            if_not_asprintf(&input, "%s", tests[i].input) {
                 fail("Allocation failed for test input string!");
             }
             str_lower(input);
