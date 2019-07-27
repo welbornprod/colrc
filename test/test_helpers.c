@@ -77,6 +77,29 @@ subdesc(char_in_str) {
         }
     }
 }
+// char_is_code_end
+subdesc(char_is_code_end) {
+    it("detects known code-end chars") {
+        struct {
+            char c;
+            bool expected;
+        } tests[] = {
+            {'a', true},
+            {'A', true},
+            {'i', true},
+            {'h', true},
+            {'m', true},
+            {'?', false},
+            {'!', false},
+            {'.', false},
+            {' ', false},
+            {';', false},
+        };
+        for_each(tests, i) {
+            asserteq(char_is_code_end(tests[i].c), tests[i].expected);
+        }
+    }
+}
 // char_should_escape
 subdesc(char_should_escape) {
     it("should detect valid escape sequence chars") {
