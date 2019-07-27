@@ -922,6 +922,8 @@ char* str_lstrip_chars(const char* s, const char* chars) {
     \return The length of the string, as if it didn't contain escape codes.\n
             For non-escape-code strings, this is like `strlen()`.\n
             For `NULL` or "empty" strings, `0` is returned.
+
+    \sa str_strip_codes
 */
 size_t str_noncode_len(const char* s) {
     if (!s) return 0;
@@ -1046,6 +1048,8 @@ bool str_starts_with(const char* s, const char* prefix) {
             \mustnullin
     \return An allocated string with the result, or `NULL` if the allocation fails.\n
             \mustfree
+
+    \sa str_noncode_len
 */
 char* str_strip_codes(const char* s) {
     if (!s) return NULL;

@@ -410,6 +410,8 @@ subdesc(str_noncode_len) {
             char* s;
             size_t expected;
         } tests[] = {
+            {NULL, 0},
+            {"", 0},
             {FORE_CODE_BASIC "test", 4},
             {"test" FORE_CODE_BASIC, 4},
             {"test" FORE_CODE_BASIC "test", 8},
@@ -521,6 +523,8 @@ subdesc(str_strip_codes) {
             char* s;
             char* expected;
         } tests[] = {
+            {NULL, NULL},
+            {"", ""},
             {FORE_CODE_BASIC "test", "test"},
             {"test" FORE_CODE_BASIC, "test"},
             {"test" FORE_CODE_BASIC "test", "testtest"},
@@ -557,6 +561,11 @@ subdesc(str_strip_codes) {
         };
         for_each(tests, i) {
             char* stripped = str_strip_codes(tests[i].s);
+            if (!stripped) {
+                // Expected failure.
+                if (!tests[i].expected) continue;
+                fail("Falsey returned NULL for a valid string!");
+            }
             assert_str_eq(stripped, tests[i].expected, "Failed to strip codes");
             free(stripped);
         }
