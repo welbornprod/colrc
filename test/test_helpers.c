@@ -140,12 +140,189 @@ subdesc(char_should_escape) {
         }
     }
 }
+// colr_center
+subdesc(colr_center) {
+    it("center-justifies non-escape-code strings") {
+        struct {
+            char* s;
+            char padchar;
+            int width;
+            char* expected;
+        } tests[] = {
+            {NULL, 0, 4, NULL},
+            {"", 0, 0, ""},
+            {"", 0, 4, "    "},
+            {"a", 0, 0, "a"},
+            {"a", 0, 4, "  a "},
+            {"aa", 0, 4, " aa "},
+            {"aaa", ' ', 4, " aaa"},
+            {"aaaa  ", ' ', 10, "  aaaa    "},
+            {FORE_CODE_BASIC "a", ' ', 4, "  " FORE_CODE_BASIC "a "},
+            {FORE_CODE_EXT "a", ' ', 4, "  " FORE_CODE_EXT "a "},
+            {FORE_CODE_RGB "a", ' ', 4, "  " FORE_CODE_RGB "a "},
+            {STYLE_CODE_UL "a", ' ', 4, "  " STYLE_CODE_UL "a "},
+            {"a" FORE_CODE_BASIC, ' ', 4, "  a" FORE_CODE_BASIC " "},
+            {"a " FORE_CODE_EXT "a", ' ', 4, " a " FORE_CODE_EXT "a"},
+            {
+                " a" FORE_CODE_RGB FORE_CODE_BASIC "a",
+                ' ',
+                4,
+                "  a" FORE_CODE_RGB FORE_CODE_BASIC "a"
+            },
+            {
+                " a" FORE_CODE_RGB FORE_CODE_BASIC "a",
+                ' ',
+                5,
+                "  a" FORE_CODE_RGB FORE_CODE_BASIC "a "
+            },
+            {
+                " a" FORE_CODE_RGB FORE_CODE_BASIC "a",
+                ' ',
+                6,
+                "   a" FORE_CODE_RGB FORE_CODE_BASIC "a "
+            },
+            {
+                STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT,
+                ' ',
+                5,
+                "  " STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT "  "
+            },
+
+        };
+        for_each(tests, i) {
+            char* result = colr_center(tests[i].s, tests[i].padchar, tests[i].width);
+            if (!result) {
+                if (!tests[i].expected) {
+                    // Expected null.
+                    continue;
+                }
+                char* input_repr = colr_repr(tests[i].s);
+                char* expected_repr = colr_repr(tests[i].expected);
+                fail("Unexpected NULL from colr_center(%s): %s", input_repr, expected_repr);
+            }
+            char* input_repr = colr_repr(tests[i].s);
+            char* c_repr = char_repr(tests[i].padchar);
+            char* msg;
+            asprintf_or(&msg, "colr_center(%s, %s, %d) failed", input_repr, c_repr, tests[i].width) {
+                fail("Failed to allocated for failure message!");
+            }
+            free(input_repr);
+            free(c_repr);
+            assert_str_eq(result, tests[i].expected, msg);
+            free(msg);
+        }
+    }
+}
 // colr_empty_str
 subdesc(colr_empty_str) {
     it("sanity check for colr_empty_str()") {
         char* s = colr_empty_str();
         asserteq(s, "", "Empty string was not equal to \"\".");
         free(s);
+    }
+}
+// colr_ljust
+subdesc(colr_ljust) {
+    it("left-justifies non-escape-code strings") {
+        struct {
+            char* s;
+            char padchar;
+            int width;
+            char* expected;
+        } tests[] = {
+            {NULL, 0, 4, NULL},
+            {"", 0, 0, ""},
+            {"", 0, 4, "    "},
+            {"a", 0, 0, "a"},
+            {"a", 0, 4, "   a"},
+            {"aa", 0, 4, "  aa"},
+            {"aaa", ' ', 4, " aaa"},
+            {"aaaa  ", ' ', 10, "    aaaa  "},
+            {FORE_CODE_BASIC "a", ' ', 4, "   " FORE_CODE_BASIC "a"},
+            {FORE_CODE_EXT "a", ' ', 4, "   " FORE_CODE_EXT "a"},
+            {FORE_CODE_RGB "a", ' ', 4, "   " FORE_CODE_RGB "a"},
+            {STYLE_CODE_UL "a", ' ', 4, "   " STYLE_CODE_UL "a"},
+            {"a" FORE_CODE_BASIC, ' ', 4, "   a" FORE_CODE_BASIC},
+            {"a " FORE_CODE_EXT "a", ' ', 4, " a " FORE_CODE_EXT "a"},
+            {
+                " a" FORE_CODE_RGB FORE_CODE_BASIC "a",
+                ' ',
+                4,
+                "  a" FORE_CODE_RGB FORE_CODE_BASIC "a"
+            },
+            {
+                STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT,
+                ' ',
+                5,
+                "    " STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT
+            },
+
+        };
+        for_each(tests, i) {
+            char* result = colr_ljust(tests[i].s, tests[i].padchar, tests[i].width);
+            if (!result) {
+                if (!tests[i].expected) {
+                    // Expected null.
+                    continue;
+                }
+                char* input_repr = colr_repr(tests[i].s);
+                char* expected_repr = colr_repr(tests[i].expected);
+                fail("Unexpected NULL from colr_ljust(%s): %s", input_repr, expected_repr);
+            }
+            assert_str_eq(result, tests[i].expected, "colr_ljust failed to justify.");
+        }
+    }
+}
+// colr_rjust
+subdesc(colr_rjust) {
+    it("right-justifies non-escape-code strings") {
+        struct {
+            char* s;
+            char padchar;
+            int width;
+            char* expected;
+        } tests[] = {
+            {NULL, 0, 4, NULL},
+            {"", 0, 0, ""},
+            {"", 0, 4, "    "},
+            {"a", 0, 0, "a"},
+            {"a", 0, 4, "a   "},
+            {"aa", 0, 4, "aa  "},
+            {"aaa", ' ', 4, "aaa "},
+            {"aaaa  ", ' ', 10, "aaaa      "},
+            {FORE_CODE_BASIC "a", ' ', 4, FORE_CODE_BASIC "a   "},
+            {FORE_CODE_EXT "a", ' ', 4, FORE_CODE_EXT "a   "},
+            {FORE_CODE_RGB "a", ' ', 4, FORE_CODE_RGB "a   "},
+            {STYLE_CODE_UL "a", ' ', 4, STYLE_CODE_UL "a   "},
+            {"a" FORE_CODE_BASIC, ' ', 4, "a" FORE_CODE_BASIC "   "},
+            {"a " FORE_CODE_EXT "a", ' ', 4, "a " FORE_CODE_EXT "a "},
+            {
+                " a" FORE_CODE_RGB FORE_CODE_BASIC "a",
+                ' ',
+                4,
+                " a" FORE_CODE_RGB FORE_CODE_BASIC "a "
+            },
+            {
+                STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT,
+                ' ',
+                5,
+                STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT "    "
+            },
+
+        };
+        for_each(tests, i) {
+            char* result = colr_rjust(tests[i].s, tests[i].padchar, tests[i].width);
+            if (!result) {
+                if (!tests[i].expected) {
+                    // Expected null.
+                    continue;
+                }
+                char* input_repr = colr_repr(tests[i].s);
+                char* expected_repr = colr_repr(tests[i].expected);
+                fail("Unexpected NULL from colr_rjust(%s): %s", input_repr, expected_repr);
+            }
+            assert_str_eq(result, tests[i].expected, "colr_rjust failed to justify.");
+        }
     }
 }
 // colr_supports_rgb

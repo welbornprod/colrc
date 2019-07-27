@@ -12,7 +12,7 @@ colrdir="$(readlink -f "${appdir}/..")"
 examplesdir="${colrdir}/examples"
 toolsdir="${colrdir}/tools"
 colrexe="${colrdir}/colrc"
-testexe="${appdir}/test_colr"
+testexe="${appdir}/test_colrc"
 
 declare -a binaries=($(find "$appdir" -maxdepth 1 -executable -type f -name "test_*" ! -name "*.*"))
 ((${#binaries[@]})) || {

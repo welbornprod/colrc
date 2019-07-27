@@ -13,7 +13,7 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
 INCLUDES=-iquote../
 LIBS=-lm
 
-binary=test_colr
+binary=test_colrc
 cov_cmd=bash ../tools/gen_coverage_html.sh --
 cov_dir=coverage
 valgrind_cmd=bash ../tools/run_valgrind.sh --
