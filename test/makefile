@@ -16,7 +16,7 @@ LIBS=-lm
 binary=test_colr
 cov_cmd=bash ../tools/gen_coverage_html.sh --
 cov_dir=coverage
-valgrind_cmd=bash ../tools/run_valgrind.sh
+valgrind_cmd=bash ../tools/run_valgrind.sh --
 test_source:=$(wildcard *.c)
 source:=$(test_source) ../colr.c
 test_headers:=$(wildcard *.h)
@@ -113,7 +113,6 @@ help targets:
 	-@printf "Make targets available:\n\
     all             : Build with no optimization or debug symbols.\n\
     clang           : Use \`clang\` to build the default target.\n\
-    clangrelease    : Use \`clang\` to build the release target.\n\
     clean           : Delete previous build files.\n\
     cleantest       : Delete previous build files, then build and run the tests.\n\
     coverage        : Compile the debug build and generate coverage reports.\n\

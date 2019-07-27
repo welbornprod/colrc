@@ -693,7 +693,7 @@ def run_compiled_exe(
     except UnicodeDecodeError:
         stderr = f'Unable to decode stderr:\n    {proc.stderr!r}\n'
     if not (stdout or stderr):
-        stderr = no_output_str(filepath)
+        stderr = None if quiet else no_output_str(filepath)
     if stdout:
         print(stdout)
     if stderr:

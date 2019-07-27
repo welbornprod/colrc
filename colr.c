@@ -703,7 +703,7 @@ size_t str_char_count(const char* s, const char c) {
     size_t i = 0;
     size_t total = 0;
     while (s[i]) {
-        total++;
+        if (s[i++] == c) total++;
     }
     return total;
 }

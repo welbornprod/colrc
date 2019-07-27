@@ -19,7 +19,6 @@
 
 
 int main(int argc, char* argv[]) {
-    /* TODO: parse_args() for flag arguments, while keeping positionals. */
     // Needed for str_to_wide(), and wide_to_str(), and the rainbow() funcs.
     setlocale(LC_ALL, "");
     ColrToolOptions colropts = ColrToolOptions_new();
@@ -512,8 +511,8 @@ int print_version(void) {
     This only reads up to `length - 1` characters.
 */
 char* read_stdin_arg(void) {
-    char line[1024];
     size_t line_length = 1024;
+    char line[line_length];
     char* buffer = NULL;
     if (isatty(fileno(stdin)) && isatty(fileno(stderr))) {
         dbug("\nReading from stdin until EOF (Ctrl + D)...\n");
@@ -538,7 +537,7 @@ char* read_stdin_arg(void) {
 */
 bool validate_color_arg(ColorArg carg, const char* name) {
     if (!name) {
-        #ifdef DEBUG
+        #if defined(DEBUG) && defined(dbug)
         char* argtype = ArgType_to_str(carg.type);
         dbug("No %s arg given.\n", argtype);
         free(argtype);
@@ -587,7 +586,6 @@ bool validate_color_arg(ColorArg carg, const char* name) {
             break;
         default:
             // Valid color arg passed.
-            // dbug("Valid color arg passed for %s: %s\n", type, name);
             return true;
     }
 
