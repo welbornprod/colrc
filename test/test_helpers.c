@@ -210,6 +210,7 @@ subdesc(colr_center) {
             free(c_repr);
             assert_str_eq(result, tests[i].expected, msg);
             free(msg);
+            free(result);
         }
     }
 }
@@ -270,6 +271,7 @@ subdesc(colr_ljust) {
                 fail("Unexpected NULL from colr_ljust(%s): %s", input_repr, expected_repr);
             }
             assert_str_eq(result, tests[i].expected, "colr_ljust failed to justify.");
+            free(result);
         }
     }
 }
@@ -322,6 +324,7 @@ subdesc(colr_rjust) {
                 fail("Unexpected NULL from colr_rjust(%s): %s", input_repr, expected_repr);
             }
             assert_str_eq(result, tests[i].expected, "colr_rjust failed to justify.");
+            free(result);
         }
     }
 }

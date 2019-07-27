@@ -56,7 +56,7 @@ function clean_pdf {
 }
 
 function colr_anim {
-    # Run a command through colr_anim_run.py, with a custom message.
+    # Run a command through colr-run, with a custom message.
     ((no_colr)) && {
         shift
         "$@"
@@ -188,6 +188,7 @@ do_ref=0
 do_clean_doxy=0
 do_clean_pdf=0
 no_colr=0
+hash colr-run &>/dev/null || no_colr=1
 
 for arg; do
     case "$arg" in

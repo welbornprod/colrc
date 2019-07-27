@@ -1,6 +1,9 @@
 /*! Tests for ColrC.
     Uses snow.h for testing.
 
+    \details
+    This file holds common functions for all of the tests.
+
     \author Christopher Welborn
     \date 06-10-2019
 */

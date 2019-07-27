@@ -62,6 +62,8 @@ valgrind_cmd=bash tools/run_valgrind.sh
 .PHONY: all, coverage, debug, release
 all: debug
 
+coverage: clean
+coverage: coverageclean
 coverage: CFLAGS+=-O0 -DDEBUG
 coverage: CFLAGS+=-fprofile-arcs -ftest-coverage
 coverage: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
