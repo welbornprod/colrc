@@ -4,7 +4,7 @@
     \date 06-29-2019
 */
 
-#include "test_ColrC.h"
+#include "test_helpers.h"
 
 describe(helpers) {
 // char_escape_char
@@ -464,6 +464,54 @@ subdesc(str_starts_with) {
         };
         for_each(tests, i) {
             asserteq(str_starts_with(tests[i].s, tests[i].prefix), tests[i].expected);
+        }
+    }
+}
+// str_strip_codes
+subdesc(str_strip_codes) {
+    it("strips all escape codes") {
+        struct {
+            char* s;
+            char* expected;
+        } tests[] = {
+            {FORE_CODE_BASIC "test", "test"},
+            {"test" FORE_CODE_BASIC, "test"},
+            {"test" FORE_CODE_BASIC "test", "testtest"},
+            {FORE_CODE_EXT "test", "test"},
+            {"test" FORE_CODE_EXT, "test"},
+            {"test" FORE_CODE_EXT "test", "testtest"},
+            {FORE_CODE_RGB "test", "test"},
+            {"test" FORE_CODE_RGB, "test"},
+            {"test" FORE_CODE_RGB "test", "testtest"},
+            {BACK_CODE_BASIC "test", "test"},
+            {"test" BACK_CODE_BASIC, "test"},
+            {"test" BACK_CODE_BASIC "test", "testtest"},
+            {BACK_CODE_EXT "test", "test"},
+            {"test" BACK_CODE_EXT, "test"},
+            {"test" BACK_CODE_EXT "test", "testtest"},
+            {BACK_CODE_RGB "test", "test"},
+            {"test" BACK_CODE_RGB, "test"},
+            {"test" BACK_CODE_RGB "test", "testtest"},
+            {STYLE_CODE_BRIGHT "test", "test"},
+            {"test" STYLE_CODE_UL, "test"},
+            {"test" STYLE_CODE_UL "test", "testtest"},
+            {
+                FORE_CODE_RGB BACK_CODE_RGB STYLE_CODE_UL FORE_CODE_BASIC "\ntest",
+                "\ntest"
+            },
+            {
+                "\ntest" FORE_CODE_RGB BACK_CODE_RGB STYLE_CODE_UL FORE_CODE_BASIC,
+                "\ntest"
+            },
+            {
+                FORE_CODE_RGB " test " BACK_CODE_RGB STYLE_CODE_UL FORE_CODE_BASIC "\ntest",
+                " test \ntest"
+            },
+        };
+        for_each(tests, i) {
+            char* stripped = str_strip_codes(tests[i].s);
+            assert_str_eq(stripped, tests[i].expected, "Failed to strip codes");
+            free(stripped);
         }
     }
 }

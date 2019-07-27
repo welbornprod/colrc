@@ -438,6 +438,33 @@ bool char_in_str(const char c, const char* s) {
     return false;
 }
 
+/*! Determines if a character is suitable for an escape code ending.
+
+    \details
+    `m` is used as the last character in color codes, but other characters
+    can be used for escape sequences (such as "\033[2A", cursor up). Actual
+    escape code endings can be in the range (`char`) 64-126 (inclusive).
+
+    \details
+    Since ColrC only deals with color codes and maybe some cursor/erase codes,
+    this function tests if the character is either `A-Z` or `a-z`.
+
+    \details
+    For more information, see: https://en.wikipedia.org/wiki/ANSI_escape_code
+
+    \pi c   Character to test.
+    \return `true` if the character is a possible escape code ending, otherwise `false`.
+*/
+bool char_is_code_end(const char c) {
+    /*  The actual end chars can be: 64-126 (inclusive) ( ASCII: @A–Z[\]^_`a–z{ )
+        I'm just testing for alpha chars. A: 65, Z: 90, a: 97, z: 122
+        This is not a macro because it may be expanded in the future to detect
+        the full range of "end" chars.
+    */
+    // Lowercase `m` is the most common case for ColrC.
+    return ((c > 64) && (c < 91)) || ((c > 96) && (c < 123));
+}
+
 /*! Determines if an ascii character has an escape sequence in C.
 
     \details
@@ -901,7 +928,7 @@ char* str_lstrip_chars(const char* s, const char* chars) {
     result is printed.
 
     \pi     s The string to represent.
-    \return An allocated string with the respresentation.
+    \return An allocated string with the respresentation.\n
             \mustfree
 
     \sa char_should_escape char_escape_char
@@ -988,6 +1015,30 @@ bool str_starts_with(const char* s, const char* prefix) {
         }
     }
     return true;
+}
+
+/*! Strips escape codes from a string, resulting in a new allocated string.
+
+    \pi s   The string to strip escape codes from.
+            \mustnullin
+    \return An allocated string with the result, or `NULL` if the allocation fails.\n
+            \mustfree
+*/
+char* str_strip_codes(const char* s) {
+    if (!s) return NULL;
+    if (s[0] == '\0') return colr_empty_str();
+    size_t length = strlen(s);
+    char* final = calloc(length + 1, sizeof(char));
+    size_t i = 0, pos = 0;
+    while (s[i]) {
+        if (s[i] == '\033') {
+            // Skip past the code.
+            while (!char_is_code_end(s[i++]));
+            continue;
+        }
+        final[pos++] = s[i++];
+    }
+    return final;
 }
 
 /*! Allocate a new lowercase version of a string.
@@ -1717,7 +1768,7 @@ size_t ColorArg_length(ColorArg carg) {
     Allocates memory for the string representation.
 
     \pi carg ColorArg struct to get the representation for.
-    \return Allocated string for the representation.
+    \return Allocated string for the representation.\n
             \mustfree
 
     \sa ColorArg
@@ -1768,7 +1819,7 @@ ColorArg *ColorArg_to_ptr(ColorArg carg) {
     You must still free the empty string.
 
     \pi carg ColorArg to get the ArgType and ColorValue from.
-    \return Allocated string for the escape code.
+    \return Allocated string for the escape code.\n
             \mustfree
 
     \sa ColorArg
@@ -2970,7 +3021,7 @@ int RGB_from_str(const char* arg, RGB *rgbval) {
 
     \pi rgb RGB value to convert.
     \return An allocated string.
-            Returns `NULL` if the allocation failed.
+            Returns `NULL` if the allocation failed.\n
             \mustfree
 
     \sa RGB
@@ -2985,7 +3036,7 @@ char* RGB_to_hex(RGB rgb) {
 
     \pi rgb RGB value to convert.
     \return An allocated string in the form `"red;green;blue"`.
-            Returns `NULL` if the allocation failed.
+            Returns `NULL` if the allocation failed.\n
             \mustfree
 */
 char* RGB_to_str(RGB rgb) {
@@ -3037,7 +3088,7 @@ RGB RGB_to_term_RGB(RGB rgb) {
     Allocates memory for the string representation.
 
     \pi rgb RGB struct to get the representation for.
-    \return Allocated string for the representation.
+    \return Allocated string for the representation.\n
             \mustfree
 
     \sa RGB

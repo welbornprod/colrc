@@ -1119,6 +1119,7 @@ extern const size_t ext2rgb_map_len;
 */
 char char_escape_char(const char c);
 bool char_in_str(const char c, const char* s);
+bool char_is_code_end(const char c);
 bool char_should_escape(const char c);
 char* colr_empty_str(void);
 bool colr_supports_rgb(void);
@@ -1171,6 +1172,7 @@ void str_lower(char* s);
 char* str_lstrip_chars(const char* s, const char* chars);
 char* str_repr(const char* s);
 bool str_starts_with(const char* s, const char* prefix);
+char* str_strip_codes(const char* s);
 char* str_to_lower(const char* s);
 wchar_t* str_to_wide(const char* s);
 char* wide_to_str(const wchar_t* s);
