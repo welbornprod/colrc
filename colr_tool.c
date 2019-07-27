@@ -36,9 +36,8 @@ int main(int argc, char* argv[]) {
         }
     }
     // Rainbowize the text arg.
-    bool do_term_rainbow = false;
     if (colropts.rainbow_fore || colropts.rainbow_back) {
-        do_term_rainbow = !colr_supports_rgb();
+        bool do_term_rainbow = !colr_supports_rgb();
         // TODO: User args for these freq and offet values.
         double freq = 0.1;
         double offset = 3;
@@ -150,12 +149,12 @@ char* ColrToolOptions_repr(ColrToolOptions colropts) {
 
 
 int parse_args(int argc, char** argv, ColrToolOptions* colropts) {
-    int c;
     char* unknownmsg = NULL;
-
     // Tell getopt that I'll handle the bad-argument messages.
     opterr = 0;
+
     while (1) {
+        int c;
         int option_index = 0;
         static struct option long_options[] = {
             {"help", no_argument, 0, 'h'},

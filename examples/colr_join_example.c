@@ -18,4 +18,19 @@ int main(void) {
     // Prints each colorized piece of text on it's own line:
     printf("%s\n", colorized);
     free(colorized);
+
+    /*
+        The joiner can be a ColorText, string, or ColorArg (though ColorArgs
+        would be kinda useless).
+    */
+    char* final = colr_join(
+        Colr(" <--> ", fore(ext_hex("#353535")), style(UNDERLINE)),
+        "This",
+        Colr(" that ", fore(RED)),
+        "the other."
+    );
+    // Prints each piece, joined by a colorized " <--> ".
+    printf("%s\n", final);
+    free(final);
+
 }

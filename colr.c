@@ -826,7 +826,8 @@ void str_append_reset(char *s) {
         sprintf(s, "%s", CODE_RESET_ALL);
         return;
     }
-    size_t lastindex = strlen(s) - 1;
+    size_t length = strlen(s);
+    size_t lastindex = length - 1;
     size_t newlines = 0;
     // Cut newlines off if needed. I'll add them after the reset code.
     while ((lastindex > 0) && (s[lastindex] == '\n')) {
@@ -838,12 +839,16 @@ void str_append_reset(char *s) {
         // String starts with a newline.
         s[lastindex] = '\0';
         newlines++;
+    } else {
+        lastindex++;
     }
-    sprintf(s, "%s%s", s, CODE_RESET_ALL);
-    while (newlines) {
-        sprintf(s, "%s%c", s, '\n');
-        newlines--;
+    char* p = s + lastindex;
+    sprintf(p, "%s", CODE_RESET_ALL);
+    p += CODE_RESET_LEN - 1;
+    while (newlines--) {
+        *(p++) = '\n';
     }
+    *p = '\0';
 }
 
 /*! Counts the number of characters (`c`) that are found in a string (`s`).
@@ -939,7 +944,7 @@ bool str_has_codes(const char* s) {
     size_t length = strlen(s);
     size_t i = 0;
     while ((i < length) && s[i]) {
-        if ((s[i] == '\033') && s[i + 1] && (s[i + 1] == '[')) {
+        if ((s[i] == '\033') && (s[i + 1] == '[')) {
             // Skip past "\033["
             i += 2;
             while ((i < length) && s[i]) {
@@ -1342,8 +1347,12 @@ char* _colr(void *p, ...) {
     va_list argcopy;
     va_copy(argcopy, args);
     size_t length = _colr_length(p, argcopy);
+    va_end(argcopy);
     // If length was 1, there were no usable values in the argument list.
-    if (length == 1) return colr_empty_str();
+    if (length == 1) {
+        va_end(args);
+        return colr_empty_str();
+    }
     // Allocate enough for the reset code at the end.
     char* final = calloc(length, sizeof(char));
 
@@ -1392,7 +1401,7 @@ char* _colr(void *p, ...) {
             s = (char* )arg;
             is_string = true;
         }
-        sprintf(final, "%s%s", final, s);
+        strcat(final, s);
         // String was passed, add the reset code.
         if (is_string) str_append_reset(final);
 
@@ -1420,9 +1429,7 @@ char* _colr(void *p, ...) {
 */
 size_t _colr_length(void *p, va_list args) {
     // Argument list must have ColorArg/ColorText with NULL members at the end.
-    if (!p) {
-        return 0;
-    }
+    if (!p) return 0;
     ColorArg *cargp = NULL;
     ColorText *ctextp = NULL;
     size_t length = 1;
@@ -1463,7 +1470,6 @@ size_t _colr_length(void *p, va_list args) {
         // String was passed, add the reset code.
         if (is_string) length += CODE_RESET_LEN;
     }
-    va_end(args);
     return length;
 }
 
@@ -1496,8 +1502,12 @@ char* _colr_join(void *joinerp, ...) {
     va_list argcopy;
     va_copy(argcopy, args);
     size_t length = _colr_join_length(joinerp, argcopy);
+    va_end(argcopy);
     // If length is 1, then no usable values were passed in.
-    if (length == 1) return colr_empty_str();
+    if (length == 1) {
+        va_end(args);
+        return colr_empty_str();
+    }
 
     char* final = calloc(length, sizeof(char));
     char* joiner;
@@ -1522,7 +1532,6 @@ char* _colr_join(void *joinerp, ...) {
     int count = 0;
     void *arg = NULL;
     while ((arg = va_arg(args, void*))) {
-        count++;
         cargp = NULL;
         ctextp = NULL;
         // These ColorArgs/ColorTexts were heap allocated through the fore,
@@ -1542,11 +1551,9 @@ char* _colr_join(void *joinerp, ...) {
             // It better be a string.
             piece = (char* )arg;
         }
-        if (count == 1) {
-            sprintf(final, "%s%s", final, piece);
-        } else {
-            sprintf(final, "%s%s%s", final, joiner, piece);
-        }
+        if (count++) strcat(final, joiner);
+        strcat(final, piece);
+
         // Free the temporary string from those ColorArgs/ColorTexts.
         if (cargp || ctextp) free(piece);
     }
@@ -1580,6 +1587,7 @@ size_t _colr_join_length(void *joinerp, va_list args) {
 
     // No joiner, no strings. Empty string will be returned, so just "\0".
     if (!joinerp) return 1;
+
     ColorArg* joiner_cargp = NULL;
     ColorText* joiner_ctextp = NULL;
     ColorArg* cargp = NULL;
@@ -1618,7 +1626,6 @@ size_t _colr_join_length(void *joinerp, va_list args) {
             length += joiner_len;
         }
     }
-    va_end(args);
     length += CODE_RESET_LEN;
     return length;
 }
@@ -2008,7 +2015,6 @@ void ColorText_free(ColorText *p) {
     if (p->style) free(p->style);
 
     free(p);
-    p = NULL;
 }
 
 /*! Builds a ColorText from 1 mandatory string, and optional fore, back, and
@@ -2159,20 +2165,20 @@ char* ColorText_to_str(ColorText ctext) {
     bool do_reset = (ctext.style || ctext.fore || ctext.back);
     if (ctext.style && !ColorArg_is_empty(*(ctext.style))) {
         char* stylecode = ColorArg_to_str(*(ctext.style));
-        sprintf(final, "%s%s", final, stylecode);
+        strcat(final, stylecode);
         free(stylecode);
     }
     if (ctext.fore && !ColorArg_is_empty(*(ctext.fore))) {
         char* forecode = ColorArg_to_str(*(ctext.fore));
-        sprintf(final, "%s%s", final, forecode);
+        strcat(final, forecode);
         free(forecode);
     }
     if (ctext.back && !ColorArg_is_empty(*(ctext.back))) {
         char* backcode = ColorArg_to_str(*(ctext.back));
-        sprintf(final, "%s%s", final, backcode);
+        strcat(final, backcode);
         free(backcode);
     }
-    sprintf(final, "%s%s", final, ctext.text);
+    strcat(final, ctext.text);
     if (do_reset) str_append_reset(final);
     return final;
 }
@@ -2405,9 +2411,6 @@ ColorValue ColorValue_from_value(ColorType type, void *p) {
         type == TYPE_INVALID_RGB_RANGE
         ) {
         return (ColorValue){.type=type};
-    }
-    if (!p) {
-        return (ColorValue){.type=TYPE_INVALID};
     }
     if (type == TYPE_BASIC) {
         BasicValue *bval = p;
@@ -3481,7 +3484,7 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
 
         fmter(codes, rainbow_step(freq, offset + i));
         swprintf(wcodes, CODE_RGB_LEN, L"%s", codes);
-        swprintf(singlewchar, singlecharlen, L"%ls%lc", wcodes, chars[i]);
+        swprintf(singlewchar, singlecharlen, L"%ls%c", wcodes, chars[i]);
         wcscat(wc_out, singlewchar);
     }
     free(chars);
