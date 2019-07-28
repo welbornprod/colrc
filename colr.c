@@ -571,19 +571,38 @@ TermSize colr_term_size(void) {
 /*! Attempts to retrieve a `winsize` struct from an `ioctl` call.
 
     \details
-    If the call fails, a default `winsize` struct is returned:
+    If the call fails, the environment variables `LINES` and `COLUMNS` are checked.
+    If that fails, a default `winsize` struct is returned:
     \code
     (struct winsize){.ws_row=35, .ws_col=80, .ws_xpixel=0, .ws_ypixel=0}
     \endcode
 
+    \details
+    `man ioctl_tty` says that `.ws_xpixel` and `.ws_ypixel` are unused.
+
     \return A `winsize` struct (`sys/ioctl.h`) with window size information.
 */
 struct winsize colr_win_size(void) {
-    struct winsize ws;
+    struct winsize ws = {0, 0, 0, 0};
     if (ioctl(0, TIOCGWINSZ, &ws) < 0) {
         // No support?
         dbug("No support for ioctl TIOCGWINSZ, using defaults.");
-        return (struct winsize){.ws_row=35, .ws_col=80, .ws_xpixel=0, .ws_ypixel=0};
+        char* env_rows = getenv("LINES");
+        unsigned short default_rows = 0;
+        if (sscanf(env_rows, "%hu", &default_rows) != 1) {
+            default_rows = 35;
+        }
+        char* env_cols = getenv("COLUMNS");
+        unsigned short default_cols = 0;
+        if (sscanf(env_cols, "%hu", &default_cols) != 1) {
+            default_cols = 80;
+        }
+        return (struct winsize){
+            .ws_row=default_rows,
+            .ws_col=default_cols,
+            .ws_xpixel=0,
+            .ws_ypixel=0
+        };
     }
     return ws;
 }

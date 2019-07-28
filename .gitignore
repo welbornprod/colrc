@@ -12,3 +12,4 @@ tools/*.json
 deleteme.*
 callgrind.*
 cachegrind.*
+images/*.xcf
