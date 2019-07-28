@@ -505,57 +505,7 @@ bool char_should_escape(const char c) {
             return false;
     }
 }
-/*! Center-justifies a string, ignoring escape codes when measuring the width.
 
-    \pi s       The string to "center".
-    \pi padchar The character to pad with. If '0', then `' '` is used.
-    \pi width   The overall width for the resulting string.
-
-    \return     An allocated string with the result,
-                or `NULL` if \p s is `NULL` or the allocation failed.
-
-    \sa colr_ljust colr_rjust
-*/
-char* colr_center(const char* s, const char padchar, int width) {
-    if (!s) return NULL;
-    char pad = padchar == '\0' ? ' ' : padchar;
-    size_t length = strlen(s);
-    size_t noncode_len = str_noncode_len(s);
-    int diff = width - noncode_len;
-    char* result;
-    if (diff < 1) {
-        // No room for padding, also asprintf can't do empty strings.
-        if (s[0] == '\0') return colr_empty_str();
-        asprintf_or_return(NULL, &result, "%s", s);
-        return result;
-    }
-    size_t final_len = length + diff + 1;
-    result = calloc(final_len, sizeof(char));
-    if (!result) return NULL;
-    if (s[0] == '\0') {
-        // Shortcut for a simple pad-only string.
-        memset(result, pad, final_len - 1);
-        return result;
-    }
-    size_t pos = 0;
-    size_t leftdiff = diff / 2;
-    if (diff % 2 == 1) leftdiff++;
-    // Handle left-just.
-    while (pos < leftdiff) {
-        result[pos++] = pad;
-    }
-    // Handle string.
-    size_t i = 0;
-    while (s[i]) {
-        result[pos++] = s[i++];
-    }
-    // Handle remaining right-just.
-    final_len--;
-    while (pos < final_len) {
-        result[pos++] = pad;
-    }
-    return result;
-}
 /*! Allocates an empty string.
     \details
     This is for keeping the interface simple, so the return values from
@@ -570,88 +520,6 @@ char* colr_empty_str(void) {
     return s;
 }
 
-/*! Left-justifies a string, ignoring escape codes when measuring the width.
-
-    \pi s       The string to justify.
-    \pi padchar The character to pad with. If '0', then `' '` is used.
-    \pi width   The overall width for the resulting string.
-
-    \return     An allocated string with the result,
-                or `NULL` if \p s is `NULL` or the allocation failed.
-
-    \sa colr_center colr_rjust
-*/
-char* colr_ljust(const char* s, const char padchar, int width) {
-    if (!s) return NULL;
-    char pad = padchar == '\0' ? ' ' : padchar;
-    size_t length = strlen(s);
-    size_t noncode_len = str_noncode_len(s);
-    int diff = width - noncode_len;
-    char* result;
-    if (diff < 1) {
-        // No room for padding, also asprintf can't do empty strings.
-        if (s[0] == '\0') return colr_empty_str();
-        asprintf_or_return(NULL, &result, "%s", s);
-        return result;
-    }
-    size_t final_len = length + diff + 1;
-    result = calloc(final_len, sizeof(char));
-    if (!result) return NULL;
-    if (s[0] == '\0') {
-        // Shortcut for a simple pad-only string.
-        memset(result, pad, final_len - 1);
-        return result;
-    }
-    char* start = result;
-    int pos = 0;
-    while (pos < diff) {
-        result[pos++] = pad;
-    }
-    result = result + pos;
-    sprintf(result, "%s", s);
-    return start;
-}
-
-/*! Right-justifies a string, ignoring escape codes when measuring the width.
-
-    \pi s       The string to justify.
-    \pi padchar The character to pad with. If '0', then `' '` is used.
-    \pi width   The overall width for the resulting string.
-
-    \return     An allocated string with the result,
-                or `NULL` if \p s is `NULL` or the allocation failed.
-
-    \sa colr_center colr_ljust
-*/
-char* colr_rjust(const char* s, const char padchar, int width) {
-    if (!s) return NULL;
-    char pad = padchar == '\0' ? ' ' : padchar;
-    size_t length = strlen(s);
-    size_t noncode_len = str_noncode_len(s);
-    int diff = width - noncode_len;
-    char* result;
-    if (diff < 1) {
-        // No room for padding, also asprintf can't do empty strings.
-        if (s[0] == '\0') return colr_empty_str();
-        asprintf_or_return(NULL, &result, "%s", s);
-        return result;
-    }
-    size_t final_len = length + diff + 1;
-    result = calloc(final_len, sizeof(char));
-    if (!result) return NULL;
-    if (s[0] == '\0') {
-        // Shortcut for a simple pad-only string.
-        memset(result, pad, final_len - 1);
-        return result;
-    }
-    char* start = result;
-    sprintf(result, "%s", s);
-    int pos = 0;
-    while (pos < diff) {
-        result[length + pos++] = pad;
-    }
-    return start;
-}
 
 /*! Determine whether the current environment support RGB (True Colors).
 
@@ -684,6 +552,40 @@ bool colr_supports_rgb(void) {
     // char* testcode = "\033[38:2:255:255:255m\033P$qm\033\\\n";
     // Should get: 2:255:255:255m
     return false;
+}
+
+/*! Attempts to retrieve the row/column size of the terminal and returns a TermSize.
+
+    \details
+    If the call to `ioctl()` fails, a default TermSize struct is returned:
+    \code
+    (TermSize){.rows=35, .columns=80}
+    \endcode
+    \return A TermSize struct with terminal size information.
+*/
+TermSize colr_term_size(void) {
+    struct winsize ws = colr_win_size();
+    return (TermSize){.rows=ws.ws_row, .columns=ws.ws_col};
+}
+
+/*! Attempts to retrieve a `winsize` struct from an `ioctl` call.
+
+    \details
+    If the call fails, a default `winsize` struct is returned:
+    \code
+    (struct winsize){.ws_row=35, .ws_col=80, .ws_xpixel=0, .ws_ypixel=0}
+    \endcode
+
+    \return A `winsize` struct (`sys/ioctl.h`) with window size information.
+*/
+struct winsize colr_win_size(void) {
+    struct winsize ws;
+    if (ioctl(0, TIOCGWINSZ, &ws) < 0) {
+        // No support?
+        dbug("No support for ioctl TIOCGWINSZ, using defaults.");
+        return (struct winsize){.ws_row=35, .ws_col=80, .ws_xpixel=0, .ws_ypixel=0};
+    }
+    return ws;
 }
 
 /*! Create an escape code for a background color.
@@ -851,6 +753,64 @@ void str_append_reset(char *s) {
     *p = '\0';
 }
 
+/*! Center-justifies a string, ignoring escape codes when measuring the width.
+
+    \pi s       The string to "center".
+    \pi padchar The character to pad with. If '0', then `' '` is used.
+    \pi width   The overall width for the resulting string.\n
+                If set to '0', the terminal width will be used from colr_term_size().
+
+    \return     An allocated string with the result,
+                or `NULL` if \p s is `NULL` or the allocation failed.
+                or `NULL` if \p s is `NULL` or the allocation failed.
+
+    \sa str_ljust str_rjust colr_term_size
+*/
+char* str_center(const char* s, const char padchar, int width) {
+    if (!s) return NULL;
+    char pad = padchar == '\0' ? ' ' : padchar;
+    size_t length = strlen(s);
+    size_t noncode_len = str_noncode_len(s);
+    if (width == 0) {
+        TermSize ts = colr_term_size();
+        width = ts.columns;
+    }
+    int diff = width - noncode_len;
+    char* result;
+    if (diff < 1) {
+        // No room for padding, also asprintf can't do empty strings.
+        if (s[0] == '\0') return colr_empty_str();
+        asprintf_or_return(NULL, &result, "%s", s);
+        return result;
+    }
+    size_t final_len = length + diff + 1;
+    result = calloc(final_len, sizeof(char));
+    if (!result) return NULL;
+    if (s[0] == '\0') {
+        // Shortcut for a simple pad-only string.
+        memset(result, pad, final_len - 1);
+        return result;
+    }
+    size_t pos = 0;
+    size_t leftdiff = diff / 2;
+    if (diff % 2 == 1) leftdiff++;
+    // Handle left-just.
+    while (pos < leftdiff) {
+        result[pos++] = pad;
+    }
+    // Handle string.
+    size_t i = 0;
+    while (s[i]) {
+        result[pos++] = s[i++];
+    }
+    // Handle remaining right-just.
+    final_len--;
+    while (pos < final_len) {
+        result[pos++] = pad;
+    }
+    return result;
+}
+
 /*! Counts the number of characters (`c`) that are found in a string (`s`).
 
     \details
@@ -1016,6 +976,52 @@ void str_lower(char* s) {
     if (s[i] != '\0') s[i] = '\0';
 }
 
+/*! Left-justifies a string, ignoring escape codes when measuring the width.
+
+    \pi s       The string to justify.
+    \pi padchar The character to pad with. If '0', then `' '` is used.
+    \pi width   The overall width for the resulting string.\n
+                If set to '0', the terminal width will be used from colr_term_size().
+
+    \return     An allocated string with the result,
+                or `NULL` if \p s is `NULL` or the allocation failed.
+
+    \sa str_center str_rjust colr_term_size
+*/
+char* str_ljust(const char* s, const char padchar, int width) {
+    if (!s) return NULL;
+    char pad = padchar == '\0' ? ' ' : padchar;
+    size_t length = strlen(s);
+    size_t noncode_len = str_noncode_len(s);
+    if (width == 0) {
+        TermSize ts = colr_term_size();
+        width = ts.columns;
+    }
+    int diff = width - noncode_len;
+    char* result;
+    if (diff < 1) {
+        // No room for padding, also asprintf can't do empty strings.
+        if (s[0] == '\0') return colr_empty_str();
+        asprintf_or_return(NULL, &result, "%s", s);
+        return result;
+    }
+    size_t final_len = length + diff + 1;
+    result = calloc(final_len, sizeof(char));
+    if (!result) return NULL;
+    if (s[0] == '\0') {
+        // Shortcut for a simple pad-only string.
+        memset(result, pad, final_len - 1);
+        return result;
+    }
+    char* start = result;
+    int pos = 0;
+    while (pos < diff) {
+        result[pos++] = pad;
+    }
+    result = result + pos;
+    sprintf(result, "%s", s);
+    return start;
+}
 
 /*! Removes certain characters from the start of a string.
     \details
@@ -1146,6 +1152,52 @@ char* str_repr(const char* s) {
     }
     repr[inew] = '"';
     return repr;
+}
+
+/*! Right-justifies a string, ignoring escape codes when measuring the width.
+
+    \pi s       The string to justify.
+    \pi padchar The character to pad with. If '0', then `' '` is used.
+    \pi width   The overall width for the resulting string.\n
+                If set to '0', the terminal width will be used from colr_term_size().
+
+    \return     An allocated string with the result,
+                or `NULL` if \p s is `NULL` or the allocation failed.
+
+    \sa str_center str_ljust colr_term_size
+*/
+char* str_rjust(const char* s, const char padchar, int width) {
+    if (!s) return NULL;
+    char pad = padchar == '\0' ? ' ' : padchar;
+    size_t length = strlen(s);
+    size_t noncode_len = str_noncode_len(s);
+    if (width == 0) {
+        TermSize ts = colr_term_size();
+        width = ts.columns;
+    }
+    int diff = width - noncode_len;
+    char* result;
+    if (diff < 1) {
+        // No room for padding, also asprintf can't do empty strings.
+        if (s[0] == '\0') return colr_empty_str();
+        asprintf_or_return(NULL, &result, "%s", s);
+        return result;
+    }
+    size_t final_len = length + diff + 1;
+    result = calloc(final_len, sizeof(char));
+    if (!result) return NULL;
+    if (s[0] == '\0') {
+        // Shortcut for a simple pad-only string.
+        memset(result, pad, final_len - 1);
+        return result;
+    }
+    char* start = result;
+    sprintf(result, "%s", s);
+    int pos = 0;
+    while (pos < diff) {
+        result[length + pos++] = pad;
+    }
+    return start;
 }
 
 /*! Checks a string for a certain prefix substring.

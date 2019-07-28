@@ -81,6 +81,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 #include <wchar.h>
 #include <ttyent.h>
@@ -1082,6 +1083,13 @@ typedef struct ColorText_s {
     ColorArg *style;
 } ColorText;
 
+/*! Holds a terminal size, usually retrieved with colr_term_size().
+*/
+typedef struct TermSize_s {
+    unsigned short rows;
+    unsigned short columns;
+} TermSize;
+
 #ifndef DOXYGEN_SKIP
 //! A list of BasicInfo items, used with BasicValue_from_str().
 extern const BasicInfo basic_names[];
@@ -1112,11 +1120,10 @@ char char_escape_char(const char c);
 bool char_in_str(const char c, const char* s);
 bool char_is_code_end(const char c);
 bool char_should_escape(const char c);
-char* colr_center(const char* s, const char padchar, int width);
 char* colr_empty_str(void);
-char* colr_ljust(const char* s, const char padchar, int width);
-char* colr_rjust(const char* s, const char padchar, int width);
 bool colr_supports_rgb(void);
+TermSize colr_term_size(void);
+struct winsize colr_win_size(void);
 void format_bgx(char* out, unsigned char num);
 void format_bg(char* out, BasicValue value);
 void format_bg_rgb(char* out, unsigned char red, unsigned char green, unsigned char blue);
@@ -1157,15 +1164,18 @@ RGB rainbow_step(double freq, size_t step);
 
 void str_append_reset(char* s);
 size_t str_char_count(const char*s, const char c);
+char* str_center(const char* s, const char padchar, int width);
 char* str_copy(char* dest, const char* src, size_t length);
 bool str_ends_with(const char* s, const char* suffix);
 bool str_has_codes(const char* s);
 bool str_is_all(const char* s, const char c);
 bool str_is_digits(const char* s);
+char* str_ljust(const char* s, const char padchar, int width);
 void str_lower(char* s);
 char* str_lstrip_chars(const char* s, const char* chars);
 size_t str_noncode_len(const char* s);
 char* str_repr(const char* s);
+char* str_rjust(const char* s, const char padchar, int width);
 bool str_starts_with(const char* s, const char* prefix);
 char* str_strip_codes(const char* s);
 char* str_to_lower(const char* s);

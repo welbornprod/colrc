@@ -140,8 +140,83 @@ subdesc(char_should_escape) {
         }
     }
 }
-// colr_center
-subdesc(colr_center) {
+// colr_empty_str
+subdesc(colr_empty_str) {
+    it("sanity check for colr_empty_str()") {
+        char* s = colr_empty_str();
+        asserteq(s, "", "Empty string was not equal to \"\".");
+        free(s);
+    }
+}
+// colr_supports_rgb
+subdesc(colr_supports_rgb) {
+    it("detects rgb support") {
+        char* original = getenv("COLORTERM");
+        setenv("COLORTERM", "truecolor", 1);
+        assert(colr_supports_rgb());
+        setenv("COLORTERM", "NOTAVALIDVALUE", 1);
+        assert(!colr_supports_rgb());
+        // Reset the original value, just in case.
+        if (original) setenv("COLORTERM", original, 1);
+    }
+}
+// colr_term_size
+// colr_win_size
+subdesc(term_size) {
+    it("colr_term_size: doesn't crash") {
+        // Not sure how to test this, at least the scaffolding will be here
+        // when I find out.
+        TermSize ts = colr_term_size();
+        assert(ts.rows > 0);
+        assert(ts.columns > 0);
+    }
+    it("colr_win_size: doesn't crash") {
+        // Not sure how to test this, at least the scaffolding will be here
+        // when I find out.
+        struct winsize ws = colr_win_size();
+        assert(ws.ws_row > 0);
+        assert(ws.ws_col > 0);
+        // This is always true, I just don't know what else to test.
+        // assert(ws.ws_xpixel >= 0);
+        // assert(ws.ws_ypixel >= 0);
+    }
+}
+// str_append_reset
+subdesc(str_append_reset) {
+    it("accounts for newlines") {
+        struct {
+            char* input;
+            char* expected;
+        } tests[] = {
+            {"", CODE_RESET_ALL},
+            {"\n", CODE_RESET_ALL "\n"},
+            {"test\n", "test" CODE_RESET_ALL "\n"},
+            {"test\n\n\n\n", "test" CODE_RESET_ALL "\n\n\n\n"},
+            {"test\n\n\n\n\n", "test" CODE_RESET_ALL "\n\n\n\n\n"},
+            {"test\n another \n\n", "test\n another " CODE_RESET_ALL "\n\n"},
+        };
+        for_each(tests, i) {
+            size_t expected_len = strlen(tests[i].expected);
+            char s[expected_len + 1];
+            str_copy(s, tests[i].input, strlen(tests[i].input));
+            str_append_reset(s);
+            char* input_repr = str_repr(tests[i].input);
+            char* input_msg;
+            if_not_asprintf(&input_msg, "str_append_reset(%s) failed", input_repr) {
+                fail("Allocation failed for failure message!");
+            }
+            free(input_repr);
+            assert_str_eq(
+                s,
+                tests[i].expected,
+                input_msg
+            );
+            free(input_msg);
+        }
+    }
+}
+// str_center
+subdesc(str_center) {
     it("center-justifies non-escape-code strings") {
         struct {
             char* s;
@@ -150,9 +225,9 @@ subdesc(colr_center) {
             char* expected;
         } tests[] = {
             {NULL, 0, 4, NULL},
-            {"", 0, 0, ""},
+            {"", 0, 1, " "},
             {"", 0, 4, "    "},
-            {"a", 0, 0, "a"},
+            {"a", 0, 1, "a"},
             {"a", 0, 4, "  a "},
             {"aa", 0, 4, " aa "},
             {"aaa", ' ', 4, " aaa"},
@@ -190,7 +265,7 @@ subdesc(colr_center) {
 
         };
         for_each(tests, i) {
-            char* result = colr_center(tests[i].s, tests[i].padchar, tests[i].width);
+            char* result = str_center(tests[i].s, tests[i].padchar, tests[i].width);
             if (!result) {
                 if (!tests[i].expected) {
                     // Expected null.
@@ -198,12 +273,12 @@ subdesc(colr_center) {
                 }
                 char* input_repr = colr_repr(tests[i].s);
                 char* expected_repr = colr_repr(tests[i].expected);
-                fail("Unexpected NULL from colr_center(%s): %s", input_repr, expected_repr);
+                fail("Unexpected NULL from str_center(%s): %s", input_repr, expected_repr);
             }
             char* input_repr = colr_repr(tests[i].s);
             char* c_repr = char_repr(tests[i].padchar);
             char* msg;
-            if_not_asprintf(&msg, "colr_center(%s, %s, %d) failed", input_repr, c_repr, tests[i].width) {
+            if_not_asprintf(&msg, "str_center(%s, %s, %d) failed", input_repr, c_repr, tests[i].width) {
                 fail("Failed to allocated for failure message!");
             }
             free(input_repr);
@@ -211,166 +286,6 @@ subdesc(colr_center) {
             assert_str_eq(result, tests[i].expected, msg);
             free(msg);
             free(result);
-        }
-    }
-}
-// colr_empty_str
-subdesc(colr_empty_str) {
-    it("sanity check for colr_empty_str()") {
-        char* s = colr_empty_str();
-        asserteq(s, "", "Empty string was not equal to \"\".");
-        free(s);
-    }
-}
-// colr_ljust
-subdesc(colr_ljust) {
-    it("left-justifies non-escape-code strings") {
-        struct {
-            char* s;
-            char padchar;
-            int width;
-            char* expected;
-        } tests[] = {
-            {NULL, 0, 4, NULL},
-            {"", 0, 0, ""},
-            {"", 0, 4, "    "},
-            {"a", 0, 0, "a"},
-            {"a", 0, 4, "   a"},
-            {"aa", 0, 4, "  aa"},
-            {"aaa", ' ', 4, " aaa"},
-            {"aaaa  ", ' ', 10, "    aaaa  "},
-            {FORE_CODE_BASIC "a", ' ', 4, "   " FORE_CODE_BASIC "a"},
-            {FORE_CODE_EXT "a", ' ', 4, "   " FORE_CODE_EXT "a"},
-            {FORE_CODE_RGB "a", ' ', 4, "   " FORE_CODE_RGB "a"},
-            {STYLE_CODE_UL "a", ' ', 4, "   " STYLE_CODE_UL "a"},
-            {"a" FORE_CODE_BASIC, ' ', 4, "   a" FORE_CODE_BASIC},
-            {"a " FORE_CODE_EXT "a", ' ', 4, " a " FORE_CODE_EXT "a"},
-            {
-                " a" FORE_CODE_RGB FORE_CODE_BASIC "a",
-                ' ',
-                4,
-                "  a" FORE_CODE_RGB FORE_CODE_BASIC "a"
-            },
-            {
-                STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT,
-                ' ',
-                5,
-                "    " STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT
-            },
-
-        };
-        for_each(tests, i) {
-            char* result = colr_ljust(tests[i].s, tests[i].padchar, tests[i].width);
-            if (!result) {
-                if (!tests[i].expected) {
-                    // Expected null.
-                    continue;
-                }
-                char* input_repr = colr_repr(tests[i].s);
-                char* expected_repr = colr_repr(tests[i].expected);
-                fail("Unexpected NULL from colr_ljust(%s): %s", input_repr, expected_repr);
-            }
-            assert_str_eq(result, tests[i].expected, "colr_ljust failed to justify.");
-            free(result);
-        }
-    }
-}
-// colr_rjust
-subdesc(colr_rjust) {
-    it("right-justifies non-escape-code strings") {
-        struct {
-            char* s;
-            char padchar;
-            int width;
-            char* expected;
-        } tests[] = {
-            {NULL, 0, 4, NULL},
-            {"", 0, 0, ""},
-            {"", 0, 4, "    "},
-            {"a", 0, 0, "a"},
-            {"a", 0, 4, "a   "},
-            {"aa", 0, 4, "aa  "},
-            {"aaa", ' ', 4, "aaa "},
-            {"aaaa  ", ' ', 10, "aaaa      "},
-            {FORE_CODE_BASIC "a", ' ', 4, FORE_CODE_BASIC "a   "},
-            {FORE_CODE_EXT "a", ' ', 4, FORE_CODE_EXT "a   "},
-            {FORE_CODE_RGB "a", ' ', 4, FORE_CODE_RGB "a   "},
-            {STYLE_CODE_UL "a", ' ', 4, STYLE_CODE_UL "a   "},
-            {"a" FORE_CODE_BASIC, ' ', 4, "a" FORE_CODE_BASIC "   "},
-            {"a " FORE_CODE_EXT "a", ' ', 4, "a " FORE_CODE_EXT "a "},
-            {
-                " a" FORE_CODE_RGB FORE_CODE_BASIC "a",
-                ' ',
-                4,
-                " a" FORE_CODE_RGB FORE_CODE_BASIC "a "
-            },
-            {
-                STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT,
-                ' ',
-                5,
-                STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT "    "
-            },
-
-        };
-        for_each(tests, i) {
-            char* result = colr_rjust(tests[i].s, tests[i].padchar, tests[i].width);
-            if (!result) {
-                if (!tests[i].expected) {
-                    // Expected null.
-                    continue;
-                }
-                char* input_repr = colr_repr(tests[i].s);
-                char* expected_repr = colr_repr(tests[i].expected);
-                fail("Unexpected NULL from colr_rjust(%s): %s", input_repr, expected_repr);
-            }
-            assert_str_eq(result, tests[i].expected, "colr_rjust failed to justify.");
-            free(result);
-        }
-    }
-}
-// colr_supports_rgb
-subdesc(colr_supports_rgb) {
-    it("detects rgb support") {
-        char* original = getenv("COLORTERM");
-        setenv("COLORTERM", "truecolor", 1);
-        assert(colr_supports_rgb());
-        setenv("COLORTERM", "NOTAVALIDVALUE", 1);
-        assert(!colr_supports_rgb());
-        // Reset the original value, just in case.
-        if (original) setenv("COLORTERM", original, 1);
-    }
-}
-// str_append_reset
-subdesc(str_append_reset) {
-    it("accounts for newlines") {
-        struct {
-            char* input;
-            char* expected;
-        } tests[] = {
-            {"", CODE_RESET_ALL},
-            {"\n", CODE_RESET_ALL "\n"},
-            {"test\n", "test" CODE_RESET_ALL "\n"},
-            {"test\n\n\n\n", "test" CODE_RESET_ALL "\n\n\n\n"},
-            {"test\n\n\n\n\n", "test" CODE_RESET_ALL "\n\n\n\n\n"},
-            {"test\n another \n\n", "test\n another " CODE_RESET_ALL "\n\n"},
-        };
-        for_each(tests, i) {
-            size_t expected_len = strlen(tests[i].expected);
-            char s[expected_len + 1];
-            str_copy(s, tests[i].input, strlen(tests[i].input));
-            str_append_reset(s);
-            char* input_repr = str_repr(tests[i].input);
-            char* input_msg;
-            if_not_asprintf(&input_msg, "str_append_reset(%s) failed", input_repr) {
-                fail("Allocation failed for failure message!");
-            }
-            free(input_repr);
-            assert_str_eq(
-                s,
-                tests[i].expected,
-                input_msg
-            );
-            free(input_msg);
         }
     }
 }
@@ -518,6 +433,59 @@ subdesc(str_is_digits) {
         };
         for_each(tests, i) {
             asserteq(str_is_digits(tests[i].s), tests[i].expected);
+        }
+    }
+}
+// str_ljust
+subdesc(str_ljust) {
+    it("left-justifies non-escape-code strings") {
+        struct {
+            char* s;
+            char padchar;
+            int width;
+            char* expected;
+        } tests[] = {
+            {NULL, 0, 4, NULL},
+            {"", 0, 1, " "},
+            {"", 0, 4, "    "},
+            {"a", 0, 1, "a"},
+            {"a", 0, 4, "   a"},
+            {"aa", 0, 4, "  aa"},
+            {"aaa", ' ', 4, " aaa"},
+            {"aaaa  ", ' ', 10, "    aaaa  "},
+            {FORE_CODE_BASIC "a", ' ', 4, "   " FORE_CODE_BASIC "a"},
+            {FORE_CODE_EXT "a", ' ', 4, "   " FORE_CODE_EXT "a"},
+            {FORE_CODE_RGB "a", ' ', 4, "   " FORE_CODE_RGB "a"},
+            {STYLE_CODE_UL "a", ' ', 4, "   " STYLE_CODE_UL "a"},
+            {"a" FORE_CODE_BASIC, ' ', 4, "   a" FORE_CODE_BASIC},
+            {"a " FORE_CODE_EXT "a", ' ', 4, " a " FORE_CODE_EXT "a"},
+            {
+                " a" FORE_CODE_RGB FORE_CODE_BASIC "a",
+                ' ',
+                4,
+                "  a" FORE_CODE_RGB FORE_CODE_BASIC "a"
+            },
+            {
+                STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT,
+                ' ',
+                5,
+                "    " STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT
+            },
+
+        };
+        for_each(tests, i) {
+            char* result = str_ljust(tests[i].s, tests[i].padchar, tests[i].width);
+            if (!result) {
+                if (!tests[i].expected) {
+                    // Expected null.
+                    continue;
+                }
+                char* input_repr = colr_repr(tests[i].s);
+                char* expected_repr = colr_repr(tests[i].expected);
+                fail("Unexpected NULL from str_ljust(%s): %s", input_repr, expected_repr);
+            }
+            assert_str_eq(result, tests[i].expected, "str_ljust failed to justify.");
+            free(result);
         }
     }
 }
@@ -690,6 +658,59 @@ subdesc(str_repr) {
             free(repr);
         }
 
+    }
+}
+// str_rjust
+subdesc(str_rjust) {
+    it("right-justifies non-escape-code strings") {
+        struct {
+            char* s;
+            char padchar;
+            int width;
+            char* expected;
+        } tests[] = {
+            {NULL, 0, 4, NULL},
+            {"", 0, 1, " "},
+            {"", 0, 4, "    "},
+            {"a", 0, 1, "a"},
+            {"a", 0, 4, "a   "},
+            {"aa", 0, 4, "aa  "},
+            {"aaa", ' ', 4, "aaa "},
+            {"aaaa  ", ' ', 10, "aaaa      "},
+            {FORE_CODE_BASIC "a", ' ', 4, FORE_CODE_BASIC "a   "},
+            {FORE_CODE_EXT "a", ' ', 4, FORE_CODE_EXT "a   "},
+            {FORE_CODE_RGB "a", ' ', 4, FORE_CODE_RGB "a   "},
+            {STYLE_CODE_UL "a", ' ', 4, STYLE_CODE_UL "a   "},
+            {"a" FORE_CODE_BASIC, ' ', 4, "a" FORE_CODE_BASIC "   "},
+            {"a " FORE_CODE_EXT "a", ' ', 4, "a " FORE_CODE_EXT "a "},
+            {
+                " a" FORE_CODE_RGB FORE_CODE_BASIC "a",
+                ' ',
+                4,
+                " a" FORE_CODE_RGB FORE_CODE_BASIC "a "
+            },
+            {
+                STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT,
+                ' ',
+                5,
+                STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT "    "
+            },
+
+        };
+        for_each(tests, i) {
+            char* result = str_rjust(tests[i].s, tests[i].padchar, tests[i].width);
+            if (!result) {
+                if (!tests[i].expected) {
+                    // Expected null.
+                    continue;
+                }
+                char* input_repr = colr_repr(tests[i].s);
+                char* expected_repr = colr_repr(tests[i].expected);
+                fail("Unexpected NULL from str_rjust(%s): %s", input_repr, expected_repr);
+            }
+            assert_str_eq(result, tests[i].expected, "str_rjust failed to justify.");
+            free(result);
+        }
     }
 }
 // str_starts_with
