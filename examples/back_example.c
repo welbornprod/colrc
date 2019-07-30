@@ -52,7 +52,7 @@ int main(void) {
     */
     char* colorized = colr(
         Colr("This is red.\n", back(RED)),
-        Colr("This is also red.\n", back("red"), fore("white")),
+        Colr("This is also red.\n", fore("white"), back("red")),
         "This is not."
     );
     printf("%s\n", colorized);

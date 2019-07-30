@@ -145,7 +145,9 @@ cleanlatex:
 	@./tools/clean.sh -m "Latex" $(doxy_latex_files)
 
 cleanexamples:
-	@cd examples && $(MAKE) $(MAKEFLAGS) --no-print-directory clean
+	@$(MAKE) $(MAKEFLAGS) clean && \
+		cd examples && \
+			$(MAKE) $(MAKEFLAGS) --no-print-directory clean
 
 cleanpdf:
 	@./tools/clean.sh -m "PDF" $(docs_pdf) $(latex_files)

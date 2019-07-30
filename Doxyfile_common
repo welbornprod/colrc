@@ -31,12 +31,12 @@ ALIASES += "po=\param[out]"
 ALIASES += "warn=\warning"
 ALIASES += "att=\attention"
 ALIASES += "colrmacros=colr(), colr_join(), and Colr() macros"
-ALIASES += "colrmightfree=If used inside of the \colrmacros, <em>they will `free()` the result</em>.<br>Otherwise, <em>you are responsible for calling `free()`</em>."
-ALIASES += "mustfree=<em>You must `free()` the memory allocated by this function.</em>"
-ALIASES += "mustnull=<em>must be `null`-terminated</em>."
-ALIASES += "mustnullin=Input <em>must be `null`-terminated</em>."
-ALIASES += "mustnotnull=<em>must not be `null`</em>."
-ALIASES += "mustnotzero=<em>must not be `0`</em>."
+ALIASES += "colrmightfree=If used inside of the \colrmacros, <em>they will `free()` the result</em>.<br>Otherwise, <em>you are responsible for calling `free()`</em>.\n"
+ALIASES += "mustfree=<em>You must `free()` the memory allocated by this function.</em>\n"
+ALIASES += "mustnull=<em>must be `null`-terminated</em>.\n"
+ALIASES += "mustnullin=Input <em>must be `null`-terminated</em>.\n"
+ALIASES += "mustnotnull=<em>must not be `null`</em>.\n"
+ALIASES += "mustnotzero=<em>must not be `0`</em>.\n"
 ALIASES += "examplecode{1}=\if html_example_code \
      <div class='examplecode'> \
           <div class='examplecode-header'> \

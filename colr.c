@@ -1082,7 +1082,7 @@ char* str_lstrip_chars(const char* s, const char* chars) {
 
 /*! Returns the length of string, ignoring escape codes and the the null-terminator.
 
-    \pi s   String to get the length for.\n
+    \pi s   String to get the length for.
             \mustnullin
     \return The length of the string, as if it didn't contain escape codes.\n
             For non-escape-code strings, this is like `strlen()`.\n
@@ -1282,10 +1282,10 @@ char* str_strip_codes(const char* s) {
 /*! Allocate a new lowercase version of a string.
 
     \details
-    \mustnullin
     \mustfree
 
-    \pi s   The input string to convert to lower case.
+    \pi s   The input string to convert to lower case.\n
+            \mustnull
     \return The allocated string, or `NULL` if \p s is `NULL` or the allocation fails.
 */
 char* str_to_lower(const char* s) {
@@ -1400,13 +1400,13 @@ char* wide_to_str(const wchar_t* s) {
     to free those. ColrC only manages the temporary Colr-based objects needed
     to build up these strings.
 
-    \pi p   The first of any ColorArg, ColorText, or strings to join.
-    \pi ... Zero or more ColorArg, ColorText, or string to join.
-    \return An allocated string with mixed escape codes/strings.
+    \pi p   The first of any ColorArgs, ColorTexts, or strings to join.
+    \pi ... Zero or more ColorArgs, ColorTexts, or strings to join.
+    \return An allocated string with mixed escape codes/strings.\n
             CODE_RESET_ALL is appended to all the pieces that aren't plain
             strings. This allows easy part-colored messages, so there's no
-            need to use CODE_RESET_ALL directly.
-            <em>You must free() the memory allocated by this function</em>.
+            need to use CODE_RESET_ALL directly.\n
+            \mustfree
 */
 char* _colr(void *p, ...) {
     // Argument list must have ColorArg/ColorText with NULL members at the end.
@@ -1558,10 +1558,10 @@ size_t _colr_length(void *p, va_list args) {
 
     \pi joinerp The joiner (any ColorArg, ColorText, or string).
     \pi ...     Zero or more ColorArgs, ColorTexts, or strings to join by the joiner.
-    \return     An allocated string with mixed escape codes/strings.
+    \return     An allocated string with mixed escape codes/strings.\n
                 CODE_RESET_ALL is appended to all ColorText arguments.
-                This allows easy part-colored messages.
-                <em>You must free() the memory allocated by this function</em>.
+                This allows easy part-colored messages.\n
+                \mustfree
 */
 char* _colr_join(void *joinerp, ...) {
     // Argument list must have ColorArg/ColorText with NULL members at the end.
@@ -1702,8 +1702,8 @@ size_t _colr_join_length(void *joinerp, va_list args) {
 }
 /*! Creates a string representation of a ArgType.
 
-    \pi type A ArgType to get the type from.
-    \return  A pointer to an allocated string.
+    \pi type An ArgType to get the type from.
+    \return  A pointer to an allocated string.\n
              \mustfree
 
     \sa ArgType
@@ -1729,8 +1729,8 @@ char* ArgType_repr(ArgType type) {
 
 /*! Creates a string from an ArgType.
 
-    \pi type A ArgType to get the type from.
-    \return  A pointer to an allocated string.
+    \pi type An ArgType to get the type from.
+    \return  A pointer to an allocated string.\n
              \mustfree
 
     \sa ArgType
@@ -2069,6 +2069,32 @@ char* ColorArg_to_str(ColorArg carg) {
     return ColorValue_to_str(carg.type, carg.value);
 }
 
+/*! Creates an "empty" ColorJustify, with JUST_NONE set.
+
+    \return An initialized ColorJustify, with no justification method set.
+*/
+ColorJustify ColorJustify_empty(void) {
+    return (ColorJustify){
+        .method=JUST_NONE,
+        .width=0,
+        .padchar=0,
+    };
+}
+
+/*! Creates an "empty" ColorText with pointers set to `NULL`.
+
+    \return An initialized ColorText.
+*/
+ColorText ColorText_empty(void) {
+    return (ColorText){
+        .marker=COLORTEXT_MARKER,
+        .text=NULL,
+        .fore=NULL,
+        .back=NULL,
+        .style=NULL,
+        .just=ColorJustify_empty(),
+    };
+}
 
 /*! Frees a ColorText and it's ColorArgs.
 
@@ -2098,15 +2124,11 @@ void ColorText_free(ColorText *p) {
 */
 ColorText ColorText_from_values(char* text, ...) {
     // Argument list must have ColorArg with NULL members at the end.
-    ColorText ctext = {
-        .marker=COLORTEXT_MARKER,
-        .text=text,
-        .fore=NULL,
-        .back=NULL,
-        .style=NULL
-    };
+    ColorText ctext = ColorText_empty();
+    ctext.text = text;
     va_list colrargs;
     va_start(colrargs, text);
+
     ColorArg *arg;
     while ((arg = va_arg(colrargs, ColorArg*))) {
         assert(ColorArg_is_ptr(arg));
@@ -2133,6 +2155,7 @@ ColorText ColorText_from_values(char* text, ...) {
     va_end(colrargs);
     return ctext;
 }
+
 /*! Checks a void pointer to see if it contains a ColorText struct.
 
     \details The first member of a ColorText is a marker.
@@ -2200,6 +2223,49 @@ char* ColorText_repr(ColorText ctext) {
     free(sstyle);
     return repr;
 }
+
+/*! Initializes an existing ColorText from 1 mandatory string, and optional
+    fore, back, and style args (pointers to ColorArgs).
+
+    \po p    A ColorText to initialize with values.
+    \pi text Text to colorize (a regular string).
+    \pi ...  A `va_list` with ColorArgs pointers for fore, back, and style, in any order.
+    \return  An initialized ColorText struct.
+
+    \sa ColorText
+*/
+void ColorText_set_values(ColorText* p, char* text, ...) {
+    // Argument list must have ColorArg with NULL members at the end.
+    *p = ColorText_empty();
+    p->text = text;
+    va_list colrargs;
+    va_start(colrargs, text);
+
+    ColorArg *arg;
+    while ((arg = va_arg(colrargs, ColorArg*))) {
+        assert(ColorArg_is_ptr(arg));
+        // It's a ColorArg.
+        if (arg->type == FORE) {
+            p->fore = arg;
+        } else if (arg->type == BACK) {
+            p->back = arg;
+        } else if (arg->type == STYLE) {
+            p->style = arg;
+            break;
+        } else if (ColorArg_is_empty(*arg)) {
+            // Empty ColorArgs are assigned in the order they were passed in.
+            if (!p->fore) {
+                p->fore = arg;
+            } else if (!p->back) {
+                p->back = arg;
+            } else if (!p->style) {
+                p->style = arg;
+                break;
+            }
+        }
+    }
+    va_end(colrargs);
+}
 /*! Copies a ColorText into memory and returns the pointer.
 
     \details
@@ -2251,8 +2317,29 @@ char* ColorText_to_str(ColorText ctext) {
     }
     strcat(final, ctext.text);
     if (do_reset) str_append_reset(final);
+    char* justified = NULL;
+    switch (ctext.just.method) {
+        // TODO: It would be nice to do this all in one pass, but this works.
+        case JUST_NONE:
+            return final;
+        case JUST_LEFT:
+            justified = str_ljust(final, ctext.just.padchar, ctext.just.width);
+            break;
+        case JUST_RIGHT:
+            justified = str_rjust(final, ctext.just.padchar, ctext.just.width);
+            break;
+        case JUST_CENTER:
+            justified = str_center(final, ctext.just.padchar, ctext.just.width);
+            break;
+    }
+    if (justified) {
+        free(final);
+        return justified;
+    }
     return final;
 }
+
+
 
 /*! Determine which type of color value is desired by name.
 
@@ -2612,7 +2699,7 @@ size_t ColorValue_length(ArgType type, ColorValue cval) {
 /*! Creates a string representation of a ColorValue.
 
     \pi cval    A ColorValue to get the type and value from.
-    \return     A pointer to an allocated string.
+    \return     A pointer to an allocated string.\n
                 \mustfree
 
     \sa ColorValue
@@ -2747,7 +2834,7 @@ BasicValue BasicValue_from_str(const char* arg) {
 /*! Creates a string representation of a BasicValue.
 
     \pi bval    A BasicValue to get the value from.
-    \return     A pointer to an allocated string.
+    \return     A pointer to an allocated string.\n
                 \mustfree
 
     \sa BasicValue
@@ -2987,7 +3074,7 @@ int ExtendedValue_from_str(const char* arg) {
 /*! Creates a string representation of a ExtendedValue.
 
     \pi eval    A ExtendedValue to get the value from.
-    \return     A pointer to an allocated string.
+    \return     A pointer to an allocated string.\n
                 \mustfree
 
     \sa ExtendedValue
@@ -3011,7 +3098,7 @@ char* ExtendedValue_repr(int eval) {
     with ExtendedValue_from_str().
 
     \pi eval    A ExtendedValue to get the value from.
-    \return     A pointer to an allocated string, or `NULL` if the allocation fails.
+    \return     A pointer to an allocated string, or `NULL` if the allocation fails.\n
                 \mustfree
 
     \sa ExtendedValue
@@ -3367,7 +3454,7 @@ StyleValue StyleValue_from_str(const char* arg) {
 /*! Creates a string representation of a StyleValue.
 
     \pi sval    A StyleValue to get the value from.
-    \return     A pointer to an allocated string.
+    \return     A pointer to an allocated string.\n
                 \mustfree
 
     \sa StyleValue
@@ -3439,7 +3526,7 @@ char* StyleValue_repr(StyleValue sval) {
                \mustnullin
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
-    \return    The allocated/formatted string on success.
+    \return    The allocated/formatted string on success.\n
                \mustfree
                If the allocation fails, `NULL` is returned.
 */
@@ -3462,7 +3549,7 @@ char* rainbow_bg(const char* s, double freq, size_t offset) {
                \mustnullin
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
-    \return    The allocated/formatted string on success.
+    \return    The allocated/formatted string on success.\n
                \mustfree
                If the allocation fails, `NULL` is returned.
 */
@@ -3484,7 +3571,7 @@ char* rainbow_bg_term(const char* s, double freq, size_t offset) {
                \mustnullin
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
-    \return    The allocated/formatted string on success.
+    \return    The allocated/formatted string on success.\n
                \mustfree
                If the allocation fails, `NULL` is returned.
 */
@@ -3507,7 +3594,7 @@ char* rainbow_fg(const char* s, double freq, size_t offset) {
                \mustnullin
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
-    \return    The allocated/formatted string on success.
+    \return    The allocated/formatted string on success.\n
                \mustfree
                If the allocation fails, `NULL` is returned.
 */
@@ -3525,7 +3612,7 @@ char* rainbow_fg_term(const char* s, double freq, size_t offset) {
     \pi freq   The "tightness" for colors.
     \pi offset The starting offset into the rainbow.
 
-    \return    An allocated string (`char*`) with the result.
+    \return    An allocated string (`char*`) with the result.\n
                \mustfree
 */
 char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {

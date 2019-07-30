@@ -18,7 +18,10 @@
 #endif
 
 #include <getopt.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "dbug.h"
+// colr.h already includes many headers that are used in the colr tool.
 #include "colr.h"
 
 #pragma GCC diagnostic ignored "-Wunused-macros"
@@ -70,6 +73,7 @@ typedef struct ColrToolOptions_s {
     ColorArg* fore;
     ColorArg* back;
     ColorArg* style;
+    const char* filepath;
     bool free_text;
     bool rainbow_fore;
     bool rainbow_back;
@@ -84,8 +88,8 @@ typedef struct ColrToolOptions_s {
 ColrToolOptions ColrToolOptions_new(void);
 char* ColrToolOptions_repr(ColrToolOptions colropts);
 
-void debug_args(char* text, char* fore, char* back, char* style);
-void example_color_build(void);
+bool dir_exists(const char* dirpath);
+bool file_exists(const char* filepath);
 int parse_args(int argc, char** argv, ColrToolOptions* colropts);
 int print_256(bool do_back);
 int print_basic(bool do_back);
@@ -95,6 +99,9 @@ void print_unrecognized_arg(const char* userarg);
 int print_usage(const char* reason);
 int print_usage_full(void);
 int print_version(void);
+int rainbowize(ColrToolOptions* opts);
+char* read_file(FILE* fp);
+char* read_file_arg(const char* filepath);
 char* read_stdin_arg(void);
 bool validate_color_arg(ColorArg carg, const char* name);
 #endif // COLR_TOOL_H
