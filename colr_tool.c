@@ -27,20 +27,29 @@ int main(int argc, char* argv[]) {
     // Any non-negative return means we should stop right here.
     if (parse_ret >= 0) return parse_ret;
 
+    ColorText* ctext = NULL;
     // Rainbowize the text arg.
+    // TODO: Let ColorText/colr handle "rainbow" as an official color name.
     if (opts.rainbow_fore || opts.rainbow_back) {
-        return rainbowize(&opts);
+        ctext = rainbowize(&opts);
+    } else {
+        // Colorize text using fore, back, or style.
+        ctext = Colr(
+            opts.text,
+            opts.fore,
+            opts.back,
+            opts.style
+        );
     }
-    // Colorize text using fore, back, or style.
-    ColorText *ctext = Colr(
-        opts.text,
-        opts.fore,
-        opts.back,
-        opts.style
-    );
+    return_error_if_null(ctext, "Failed to allocate for ColorText!\n");
+
     ctext->just = opts.just;
     dbug_repr("Using", *ctext);
-    char* text = colr_str(*ctext);
+    char* text = ColorText_to_str(*ctext);
+    if (!text) {
+        ColorText_free(ctext);
+        return_error("Failed to allocate for colorized string!\n");
+    }
     ColorText_free(ctext);
     printf("%s\n", text);
     free(text);
@@ -620,9 +629,9 @@ int print_version(void) {
 /*! Rainbowize some text with options from ColrToolOptions.
 
     \pi opts An initialized ColrToolOptions.
-    \return  An exit status code.
+    \return  An allocated ColorText, with a rainbowized `.text` member.
 */
-int rainbowize(ColrToolOptions* opts) {
+ColorText* rainbowize(ColrToolOptions* opts) {
    bool do_term_rainbow = !colr_supports_rgb();
     // TODO: User args for these freq and offet values.
     double freq = 0.1;
@@ -642,18 +651,12 @@ int rainbowize(ColrToolOptions* opts) {
     if (opts->free_text) free(opts->text);
     // Some or all of the fore/back/style args are "empty" (not null).
     // They will not be used if they are empty, but they will be free'd.
-    ColorText* ctext = Colr(
+    return Colr(
         rainbowized,
         opts->fore,
         opts->back,
         opts->style
     );
-    ctext->just = opts->just;
-    char* styled = colr(ctext);
-    free(rainbowized);
-    printf("%s\n", styled);
-    free(styled);
-    return EXIT_SUCCESS;
 }
 
 /*! Read file data and return an allocated string.

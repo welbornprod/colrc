@@ -505,6 +505,19 @@
 */
 #define colr_join(joiner, ...) _colr_join(joiner, __VA_ARGS__, NULL)
 
+/*! \def colr_is_empty
+    Calls the \<type\>is_empty functions for the supported types.
+
+    \pi x A supported type to build a string from.
+*/
+#define colr_is_empty(x) \
+    _Generic( \
+        (x), \
+        ColorArg: ColorArg_is_empty, \
+        ColorJustify: ColorJustify_is_empty, \
+        ColorText: ColorText_is_empty, \
+        ColorValue: ColorValue_is_empty \
+    )(x)
 /*! \def colr_istr_either
     Convenience macro for `!strcasecmp(s1, s2) || !strcasecmp(s1, s3)`.
 
@@ -585,12 +598,12 @@
         char*: str_repr \
     )(x)
 
-/*! \def colr_str
+/*! \def colr_to_str
     Calls the \<type\>to_str functions for the supported types.
 
     \pi x A supported type to build a string from.
 */
-#define colr_str(x) \
+#define colr_to_str(x) \
     _Generic( \
         (x), \
         ArgType: ArgType_to_str, \
@@ -1298,6 +1311,7 @@ char* ColorArg_to_str(ColorArg carg);
     \endinternal
 */
 ColorJustify ColorJustify_empty(void);
+bool ColorJustify_is_empty(ColorJustify cjust);
 char* ColorJustify_repr(ColorJustify cjust);
 char* ColorJustifyMethod_repr(ColorJustifyMethod meth);
 
@@ -1309,6 +1323,7 @@ char* ColorJustifyMethod_repr(ColorJustifyMethod meth);
 ColorText ColorText_empty(void);
 void ColorText_free(ColorText *p);
 ColorText ColorText_from_values(char* text, ...);
+bool ColorText_is_empty(ColorText ctext);
 bool ColorText_is_ptr(void *p);
 size_t ColorText_length(ColorText ctext);
 char* ColorText_repr(ColorText);

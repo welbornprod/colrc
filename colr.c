@@ -2142,6 +2142,21 @@ ColorJustify ColorJustify_empty(void) {
     };
 }
 
+/*! Checks to see if a ColorJustify is "empty".
+
+    \details
+    A ColorJustify is considered "empty" if the `.method` member is set to
+    `JUST_NONE`.
+
+    \pi ctext The ColorJustify to check.
+    \return   `true` if the ColorJustify is empty, otherwise `false`.
+
+    \sa ColorJustify ColorJustify_empty
+*/
+bool ColorJustify_is_empty(ColorJustify cjust) {
+    return cjust.method == JUST_NONE;
+}
+
 /*! Creates a string representation for a ColorJustify.
 
     \details
@@ -2275,6 +2290,24 @@ ColorText ColorText_from_values(char* text, ...) {
     return ctext;
 }
 
+/*! Checks to see if a ColorText has no usable values.
+
+    \details
+    A ColorText is considered "empty" if the `.text`, `.fore`, `.back`, and
+    `.style` pointers are `NULL`, and the `.just` member is set to an "empty"
+    ColorJustify.
+
+    \pi ctext The ColorText to check.
+    \return   `true` if the ColorText is empty, otherwise `false`.
+
+    \sa ColorText ColorText_empty
+*/
+bool ColorText_is_empty(ColorText ctext) {
+    return (
+        !(ctext.text || ctext.fore || ctext.back || ctext.style) &&
+        ColorJustify_is_empty(ctext.just)
+    );
+}
 /*! Checks a void pointer to see if it contains a ColorText struct.
 
     \details The first member of a ColorText is a marker.
@@ -2406,7 +2439,7 @@ void ColorText_set_values(ColorText* ctext, char* text, ...) {
     }
     va_end(colrargs);
 }
-/*! Copies a ColorText into memory and returns the pointer.
+/*! Copies a ColorText into allocated memory and returns the pointer.
 
     \details
     You must free() the memory if you call this directly.
@@ -2416,7 +2449,7 @@ void ColorText_set_values(ColorText* ctext, char* text, ...) {
 
     \sa ColorText
 */
-ColorText *ColorText_to_ptr(ColorText ctext) {
+ColorText* ColorText_to_ptr(ColorText ctext) {
     size_t length = sizeof(ColorText);
     if (ctext.text) length += strlen(ctext.text) + 1;
     ColorText *p = malloc(length);
