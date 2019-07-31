@@ -9,56 +9,6 @@
 */
 #include "test_ColrC.h"
 
-/*! Creates a string representation for a char.
-
-    \pi x Value to create the representation for.
-    \return An allocated string, or `NULL` if the allocation fails.
-*/
-char* char_repr(char c) {
-    char* repr;
-    switch (c) {
-        case '\0':
-            asprintf_or_return(NULL, &repr, "'\\0'");
-            break;
-        case '\'':
-            asprintf_or_return(NULL, &repr, "'\\\'");
-            break;
-        case '\"':
-            asprintf_or_return(NULL, &repr, "'\\\"'");
-            break;
-        case '\?':
-            asprintf_or_return(NULL, &repr, "'\\?'");
-            break;
-        case '\\':
-            asprintf_or_return(NULL, &repr, "'\\\\");
-            break;
-        case '\a':
-            asprintf_or_return(NULL, &repr, "'\\a'");
-            break;
-        case '\b':
-            asprintf_or_return(NULL, &repr, "'\\b'");
-            break;
-        case '\f':
-            asprintf_or_return(NULL, &repr, "'\\f'");
-            break;
-        case '\n':
-            asprintf_or_return(NULL, &repr, "'\\n'");
-            break;
-        case '\r':
-            asprintf_or_return(NULL, &repr, "'\\r'");
-            break;
-        case '\t':
-            asprintf_or_return(NULL, &repr, "'\\t'");
-            break;
-        case '\v':
-            asprintf_or_return(NULL, &repr, "'\\v'");
-            break;
-        default:
-            asprintf_or_return(NULL, &repr, "'%c'", c);
-    }
-    return repr;
-}
-
 /*! Creates a string representation for an int.
 
     \pi x Value to create the representation for.

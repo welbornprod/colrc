@@ -21,30 +21,30 @@
 int main(int argc, char* argv[]) {
     // Needed for str_to_wide(), and wide_to_str(), and the rainbow() funcs.
     setlocale(LC_ALL, "");
-    ColrToolOptions colropts = ColrToolOptions_new();
-    int parse_ret = parse_args(argc, argv, &colropts);
-    // print_opts_repr(colropts);
+    ColrToolOptions opts = ColrToolOptions_new();
+    int parse_ret = parse_args(argc, argv, &opts);
+    // print_opts_repr(opts);
     // Any non-negative return means we should stop right here.
     if (parse_ret >= 0) return parse_ret;
 
     // Rainbowize the text arg.
-    if (colropts.rainbow_fore || colropts.rainbow_back) {
-        return rainbowize(&colropts);
+    if (opts.rainbow_fore || opts.rainbow_back) {
+        return rainbowize(&opts);
     }
-
     // Colorize text using fore, back, or style.
     ColorText *ctext = Colr(
-        colropts.text,
-        colropts.fore,
-        colropts.back,
-        colropts.style
+        opts.text,
+        opts.fore,
+        opts.back,
+        opts.style
     );
+    ctext->just = opts.just;
     dbug_repr("Using", *ctext);
-    char* text = ColorText_to_str(*ctext);
+    char* text = colr_str(*ctext);
     ColorText_free(ctext);
     printf("%s\n", text);
     free(text);
-    if (colropts.free_text) free(colropts.text);
+    if (opts.free_text) free(opts.text);
     return EXIT_SUCCESS;
 }
 
@@ -54,6 +54,7 @@ ColrToolOptions ColrToolOptions_new(void) {
         .fore=NULL,
         .back=NULL,
         .style=NULL,
+        .just=ColorJustify_empty(),
         .filepath=NULL,
         .free_text=false,
         .rainbow_fore=false,
@@ -67,12 +68,13 @@ ColrToolOptions ColrToolOptions_new(void) {
     };
 }
 
-char* ColrToolOptions_repr(ColrToolOptions colropts) {
-    char* text_repr = colropts.text ? colr_repr(colropts.text) : NULL;
-    char* fore_repr = colropts.fore ? colr_repr(*(colropts.fore)) : NULL;
-    char* back_repr = colropts.back ? colr_repr(*(colropts.back)) : NULL;
-    char* style_repr = colropts.style ? colr_repr(*(colropts.style)) : NULL;
-    char* file_repr = colropts.filepath ? colr_repr(colropts.filepath) : NULL;
+char* ColrToolOptions_repr(ColrToolOptions opts) {
+    char* text_repr = opts.text ? colr_repr(opts.text) : NULL;
+    char* fore_repr = opts.fore ? colr_repr(*(opts.fore)) : NULL;
+    char* back_repr = opts.back ? colr_repr(*(opts.back)) : NULL;
+    char* style_repr = opts.style ? colr_repr(*(opts.style)) : NULL;
+    char* file_repr = opts.filepath ? colr_repr(opts.filepath) : NULL;
+    char* just_repr = colr_repr(opts.just);
     char* repr;
     asprintf_or_return(
         NULL,
@@ -82,6 +84,7 @@ char* ColrToolOptions_repr(ColrToolOptions colropts) {
     .fore=%s,\n\
     .back=%s,\n\
     .style=%s,\n\
+    .just=%s,\n\
     .filepath=%s,\n\
     .free_text=%s,\n\
     .rainbow_fore=%s,\n\
@@ -97,22 +100,24 @@ char* ColrToolOptions_repr(ColrToolOptions colropts) {
         fore_repr ? fore_repr : "NULL",
         back_repr ? back_repr : "NULL",
         style_repr ? style_repr : "NULL",
+        just_repr ? just_repr : "<couldn't allocate repr>",
         file_repr ? file_repr : "NULL",
-        colr_bool_str(colropts.free_text),
-        colr_bool_str(colropts.rainbow_fore),
-        colr_bool_str(colropts.rainbow_back),
-        colr_bool_str(colropts.print_back),
-        colr_bool_str(colropts.print_256),
-        colr_bool_str(colropts.print_basic),
-        colr_bool_str(colropts.print_rgb),
-        colr_bool_str(colropts.print_rgb_term),
-        colr_bool_str(colropts.print_rainbow)
+        ct_bool_str(opts.free_text),
+        ct_bool_str(opts.rainbow_fore),
+        ct_bool_str(opts.rainbow_back),
+        ct_bool_str(opts.print_back),
+        ct_bool_str(opts.print_256),
+        ct_bool_str(opts.print_basic),
+        ct_bool_str(opts.print_rgb),
+        ct_bool_str(opts.print_rgb_term),
+        ct_bool_str(opts.print_rainbow)
     );
     if (text_repr) free(text_repr);
     if (fore_repr) free(fore_repr);
     if (back_repr) free(back_repr);
     if (style_repr) free(style_repr);
     if (file_repr) free(file_repr);
+    if (just_repr) free(just_repr);
     return repr;
 }
 
@@ -142,7 +147,22 @@ bool file_exists(const char* filepath) {
     return ((st.st_mode & S_IFMT) == S_IFREG);
 }
 
-int parse_args(int argc, char** argv, ColrToolOptions* colropts) {
+/*! Parse user arguments into a ColrToolOptions struct.
+
+    \details
+    This handles long-only options like --basic, --rainbow, and intializes
+    the ColrToolOptions with usable (possibly empty) ColorArgs for fore, back,
+    and style. It also handles reading stdin, or the file argument, and sets
+    `.text` to the correct content to be colorized.
+
+    \pi argc Argument count from `main()`.
+    \pi argv Arguments from `main()`.
+    \po opts A ColrToolOptions struct to modify.
+
+    \returns `-1` on success (text to colorize). Any return `> -1` means that
+             the program should stop, and exit with that value as the exit code.
+*/
+int parse_args(int argc, char** argv, ColrToolOptions* opts) {
     char* unknownmsg = NULL;
     // Tell getopt that I'll handle the bad-argument messages.
     opterr = 0;
@@ -157,6 +177,9 @@ int parse_args(int argc, char** argv, ColrToolOptions* colropts) {
             {"back", required_argument, 0, 'b'},
             {"style", required_argument, 0, 's'},
             {"file", required_argument, 0, 'F'},
+            {"ljust", required_argument, 0, 'l'},
+            {"rjust", required_argument, 0, 'r'},
+            {"center", required_argument, 0, 'c'},
             {"basic", no_argument, 0, 0 },
             {"basicbg", no_argument, 0, 0 },
             {"256", no_argument, 0, 0},
@@ -170,45 +193,46 @@ int parse_args(int argc, char** argv, ColrToolOptions* colropts) {
             {0, 0, 0, 0}
         };
 
-        c = getopt_long(argc, argv, "hvF:f:b:s:", long_options, &option_index);
+        c = getopt_long(argc, argv, "hvF:f:b:s:l:r:c:", long_options, &option_index);
         if (c == -1) break;
 
+        int justargval;
         switch (c) {
             case 0:
                 if (colr_streq(long_options[option_index].name, "basic")) {
-                    colropts->print_basic = true;
+                    opts->print_basic = true;
                     return print_basic(false);
                 } else if (colr_streq(long_options[option_index].name, "256")) {
-                    colropts->print_256 = true;
+                    opts->print_256 = true;
                     return print_256(false);
                 } else if (colr_streq(long_options[option_index].name, "rainbow")) {
-                    colropts->print_rainbow = true;
+                    opts->print_rainbow = true;
                     return print_rainbow(false);
                 } else if (colr_streq(long_options[option_index].name, "rgb")) {
-                    colropts->print_rgb = true;
+                    opts->print_rgb = true;
                     return print_rgb(false, false);
                 } else if (colr_streq(long_options[option_index].name, "termrgb")) {
-                    colropts->print_rgb_term = true;
+                    opts->print_rgb_term = true;
                     return print_rgb(false, true);
                 } else if (colr_streq(long_options[option_index].name, "basicbg")) {
-                    colropts->print_back = true;
-                    colropts->print_basic = true;
+                    opts->print_back = true;
+                    opts->print_basic = true;
                     return print_basic(true);
                 } else if (colr_streq(long_options[option_index].name, "256bg")) {
-                    colropts->print_back = true;
-                    colropts->print_256 = true;
+                    opts->print_back = true;
+                    opts->print_256 = true;
                     return print_256(true);
                 } else if (colr_streq(long_options[option_index].name, "rainbowbg")) {
-                    colropts->print_back = true;
-                    colropts->print_rainbow = true;
+                    opts->print_back = true;
+                    opts->print_rainbow = true;
                     return print_rainbow(true);
                 } else if (colr_streq(long_options[option_index].name, "rgbbg")) {
-                    colropts->print_back = true;
-                    colropts->print_rgb = true;
+                    opts->print_back = true;
+                    opts->print_rgb = true;
                     return print_rgb(true, false);
                 } else if (colr_streq(long_options[option_index].name, "termrgbbg")) {
-                    colropts->print_back = true;
-                    colropts->print_rgb_term = true;
+                    opts->print_back = true;
+                    opts->print_rgb_term = true;
                     return print_rgb(true, true);
                 } else {
                     printferr(
@@ -220,40 +244,76 @@ int parse_args(int argc, char** argv, ColrToolOptions* colropts) {
                 break;
             case 'b':
                 if (colr_streq(optarg, "rainbow")) {
-                    colropts->rainbow_back = true;
-                    colropts->back = ColorArg_to_ptr(ColorArg_empty());
+                    opts->rainbow_back = true;
+                    opts->back = ColorArg_to_ptr(ColorArg_empty());
                 } else  {
-                    colropts->back = back(optarg);
-                    if (!validate_color_arg(*(colropts->back), optarg)) return EXIT_FAILURE;
+                    opts->back = back(optarg);
+                    if (!validate_color_arg(*(opts->back), optarg)) return EXIT_FAILURE;
                 }
+                break;
+            case 'c':
+                if (opts->just.method != JUST_NONE) {
+                    printferr("Justification was already set with: %s\n", ct_just_arg_str(opts->just));
+                    return EXIT_FAILURE;
+                }
+                if (!parse_int_arg(optarg, &justargval)) {
+                    printferr("Invalid number for --center: %s\n", optarg);
+                    return EXIT_FAILURE;
+                }
+                opts->just.method = JUST_CENTER;
+                opts->just.width = justargval;
                 break;
             case 'F':
                 if (colr_streq(optarg, "-")) {
                     // Another way to read stdin data, with --file -.
-                    colropts->text = "-";
+                    opts->text = "-";
                 } else {
                     if (!file_exists(optarg)) {
                         printferr("File does not exist: %s\n", optarg);
                         return EXIT_FAILURE;
                     }
-                    colropts->filepath = optarg;
+                    opts->filepath = optarg;
                 }
                 break;
             case 'f':
                 if (colr_streq(optarg, "rainbow")) {
-                    colropts->rainbow_fore = true;
-                    colropts->fore = ColorArg_to_ptr(ColorArg_empty());
+                    opts->rainbow_fore = true;
+                    opts->fore = ColorArg_to_ptr(ColorArg_empty());
                 } else  {
-                    colropts->fore = fore(optarg);
-                    if (!validate_color_arg(*(colropts->fore), optarg)) return EXIT_FAILURE;
+                    opts->fore = fore(optarg);
+                    if (!validate_color_arg(*(opts->fore), optarg)) return EXIT_FAILURE;
                 }
                 break;
             case 'h':
                 print_usage_full();
                 return EXIT_SUCCESS;
+            case 'l':
+                if (opts->just.method != JUST_NONE) {
+                    printferr("Justification was already set with: %s\n", ct_just_arg_str(opts->just));
+                    return EXIT_FAILURE;
+                }
+                if (!parse_int_arg(optarg, &justargval)) {
+                    printferr("Invalid number for --ljust: %s\n", optarg);
+                    return EXIT_FAILURE;
+                }
+                opts->just.method = JUST_LEFT;
+                opts->just.width = justargval;
+                break;
+            case 'r':
+                if (opts->just.method != JUST_NONE) {
+                    printferr("Justification was already set with: %s\n", ct_just_arg_str(opts->just));
+                    return EXIT_FAILURE;
+                }
+                if (!parse_int_arg(optarg, &justargval)) {
+                    printferr("Invalid number for --rjust: %s\n", optarg);
+                    return EXIT_FAILURE;
+                }
+                opts->just.method = JUST_RIGHT;
+                opts->just.width = justargval;
+                break;
             case 's':
-                colropts->style = style(optarg);
-                if (!validate_color_arg(*(colropts->style), optarg)) return EXIT_FAILURE;
+                opts->style = style(optarg);
+                if (!validate_color_arg(*(opts->style), optarg)) return EXIT_FAILURE;
                 break;
             case 'v':
                 print_version();
@@ -269,31 +329,31 @@ int parse_args(int argc, char** argv, ColrToolOptions* colropts) {
                 return EXIT_FAILURE;
         }
     }
-
     if (optind == argc) {
        print_usage("No text given!");
        return EXIT_FAILURE;
     }
     // Remaining non-option arguments.
     while (optind < argc) {
-        if (!(colropts->text)) {
-            colropts->text = argv[optind];
+        if (!opts->text && !opts->filepath) {
+            // If a file path is set, the text will come later.
+            opts->text = argv[optind];
             optind++;
-        } else if (!(colropts->fore)) {
+        } else if (!opts->fore) {
             if (colr_streq(argv[optind], "rainbow")) {
-                colropts->rainbow_fore = true;
+                opts->rainbow_fore = true;
             } else {
-                colropts->fore = fore(argv[optind]);
-                if (!validate_color_arg(*(colropts->fore), argv[optind])) return EXIT_FAILURE;
+                opts->fore = fore(argv[optind]);
+                if (!validate_color_arg(*(opts->fore), argv[optind])) return EXIT_FAILURE;
             }
             optind++;
-        } else if (!(colropts->back)) {
-            colropts->back = back(argv[optind]);
-            if (!validate_color_arg(*(colropts->back), argv[optind])) return EXIT_FAILURE;
+        } else if (!opts->back) {
+            opts->back = back(argv[optind]);
+            if (!validate_color_arg(*(opts->back), argv[optind])) return EXIT_FAILURE;
             optind++;
-        } else if (!(colropts->style)) {
-            colropts->style = style(argv[optind]);
-            if (!validate_color_arg(*(colropts->style), argv[optind])) return EXIT_FAILURE;
+        } else if (!opts->style) {
+            opts->style = style(argv[optind]);
+            if (!validate_color_arg(*(opts->style), argv[optind])) return EXIT_FAILURE;
             optind++;
         } else {
             print_usage("Too many arguments!");
@@ -301,24 +361,24 @@ int parse_args(int argc, char** argv, ColrToolOptions* colropts) {
         }
     }
     // Fill null args with "empty" args, so the colr macros know what to do.
-    if (!(colropts->fore)) colropts->fore = ColorArg_to_ptr(ColorArg_empty());
-    if (!(colropts->back)) colropts->back = ColorArg_to_ptr(ColorArg_empty());
-    if (!(colropts->style)) colropts->style = ColorArg_to_ptr(ColorArg_empty());
+    if (!opts->fore) opts->fore = ColorArg_to_ptr(ColorArg_empty());
+    if (!opts->back) opts->back = ColorArg_to_ptr(ColorArg_empty());
+    if (!opts->style) opts->style = ColorArg_to_ptr(ColorArg_empty());
 
     // Fill text with stdin if a marker argument was used.
-    if (colr_streq(colropts->text, "-")) {
+    if (colr_streq(opts->text, "-")) {
         // Read from stdin.
-        colropts->text = read_stdin_arg();
-        colropts->free_text = true;
-        if (!colropts->text) {
+        opts->text = read_stdin_arg();
+        opts->free_text = true;
+        if (!opts->text) {
             printferr("\nFailed to allocate for stdin data!\n");
             return EXIT_FAILURE;
         }
-    } else if (colropts->filepath) {
+    } else if (opts->filepath) {
         // Read from file.
-        colropts->text = read_file_arg(colropts->filepath);
-        colropts->free_text = true;
-        if (!colropts->text) {
+        opts->text = read_file_arg(opts->filepath);
+        opts->free_text = true;
+        if (!opts->text) {
             printferr("\nFailed to allocate for file data!\n");
             return EXIT_FAILURE;
         }
@@ -326,6 +386,20 @@ int parse_args(int argc, char** argv, ColrToolOptions* colropts) {
     return -1;
 }
 
+/*! Parse a user argument as an integer, and set `value` to the parsed integer
+    value.
+
+    \details
+    On error, a message is printed and `false` is returned.
+
+    \pi s        A string to parse.
+    \po value    Pointer to an int, to set the final integer value.
+    \return      `true` on success, with `value` set, otherwise `false`.
+*/
+bool parse_int_arg(const char* s, int* value) {
+    if (!s || s[0] == '\0') return false;
+    return sscanf(s, "%d", value) == 1;
+}
 
 /*! Print the 256 color range using either colrfgx or colorbgx.
     The function choice is passed as an argument.
@@ -475,7 +549,9 @@ int print_usage(const char* reason) {
         colr -h | -v\n\
         colr --basic | --256 | --rainbow | --rgb | --termrgb\n\
         colr [TEXT] [FORE | -f color] [BACK | -b color] [STYLE | -s style]\n\
+             [-c num | -l num | -r num]\n\
         colr [-F file] [FORE | -f color] [BACK | -b color] [STYLE | -s style]\n\
+             [-c num | -l num | -r num]\n\
     ", NAME, VERSION);
     return EXIT_SUCCESS;
 }
@@ -506,10 +582,16 @@ int print_usage_full() {
                                If set to 'rainbow', the back colors will be rainbowized.\n\
         STYLE                : Style name for text.\n\
         -b val,--back val    : Specify the back color explicitly, in any order.\n\
+        -c num,--center num  : Center-justify the resulting text using the specified width.\n\
+                               If \"0\" is given, the terminal-width will be used.\n\
         -F file,--file file  : Read text from a file.\n\
                                Use \"-F -\" to force stdin.\n\
         -f val,--fore val    : Specify the fore color explicitly, in any order.\n\
         -h, --help           : Print this message and exit.\n\
+        -l num,--ljust num   : Left-justify the resulting text using the specified width.\n\
+                               If \"0\" is given, the terminal-width will be used.\n\
+        -r num,--rjust num   : Right-justify the resulting text using the specified width.\n\
+                               If \"0\" is given, the terminal-width will be used.\n\
         -s val,--style val   : Specify the style explicitly, in any order.\n\
         -v, --version        : Show version and exit.\n\
 \n\
@@ -560,12 +642,14 @@ int rainbowize(ColrToolOptions* opts) {
     if (opts->free_text) free(opts->text);
     // Some or all of the fore/back/style args are "empty" (not null).
     // They will not be used if they are empty, but they will be free'd.
-    char* styled = colr(
+    ColorText* ctext = Colr(
+        rainbowized,
         opts->fore,
         opts->back,
-        opts->style,
-        rainbowized
+        opts->style
     );
+    ctext->just = opts->just;
+    char* styled = colr(ctext);
     free(rainbowized);
     printf("%s\n", styled);
     free(styled);

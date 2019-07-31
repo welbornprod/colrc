@@ -39,8 +39,15 @@
 #define MAX_TEXT_LEN 1024
 
 // Short-hand for (x ? "true" : "false")
-#define colr_bool_str(x) (x ? "true" : "false")
+#define ct_bool_str(x) (x ? "true" : "false")
 
+// Like ColorJustifyMethod_repr(), but for colr tool arguments.
+#define ct_just_arg_str(x) ( \
+        x.method == JUST_LEFT ? "--ljust": \
+        x.method == JUST_RIGHT ? "--rjust": \
+        x.method == JUST_CENTER ? "--center" : \
+        "<none>" \
+    )
 // Print ColrToolOptions.
 #define print_opts_repr(x) \
     do { \
@@ -73,6 +80,7 @@ typedef struct ColrToolOptions_s {
     ColorArg* fore;
     ColorArg* back;
     ColorArg* style;
+    ColorJustify just;
     const char* filepath;
     bool free_text;
     bool rainbow_fore;
@@ -86,11 +94,12 @@ typedef struct ColrToolOptions_s {
 } ColrToolOptions;
 
 ColrToolOptions ColrToolOptions_new(void);
-char* ColrToolOptions_repr(ColrToolOptions colropts);
+char* ColrToolOptions_repr(ColrToolOptions opts);
 
 bool dir_exists(const char* dirpath);
 bool file_exists(const char* filepath);
-int parse_args(int argc, char** argv, ColrToolOptions* colropts);
+int parse_args(int argc, char** argv, ColrToolOptions* opts);
+bool parse_int_arg(const char* s, int* value);
 int print_256(bool do_back);
 int print_basic(bool do_back);
 int print_rainbow(bool do_back);

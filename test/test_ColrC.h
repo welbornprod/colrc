@@ -97,7 +97,6 @@
 
 #define _str(x) #x
 
-char* char_repr(char x);
 char* int_repr(int x);
 char* long_repr(long x);
 char* long_long_repr(long long x);

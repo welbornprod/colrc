@@ -176,10 +176,10 @@ examples: $(examples_source)
 
 .PHONY: memcheck, memcheckquiet
 memcheck:
-	@$(valgrind_cmd) -a -- $(COLR_ARGS)
+	@$(valgrind_cmd) -- $(COLR_ARGS)
 
 memcheckquiet:
-	@$(valgrind_cmd) -a -q -- $(COLR_ARGS)
+	@$(valgrind_cmd) -q -- $(COLR_ARGS)
 
 .PHONY: run
 run:

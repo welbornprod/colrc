@@ -440,6 +440,21 @@
 */
 #define Colr(text, ...) ColorText_to_ptr(ColorText_from_values(text, __VA_ARGS__, NULL))
 
+#define Colr_center(text, justwidth, ...) ColorText_set_just( \
+        Colr(text, __VA_ARGS__), \
+        (ColorJustify){.method=JUST_CENTER, .width=justwidth, .padchar=' '} \
+    )
+
+#define Colr_ljust(text, justwidth, ...) ColorText_set_just( \
+        Colr(text, __VA_ARGS__), \
+        (ColorJustify){.method=JUST_LEFT, .width=justwidth, .padchar=' '} \
+    )
+
+#define Colr_rjust(text, justwidth, ...) ColorText_set_just( \
+        Colr(text, __VA_ARGS__), \
+        (ColorJustify){.method=JUST_RIGHT, .width=justwidth, .padchar=' '} \
+    )
+
 /*! \def colr
     Join ColorArg pointers, ColorText pointers, and strings into one long string.
 
@@ -535,6 +550,8 @@
     \details
     Supported Types:
         - ColorArg
+        - ColorJustify
+        - ColorJustifyMethod
         - ColorText
         - ColorValue
         - ArgType
@@ -554,6 +571,8 @@
     _Generic( \
         (x), \
         ColorArg: ColorArg_repr, \
+        ColorJustify: ColorJustify_repr, \
+        ColorJustifyMethod: ColorJustifyMethod_repr, \
         ColorText: ColorText_repr, \
         ColorValue: ColorValue_repr, \
         ArgType: ArgType_repr, \
@@ -574,14 +593,13 @@
 #define colr_str(x) \
     _Generic( \
         (x), \
-        wchar_t: wide_to_str, \
         ArgType: ArgType_to_str, \
         ColorArg: ColorArg_to_str, \
         ColorText: ColorText_to_str, \
         ColorValue: ColorValue_to_str, \
         ExtendedValue: ExtendedValue_to_str, \
         RGB: RGB_to_str \
-    )
+    )(x)
 
 /*! \def colr_streq
     Convenience macro for `!strcmp(s1, s2)`.
@@ -663,6 +681,22 @@
     \sa ext ext_hex hex hex_or
 */
 #define ext_hex_or(s, default_value) ExtendedValue_from_hex_default(s, default_value)
+
+/*! \def ext_rgb
+    Creates the closest matching ExtendedValue from an RGB value.
+
+    \details
+    This is short-hand for ExtendedValue_from_RGB().
+
+    \pi r   The red value.
+    \pi g   The green value.
+    \pi b   The blue value.
+
+    \return An ExtendedValue that closely matches the RGB value.
+
+    \sa ExtendedValue_from_RGB RGB_to_term_RGB
+*/
+#define ext_rgb(r, g, b) ExtendedValue_from_RGB((RGB){.red=r, .green=g, .blue=b})
 
 /*! \def fore
     Create a fore color suitable for use with the colr() and Colr() macros.
@@ -1154,6 +1188,7 @@ extern const size_t ext2rgb_map_len;
 char char_escape_char(const char c);
 bool char_in_str(const char c, const char* s);
 bool char_is_code_end(const char c);
+char* char_repr(char x);
 bool char_should_escape(const char c);
 char* colr_empty_str(void);
 bool colr_supports_rgb(void);
@@ -1259,10 +1294,12 @@ char* ColorArg_repr(ColorArg carg);
 char* ColorArg_to_str(ColorArg carg);
 
 /*! \internal
-    ColorJustify functions that deal with initialization.
+    ColorJustify functions that deal with colr/string justification.
     \endinternal
 */
 ColorJustify ColorJustify_empty(void);
+char* ColorJustify_repr(ColorJustify cjust);
+char* ColorJustifyMethod_repr(ColorJustifyMethod meth);
 
 /*! \internal
     ColorText functions that deal with a string of text, and fore/back/style
@@ -1275,8 +1312,9 @@ ColorText ColorText_from_values(char* text, ...);
 bool ColorText_is_ptr(void *p);
 size_t ColorText_length(ColorText ctext);
 char* ColorText_repr(ColorText);
-void ColorText_set_values(ColorText* p, char* text, ...);
-ColorText *ColorText_to_ptr(ColorText ctext);
+ColorText* ColorText_set_just(ColorText* ctext, ColorJustify cjust);
+void ColorText_set_values(ColorText* ctext, char* text, ...);
+ColorText* ColorText_to_ptr(ColorText ctext);
 char* ColorText_to_str(ColorText ctext);
 
 /*! \internal

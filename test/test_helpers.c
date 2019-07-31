@@ -449,27 +449,27 @@ subdesc(str_ljust) {
             {"", 0, 1, " "},
             {"", 0, 4, "    "},
             {"a", 0, 1, "a"},
-            {"a", 0, 4, "   a"},
-            {"aa", 0, 4, "  aa"},
-            {"aaa", ' ', 4, " aaa"},
-            {"aaaa  ", ' ', 10, "    aaaa  "},
-            {FORE_CODE_BASIC "a", ' ', 4, "   " FORE_CODE_BASIC "a"},
-            {FORE_CODE_EXT "a", ' ', 4, "   " FORE_CODE_EXT "a"},
-            {FORE_CODE_RGB "a", ' ', 4, "   " FORE_CODE_RGB "a"},
-            {STYLE_CODE_UL "a", ' ', 4, "   " STYLE_CODE_UL "a"},
-            {"a" FORE_CODE_BASIC, ' ', 4, "   a" FORE_CODE_BASIC},
-            {"a " FORE_CODE_EXT "a", ' ', 4, " a " FORE_CODE_EXT "a"},
+            {"a", 0, 4, "a   "},
+            {"aa", 0, 4, "aa  "},
+            {"aaa", ' ', 4, "aaa "},
+            {"aaaa  ", ' ', 10, "aaaa      "},
+            {FORE_CODE_BASIC "a", ' ', 4, FORE_CODE_BASIC "a   "},
+            {FORE_CODE_EXT "a", ' ', 4, FORE_CODE_EXT "a   "},
+            {FORE_CODE_RGB "a", ' ', 4, FORE_CODE_RGB "a   "},
+            {STYLE_CODE_UL "a", ' ', 4, STYLE_CODE_UL "a   "},
+            {"a" FORE_CODE_BASIC, ' ', 4, "a" FORE_CODE_BASIC "   "},
+            {"a " FORE_CODE_EXT "a", ' ', 4, "a " FORE_CODE_EXT "a "},
             {
                 " a" FORE_CODE_RGB FORE_CODE_BASIC "a",
                 ' ',
                 4,
-                "  a" FORE_CODE_RGB FORE_CODE_BASIC "a"
+                " a" FORE_CODE_RGB FORE_CODE_BASIC "a "
             },
             {
                 STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT,
                 ' ',
                 5,
-                "    " STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT
+                STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT "    "
             },
 
         };
@@ -660,7 +660,7 @@ subdesc(str_repr) {
 
     }
 }
-// str_rjust
+// str_rjust.
 subdesc(str_rjust) {
     it("right-justifies non-escape-code strings") {
         struct {
@@ -673,27 +673,27 @@ subdesc(str_rjust) {
             {"", 0, 1, " "},
             {"", 0, 4, "    "},
             {"a", 0, 1, "a"},
-            {"a", 0, 4, "a   "},
-            {"aa", 0, 4, "aa  "},
-            {"aaa", ' ', 4, "aaa "},
-            {"aaaa  ", ' ', 10, "aaaa      "},
-            {FORE_CODE_BASIC "a", ' ', 4, FORE_CODE_BASIC "a   "},
-            {FORE_CODE_EXT "a", ' ', 4, FORE_CODE_EXT "a   "},
-            {FORE_CODE_RGB "a", ' ', 4, FORE_CODE_RGB "a   "},
-            {STYLE_CODE_UL "a", ' ', 4, STYLE_CODE_UL "a   "},
-            {"a" FORE_CODE_BASIC, ' ', 4, "a" FORE_CODE_BASIC "   "},
-            {"a " FORE_CODE_EXT "a", ' ', 4, "a " FORE_CODE_EXT "a "},
+            {"a", 0, 4, "   a"},
+            {"aa", 0, 4, "  aa"},
+            {"aaa", ' ', 4, " aaa"},
+            {"aaaa  ", ' ', 10, "    aaaa  "},
+            {FORE_CODE_BASIC "a", ' ', 4, "   " FORE_CODE_BASIC "a"},
+            {FORE_CODE_EXT "a", ' ', 4, "   " FORE_CODE_EXT "a"},
+            {FORE_CODE_RGB "a", ' ', 4, "   " FORE_CODE_RGB "a"},
+            {STYLE_CODE_UL "a", ' ', 4, "   " STYLE_CODE_UL "a"},
+            {"a" FORE_CODE_BASIC, ' ', 4, "   a" FORE_CODE_BASIC},
+            {"a " FORE_CODE_EXT "a", ' ', 4, " a " FORE_CODE_EXT "a"},
             {
                 " a" FORE_CODE_RGB FORE_CODE_BASIC "a",
                 ' ',
                 4,
-                " a" FORE_CODE_RGB FORE_CODE_BASIC "a "
+                "  a" FORE_CODE_RGB FORE_CODE_BASIC "a"
             },
             {
                 STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT,
                 ' ',
                 5,
-                STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT "    "
+                "    " STYLE_CODE_UL "a" FORE_CODE_BASIC FORE_CODE_EXT
             },
 
         };

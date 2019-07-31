@@ -96,10 +96,10 @@ coverageview:
 
 .PHONY: memcheck, memcheckquiet
 memcheck:
-	@$(valgrind_cmd) -a -- $(TEST_ARGS)
+	@$(valgrind_cmd) -- $(TEST_ARGS)
 
 memcheckquiet:
-	@$(valgrind_cmd) -a -q -- $(TEST_ARGS)
+	@$(valgrind_cmd) -q -- $(TEST_ARGS)
 
 .PHONY: strip
 strip:
