@@ -44,7 +44,7 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
-        $appscript [-a] [-e exe] [-q] [TOOL] [ARG...] -- [EXE_ARGS...]
+        $appscript [-e exe] [-q] [TOOL] [ARG...] -- [EXE_ARGS...]
 
     Options:
         ARG              : One or more extra arguments for valgrind.
@@ -53,8 +53,6 @@ function print_usage {
                            not using the --tool option.
                            Can be one of: cachegrind, callgrind, memcheck
                            Default: $default_tool
-        -a,--all         : Shortcut to --show-leak-kinds=all flag.
-                           This implies TOOL=memcheck.
         -e exe,--exe exe : Executable to run.
                            Default: $binaryname
         -h,--help        : Show this message.
@@ -74,10 +72,6 @@ for arg; do
     case "$arg" in
         "--")
             in_exe_args=1
-            ;;
-        "-a" | "--all")
-            nonflags[0]="memcheck"
-            flagargs+=("--show-leak-kinds=all" "--track-origins=yes")
             ;;
         "-e" | "--exe")
             if ((in_exe_args)); then
@@ -151,6 +145,7 @@ case "$toolname" in
     "memcheck" | "mem")
         toolname="memcheck"
         [[ "${nonflags[*]}" =~ leak-check ]] || nonflags+=("--leak-check=full")
+        [[ "${nonflags[*]}" =~ show-leak-kinds ]] || nonflags+=("--show-leak-kinds=all")
         ;;
 esac
 

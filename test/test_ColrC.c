@@ -1,20 +1,13 @@
-/* test_colr.c
-    Tests for colr.h.
-    Must be linked with libm and the CMocka library.
-    -Christopher Welborn 06-10-2019
+/*! Tests for ColrC.
+    Uses snow.h for testing.
+
+    \details
+    This file holds common functions for all of the tests.
+
+    \author Christopher Welborn
+    \date 06-10-2019
 */
 #include "test_ColrC.h"
-
-/*! Creates a string representation for a char.
-
-    \pi x Value to create the representation for.
-    \return An allocated string, or `NULL` if the allocation fails.
-*/
-char* char_repr(char x) {
-    char* repr;
-    asprintf_or_return(NULL, &repr, "%c", x);
-    return repr;
-}
 
 /*! Creates a string representation for an int.
 
@@ -82,6 +75,3 @@ char* ulong_long_repr(unsigned long long x) {
     return repr;
 }
 
-
-// Main entry point, for tests.
-snow_main();

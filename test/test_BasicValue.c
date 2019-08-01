@@ -9,11 +9,18 @@ describe(BasicValue) {
     subdesc(BasicValue_from_str) {
         subdesc(invalid_names) {
             it("returns COLOR_INVALID for invalid names") {
-                asserteq(
-                    BasicValue_from_str("NOTACOLOR"),
-                    COLOR_INVALID,
-                    "Invalid color name should not produce a valid BasicValue."
-                );
+                char* badnames[] = {
+                    NULL,
+                    "",
+                    "NOTACOLOR",
+                };
+                for_each(badnames, i) {
+                    asserteq(
+                        BasicValue_from_str(badnames[i]),
+                        COLOR_INVALID,
+                        "Invalid color name should not produce a valid BasicValue."
+                    );
+                }
             }
         }
         subdesc(valid_names) {

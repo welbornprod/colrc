@@ -59,9 +59,11 @@ examples_dir=examples
 examples_source=$(wildcard $(examples_dir)/*.c)
 valgrind_cmd=bash tools/run_valgrind.sh
 
-.PHONY: all, coverage, debug, release
+.PHONY: all, coverage, debug, release, release2
 all: debug
 
+coverage: clean
+coverage: coverageclean
 coverage: CFLAGS+=-O0 -DDEBUG
 coverage: CFLAGS+=-fprofile-arcs -ftest-coverage
 coverage: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
@@ -76,6 +78,10 @@ debug: $(binary)
 release: CFLAGS+=-O3 -DNDEBUG
 release: $(binary)
 release: strip
+
+release2: CFLAGS+=-O2 -DNDEBUG
+release2: $(binary)
+release2: strip
 
 $(binary): $(objects)
 	@printf "\nCompiling $(binary) executable...\n    "
@@ -143,7 +149,9 @@ cleanlatex:
 	@./tools/clean.sh -m "Latex" $(doxy_latex_files)
 
 cleanexamples:
-	@cd examples && $(MAKE) $(MAKEFLAGS) --no-print-directory clean
+	@$(MAKE) $(MAKEFLAGS) clean && \
+		cd examples && \
+			$(MAKE) $(MAKEFLAGS) --no-print-directory clean
 
 cleanpdf:
 	@./tools/clean.sh -m "PDF" $(docs_pdf) $(latex_files)
@@ -172,10 +180,10 @@ examples: $(examples_source)
 
 .PHONY: memcheck, memcheckquiet
 memcheck:
-	@$(valgrind_cmd) -a -- $(COLR_ARGS)
+	@$(valgrind_cmd) -- $(COLR_ARGS)
 
 memcheckquiet:
-	@$(valgrind_cmd) -a -q -- $(COLR_ARGS)
+	@$(valgrind_cmd) -q -- $(COLR_ARGS)
 
 .PHONY: run
 run:
@@ -223,6 +231,7 @@ help targets:
     docsrebuild     : Like running \`make cleandocs docs\`\n\
     examples        : Build example executables in $(examples_dir).\n\
     release         : Build the executable with optimization, and strip it.\n\
+    release2        : Same as \`release\` target, but with -O2 instead of -O3.\n\
     run             : Run the executable. Args are set with COLR_ARGS.\n\
     runexamples     : Run the example executables in $(examples_dir).\n\
     strip           : Run \`strip\` on the executable.\n\

@@ -2,7 +2,6 @@
     Debug macros, disabled and cost-free in release builds.
 
     \details
-    Debug print macro, for when building with DEBUG.
     These macros should cost nothing when building without DEBUG.
 
     \author Christopher Welborn
@@ -50,7 +49,7 @@
     #define DBUG_FILELEN ((DBUG_DEBUGWIDTH - DBUG_LINELEN - DBUG_EXTRACHARS) / 2)
     //! Computed max width for function name in line info.
     #define DBUG_FUNCLEN ((DBUG_DEBUGWIDTH - DBUG_LINELEN - DBUG_EXTRACHARS) / 2)
-    //! Macro for printing line information only.
+    //! Macro for printing line information only, with no newline.
     #define dbug_lineinfo() \
         fprintf(stderr, "%s%*s%s:%s%s%-*d%s %s%*s()%s: " \
             ,DBUG_COLOR_YELLOW \
@@ -66,7 +65,7 @@
         );
     /*! Macro for printing a regular message.
 
-        /details
+        \details
         Writes a debug message with no line information, and no newline.
 
         \pi ... Format string and all other arguments to satisfy the format string.
@@ -78,7 +77,7 @@
 
     /*! Macro for printing an error message.
 
-        /details
+        \details
         File and line information will be included.
 
         \pi ... Format string and all other arguments to satisfy the format string.
@@ -90,7 +89,7 @@
 
     /*! Macro for printing debug information.
 
-        /details
+        \details
         File and line information will be included.
 
         \pi ... Format string and all other arguments to satisfy the format string.
@@ -100,7 +99,7 @@
         dbug_msg(__VA_ARGS__);
     /*! Macro for printing debug error information.
 
-        /details
+        \details
         File and line information will be included.
 
         \pi ... Format string and all other arguments to satisfy the format string.

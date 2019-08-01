@@ -81,6 +81,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 #include <wchar.h>
 #include <ttyent.h>
@@ -160,17 +161,13 @@
 */
 #define CODE_ANY_LEN 46
 
-/*! \internal
-    Marker for the ColroArg struct, for identifying a void pointer as a
+/*! Marker for the ColorArg struct, for identifying a void pointer as a
     ColorArg.
-    \endinternal
 */
 #define COLORARG_MARKER UINT_MAX
 
-/*! \internal
-    Marker for the ColorText struct, for identifying a void pointer as a
+/*! Marker for the ColorText struct, for identifying a void pointer as a
     ColorText.
-    \endinternal
 */
 #define COLORTEXT_MARKER (UINT_MAX >> 1)
 
@@ -226,8 +223,13 @@
 */
 #define argeq(arg, s1, s2) (!strcmp(arg, s1)) || (!strcmp(arg, s2))
 
-#define asprintf_or(...) if (asprintf(__VA_ARGS__) < 1)
-#define asprintf_or_return(retval, ...) asprintf_or(__VA_ARGS__) return retval
+/*! \def asprintf_or_return
+    Convenience macro for bailing out of a function when asprintf fails.
+
+    \pi retval Value to return if the asprintf fails.
+    \pi ...    Arguments for asprintf.
+*/
+#define asprintf_or_return(retval, ...) if_not_asprintf(__VA_ARGS__) return retval
 
 /*! \def back
     Create a back color suitable for use with the colr() and Colr() macros.
@@ -438,6 +440,21 @@
 */
 #define Colr(text, ...) ColorText_to_ptr(ColorText_from_values(text, __VA_ARGS__, NULL))
 
+#define Colr_center(text, justwidth, ...) ColorText_set_just( \
+        Colr(text, __VA_ARGS__), \
+        (ColorJustify){.method=JUST_CENTER, .width=justwidth, .padchar=' '} \
+    )
+
+#define Colr_ljust(text, justwidth, ...) ColorText_set_just( \
+        Colr(text, __VA_ARGS__), \
+        (ColorJustify){.method=JUST_LEFT, .width=justwidth, .padchar=' '} \
+    )
+
+#define Colr_rjust(text, justwidth, ...) ColorText_set_just( \
+        Colr(text, __VA_ARGS__), \
+        (ColorJustify){.method=JUST_RIGHT, .width=justwidth, .padchar=' '} \
+    )
+
 /*! \def colr
     Join ColorArg pointers, ColorText pointers, and strings into one long string.
 
@@ -488,6 +505,19 @@
 */
 #define colr_join(joiner, ...) _colr_join(joiner, __VA_ARGS__, NULL)
 
+/*! \def colr_is_empty
+    Calls the \<type\>is_empty functions for the supported types.
+
+    \pi x A supported type to build a string from.
+*/
+#define colr_is_empty(x) \
+    _Generic( \
+        (x), \
+        ColorArg: ColorArg_is_empty, \
+        ColorJustify: ColorJustify_is_empty, \
+        ColorText: ColorText_is_empty, \
+        ColorValue: ColorValue_is_empty \
+    )(x)
 /*! \def colr_istr_either
     Convenience macro for `!strcasecmp(s1, s2) || !strcasecmp(s1, s3)`.
 
@@ -509,26 +539,6 @@
 */
 #define colr_istreq(s1, s2) ((s1 && s2) ? !strcasecmp(s1, s2) : 0)
 
-/*! \def colr_istr_either
-    Convenience macro for `!strcasecmp(s1, s2) || !strcasecmp(s1, s3)`.
-
-    \pi s1 The string to compare against the other two strings.
-    \pi s2 The first string to compare with.
-    \pi s3 The second string to compare with.
-
-    \return `1` if \p s1 is equal to \p s2 or \p s3, otherwise `0`.
-*/
-#define colr_istr_either(s1, s2, s3) ((s1 && s2 && s3) ? (colr_istreq(s1, s2) || colr_istreq(s1, s3)) : 0)
-
-/*! \def colr_istreq
-    Convenience macro for `!strcasecmp(s1, s2)`.
-
-    \pi s1  The first string to compare.
-    \pi s2  The second string to compare.
-
-    \return `1` if \p s1 and \p s2 are equal, otherwise `0`.
-*/
-#define colr_istreq(s1, s2) ((s1 && s2) ? !strcasecmp(s1, s2) : 0)
 
 /*! \def colr_max
     Macro for `(a > b ? a : b)`.
@@ -537,27 +547,7 @@
     \pi b   Second value to compare.
     \return `a` if `a > b`, otherwise `b`.
 */
-#define colr_max(a, b) ({ typeof (a) _a = (a); typeof (b) _b = (b); _a > _b ? _a : _b; })
-/*! \def colr_streq
-    Convenience macro for `!strcmp(s1, s2)`.
-
-    \pi s1  The first string to compare.
-    \pi s2  The second string to compare.
-
-    \return `1` if \p s1 and \p s2 are equal, otherwise `0`.
-*/
-#define colr_streq(s1, s2) ((s1 && s2) ? !strcmp(s1, s2) : 0)
-
-/*! \def colr_str_either
-    Convenience macro for `!strcmp(s1, s2) || !strcmp(s1, s3)`.
-
-    \pi s1 The string to compare against the other two strings.
-    \pi s2 The first string to compare with.
-    \pi s3 The second string to compare with.
-
-    \return `1` if \p s1 is equal to \p s2 or \p s3, otherwise `0`.
-*/
-#define colr_str_either(s1, s2, s3) ((s1 && s2 && s3) ? (colr_streq(s1, s2) || colr_streq(s1, s3)) : 0)
+#define colr_max(a, b) (a > b ? a : b)
 
 /*! \def colr_repr
     Transforms several ColrC objects into their string representations.
@@ -573,6 +563,8 @@
     \details
     Supported Types:
         - ColorArg
+        - ColorJustify
+        - ColorJustifyMethod
         - ColorText
         - ColorValue
         - ArgType
@@ -592,6 +584,8 @@
     _Generic( \
         (x), \
         ColorArg: ColorArg_repr, \
+        ColorJustify: ColorJustify_repr, \
+        ColorJustifyMethod: ColorJustifyMethod_repr, \
         ColorText: ColorText_repr, \
         ColorValue: ColorValue_repr, \
         ArgType: ArgType_repr, \
@@ -600,7 +594,46 @@
         ExtendedValue: ExtendedValue_repr, \
         StyleValue: StyleValue_repr, \
         RGB: RGB_repr, \
+        const char*: str_repr, \
         char*: str_repr \
+    )(x)
+
+
+/*! \def colr_streq
+    Convenience macro for `!strcmp(s1, s2)`.
+
+    \pi s1  The first string to compare.
+    \pi s2  The second string to compare.
+
+    \return `1` if \p s1 and \p s2 are equal, otherwise `0`.
+*/
+#define colr_streq(s1, s2) ((s1 && s2) ? !strcmp(s1, s2) : 0)
+
+/*! \def colr_str_either
+    Convenience macro for `!strcmp(s1, s2) || !strcmp(s1, s3)`.
+
+    \pi s1 The string to compare against the other two strings.
+    \pi s2 The first string to compare with.
+    \pi s3 The second string to compare with.
+
+    \return `1` if \p s1 is equal to \p s2 or \p s3, otherwise `0`.
+*/
+#define colr_str_either(s1, s2, s3) (colr_streq(s1, s2) || colr_streq(s1, s3))
+
+/*! \def colr_to_str
+    Calls the \<type\>to_str functions for the supported types.
+
+    \pi x A supported type to build a string from.
+*/
+#define colr_to_str(x) \
+    _Generic( \
+        (x), \
+        ArgType: ArgType_to_str, \
+        ColorArg: ColorArg_to_str, \
+        ColorText: ColorText_to_str, \
+        ColorValue: ColorValue_to_str, \
+        ExtendedValue: ExtendedValue_to_str, \
+        RGB: RGB_to_str \
     )(x)
 
 /*! \def dbug_repr
@@ -662,6 +695,22 @@
     \sa ext ext_hex hex hex_or
 */
 #define ext_hex_or(s, default_value) ExtendedValue_from_hex_default(s, default_value)
+
+/*! \def ext_rgb
+    Creates the closest matching ExtendedValue from an RGB value.
+
+    \details
+    This is short-hand for ExtendedValue_from_RGB().
+
+    \pi r   The red value.
+    \pi g   The green value.
+    \pi b   The blue value.
+
+    \return An ExtendedValue that closely matches the RGB value.
+
+    \sa ExtendedValue_from_RGB RGB_to_term_RGB
+*/
+#define ext_rgb(r, g, b) ExtendedValue_from_RGB((RGB){.red=r, .green=g, .blue=b})
 
 /*! \def fore
     Create a fore color suitable for use with the colr() and Colr() macros.
@@ -751,6 +800,16 @@
     \sa hex ext_hex ext_hex_or
 */
 #define hex_or(s, default_rgb) RGB_from_hex_default(s, default_rgb)
+
+/*! \def if_not_asprintf
+    Convenience macro for checking asprintf's return value.
+
+    \details
+    Should be followed by a block of code.
+
+    \pi ... Arguments for asprintf.
+*/
+#define if_not_asprintf(...) if (asprintf(__VA_ARGS__) < 1)
 
 //! Convenience macro for `fprintf(stderr, ...)`.
 #define printferr(...) fprintf(stderr, __VA_ARGS__)
@@ -858,8 +917,8 @@
     for (int r = 0; r < 256; r++) \
         for (int g = 0; g < 256; g++) \
             for (int b = 0; b < 256; b++) \
-/*! Basic color values, with a few convenience values for extended colors.
 
+/*! Basic color values, with a few convenience values for extended colors.
     \internal
     The enum values are immediately defined to be explicit casts to the
     BasicValue_t type, this ensure no confusion between StyleValue and
@@ -1005,6 +1064,14 @@ typedef enum ArgType_t {
     STYLE = 2,
 } ArgType;
 
+//! Justification style for ColorTexts.
+typedef enum ColorJustifyMethod_t {
+    JUST_NONE = -1,
+    JUST_LEFT = 0,
+    JUST_RIGHT = 1,
+    JUST_CENTER = 2,
+} ColorJustifyMethod;
+
 //! Color/Style code types. Used with ColorType_from_str() and ColorValue.
 typedef enum ColorType_t {
     TYPE_NONE = -6,
@@ -1017,8 +1084,6 @@ typedef enum ColorType_t {
     TYPE_RGB = 2,
     TYPE_STYLE = 3,
 } ColorType;
-
-
 
 /*! Holds a known color name and it's `BasicValue`.
 
@@ -1065,8 +1130,18 @@ typedef struct ColorValue_s {
     StyleValue style;
 } ColorValue;
 
-/*! Holds an ArgType, and a ColorValue.
-*/
+
+//! Holds a string justification method, width, and padding character for ColorTexts.
+typedef struct ColorJustify_s {
+    //! The justification method, can be JUST_NONE.
+    ColorJustifyMethod method;
+    //! The desired width for the final string, or `0` to use colr_term_size().
+    int width;
+    //! The desired padding character, or `0` to use the default (`' '`).
+    char padchar;
+} ColorJustify;
+
+//! Holds an ArgType, and a ColorValue.
 typedef struct ColorArg_s {
     //! A marker used to inspect void pointers and determine if they are ColorArgs.
     unsigned int marker;
@@ -1076,8 +1151,7 @@ typedef struct ColorArg_s {
     ColorValue value;
 } ColorArg;
 
-/*! Holds a string of text, and optional fore, back, and style ColorArgs.
-*/
+//! Holds a string of text, and optional fore, back, and style ColorArgs.
 typedef struct ColorText_s {
     //! A marker used to inspect void pointers and determine if they are ColorTexts.
     unsigned int marker;
@@ -1089,7 +1163,15 @@ typedef struct ColorText_s {
     ColorArg *back;
     //! ColorArg for style value. Can be `NULL`.
     ColorArg *style;
+    //! ColorJustify info, set to JUST_NONE by default.
+    ColorJustify just;
 } ColorText;
+
+//! Holds a terminal size, usually retrieved with colr_term_size().
+typedef struct TermSize_s {
+    unsigned short rows;
+    unsigned short columns;
+} TermSize;
 
 #ifndef DOXYGEN_SKIP
 //! A list of BasicInfo items, used with BasicValue_from_str().
@@ -1120,9 +1202,12 @@ extern const size_t ext2rgb_map_len;
 char char_escape_char(const char c);
 bool char_in_str(const char c, const char* s);
 bool char_is_code_end(const char c);
+char* char_repr(char x);
 bool char_should_escape(const char c);
 char* colr_empty_str(void);
 bool colr_supports_rgb(void);
+TermSize colr_term_size(void);
+struct winsize colr_win_size(void);
 void format_bgx(char* out, unsigned char num);
 void format_bg(char* out, BasicValue value);
 void format_bg_rgb(char* out, unsigned char red, unsigned char green, unsigned char blue);
@@ -1163,15 +1248,18 @@ RGB rainbow_step(double freq, size_t step);
 
 void str_append_reset(char* s);
 size_t str_char_count(const char*s, const char c);
+char* str_center(const char* s, const char padchar, int width);
 char* str_copy(char* dest, const char* src, size_t length);
 bool str_ends_with(const char* s, const char* suffix);
 bool str_has_codes(const char* s);
 bool str_is_all(const char* s, const char c);
 bool str_is_digits(const char* s);
+char* str_ljust(const char* s, const char padchar, int width);
 void str_lower(char* s);
 char* str_lstrip_chars(const char* s, const char* chars);
 size_t str_noncode_len(const char* s);
 char* str_repr(const char* s);
+char* str_rjust(const char* s, const char padchar, int width);
 bool str_starts_with(const char* s, const char* prefix);
 char* str_strip_codes(const char* s);
 char* str_to_lower(const char* s);
@@ -1220,16 +1308,29 @@ char* ColorArg_repr(ColorArg carg);
 char* ColorArg_to_str(ColorArg carg);
 
 /*! \internal
+    ColorJustify functions that deal with colr/string justification.
+    \endinternal
+*/
+ColorJustify ColorJustify_empty(void);
+bool ColorJustify_is_empty(ColorJustify cjust);
+char* ColorJustify_repr(ColorJustify cjust);
+char* ColorJustifyMethod_repr(ColorJustifyMethod meth);
+
+/*! \internal
     ColorText functions that deal with a string of text, and fore/back/style
     ColorArgs.
     \endinternal
 */
+ColorText ColorText_empty(void);
 void ColorText_free(ColorText *p);
 ColorText ColorText_from_values(char* text, ...);
+bool ColorText_is_empty(ColorText ctext);
 bool ColorText_is_ptr(void *p);
 size_t ColorText_length(ColorText ctext);
 char* ColorText_repr(ColorText);
-ColorText *ColorText_to_ptr(ColorText ctext);
+ColorText* ColorText_set_just(ColorText* ctext, ColorJustify cjust);
+void ColorText_set_values(ColorText* ctext, char* text, ...);
+ColorText* ColorText_to_ptr(ColorText ctext);
 char* ColorText_to_str(ColorText ctext);
 
 /*! \internal

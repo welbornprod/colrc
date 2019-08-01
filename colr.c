@@ -407,6 +407,7 @@ const size_t ext2rgb_map_len = sizeof(ext2rgb_map) / sizeof(ext2rgb_map[0]);
 */
 char char_escape_char(const char c) {
     switch (c) {
+        case '\0': return '0';
         case '\'': return '\'';
         case '\"': return '"';
         case '\?': return '?';
@@ -465,6 +466,64 @@ bool char_is_code_end(const char c) {
     return ((c > 64) && (c < 91)) || ((c > 96) && (c < 123));
 }
 
+/*! Creates a string representation for a char.
+
+    \pi x Value to create the representation for.
+    \return An allocated string, or `NULL` if the allocation fails.
+*/
+char* char_repr(char c) {
+    char* repr;
+    switch (c) {
+        case '\0':
+            asprintf_or_return(NULL, &repr, "'\\0'");
+            break;
+        case '\033':
+            asprintf_or_return(NULL, &repr, "'\\033'");
+            break;
+        case '\'':
+            asprintf_or_return(NULL, &repr, "'\\\'");
+            break;
+        case '\"':
+            asprintf_or_return(NULL, &repr, "'\\\"'");
+            break;
+        case '\?':
+            asprintf_or_return(NULL, &repr, "'\\?'");
+            break;
+        case '\\':
+            asprintf_or_return(NULL, &repr, "'\\\\");
+            break;
+        case '\a':
+            asprintf_or_return(NULL, &repr, "'\\a'");
+            break;
+        case '\b':
+            asprintf_or_return(NULL, &repr, "'\\b'");
+            break;
+        case '\f':
+            asprintf_or_return(NULL, &repr, "'\\f'");
+            break;
+        case '\n':
+            asprintf_or_return(NULL, &repr, "'\\n'");
+            break;
+        case '\r':
+            asprintf_or_return(NULL, &repr, "'\\r'");
+            break;
+        case '\t':
+            asprintf_or_return(NULL, &repr, "'\\t'");
+            break;
+        case '\v':
+            asprintf_or_return(NULL, &repr, "'\\v'");
+            break;
+        default:
+            if (iscntrl(c)) {
+                // Handle all other non-printables in hex-form.
+                asprintf_or_return(NULL, &repr, "'\\x%x'", c);
+            } else {
+                asprintf_or_return(NULL, &repr, "'%c'", c);
+            }
+    }
+    return repr;
+}
+
 /*! Determines if an ascii character has an escape sequence in C.
 
     \details
@@ -488,6 +547,7 @@ bool char_is_code_end(const char c) {
 */
 bool char_should_escape(const char c) {
     switch (c) {
+        case '\0': return true;
         case '\'': return true;
         case '\"': return true;
         case '\?': return true;
@@ -517,6 +577,7 @@ char* colr_empty_str(void) {
     s[0] = '\0';
     return s;
 }
+
 
 /*! Determine whether the current environment support RGB (True Colors).
 
@@ -549,6 +610,59 @@ bool colr_supports_rgb(void) {
     // char* testcode = "\033[38:2:255:255:255m\033P$qm\033\\\n";
     // Should get: 2:255:255:255m
     return false;
+}
+
+/*! Attempts to retrieve the row/column size of the terminal and returns a TermSize.
+
+    \details
+    If the call to `ioctl()` fails, a default TermSize struct is returned:
+    \code
+    (TermSize){.rows=35, .columns=80}
+    \endcode
+    \return A TermSize struct with terminal size information.
+*/
+TermSize colr_term_size(void) {
+    struct winsize ws = colr_win_size();
+    return (TermSize){.rows=ws.ws_row, .columns=ws.ws_col};
+}
+
+/*! Attempts to retrieve a `winsize` struct from an `ioctl` call.
+
+    \details
+    If the call fails, the environment variables `LINES` and `COLUMNS` are checked.
+    If that fails, a default `winsize` struct is returned:
+    \code
+    (struct winsize){.ws_row=35, .ws_col=80, .ws_xpixel=0, .ws_ypixel=0}
+    \endcode
+
+    \details
+    `man ioctl_tty` says that `.ws_xpixel` and `.ws_ypixel` are unused.
+
+    \return A `winsize` struct (`sys/ioctl.h`) with window size information.
+*/
+struct winsize colr_win_size(void) {
+    struct winsize ws = {0, 0, 0, 0};
+    if (ioctl(0, TIOCGWINSZ, &ws) < 0) {
+        // No support?
+        dbug("No support for ioctl TIOCGWINSZ, using defaults.");
+        char* env_rows = getenv("LINES");
+        unsigned short default_rows = 0;
+        if (sscanf(env_rows, "%hu", &default_rows) != 1) {
+            default_rows = 35;
+        }
+        char* env_cols = getenv("COLUMNS");
+        unsigned short default_cols = 0;
+        if (sscanf(env_cols, "%hu", &default_cols) != 1) {
+            default_cols = 80;
+        }
+        return (struct winsize){
+            .ws_row=default_rows,
+            .ws_col=default_cols,
+            .ws_xpixel=0,
+            .ws_ypixel=0
+        };
+    }
+    return ws;
 }
 
 /*! Create an escape code for a background color.
@@ -691,7 +805,8 @@ void str_append_reset(char *s) {
         sprintf(s, "%s", CODE_RESET_ALL);
         return;
     }
-    size_t lastindex = strlen(s) - 1;
+    size_t length = strlen(s);
+    size_t lastindex = length - 1;
     size_t newlines = 0;
     // Cut newlines off if needed. I'll add them after the reset code.
     while ((lastindex > 0) && (s[lastindex] == '\n')) {
@@ -703,12 +818,74 @@ void str_append_reset(char *s) {
         // String starts with a newline.
         s[lastindex] = '\0';
         newlines++;
+    } else {
+        lastindex++;
     }
-    sprintf(s, "%s%s", s, CODE_RESET_ALL);
-    while (newlines) {
-        sprintf(s, "%s%c", s, '\n');
-        newlines--;
+    char* p = s + lastindex;
+    sprintf(p, "%s", CODE_RESET_ALL);
+    p += CODE_RESET_LEN - 1;
+    while (newlines--) {
+        *(p++) = '\n';
     }
+    *p = '\0';
+}
+
+/*! Center-justifies a string, ignoring escape codes when measuring the width.
+
+    \pi s       The string to "center".
+    \pi padchar The character to pad with. If '0', then `' '` is used.
+    \pi width   The overall width for the resulting string.\n
+                If set to '0', the terminal width will be used from colr_term_size().
+
+    \return     An allocated string with the result,
+                or `NULL` if \p s is `NULL` or the allocation failed.
+                or `NULL` if \p s is `NULL` or the allocation failed.
+
+    \sa str_ljust str_rjust colr_term_size
+*/
+char* str_center(const char* s, const char padchar, int width) {
+    if (!s) return NULL;
+    char pad = padchar == '\0' ? ' ' : padchar;
+    size_t length = strlen(s);
+    size_t noncode_len = str_noncode_len(s);
+    if (width == 0) {
+        TermSize ts = colr_term_size();
+        width = ts.columns;
+    }
+    int diff = width - noncode_len;
+    char* result;
+    if (diff < 1) {
+        // No room for padding, also asprintf can't do empty strings.
+        if (s[0] == '\0') return colr_empty_str();
+        asprintf_or_return(NULL, &result, "%s", s);
+        return result;
+    }
+    size_t final_len = length + diff + 1;
+    result = calloc(final_len, sizeof(char));
+    if (!result) return NULL;
+    if (s[0] == '\0') {
+        // Shortcut for a simple pad-only string.
+        memset(result, pad, final_len - 1);
+        return result;
+    }
+    size_t pos = 0;
+    size_t leftdiff = diff / 2;
+    if (diff % 2 == 1) leftdiff++;
+    // Handle left-just.
+    while (pos < leftdiff) {
+        result[pos++] = pad;
+    }
+    // Handle string.
+    size_t i = 0;
+    while (s[i]) {
+        result[pos++] = s[i++];
+    }
+    // Handle remaining right-just.
+    final_len--;
+    while (pos < final_len) {
+        result[pos++] = pad;
+    }
+    return result;
 }
 
 /*! Counts the number of characters (`c`) that are found in a string (`s`).
@@ -804,7 +981,7 @@ bool str_has_codes(const char* s) {
     size_t length = strlen(s);
     size_t i = 0;
     while ((i < length) && s[i]) {
-        if ((s[i] == '\033') && s[i + 1] && (s[i + 1] == '[')) {
+        if ((s[i] == '\033') && (s[i + 1] == '[')) {
             // Skip past "\033["
             i += 2;
             while ((i < length) && s[i]) {
@@ -877,6 +1054,52 @@ void str_lower(char* s) {
 }
 
 
+/*! Left-justifies a string, ignoring escape codes when measuring the width.
+
+    \pi s       The string to justify.
+    \pi padchar The character to pad with. If '0', then `' '` is used.
+    \pi width   The overall width for the resulting string.\n
+                If set to '0', the terminal width will be used from colr_term_size().
+
+    \return     An allocated string with the result,
+                or `NULL` if \p s is `NULL` or the allocation failed.
+
+    \sa str_center str_rjust colr_term_size
+*/
+char* str_ljust(const char* s, const char padchar, int width) {
+    if (!s) return NULL;
+    char pad = padchar == '\0' ? ' ' : padchar;
+    size_t length = strlen(s);
+    size_t noncode_len = str_noncode_len(s);
+    if (width == 0) {
+        TermSize ts = colr_term_size();
+        width = ts.columns;
+    }
+    int diff = width - noncode_len;
+    char* result;
+    if (diff < 1) {
+        // No room for padding, also asprintf can't do empty strings.
+        if (s[0] == '\0') return colr_empty_str();
+        asprintf_or_return(NULL, &result, "%s", s);
+        return result;
+    }
+    size_t final_len = length + diff + 1;
+    result = calloc(final_len, sizeof(char));
+    if (!result) return NULL;
+    if (s[0] == '\0') {
+        // Shortcut for a simple pad-only string.
+        memset(result, pad, final_len - 1);
+        return result;
+    }
+    char* start = result;
+    sprintf(result, "%s", s);
+    int pos = 0;
+    while (pos < diff) {
+        result[length + pos++] = pad;
+    }
+    return start;
+}
+
 /*! Removes certain characters from the start of a string.
     \details
     The order of the characters in \p chars does not matter. If any of them
@@ -917,7 +1140,7 @@ char* str_lstrip_chars(const char* s, const char* chars) {
 
 /*! Returns the length of string, ignoring escape codes and the the null-terminator.
 
-    \pi s   String to get the length for.\n
+    \pi s   String to get the length for.
             \mustnullin
     \return The length of the string, as if it didn't contain escape codes.\n
             For non-escape-code strings, this is like `strlen()`.\n
@@ -1008,6 +1231,53 @@ char* str_repr(const char* s) {
     return repr;
 }
 
+/*! Right-justifies a string, ignoring escape codes when measuring the width.
+
+    \pi s       The string to justify.
+    \pi padchar The character to pad with. If '0', then `' '` is used.
+    \pi width   The overall width for the resulting string.\n
+                If set to '0', the terminal width will be used from colr_term_size().
+
+    \return     An allocated string with the result,
+                or `NULL` if \p s is `NULL` or the allocation failed.
+
+    \sa str_center str_ljust colr_term_size
+*/
+char* str_rjust(const char* s, const char padchar, int width) {
+    if (!s) return NULL;
+    char pad = padchar == '\0' ? ' ' : padchar;
+    size_t length = strlen(s);
+    size_t noncode_len = str_noncode_len(s);
+    if (width == 0) {
+        TermSize ts = colr_term_size();
+        width = ts.columns;
+    }
+    int diff = width - noncode_len;
+    char* result;
+    if (diff < 1) {
+        // No room for padding, also asprintf can't do empty strings.
+        if (s[0] == '\0') return colr_empty_str();
+        asprintf_or_return(NULL, &result, "%s", s);
+        return result;
+    }
+    size_t final_len = length + diff + 1;
+    result = calloc(final_len, sizeof(char));
+    if (!result) return NULL;
+    if (s[0] == '\0') {
+        // Shortcut for a simple pad-only string.
+        memset(result, pad, final_len - 1);
+        return result;
+    }
+    char* start = result;
+    int pos = 0;
+    while (pos < diff) {
+        result[pos++] = pad;
+    }
+    result = result + pos;
+    sprintf(result, "%s", s);
+    return start;
+}
+
 /*! Checks a string for a certain prefix substring.
 
     \details
@@ -1071,10 +1341,10 @@ char* str_strip_codes(const char* s) {
 /*! Allocate a new lowercase version of a string.
 
     \details
-    \mustnullin
     \mustfree
 
-    \pi s   The input string to convert to lower case.
+    \pi s   The input string to convert to lower case.\n
+            \mustnull
     \return The allocated string, or `NULL` if \p s is `NULL` or the allocation fails.
 */
 char* str_to_lower(const char* s) {
@@ -1126,12 +1396,15 @@ wchar_t* str_to_wide(const char* s) {
     memset(&state, 0, sizeof(state));
     size_t wlen = mbsrtowcs(NULL, &s, 0, &state);
     if (wlen == (size_t) - 1) {
-        dbug("Error converting to wide-chars: %s\n", strerror(errno));
+        dbug("Error converting to wide-chars for length: %s\n", strerror(errno));
         return NULL;
     }
     wlen++;
     wchar_t* out = calloc(wlen, sizeof(wchar_t));
-    mbsrtowcs(out, &s, wlen, &state);
+    if (mbsrtowcs(out, &s, wlen, &state) == (size_t) - 1) {
+        dbug("Error converting to wide-chars: %s\n", strerror(errno));
+        return NULL;
+    }
     return out;
 }
 
@@ -1189,13 +1462,13 @@ char* wide_to_str(const wchar_t* s) {
     to free those. ColrC only manages the temporary Colr-based objects needed
     to build up these strings.
 
-    \pi p   The first of any ColorArg, ColorText, or strings to join.
-    \pi ... Zero or more ColorArg, ColorText, or string to join.
-    \return An allocated string with mixed escape codes/strings.
+    \pi p   The first of any ColorArgs, ColorTexts, or strings to join.
+    \pi ... Zero or more ColorArgs, ColorTexts, or strings to join.
+    \return An allocated string with mixed escape codes/strings.\n
             CODE_RESET_ALL is appended to all the pieces that aren't plain
             strings. This allows easy part-colored messages, so there's no
-            need to use CODE_RESET_ALL directly.
-            <em>You must free() the memory allocated by this function</em>.
+            need to use CODE_RESET_ALL directly.\n
+            \mustfree
 */
 char* _colr(void *p, ...) {
     // Argument list must have ColorArg/ColorText with NULL members at the end.
@@ -1207,8 +1480,12 @@ char* _colr(void *p, ...) {
     va_list argcopy;
     va_copy(argcopy, args);
     size_t length = _colr_length(p, argcopy);
+    va_end(argcopy);
     // If length was 1, there were no usable values in the argument list.
-    if (length == 1) return colr_empty_str();
+    if (length == 1) {
+        va_end(args);
+        return colr_empty_str();
+    }
     // Allocate enough for the reset code at the end.
     char* final = calloc(length, sizeof(char));
 
@@ -1257,7 +1534,7 @@ char* _colr(void *p, ...) {
             s = (char* )arg;
             is_string = true;
         }
-        sprintf(final, "%s%s", final, s);
+        strcat(final, s);
         // String was passed, add the reset code.
         if (is_string) str_append_reset(final);
 
@@ -1276,18 +1553,16 @@ char* _colr(void *p, ...) {
     This allows _colr() to allocate once, instead of reallocating for each
     argument that is passed.
 
-    \pi p   The first of any ColorArg, ColorText, or strings to join.
-    \pi ... Zero or more ColorArg, ColorText, or string to join.
+    \pi p    The first of any ColorArg, ColorText, or strings to join.
+    \pi args A `va_list` with zero or more ColorArgs, ColorTexts, or strings to join.
 
-    \return The length (in bytes) needed to allocate a string built with _colr().
+    \return  The length (in bytes) needed to allocate a string built with _colr().
 
     \sa _colr
 */
 size_t _colr_length(void *p, va_list args) {
     // Argument list must have ColorArg/ColorText with NULL members at the end.
-    if (!p) {
-        return 0;
-    }
+    if (!p) return 0;
     ColorArg *cargp = NULL;
     ColorText *ctextp = NULL;
     size_t length = 1;
@@ -1328,7 +1603,6 @@ size_t _colr_length(void *p, va_list args) {
         // String was passed, add the reset code.
         if (is_string) length += CODE_RESET_LEN;
     }
-    va_end(args);
     return length;
 }
 
@@ -1346,10 +1620,10 @@ size_t _colr_length(void *p, va_list args) {
 
     \pi joinerp The joiner (any ColorArg, ColorText, or string).
     \pi ...     Zero or more ColorArgs, ColorTexts, or strings to join by the joiner.
-    \return     An allocated string with mixed escape codes/strings.
+    \return     An allocated string with mixed escape codes/strings.\n
                 CODE_RESET_ALL is appended to all ColorText arguments.
-                This allows easy part-colored messages.
-                <em>You must free() the memory allocated by this function</em>.
+                This allows easy part-colored messages.\n
+                \mustfree
 */
 char* _colr_join(void *joinerp, ...) {
     // Argument list must have ColorArg/ColorText with NULL members at the end.
@@ -1361,8 +1635,12 @@ char* _colr_join(void *joinerp, ...) {
     va_list argcopy;
     va_copy(argcopy, args);
     size_t length = _colr_join_length(joinerp, argcopy);
+    va_end(argcopy);
     // If length is 1, then no usable values were passed in.
-    if (length == 1) return colr_empty_str();
+    if (length == 1) {
+        va_end(args);
+        return colr_empty_str();
+    }
 
     char* final = calloc(length, sizeof(char));
     char* joiner;
@@ -1387,7 +1665,6 @@ char* _colr_join(void *joinerp, ...) {
     int count = 0;
     void *arg = NULL;
     while ((arg = va_arg(args, void*))) {
-        count++;
         cargp = NULL;
         ctextp = NULL;
         // These ColorArgs/ColorTexts were heap allocated through the fore,
@@ -1407,11 +1684,9 @@ char* _colr_join(void *joinerp, ...) {
             // It better be a string.
             piece = (char* )arg;
         }
-        if (count == 1) {
-            sprintf(final, "%s%s", final, piece);
-        } else {
-            sprintf(final, "%s%s%s", final, joiner, piece);
-        }
+        if (count++) strcat(final, joiner);
+        strcat(final, piece);
+
         // Free the temporary string from those ColorArgs/ColorTexts.
         if (cargp || ctextp) free(piece);
     }
@@ -1433,10 +1708,10 @@ char* _colr_join(void *joinerp, ...) {
     This allows _colr_join() to allocate once, instead of reallocating for each
     argument that is passed.
 
-    \pi p   The first of any ColorArg, ColorText, or strings to join.
-    \pi ... Zero or more ColorArg, ColorText, or string to join.
+    \pi joinerp The first of any ColorArg, ColorText, or strings to join.
+    \pi args    A `va_list` with zero or more ColorArgs, ColorTexts, or strings to join.
 
-    \return The length (in bytes) needed to allocate a string built with _colr().
+    \return     The length (in bytes) needed to allocate a string built with _colr().
 
     \sa _colr
 */
@@ -1445,6 +1720,7 @@ size_t _colr_join_length(void *joinerp, va_list args) {
 
     // No joiner, no strings. Empty string will be returned, so just "\0".
     if (!joinerp) return 1;
+
     ColorArg* joiner_cargp = NULL;
     ColorText* joiner_ctextp = NULL;
     ColorArg* cargp = NULL;
@@ -1483,14 +1759,13 @@ size_t _colr_join_length(void *joinerp, va_list args) {
             length += joiner_len;
         }
     }
-    va_end(args);
     length += CODE_RESET_LEN;
     return length;
 }
 /*! Creates a string representation of a ArgType.
 
-    \pi type A ArgType to get the type from.
-    \return  A pointer to an allocated string.
+    \pi type An ArgType to get the type from.
+    \return  A pointer to an allocated string.\n
              \mustfree
 
     \sa ArgType
@@ -1516,8 +1791,8 @@ char* ArgType_repr(ArgType type) {
 
 /*! Creates a string from an ArgType.
 
-    \pi type A ArgType to get the type from.
-    \return  A pointer to an allocated string.
+    \pi type An ArgType to get the type from.
+    \return  A pointer to an allocated string.\n
              \mustfree
 
     \sa ArgType
@@ -1856,6 +2131,107 @@ char* ColorArg_to_str(ColorArg carg) {
     return ColorValue_to_str(carg.type, carg.value);
 }
 
+/*! Creates an "empty" ColorJustify, with JUST_NONE set.
+
+    \return An initialized ColorJustify, with no justification method set.
+
+    \sa ColorJustify
+*/
+ColorJustify ColorJustify_empty(void) {
+    return (ColorJustify){
+        .method=JUST_NONE,
+        .width=0,
+        .padchar=0,
+    };
+}
+
+/*! Checks to see if a ColorJustify is "empty".
+
+    \details
+    A ColorJustify is considered "empty" if the `.method` member is set to
+    `JUST_NONE`.
+
+    \pi ctext The ColorJustify to check.
+    \return   `true` if the ColorJustify is empty, otherwise `false`.
+
+    \sa ColorJustify ColorJustify_empty
+*/
+bool ColorJustify_is_empty(ColorJustify cjust) {
+    return cjust.method == JUST_NONE;
+}
+
+/*! Creates a string representation for a ColorJustify.
+
+    \details
+    Allocates memory for the string representation.
+
+    \pi carg ColorJustify struct to get the representation for.
+    \return  Allocated string for the representation.\n
+             \mustfree
+
+    \sa ColorJustify
+*/
+char* ColorJustify_repr(ColorJustify cjust) {
+    char* meth_repr = ColorJustifyMethod_repr(cjust.method);
+    char* pad_repr = char_repr(cjust.padchar);
+    char* repr;
+    asprintf_or_return(
+        NULL,
+        &repr,
+        "ColorJustify {.method=%s, .width=%d, .padchar=%s}",
+        meth_repr,
+        cjust.width,
+        pad_repr
+    );
+    free(meth_repr);
+    free(pad_repr);
+    return repr;
+}
+
+/*! Creates a string representation for a ColorJustifyMethod.
+
+    \details
+    Allocates memory for the string representation.
+
+    \pi carg ColorJustifyMethod to get the representation for.
+    \return  Allocated string for the representation.\n
+             \mustfree
+
+    \sa ColorJustifyMethod
+*/
+char* ColorJustifyMethod_repr(ColorJustifyMethod meth) {
+    char* repr;
+    switch (meth) {
+        case JUST_NONE:
+            asprintf_or_return(NULL, &repr, "JUST_NONE");
+            break;
+        case JUST_LEFT:
+            asprintf_or_return(NULL, &repr, "JUST_LEFT");
+            break;
+        case JUST_RIGHT:
+            asprintf_or_return(NULL, &repr, "JUST_RIGHT");
+            break;
+        case JUST_CENTER:
+            asprintf_or_return(NULL, &repr, "JUST_CENTER");
+            break;
+    }
+    return repr;
+}
+
+/*! Creates an "empty" ColorText with pointers set to `NULL`.
+
+    \return An initialized ColorText.
+*/
+ColorText ColorText_empty(void) {
+    return (ColorText){
+        .marker=COLORTEXT_MARKER,
+        .text=NULL,
+        .fore=NULL,
+        .back=NULL,
+        .style=NULL,
+        .just=ColorJustify_empty(),
+    };
+}
 
 /*! Frees a ColorText and it's ColorArgs.
 
@@ -1868,12 +2244,11 @@ char* ColorArg_to_str(ColorArg carg) {
 */
 void ColorText_free(ColorText *p) {
     if (!p) return;
-    if (p->fore) free(p->fore);
-    if (p->back) free(p->back);
-    if (p->style) free(p->style);
+    free(p->fore);
+    free(p->back);
+    free(p->style);
 
     free(p);
-    p = NULL;
 }
 
 /*! Builds a ColorText from 1 mandatory string, and optional fore, back, and
@@ -1886,15 +2261,11 @@ void ColorText_free(ColorText *p) {
 */
 ColorText ColorText_from_values(char* text, ...) {
     // Argument list must have ColorArg with NULL members at the end.
-    ColorText ctext = {
-        .marker=COLORTEXT_MARKER,
-        .text=text,
-        .fore=NULL,
-        .back=NULL,
-        .style=NULL
-    };
+    ColorText ctext = ColorText_empty();
+    ctext.text = text;
     va_list colrargs;
     va_start(colrargs, text);
+
     ColorArg *arg;
     while ((arg = va_arg(colrargs, ColorArg*))) {
         assert(ColorArg_is_ptr(arg));
@@ -1920,6 +2291,25 @@ ColorText ColorText_from_values(char* text, ...) {
     }
     va_end(colrargs);
     return ctext;
+}
+
+/*! Checks to see if a ColorText has no usable values.
+
+    \details
+    A ColorText is considered "empty" if the `.text`, `.fore`, `.back`, and
+    `.style` pointers are `NULL`, and the `.just` member is set to an "empty"
+    ColorJustify.
+
+    \pi ctext The ColorText to check.
+    \return   `true` if the ColorText is empty, otherwise `false`.
+
+    \sa ColorText ColorText_empty
+*/
+bool ColorText_is_empty(ColorText ctext) {
+    return (
+        !(ctext.text || ctext.fore || ctext.back || ctext.style) &&
+        ColorJustify_is_empty(ctext.just)
+    );
 }
 /*! Checks a void pointer to see if it contains a ColorText struct.
 
@@ -1950,12 +2340,25 @@ bool ColorText_is_ptr(void *p) {
 size_t ColorText_length(ColorText ctext) {
     // Empty text yields an empty string, so just "\0".
     if (!ctext.text) return 1;
-    size_t length = strlen(ctext.text) + 1;
+    size_t length = strlen(ctext.text);
     length += ctext.fore ? ColorArg_length(*(ctext.fore)) : 0;
     length += ctext.back ? ColorArg_length(*(ctext.back)) : 0;
     length += ctext.style ? ColorArg_length(*(ctext.style)) : 0;
-
     if (ctext.style || ctext.fore || ctext.back) length += CODE_RESET_LEN;
+    if (!ColorJustify_is_empty(ctext.just)) {
+        // Justification will be used, calculate that in.
+        size_t noncode_len = str_noncode_len(ctext.text);
+        if (ctext.just.width == 0) {
+            // Go ahead and set the actual width, to reduce calls to colr_term_size().
+            TermSize ts = colr_term_size();
+            ctext.just.width = ts.columns;
+        }
+        int diff = ctext.just.width - noncode_len;
+        // 0 or negative difference means no extra chars are added anyway.
+        length += colr_max(0, diff);
+    }
+    // And the null-terminator.
+    length++;
     return length;
 }
 
@@ -1972,23 +2375,86 @@ char* ColorText_repr(ColorText ctext) {
     char* sfore = ctext.fore ? ColorArg_repr(*(ctext.fore)) : NULL;
     char* sback = ctext.back ? ColorArg_repr(*(ctext.back)) : NULL;
     char* sstyle = ctext.style ? ColorArg_repr(*(ctext.style)) : NULL;
-
+    char* sjust = ColorJustify_repr(ctext.just);
     asprintf_or_return(
         NULL,
         &repr,
-        "ColorText {.text=%s, .fore=%s, .back=%s, .style=%s}\n",
+        "ColorText {.text=%s, .fore=%s, .back=%s, .style=%s, .just=%s}\n",
         stext ? stext : "NULL",
         sfore ? sfore : "NULL",
         sback ? sback : "NULL",
-        sstyle ? sstyle : "NULL"
+        sstyle ? sstyle : "NULL",
+        sjust ? sjust : "<couldn't allocate for .just repr>"
     );
     free(stext);
     free(sfore);
     free(sback);
     free(sstyle);
+    free(sjust);
     return repr;
 }
-/*! Copies a ColorText into memory and returns the pointer.
+
+/*! Set the ColorJustify method for a ColorText, and return the ColorText.
+
+    \details
+    This is to facilitate the justification macros. If you already have a pointer
+    to a ColorText, you can just do `ctext->just = just;`. The purpose of this
+    is to allow `ColorText_set_just(ColorText_to_ptr(...), ...)` to work.
+
+    \po ctext The ColorText to set the justification method for.
+    \pi cjust The ColorJustify struct to use.
+
+    \return   The same pointer that was given as `ctext`.
+*/
+ColorText* ColorText_set_just(ColorText* ctext, ColorJustify cjust) {
+    if (!ctext) return ctext;
+    ctext->just = cjust;
+    return ctext;
+}
+
+/*! Initializes an existing ColorText from 1 mandatory string, and optional
+    fore, back, and style args (pointers to ColorArgs).
+
+    \po p    A ColorText to initialize with values.
+    \pi text Text to colorize (a regular string).
+    \pi ...  A `va_list` with ColorArgs pointers for fore, back, and style, in any order.
+    \return  An initialized ColorText struct.
+
+    \sa ColorText
+*/
+void ColorText_set_values(ColorText* ctext, char* text, ...) {
+    // Argument list must have ColorArg with NULL members at the end.
+    *ctext = ColorText_empty();
+    ctext->text = text;
+    va_list colrargs;
+    va_start(colrargs, text);
+
+    ColorArg *arg;
+    while ((arg = va_arg(colrargs, ColorArg*))) {
+        assert(ColorArg_is_ptr(arg));
+        // It's a ColorArg.
+        if (arg->type == FORE) {
+            ctext->fore = arg;
+        } else if (arg->type == BACK) {
+            ctext->back = arg;
+        } else if (arg->type == STYLE) {
+            ctext->style = arg;
+            break;
+        } else if (ColorArg_is_empty(*arg)) {
+            // Empty ColorArgs are assigned in the order they were passed in.
+            if (!ctext->fore) {
+                ctext->fore = arg;
+            } else if (!ctext->back) {
+                ctext->back = arg;
+            } else if (!ctext->style) {
+                ctext->style = arg;
+                break;
+            }
+        }
+    }
+    va_end(colrargs);
+}
+/*! Copies a ColorText into allocated memory and returns the pointer.
 
     \details
     You must free() the memory if you call this directly.
@@ -1998,7 +2464,7 @@ char* ColorText_repr(ColorText ctext) {
 
     \sa ColorText
 */
-ColorText *ColorText_to_ptr(ColorText ctext) {
+ColorText* ColorText_to_ptr(ColorText ctext) {
     size_t length = sizeof(ColorText);
     if (ctext.text) length += strlen(ctext.text) + 1;
     ColorText *p = malloc(length);
@@ -2024,21 +2490,39 @@ char* ColorText_to_str(ColorText ctext) {
     bool do_reset = (ctext.style || ctext.fore || ctext.back);
     if (ctext.style && !ColorArg_is_empty(*(ctext.style))) {
         char* stylecode = ColorArg_to_str(*(ctext.style));
-        sprintf(final, "%s%s", final, stylecode);
+        strcat(final, stylecode);
         free(stylecode);
     }
     if (ctext.fore && !ColorArg_is_empty(*(ctext.fore))) {
         char* forecode = ColorArg_to_str(*(ctext.fore));
-        sprintf(final, "%s%s", final, forecode);
+        strcat(final, forecode);
         free(forecode);
     }
     if (ctext.back && !ColorArg_is_empty(*(ctext.back))) {
         char* backcode = ColorArg_to_str(*(ctext.back));
-        sprintf(final, "%s%s", final, backcode);
+        strcat(final, backcode);
         free(backcode);
     }
-    sprintf(final, "%s%s", final, ctext.text);
+    strcat(final, ctext.text);
     if (do_reset) str_append_reset(final);
+    char* justified = NULL;
+    switch (ctext.just.method) {
+        // TODO: It would be nice to do this all in one pass, but this works.
+        case JUST_NONE:
+            break;
+        case JUST_LEFT:
+            justified = str_ljust(final, ctext.just.padchar, ctext.just.width);
+            free(final);
+            return justified;
+        case JUST_RIGHT:
+            justified = str_rjust(final, ctext.just.padchar, ctext.just.width);
+            free(final);
+            return justified;
+        case JUST_CENTER:
+            justified = str_center(final, ctext.just.padchar, ctext.just.width);
+            free(final);
+            return justified;
+    }
     return final;
 }
 
@@ -2271,9 +2755,6 @@ ColorValue ColorValue_from_value(ColorType type, void *p) {
         ) {
         return (ColorValue){.type=type};
     }
-    if (!p) {
-        return (ColorValue){.type=TYPE_INVALID};
-    }
     if (type == TYPE_BASIC) {
         BasicValue *bval = p;
         BasicValue use_bval = *bval;
@@ -2403,7 +2884,7 @@ size_t ColorValue_length(ArgType type, ColorValue cval) {
 /*! Creates a string representation of a ColorValue.
 
     \pi cval    A ColorValue to get the type and value from.
-    \return     A pointer to an allocated string.
+    \return     A pointer to an allocated string.\n
                 \mustfree
 
     \sa ColorValue
@@ -2538,7 +3019,7 @@ BasicValue BasicValue_from_str(const char* arg) {
 /*! Creates a string representation of a BasicValue.
 
     \pi bval    A BasicValue to get the value from.
-    \return     A pointer to an allocated string.
+    \return     A pointer to an allocated string.\n
                 \mustfree
 
     \sa BasicValue
@@ -2778,7 +3259,7 @@ int ExtendedValue_from_str(const char* arg) {
 /*! Creates a string representation of a ExtendedValue.
 
     \pi eval    A ExtendedValue to get the value from.
-    \return     A pointer to an allocated string.
+    \return     A pointer to an allocated string.\n
                 \mustfree
 
     \sa ExtendedValue
@@ -2802,7 +3283,7 @@ char* ExtendedValue_repr(int eval) {
     with ExtendedValue_from_str().
 
     \pi eval    A ExtendedValue to get the value from.
-    \return     A pointer to an allocated string, or `NULL` if the allocation fails.
+    \return     A pointer to an allocated string, or `NULL` if the allocation fails.\n
                 \mustfree
 
     \sa ExtendedValue
@@ -3158,7 +3639,7 @@ StyleValue StyleValue_from_str(const char* arg) {
 /*! Creates a string representation of a StyleValue.
 
     \pi sval    A StyleValue to get the value from.
-    \return     A pointer to an allocated string.
+    \return     A pointer to an allocated string.\n
                 \mustfree
 
     \sa StyleValue
@@ -3230,7 +3711,7 @@ char* StyleValue_repr(StyleValue sval) {
                \mustnullin
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
-    \return    The allocated/formatted string on success.
+    \return    The allocated/formatted string on success.\n
                \mustfree
                If the allocation fails, `NULL` is returned.
 */
@@ -3253,7 +3734,7 @@ char* rainbow_bg(const char* s, double freq, size_t offset) {
                \mustnullin
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
-    \return    The allocated/formatted string on success.
+    \return    The allocated/formatted string on success.\n
                \mustfree
                If the allocation fails, `NULL` is returned.
 */
@@ -3275,7 +3756,7 @@ char* rainbow_bg_term(const char* s, double freq, size_t offset) {
                \mustnullin
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
-    \return    The allocated/formatted string on success.
+    \return    The allocated/formatted string on success.\n
                \mustfree
                If the allocation fails, `NULL` is returned.
 */
@@ -3298,7 +3779,7 @@ char* rainbow_fg(const char* s, double freq, size_t offset) {
                \mustnullin
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
-    \return    The allocated/formatted string on success.
+    \return    The allocated/formatted string on success.\n
                \mustfree
                If the allocation fails, `NULL` is returned.
 */
@@ -3316,7 +3797,7 @@ char* rainbow_fg_term(const char* s, double freq, size_t offset) {
     \pi freq   The "tightness" for colors.
     \pi offset The starting offset into the rainbow.
 
-    \return    An allocated string (`char*`) with the result.
+    \return    An allocated string (`char*`) with the result.\n
                \mustfree
 */
 char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
@@ -3343,14 +3824,13 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
     size_t singlecharlen = CODE_RGB_LEN + 1;
     wchar_t singlewchar[singlecharlen];
     for (size_t i = 0; i < charlen; i++) {
-
         fmter(codes, rainbow_step(freq, offset + i));
         swprintf(wcodes, CODE_RGB_LEN, L"%s", codes);
-        swprintf(singlewchar, singlecharlen, L"%ls%lc", wcodes, chars[i]);
+        swprintf(singlewchar, singlecharlen, L"%ls%c", wcodes, chars[i]);
         wcscat(wc_out, singlewchar);
     }
     free(chars);
-    wcsncat(wc_out, WCODE_RESET_ALL, STYLE_LEN);
+    wcsncat(wc_out, WCODE_RESET_ALL, CODE_RESET_LEN);
 
     char* out = wide_to_str(wc_out);
     free(wc_out);

@@ -10,27 +10,51 @@ appscript="${apppath##*/}"
 appdir="${apppath%/*}"
 colrdir="$(readlink -f "${appdir}/..")"
 examplesdir="${colrdir}/examples"
+testdir=$appdir # May change.
 toolsdir="${colrdir}/tools"
 colrexe="${colrdir}/colrc"
-testexe="${appdir}/test_colr"
+testexe="${appdir}/test_colrc"
 
 declare -a binaries=($(find "$appdir" -maxdepth 1 -executable -type f -name "test_*" ! -name "*.*"))
 ((${#binaries[@]})) || {
-    printf "\nNo test binary found in: %s\n" "$appdir" 1>&2
-    exit 1
+    if [[ "$*" != *-A* ]] && [[ "$*" != *--all* ]]; then
+        printf "\nNo test binary found in: %s\n" "$appdir" 1>&2
+        exit 1
+    fi
 }
 default_binary="${binaries[0]}"
 binary_name="${default_binary##*/}"
 [[ "$binary_name" == test_* ]] || {
-    printf "\nExecutable does not look like a test executable: %s\n" "$default_binary" 1>&2
-    exit 1
+    if [[ "$*" != *-A* ]] && [[ "$*" != *--all* ]]; then
+        printf "\nExecutable does not look like a test executable: %s\n" "$default_binary" 1>&2
+        exit 1
+    fi
 }
 
 # Some colors.
 BLUE="${BLUE:-\x1b[1;34m}"
 GREEN="${GREEN:-\x1b[1;32m}"
 RED="${RED:-\x1b[1;31m}"
+blue="${blue:-\x1b[1;34m}"
+green="${green:-\x1b[1;32m}"
+red="${red:-\x1b[1;31m}"
 NC="${NC:-\x1b[0m}"
+
+function colr_anim {
+    # Run a command through colr-run, with a custom message.
+    ((no_colr)) && {
+        shift
+        "$@"
+        return
+    }
+    local msg=$1
+    shift
+    if [[ "$msg" == "-" ]]; then
+        colr-run -- "$@" 1>&2
+    else
+        colr-run -a -e -m "$msg" -- "$@" 1>&2
+    fi
+}
 
 function echo_err {
     # Echo to stderr.
@@ -40,9 +64,14 @@ function echo_err {
 }
 
 function echo_status {
-    printf "%s" "$BLUE"
-    echo -e "$@"
-    printf "%s" "$NC"
+    local lbl=$1 val
+    shift
+    declare -a val=("$@")
+    if ((${#val[@]} == 0)); then
+        printf "\n%s%s%s\n" "$blue" "$lbl" "$NC" 1>&2
+    else
+        printf "\n%s%s%s: %s%s\n" "$blue" "$lbl" "$green" "${val[*]}" "$NC" 1>&2
+    fi
 }
 
 function fail {
@@ -77,7 +106,7 @@ function print_usage {
 
     Usage:
         $appscript [-h | -v]
-        $appscript -A
+        $appscript [-n] [-q] -A
         $appscript [ARGS...]
         $appscript -e exe [ARGS...]
         $appscript -m [ARGS...]
@@ -89,35 +118,33 @@ function print_usage {
                             and ARGS as arguments.
         -h,--help         : Show this message.
         -m,--memcheck     : Run the test executable through valgrind.
+        -n,--no-anim      : Don't use colr-run animations.
+        -q,--quiet        : Only print basic status messages and errors.
         -v,--version      : Show $appname version and exit.
 
     Test executable: $default_binary
     "
 }
 
-function make_colrtool {
+function make_in {
     # Clean the colr tool build, rebuild it, and run it.
-    local target="${1:-debug}"
+    local targets dirpath=$1
     shift
-    pushd "$colrdir" || fail "Unable to cd into colr directory: $colrdir"
-    make clean "$target" "$@" || fail "\nUnable to build colr tool ($target)!"
+    [[ -e "$dirpath" ]] || fail "Directory doesn't exist: $dirpath"
+    declare -a targets=("$@")
+    ((${#targets[@]})) || targets=("debug")
+    pushd "$dirpath" || fail "Unable to cd into: $dirpath"
+    make "${targets[@]}" || fail "\nmake target failed: ${targets[*]}"
     popd
 }
-function make_tests {
-    # Clean the test build, rebuild it, and run it.
-    local target="${1:-debug}"
-    shift
-    pushd "$appdir" || fail "Unable to cd into test directory: $appdir"
-    make clean "$target" "$@" || fail "\nCan't even build the tests ($target)!"
-    make test || fail "\nUnit tests failed."
-    popd
-}
+
 
 function run_examples {
     # Clean all of the examples in ../examples, rebuild them, and run them.
     pushd "$examplesdir" || fail "Unable to cd into examples directory: $examplesdir"
     make clean all
-    ./run_examples.sh "$@" || fail "\nExamples failed."
+    colr_anim "Running example code..." \
+        ./run_examples.sh "$@" || fail "\nExamples failed."
     popd
 }
 
@@ -133,23 +160,44 @@ function run_everything {
         rebuild_tests="release"
         is_debug_exe "$testexe" && rebuild_tests="debug"
     }
+    local memcheck_target="memcheck" example_args
+    declare -a example_args=("--memcheck")
+    ((do_quiet)) && {
+        memcheck_target="memcheckquiet"
+        example_args+=("--quiet")
+    }
+    echo_status "Trying to build (debug)" "$colrexe"
+    make_in "$colrdir" clean debug
 
-    echo_status "\nTrying to build $colrexe in debug mode..."
-    COLR_ARGS="TEST red white underline" make_colrtool debug memcheckquiet 1>/dev/null
-    echo_status "\nTrying to build $testexe in debug mode..."
-    make_tests debug memcheckquiet 1>/dev/null
-    echo_status "\nRunning examples..."
-    run_examples --memcheck --quiet 1>/dev/null
-    echo_status "\nRunning source examples..."
-    run_source_examples --memcheck --quiet 1>/dev/null
+    echo_status "Trying to run memcheck on (debug)" "$colrexe"
+    COLR_ARGS="TEST red white underline" make_in "$colrdir" "$memcheck_target"
 
-    echo_status "\nBuilding test coverage..."
-    make_tests coverage 1>/dev/null
+    echo_status "Trying to build (debug)" "$testexe"
+    make_in "$testdir" clean debug
 
-    echo_status "\nBuilding $colrexe in release mode..."
-    COLR_ARGS="TEST red white underline" make_colrtool release memcheckquiet 1>/dev/null
-    echo_status "\nBuilding $testexe in release mode..."
-    make_tests release memcheckquiet 1>/dev/null
+    echo_status "Trying to run memcheck on (debug)" "$testexe"
+    make_in "$testdir" "$memcheck_target"
+
+    echo_status "Running examples..."
+    run_examples "${example_args[@]}"
+
+    echo_status "Running source examples..."
+    run_source_examples "${example_args[@]}"
+
+    echo_status "Building test coverage..."
+    make_in "$testdir" clean coverage
+
+    echo_status "Trying to build (release)" "$colrexe"
+    make_in "$colrdir" clean release
+
+    echo_status "Trying to run memcheck on (release)" "$colrexe"
+    COLR_ARGS="TEST red white underline" make_in "$colrdir" "$memcheck_target"
+
+    echo_status "Trying to build (release)" "$testexe"
+    make_in "$testdir" clean release
+
+    echo_status "Trying to run memcheck on (release)" "$testexe"
+    make_in "$testdir" "$memcheck_target"
 
     local do_colr_rebuild=0
     if [[ -n "$rebuild_colr" ]]; then
@@ -160,8 +208,8 @@ function run_everything {
         fi
     fi
     if ((do_colr_rebuild)); then
-        echo_status "\nRebuilding $colrexe for $rebuild_colr mode..."
-        make_colrtool clean "$rebuild_colr" 1>/dev/null || \
+        echo_status "Rebuilding ($rebuild_colr)" "$colrexe"
+        make_in "$colrdir" clean "$rebuild_colr" || \
             fail "\nTried to rebuild in $rebuild_colr mode, and failed."
     else
         rebuild_colr="release"
@@ -175,24 +223,26 @@ function run_everything {
         fi
     fi
     if ((do_test_rebuild)); then
-        echo_status "\nRebuilding $testexe for $rebuild_tests mode..."
-        make_tests clean "$rebuild_tests" 1>/dev/null || \
+        echo_status "Rebuilding ($rebuild_tests)" "$testexe"
+        make_in "$testdir" clean "$rebuild_tests" || \
             fail "\nTried to rebuild tests in $rebuild_tests mode, and failed."
     else
         rebuild_tests="release"
     fi
 
-
-    [[ -n "$rebuild_colr" ]] || rebuild_colr="release"
-    [[ -n "$rebuild_tests" ]] || rebuild_tests="release"
+    rebuild_colr="release"
+    rebuild_tests="release"
+    is_debug_exe "$colrexe" && rebuild_colr="debug"
+    is_debug_exe "$testexe" && rebuild_tests="debug"
     binmode="${colrexe##*/}:$rebuild_colr, ${testexe##*/}:$rebuild_tests"
-    printf "\n%sSuccess%s, the binaries are: %s\n" "$GREEN" "$NC" "$binmode"
+    printf "\n%sSuccess%s, the binaries are: %s\n" "$GREEN" "$NC" "$binmode" 1>&2
 }
 
 function run_source_examples {
     # Build all of the source examples, and run them.
     pushd "$colrdir"
-    python3 "${toolsdir}/snippet.py" --examples "$@" || fail "\nSource examples failed."
+    colr_anim "Running source examples..." \
+        python3 "${toolsdir}/snippet.py" --examples "$@" || fail "\nSource examples failed."
     popd
 }
 
@@ -201,6 +251,9 @@ in_exe=0
 exe_wrapper=""
 do_all=0
 do_memcheck=0
+do_quiet=0
+no_colr=0
+hash colr-run &>/dev/null || no_colr=1
 
 for arg; do
     case "$arg" in
@@ -221,6 +274,12 @@ for arg; do
         "-m" | "--memcheck")
             do_memcheck=1
             ;;
+        "-n" | "--no-anim")
+            no_colr=1
+            ;;
+        "-q" | "--quiet")
+            do_quiet=1
+            ;;
         "-v" | "--version")
             echo -e "$appname v. $appversion\n"
             exit 0
@@ -238,9 +297,16 @@ for arg; do
     esac
 done
 
+# colr-run animations are only used when in quiet mode.
+((do_quiet)) || no_colr=1
+
 declare -a cmd
 if ((do_all)); then
-    run_everything
+    if ((do_quiet)); then
+        run_everything 1>/dev/null
+    else
+        run_everything
+    fi
     exit
 elif ((do_memcheck)); then
     cmd=(

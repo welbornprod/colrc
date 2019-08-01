@@ -34,7 +34,7 @@
         char* _a_r_x_repr = test_repr(x); \
         char* _a_r_xmin_repr = test_repr(xmin); \
         char* _a_r_xmax_repr = test_repr(xmax); \
-        asprintf_or(&_a_r_msg, "%s (%s): %s-%s", msg, _a_r_x_repr, _a_r_xmin_repr, _a_r_xmax_repr) { \
+        if_not_asprintf(&_a_r_msg, "%s (%s): %s-%s", msg, _a_r_x_repr, _a_r_xmin_repr, _a_r_xmax_repr) { \
             fail("Allocation failed for failure message!"); \
         } \
         free(_a_r_x_repr); \
@@ -97,7 +97,6 @@
 
 #define _str(x) #x
 
-char* char_repr(char x);
 char* int_repr(int x);
 char* long_repr(long x);
 char* long_long_repr(long long x);

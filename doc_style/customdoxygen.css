@@ -44,6 +44,7 @@ h1, h2, h3, h4, h5, h6 {
     text-shadow: rgba(0, 0, 0, 0.5) 1px 1px 2px;
 	transition: text-shadow 0.5s linear; */
 	margin-right: 15px;
+    margin-top: 30px;
 }
 
 h1.glow, h2.glow, h3.glow, h4.glow, h5.glow, h6.glow {
@@ -296,6 +297,12 @@ body {
     color: #272822; /* black */
     margin: 0;
 }
+#top {
+    /* Colors are the opposite of body. */
+    background-color: #272822;
+    color: #f1f1f1;
+}
+
 #nav-tree {
 	background-color: #f1f1f1; /* not set */
     color: #272822; /*not set */
@@ -551,8 +558,7 @@ table.memberdecls {
 	float:left;
 }
 
-.permalink
-{
+.permalink {
         font-size: 65%;
         display: inline-block;
         vertical-align: middle;
@@ -999,8 +1005,7 @@ table.fieldtable {
 	font-size: 13px;
 }
 
-.navpath ul
-{
+.navpath ul {
 	font-size: 11px;
 	background-image:url('tab_b.png');
 	background-repeat:repeat-x;
@@ -1014,8 +1019,7 @@ table.fieldtable {
 	padding:0px;
 }
 
-.navpath li
-{
+.navpath li {
 	list-style-type:none;
 	float:left;
 	padding-left:10px;
@@ -1026,8 +1030,7 @@ table.fieldtable {
 	color:#262626;
 }
 
-.navpath li.navelem a
-{
+.navpath li.navelem a {
 	height:32px;
 	display:block;
 	text-decoration: none;
@@ -1038,13 +1041,11 @@ table.fieldtable {
 	text-decoration: none;
 }
 
-.navpath li.navelem a:hover
-{
+.navpath li.navelem a:hover {
 	color:#5D5D5D;
 }
 
-.navpath li.footer
-{
+.navpath li.footer {
         list-style-type:none;
         float:right;
         padding-left:10px;
@@ -1057,8 +1058,7 @@ table.fieldtable {
 }
 
 
-div.summary
-{
+div.summary {
 	float: right;
 	font-size: 8pt;
 	padding-right: 5px;
@@ -1066,13 +1066,11 @@ div.summary
 	text-align: right;
 }
 
-div.summary a
-{
+div.summary a {
 	white-space: nowrap;
 }
 
-table.classindex
-{
+table.classindex {
         margin: 10px;
         white-space: nowrap;
         margin-left: 3%;
@@ -1083,20 +1081,17 @@ table.classindex
         padding: 0;
 }
 
-div.ingroups
-{
+div.ingroups {
 	font-size: 8pt;
 	width: 50%;
 	text-align: left;
 }
 
-div.ingroups a
-{
+div.ingroups a {
 	white-space: nowrap;
 }
 
-div.header
-{
+div.header {
         background-image:url('nav_h.png');
         background-repeat:repeat-x;
 	background-color: #F7F7F7;
@@ -1104,74 +1099,64 @@ div.header
 	border-bottom: 1px solid #B8B8B8;
 }
 
-div.headertitle
-{
+div.headertitle {
     display:none; /* Disabled because it's redundant. */
 	padding: 5px 5px 5px 10px;
 }
 
-dl
-{
+dl {
         padding: 0 0 0 10px;
 }
 
 /* dl.note, dl.warning, dl.attention, dl.pre, dl.post, dl.invariant, dl.deprecated, dl.todo, dl.test, dl.bug */
-dl.section
-{
+dl.section {
 	margin-left: 0px;
 	padding-left: 0px;
 }
 
-dl.note
-{
+dl.note {
         margin-left:-7px;
         padding-left: 3px;
         border-left:4px solid;
         border-color: #D0C000;
 }
 
-dl.warning, dl.attention
-{
+dl.warning, dl.attention {
         margin-left:-7px;
         padding-left: 3px;
         border-left:4px solid;
         border-color: #FF0000;
 }
 
-dl.pre, dl.post, dl.invariant
-{
+dl.pre, dl.post, dl.invariant {
         margin-left:-7px;
         padding-left: 3px;
         border-left:4px solid;
         border-color: #00D000;
 }
 
-dl.deprecated
-{
+dl.deprecated {
         margin-left:-7px;
         padding-left: 3px;
         border-left:4px solid;
         border-color: #505050;
 }
 
-dl.todo
-{
+dl.todo {
         margin-left:-7px;
         padding-left: 3px;
         border-left:4px solid;
         border-color: #00C0E0;
 }
 
-dl.test
-{
+dl.test {
         margin-left:-7px;
         padding-left: 3px;
         border-left:4px solid;
         border-color: #3030E0;
 }
 
-dl.bug
-{
+dl.bug {
         margin-left:-7px;
         padding-left: 3px;
         border-left:4px solid;
@@ -1183,86 +1168,85 @@ dl.section dd {
 }
 
 
-#projectlogo
-{
+#projectlogo {
 	text-align: center;
-	vertical-align: bottom;
+	/* vertical-align: bottom; */
 	border-collapse: separate;
 }
 
-#projectlogo img
-{
+#projectlogo img {
 	border: 0px none;
+    width: 100px;
+    height: auto;
 }
 
-#projectalign
-{
+#projectalign {
         vertical-align: middle;
 }
 
-#projectname
-{
-	font: 200% "Noto Sans", Roboto, Tahoma, Arial, sans-serif;
+#projectname {
+    font: 200% "Noto Sans", Roboto, Tahoma, Arial, sans-serif;
     font-weight: bold;
     margin: 0px;
-	padding: 2px 0px;
-	text-shadow: rgb(0, 0, 0, 1) 2px 2px 3px;
+    display: none; /* inline-block; */
+    padding: 2px 0px;
+    color: #f1f1f1;
+    text-shadow: #000000 2px 2px 3px;
 }
 
-#projectbrief
-{
+
+#projectbrief {
 	font: 120% "Noto Sans", Roboto, Tahoma, Arial, sans-serif;
 	margin: 0px;
 	padding: 0px;
 }
 
-#projectnumber
-{
+#projectbrief::before {
+    content: "➤";
+    font-family: "Noto Sans", Roboto, Tahoma, Arial, sans-serif;
+    text-shadow: rgba(0, 0, 0, 0.85) 2px 2px 3px;
+    vertical-align: top;
+    margin-right: 10px;
+}
+
+#projectnumber {
 	font: 50% "Noto Sans", Roboto, Tahoma, Arial, sans-serif;
 	margin: 0px;
 	padding: 0px;
 }
 
-#titlearea
-{
+#titlearea {
 	padding: 0px;
 	margin: 0px;
 	width: 100%;
 	border-bottom: 1px solid #4D4D4D;
 }
 
-.image
-{
+.image {
         text-align: center;
 }
 
-.dotgraph
-{
+.dotgraph {
         text-align: center;
 }
 
-.mscgraph
-{
+.mscgraph {
         text-align: center;
 }
 
-.plantumlgraph
-{
+.plantumlgraph {
         text-align: center;
 }
 
-.diagraph
-{
+.diagraph {
         text-align: center;
 }
 
-.caption
-{
+.caption {
 	font-weight: bold;
 }
 
-div.zoom
-{
+div.zoom {
 	border: 1px solid #818181;
 }
 
@@ -1527,8 +1511,7 @@ tr.heading h2 {
 	margin-top: -11px;
 }
 
-@media print
-{
+@media print {
   #top { display: none; }
   #side-nav { display: none; }
   #nav-path { display: none; }

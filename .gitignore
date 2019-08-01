@@ -1,5 +1,5 @@
 colrc
-test_colr
+test_colrc
 coverage
 docs
 examples/*_example
@@ -12,3 +12,4 @@ tools/*.json
 deleteme.*
 callgrind.*
 cachegrind.*
+images/*.xcf

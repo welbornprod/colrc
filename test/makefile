@@ -13,10 +13,10 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
 INCLUDES=-iquote../
 LIBS=-lm
 
-binary=test_colr
+binary=test_colrc
 cov_cmd=bash ../tools/gen_coverage_html.sh --
 cov_dir=coverage
-valgrind_cmd=bash ../tools/run_valgrind.sh --
+valgrind_cmd=bash ../tools/run_valgrind.sh
 test_source:=$(wildcard *.c)
 source:=$(test_source) ../colr.c
 test_headers:=$(wildcard *.h)
@@ -29,6 +29,7 @@ binobjects:=$(notdir $(objects))
 all: debug
 
 coverage: clean
+coverage: coverageclean
 coverage: CFLAGS+=-O0 -DDEBUG
 coverage: CFLAGS+=-fprofile-arcs -ftest-coverage
 coverage: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
@@ -95,10 +96,10 @@ coverageview:
 
 .PHONY: memcheck, memcheckquiet
 memcheck:
-	@$(valgrind_cmd) -a -- $(TEST_ARGS)
+	@$(valgrind_cmd) -- $(TEST_ARGS)
 
 memcheckquiet:
-	@$(valgrind_cmd) -a -q -- $(TEST_ARGS)
+	@$(valgrind_cmd) -q -- $(TEST_ARGS)
 
 .PHONY: strip
 strip:

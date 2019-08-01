@@ -18,7 +18,10 @@
 #endif
 
 #include <getopt.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "dbug.h"
+// colr.h already includes many headers that are used in the colr tool.
 #include "colr.h"
 
 #pragma GCC diagnostic ignored "-Wunused-macros"
@@ -28,17 +31,24 @@
 #define NAME "ColrC"
 #define VERSION COLR_VERSION
 
-// Maximum length for user args (fore, back, style).
-#define MAX_ARG_LEN 20
-// Maximum length for error messages.
-#define MAX_ERR_LEN 255
-// Maximum length for TEXT argument.
-#define MAX_TEXT_LEN 1024
+//! Short-hand for (x ? "true" : "false")
+#define ct_bool_str(x) (x ? "true" : "false")
 
-// Short-hand for (x ? "true" : "false")
-#define colr_bool_str(x) (x ? "true" : "false")
+/*! \def ct_just_arg_str
+    Like ColorJustifyMethod_repr(), but for colr tool arguments.
+    \pi x A ColorJustify.
+*/
+#define ct_just_arg_str(x) ( \
+        x.method == JUST_LEFT ? "--ljust": \
+        x.method == JUST_RIGHT ? "--rjust": \
+        x.method == JUST_CENTER ? "--center" : \
+        "<none>" \
+    )
 
-// Print ColrToolOptions.
+/*! \def print_opts_repr
+    Print ColrToolOptions.
+    \pi x A ColrToolOptions to print the representation for.
+*/
 #define print_opts_repr(x) \
     do { \
         char* _p_o_r_s = ColrToolOptions_repr(x); \
@@ -46,7 +56,10 @@
         free(_p_o_r_s); \
     } while (0)
 
-// Print a representation of a ColorArg to stdout.
+/*! \def print_repr
+    Print a representation of a ColorArg to stdout.
+    \pi x Any value with a type supported by colr_repr().
+*/
 #define print_repr(x) \
     do { \
         char* _pcar_valrepr = colr_repr(x); \
@@ -54,25 +67,34 @@
         free(_pcar_valrepr); \
     } while(0)
 
-// Print a representation of a ColorArg to stdout, with a colorized example
-// using it's value.
-#define print_ColorArg_example(x) \
+/*! \def return_error
+    Print a message before returning `EXIT_FAILURE`.
+    \pi ... Arguments for `fprintf(stderr, ...)`.
+*/
+#define return_error(...) \
     do { \
-        char* _pcae_valrepr = colr_repr(x); \
-        char* _pcae_valcode = ColorArg_to_str(x); \
-        printf("%s%s%s\n", _pcae_valcode, _pcae_valrepr, CODE_RESET_ALL); \
-        free(_pcae_valcode); \
-        free(_pcae_valrepr); \
-    } while(0)
+        fprintf(stderr, __VA_ARGS__); \
+        return EXIT_FAILURE; \
+    } while (0)
+
+/*! \def return_error_if_null
+    Prints a message before returning `EXIT_FAILURE` if `x` is `NULL`/"falsey".
+    \pi x   The pointer to check.
+    \pi ... Arguments for `fprintf(stderr, ...)`.
+*/
+#define return_error_if_null(x, ...) if (!x) return_error(__VA_ARGS__)
 
 typedef struct ColrToolOptions_s {
     char* text;
     ColorArg* fore;
     ColorArg* back;
     ColorArg* style;
+    ColorJustify just;
+    const char* filepath;
     bool free_text;
     bool rainbow_fore;
     bool rainbow_back;
+    bool rainbow_term;
     bool print_back;
     bool print_256;
     bool print_basic;
@@ -82,11 +104,12 @@ typedef struct ColrToolOptions_s {
 } ColrToolOptions;
 
 ColrToolOptions ColrToolOptions_new(void);
-char* ColrToolOptions_repr(ColrToolOptions colropts);
+char* ColrToolOptions_repr(ColrToolOptions opts);
 
-void debug_args(char* text, char* fore, char* back, char* style);
-void example_color_build(void);
-int parse_args(int argc, char** argv, ColrToolOptions* colropts);
+bool dir_exists(const char* dirpath);
+bool file_exists(const char* filepath);
+int parse_args(int argc, char** argv, ColrToolOptions* opts);
+bool parse_int_arg(const char* s, int* value);
 int print_256(bool do_back);
 int print_basic(bool do_back);
 int print_rainbow(bool do_back);
@@ -95,6 +118,9 @@ void print_unrecognized_arg(const char* userarg);
 int print_usage(const char* reason);
 int print_usage_full(void);
 int print_version(void);
+ColorText* rainbowize(ColrToolOptions* opts);
+char* read_file(FILE* fp);
+char* read_file_arg(const char* filepath);
 char* read_stdin_arg(void);
 bool validate_color_arg(ColorArg carg, const char* name);
 #endif // COLR_TOOL_H

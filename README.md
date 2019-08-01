@@ -129,3 +129,25 @@ You can also run the tests through `valgrind` with the `testmemcheck` target:
 make testmemcheck
 ```
 
+The 'everything test' builds the colr tool and unit tests, both debug and
+release mode (some bugs only show up in release mode), and runs them through
+`valgrind`.
+The examples are built and ran through `valgrind`, including the examples found
+in the source code (see `snippet.py --examples`).
+The coverage target is built (with the html report).
+Finally, the binaries may be rebuilt if they are in a different state than
+when the process started (switch back to debug build for development).
+
+If any of those things fail, the process is stopped and there
+is probably a bug worth fixing. Errors are always reported, but the
+noise from all of those steps can be silenced with `--quiet`.
+
+Each of these steps has found one or more bugs in the code or documentation
+while developing ColrC. I don't mind running this before committing my changes.
+
+If you'd like to run every possible compile target, with tests and memcheck,
+including the example code and source-file examples (the 'everything test'):
+```bash
+./test/run_tests.sh --all --quiet
+```
+
