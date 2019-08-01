@@ -94,6 +94,7 @@ typedef struct ColrToolOptions_s {
     bool free_text;
     bool rainbow_fore;
     bool rainbow_back;
+    bool rainbow_term;
     bool print_back;
     bool print_256;
     bool print_basic;

@@ -44,13 +44,19 @@ int main(int argc, char* argv[]) {
     return_error_if_null(ctext, "Failed to allocate for ColorText!\n");
 
     ctext->just = opts.just;
-    dbug_repr("Using", *ctext);
+    // dbug_repr("Using", *ctext);
     char* text = ColorText_to_str(*ctext);
     if (!text) {
         ColorText_free(ctext);
         return_error("Failed to allocate for colorized string!\n");
     }
     ColorText_free(ctext);
+    if (text[0] == '\0') {
+        printferr("No text to work with.\n");
+        free(text);
+        if (opts.free_text) free(opts.text);
+        return EXIT_FAILURE;
+    }
     printf("%s\n", text);
     free(text);
     if (opts.free_text) free(opts.text);
@@ -68,6 +74,7 @@ ColrToolOptions ColrToolOptions_new(void) {
         .free_text=false,
         .rainbow_fore=false,
         .rainbow_back=false,
+        .rainbow_term=false,
         .print_back=false,
         .print_256=false,
         .print_basic=false,
@@ -98,6 +105,7 @@ char* ColrToolOptions_repr(ColrToolOptions opts) {
     .free_text=%s,\n\
     .rainbow_fore=%s,\n\
     .rainbow_back=%s,\n\
+    .rainbow_term=%s,\n\
     .print_back=%s,\n\
     .print_256=%s,\n\
     .print_basic=%s,\n\
@@ -114,6 +122,7 @@ char* ColrToolOptions_repr(ColrToolOptions opts) {
         ct_bool_str(opts.free_text),
         ct_bool_str(opts.rainbow_fore),
         ct_bool_str(opts.rainbow_back),
+        ct_bool_str(opts.rainbow_term),
         ct_bool_str(opts.print_back),
         ct_bool_str(opts.print_256),
         ct_bool_str(opts.print_basic),
@@ -252,7 +261,8 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
                 }
                 break;
             case 'b':
-                if (colr_streq(optarg, "rainbow")) {
+                if (colr_str_either(optarg, "rainbow", "rainbowterm")) {
+                    opts->rainbow_term = colr_streq(optarg, "rainbowterm");
                     opts->rainbow_back = true;
                     opts->back = ColorArg_to_ptr(ColorArg_empty());
                 } else  {
@@ -285,7 +295,8 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
                 }
                 break;
             case 'f':
-                if (colr_streq(optarg, "rainbow")) {
+                if (colr_str_either(optarg, "rainbow", "rainbowterm")) {
+                    opts->rainbow_term = colr_streq(optarg, "rainbowterm");
                     opts->rainbow_fore = true;
                     opts->fore = ColorArg_to_ptr(ColorArg_empty());
                 } else  {
@@ -351,14 +362,24 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
         } else if (!opts->fore) {
             if (colr_streq(argv[optind], "rainbow")) {
                 opts->rainbow_fore = true;
+            } else if (colr_streq(argv[optind], "rainbowterm")) {
+                opts->rainbow_fore = true;
+                opts->rainbow_term = true;
             } else {
                 opts->fore = fore(argv[optind]);
                 if (!validate_color_arg(*(opts->fore), argv[optind])) return EXIT_FAILURE;
             }
             optind++;
         } else if (!opts->back) {
-            opts->back = back(argv[optind]);
-            if (!validate_color_arg(*(opts->back), argv[optind])) return EXIT_FAILURE;
+            if (colr_streq(argv[optind], "rainbow")) {
+                opts->rainbow_back = true;
+            } else if (colr_streq(argv[optind], "rainbowterm")) {
+                opts->rainbow_back = true;
+                opts->rainbow_term = true;
+            } else {
+                opts->back = back(argv[optind]);
+                if (!validate_color_arg(*(opts->back), argv[optind])) return EXIT_FAILURE;
+            }
             optind++;
         } else if (!opts->style) {
             opts->style = style(argv[optind]);
@@ -587,8 +608,12 @@ int print_usage_full() {
                                Default: stdin\n\
         FORE                 : Fore color name/value for text.\n\
                                If set to 'rainbow', the text will be rainbowized.\n\
+                               If set to 'rainbowterm', 256-color codes are used,\n\
+                               instead of RGB.\n\
         BACK                 : Back color name/value for text.\n\
                                If set to 'rainbow', the back colors will be rainbowized.\n\
+                               If set to 'rainbowterm', 256-color codes are used,\n\
+                               instead of RGB.\n\
         STYLE                : Style name for text.\n\
         -b val,--back val    : Specify the back color explicitly, in any order.\n\
         -c num,--center num  : Center-justify the resulting text using the specified width.\n\
@@ -632,7 +657,7 @@ int print_version(void) {
     \return  An allocated ColorText, with a rainbowized `.text` member.
 */
 ColorText* rainbowize(ColrToolOptions* opts) {
-   bool do_term_rainbow = !colr_supports_rgb();
+    bool do_term_rainbow = opts->rainbow_term || !colr_supports_rgb();
     // TODO: User args for these freq and offet values.
     double freq = 0.1;
     double offset = 3;
@@ -667,17 +692,21 @@ ColorText* rainbowize(ColrToolOptions* opts) {
 char* read_file(FILE* fp) {
     size_t line_length = 1024;
     char line[line_length];
-    size_t buffer_length = 4096;
+    size_t buffer_length = line_length;
     char* buffer = NULL;
     size_t total = 0;
     while ((fgets(line, line_length, fp))) {
         total += strlen(line);
         if (!buffer) {
             // First line.
-            buffer = calloc(line_length, sizeof(char));
+            buffer = calloc(buffer_length, sizeof(char));
         } else if (total >= buffer_length) {
-            buffer_length *= 2;
+            buffer_length *= 3;
             buffer = realloc(buffer, buffer_length);
+            if (!buffer) {
+                printferr("Failed to reallocate for file data!\n");
+                return NULL;
+            }
         }
         strcat(buffer, line);
     }

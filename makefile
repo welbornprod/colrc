@@ -59,7 +59,7 @@ examples_dir=examples
 examples_source=$(wildcard $(examples_dir)/*.c)
 valgrind_cmd=bash tools/run_valgrind.sh
 
-.PHONY: all, coverage, debug, release
+.PHONY: all, coverage, debug, release, release2
 all: debug
 
 coverage: clean
@@ -78,6 +78,10 @@ debug: $(binary)
 release: CFLAGS+=-O3 -DNDEBUG
 release: $(binary)
 release: strip
+
+release2: CFLAGS+=-O2 -DNDEBUG
+release2: $(binary)
+release2: strip
 
 $(binary): $(objects)
 	@printf "\nCompiling $(binary) executable...\n    "
@@ -227,6 +231,7 @@ help targets:
     docsrebuild     : Like running \`make cleandocs docs\`\n\
     examples        : Build example executables in $(examples_dir).\n\
     release         : Build the executable with optimization, and strip it.\n\
+    release2        : Same as \`release\` target, but with -O2 instead of -O3.\n\
     run             : Run the executable. Args are set with COLR_ARGS.\n\
     runexamples     : Run the example executables in $(examples_dir).\n\
     strip           : Run \`strip\` on the executable.\n\

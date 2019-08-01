@@ -1396,12 +1396,15 @@ wchar_t* str_to_wide(const char* s) {
     memset(&state, 0, sizeof(state));
     size_t wlen = mbsrtowcs(NULL, &s, 0, &state);
     if (wlen == (size_t) - 1) {
-        dbug("Error converting to wide-chars: %s\n", strerror(errno));
+        dbug("Error converting to wide-chars for length: %s\n", strerror(errno));
         return NULL;
     }
     wlen++;
     wchar_t* out = calloc(wlen, sizeof(wchar_t));
-    mbsrtowcs(out, &s, wlen, &state);
+    if (mbsrtowcs(out, &s, wlen, &state) == (size_t) - 1) {
+        dbug("Error converting to wide-chars: %s\n", strerror(errno));
+        return NULL;
+    }
     return out;
 }
 

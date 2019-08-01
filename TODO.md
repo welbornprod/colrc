@@ -23,3 +23,7 @@
 [ ] Tests for ColorType.
 [ ] Tests for ColorValue.
 [ ] Tests for RGB (more tests, covering all functions)
+
+## Optimizations
+
+[ ] The rainbow code needs to be optimized, possibly converting to wide-char on the fly.

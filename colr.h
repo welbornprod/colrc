@@ -598,21 +598,6 @@
         char*: str_repr \
     )(x)
 
-/*! \def colr_to_str
-    Calls the \<type\>to_str functions for the supported types.
-
-    \pi x A supported type to build a string from.
-*/
-#define colr_to_str(x) \
-    _Generic( \
-        (x), \
-        ArgType: ArgType_to_str, \
-        ColorArg: ColorArg_to_str, \
-        ColorText: ColorText_to_str, \
-        ColorValue: ColorValue_to_str, \
-        ExtendedValue: ExtendedValue_to_str, \
-        RGB: RGB_to_str \
-    )(x)
 
 /*! \def colr_streq
     Convenience macro for `!strcmp(s1, s2)`.
@@ -633,7 +618,23 @@
 
     \return `1` if \p s1 is equal to \p s2 or \p s3, otherwise `0`.
 */
-#define colr_str_either(s1, s2, s3) ((s1 && s2 && s3) ? (colr_streq(s1, s2) || colr_streq(s1, s3)) : 0)
+#define colr_str_either(s1, s2, s3) (colr_streq(s1, s2) || colr_streq(s1, s3))
+
+/*! \def colr_to_str
+    Calls the \<type\>to_str functions for the supported types.
+
+    \pi x A supported type to build a string from.
+*/
+#define colr_to_str(x) \
+    _Generic( \
+        (x), \
+        ArgType: ArgType_to_str, \
+        ColorArg: ColorArg_to_str, \
+        ColorText: ColorText_to_str, \
+        ColorValue: ColorValue_to_str, \
+        ExtendedValue: ExtendedValue_to_str, \
+        RGB: RGB_to_str \
+    )(x)
 
 /*! \def dbug_repr
     Uses colr_repr() to build a string representation of a ColrC object,
