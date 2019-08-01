@@ -2345,15 +2345,14 @@ size_t ColorText_length(ColorText ctext) {
     if (!ColorJustify_is_empty(ctext.just)) {
         // Justification will be used, calculate that in.
         size_t noncode_len = str_noncode_len(ctext.text);
-        int width = ctext.just.width;
-        if (width == 0) {
-            TermSize ts = colr_term_size();
-            width = ts.columns;
+        if (ctext.just.width == 0) {
             // Go ahead and set the actual width, to reduce calls to colr_term_size().
-            ctext.just.width = width;
+            TermSize ts = colr_term_size();
+            ctext.just.width = ts.columns;
         }
-        int diff = width - noncode_len;
-        length += diff < 1 ? 0 : diff;
+        int diff = ctext.just.width - noncode_len;
+        // 0 or negative difference means no extra chars are added anyway.
+        length += colr_max(0, diff);
     }
     // And the null-terminator.
     length++;

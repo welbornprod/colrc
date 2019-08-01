@@ -547,7 +547,7 @@
     \pi b   Second value to compare.
     \return `a` if `a > b`, otherwise `b`.
 */
-#define colr_max(a, b) ({ typeof (a) _a = (a); typeof (b) _b = (b); _a > _b ? _a : _b; })
+#define colr_max(a, b) (a > b ? a : b)
 
 /*! \def colr_repr
     Transforms several ColrC objects into their string representations.

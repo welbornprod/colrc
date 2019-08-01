@@ -230,9 +230,10 @@ function run_everything {
         rebuild_tests="release"
     fi
 
-
-    [[ -n "$rebuild_colr" ]] || rebuild_colr="release"
-    [[ -n "$rebuild_tests" ]] || rebuild_tests="release"
+    rebuild_colr="release"
+    rebuild_tests="release"
+    is_debug_exe "$colrexe" && rebuild_colr="debug"
+    is_debug_exe "$testexe" && rebuild_tests="debug"
     binmode="${colrexe##*/}:$rebuild_colr, ${testexe##*/}:$rebuild_tests"
     printf "\n%sSuccess%s, the binaries are: %s\n" "$GREEN" "$NC" "$binmode" 1>&2
 }
