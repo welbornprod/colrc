@@ -2241,9 +2241,9 @@ ColorText ColorText_empty(void) {
 */
 void ColorText_free(ColorText *p) {
     if (!p) return;
-    if (p->fore) free(p->fore);
-    if (p->back) free(p->back);
-    if (p->style) free(p->style);
+    free(p->fore);
+    free(p->back);
+    free(p->style);
 
     free(p);
 }
@@ -2337,14 +2337,26 @@ bool ColorText_is_ptr(void *p) {
 size_t ColorText_length(ColorText ctext) {
     // Empty text yields an empty string, so just "\0".
     if (!ctext.text) return 1;
-    // The justification from .just doesn't come into play, because if
-    // justification is used, a new string is allocated with the appropriate
-    // length.
-    size_t length = strlen(ctext.text) + 1;
+    size_t length = strlen(ctext.text);
     length += ctext.fore ? ColorArg_length(*(ctext.fore)) : 0;
     length += ctext.back ? ColorArg_length(*(ctext.back)) : 0;
     length += ctext.style ? ColorArg_length(*(ctext.style)) : 0;
     if (ctext.style || ctext.fore || ctext.back) length += CODE_RESET_LEN;
+    if (!ColorJustify_is_empty(ctext.just)) {
+        // Justification will be used, calculate that in.
+        size_t noncode_len = str_noncode_len(ctext.text);
+        int width = ctext.just.width;
+        if (width == 0) {
+            TermSize ts = colr_term_size();
+            width = ts.columns;
+            // Go ahead and set the actual width, to reduce calls to colr_term_size().
+            ctext.just.width = width;
+        }
+        int diff = width - noncode_len;
+        length += diff < 1 ? 0 : diff;
+    }
+    // And the null-terminator.
+    length++;
     return length;
 }
 
@@ -2376,6 +2388,7 @@ char* ColorText_repr(ColorText ctext) {
     free(sfore);
     free(sback);
     free(sstyle);
+    free(sjust);
     return repr;
 }
 
@@ -2494,20 +2507,19 @@ char* ColorText_to_str(ColorText ctext) {
     switch (ctext.just.method) {
         // TODO: It would be nice to do this all in one pass, but this works.
         case JUST_NONE:
-            return final;
+            break;
         case JUST_LEFT:
             justified = str_ljust(final, ctext.just.padchar, ctext.just.width);
-            break;
+            free(final);
+            return justified;
         case JUST_RIGHT:
             justified = str_rjust(final, ctext.just.padchar, ctext.just.width);
-            break;
+            free(final);
+            return justified;
         case JUST_CENTER:
             justified = str_center(final, ctext.just.padchar, ctext.just.width);
-            break;
-    }
-    if (justified) {
-        free(final);
-        return justified;
+            free(final);
+            return justified;
     }
     return final;
 }

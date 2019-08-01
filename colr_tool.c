@@ -121,12 +121,12 @@ char* ColrToolOptions_repr(ColrToolOptions opts) {
         ct_bool_str(opts.print_rgb_term),
         ct_bool_str(opts.print_rainbow)
     );
-    if (text_repr) free(text_repr);
-    if (fore_repr) free(fore_repr);
-    if (back_repr) free(back_repr);
-    if (style_repr) free(style_repr);
-    if (file_repr) free(file_repr);
-    if (just_repr) free(just_repr);
+    free(text_repr);
+    free(fore_repr);
+    free(back_repr);
+    free(style_repr);
+    free(file_repr);
+    free(just_repr);
     return repr;
 }
 
@@ -648,7 +648,10 @@ ColorText* rainbowize(ColrToolOptions* opts) {
             )
     );
     // Text was allocated from stdin input, it's safe to free.
-    if (opts->free_text) free(opts->text);
+    if (opts->free_text) {
+        free(opts->text);
+        opts->text = NULL;
+    }
     // Some or all of the fore/back/style args are "empty" (not null).
     // They will not be used if they are empty, but they will be free'd.
     return Colr(
