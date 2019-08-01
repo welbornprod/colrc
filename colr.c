@@ -468,7 +468,7 @@ bool char_is_code_end(const char c) {
 
 /*! Creates a string representation for a char.
 
-    \pi x Value to create the representation for.
+    \pi c   Value to create the representation for.
     \return An allocated string, or `NULL` if the allocation fails.
 */
 char* char_repr(char c) {
@@ -2151,7 +2151,7 @@ ColorJustify ColorJustify_empty(void) {
     A ColorJustify is considered "empty" if the `.method` member is set to
     `JUST_NONE`.
 
-    \pi ctext The ColorJustify to check.
+    \pi cjust The ColorJustify to check.
     \return   `true` if the ColorJustify is empty, otherwise `false`.
 
     \sa ColorJustify ColorJustify_empty
@@ -2165,9 +2165,9 @@ bool ColorJustify_is_empty(ColorJustify cjust) {
     \details
     Allocates memory for the string representation.
 
-    \pi carg ColorJustify struct to get the representation for.
-    \return  Allocated string for the representation.\n
-             \mustfree
+    \pi cjust ColorJustify struct to get the representation for.
+    \return   Allocated string for the representation.\n
+              \mustfree
 
     \sa ColorJustify
 */
@@ -2193,7 +2193,7 @@ char* ColorJustify_repr(ColorJustify cjust) {
     \details
     Allocates memory for the string representation.
 
-    \pi carg ColorJustifyMethod to get the representation for.
+    \pi meth ColorJustifyMethod to get the representation for.
     \return  Allocated string for the representation.\n
              \mustfree
 
@@ -2415,10 +2415,10 @@ ColorText* ColorText_set_just(ColorText* ctext, ColorJustify cjust) {
 /*! Initializes an existing ColorText from 1 mandatory string, and optional
     fore, back, and style args (pointers to ColorArgs).
 
-    \po p    A ColorText to initialize with values.
-    \pi text Text to colorize (a regular string).
-    \pi ...  A `va_list` with ColorArgs pointers for fore, back, and style, in any order.
-    \return  An initialized ColorText struct.
+    \po ctext A ColorText to initialize with values.
+    \pi text  Text to colorize (a regular string).
+    \pi ...   A `va_list` with ColorArgs pointers for fore, back, and style, in any order.
+    \return   An initialized ColorText struct.
 
     \sa ColorText
 */

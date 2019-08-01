@@ -440,16 +440,46 @@
 */
 #define Colr(text, ...) ColorText_to_ptr(ColorText_from_values(text, __VA_ARGS__, NULL))
 
+/*! \def Colr_center
+    Sets the JustifyMethod for a ColorText while allocating it.
+
+    \pi text      Text to colorize.
+    \pi justwidth Width for justification.
+    \pi ...       Fore, back, or style ColorArgs for Colr().
+
+    \return       An allocated ColorText.\n
+                  \colrmightfree
+*/
 #define Colr_center(text, justwidth, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
         (ColorJustify){.method=JUST_CENTER, .width=justwidth, .padchar=' '} \
     )
 
+/*! \def Colr_ljust
+    Sets the JustifyMethod for a ColorText while allocating it.
+
+    \pi text      Text to colorize.
+    \pi justwidth Width for justification.
+    \pi ...       Fore, back, or style ColorArgs for Colr().
+
+    \return       An allocated ColorText.\n
+                  \colrmightfree
+*/
 #define Colr_ljust(text, justwidth, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
         (ColorJustify){.method=JUST_LEFT, .width=justwidth, .padchar=' '} \
     )
 
+/*! \def Colr_rjust
+    Sets the JustifyMethod for a ColorText while allocating it.
+
+    \pi text      Text to colorize.
+    \pi justwidth Width for justification.
+    \pi ...       Fore, back, or style ColorArgs for Colr().
+
+    \return       An allocated ColorText.\n
+                  \colrmightfree
+*/
 #define Colr_rjust(text, justwidth, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
         (ColorJustify){.method=JUST_RIGHT, .width=justwidth, .padchar=' '} \
