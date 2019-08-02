@@ -2186,6 +2186,7 @@ char* ColorArg_to_str(ColorArg carg) {
 */
 ColorJustify ColorJustify_empty(void) {
     return (ColorJustify){
+        .marker=COLORJUSTIFY_MARKER,
         .method=JUST_NONE,
         .width=0,
         .padchar=0,
@@ -2224,6 +2225,29 @@ bool ColorJustify_eq(ColorJustify a, ColorJustify b) {
 */
 bool ColorJustify_is_empty(ColorJustify cjust) {
     return cjust.method == JUST_NONE;
+}
+
+/*! Creates a ColorJustify.
+
+    \details
+    This is used to ensure every ColorJustify has it's `.marker` member set
+    correctly.
+
+    \pi meth  ColorJustifyMethod to use.
+    \pi width Width for justification.
+              If `0` is given, ColorText will use the width from colr_terminal_size().
+    \pi pad   Padding character to use.
+              If `0` is given, the default, space (`' '`), is used.
+
+    \return An initialized ColorJustify.
+*/
+ColorJustify ColorJustify_new(ColorJustifyMethod method, int width, char padchar) {
+    return (ColorJustify){
+        .marker=COLORJUSTIFY_MARKER,
+        .method=method,
+        .width=width,
+        .padchar=padchar
+    };
 }
 
 /*! Creates a string representation for a ColorJustify.

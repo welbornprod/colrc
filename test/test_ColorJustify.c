@@ -20,10 +20,10 @@ subdesc(ColorJustify_eq) {
             bool expected;
         } tests[] = {
             {ColorJustify_empty(), ColorJustify_empty(), true},
-            {(ColorJustify){JUST_LEFT, 4, ' '}, (ColorJustify){JUST_LEFT, 4, ' '}, true},
-            {(ColorJustify){JUST_LEFT, 4, ' '}, (ColorJustify){JUST_RIGHT, 4, ' '}, false},
-            {(ColorJustify){JUST_LEFT, 4, ' '}, (ColorJustify){JUST_LEFT, 4, 'X'}, false},
-            {(ColorJustify){JUST_LEFT, 4, ' '}, (ColorJustify){JUST_NONE, 4, ' '}, false},
+            {ColorJustify_new(JUST_LEFT, 4, ' '), ColorJustify_new(JUST_LEFT, 4, ' '), true},
+            {ColorJustify_new(JUST_LEFT, 4, ' '), ColorJustify_new(JUST_RIGHT, 4, ' '), false},
+            {ColorJustify_new(JUST_LEFT, 4, ' '), ColorJustify_new(JUST_LEFT, 4, 'X'), false},
+            {ColorJustify_new(JUST_LEFT, 4, ' '), ColorJustify_new(JUST_NONE, 4, ' '), false},
         };
         for_each(tests, i) {
             asserteq(ColorJustify_eq(tests[i].a, tests[i].b), tests[i].expected);
@@ -34,7 +34,7 @@ subdesc(ColorJustify_is_empty) {
     it("detects empty ColorJustifys") {
         ColorJustify empty = ColorJustify_empty();
         assert(ColorJustify_is_empty(empty));
-        ColorJustify cjust = (ColorJustify){JUST_LEFT, 0, 0};
+        ColorJustify cjust = ColorJustify_new(JUST_LEFT, 0, 0);
         assert(!ColorJustify_is_empty(cjust));
     }
 }

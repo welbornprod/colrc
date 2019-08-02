@@ -166,10 +166,15 @@
 */
 #define COLORARG_MARKER UINT_MAX
 
+/*! Marker for the ColorJustify struct, for identifying a void pointer as a
+    ColorJustify.
+*/
+#define COLORJUSTIFY_MARKER (UINT_MAX - 10)
+
 /*! Marker for the ColorText struct, for identifying a void pointer as a
     ColorText.
 */
-#define COLORTEXT_MARKER (UINT_MAX >> 1)
+#define COLORTEXT_MARKER (UINT_MAX - 20)
 
 /*! Possible error return value for BasicValue_from_str(), ExtendedValue_from_str(),
     and colorname_to_rgb().
@@ -1190,6 +1195,8 @@ typedef struct ColorValue_s {
 
 //! Holds a string justification method, width, and padding character for ColorTexts.
 typedef struct ColorJustify_s {
+    //! A marker used to inspect void pointers and determine if they are ColorJustifys.
+    unsigned int marker;
     //! The justification method, can be JUST_NONE.
     ColorJustifyMethod method;
     //! The desired width for the final string, or `0` to use colr_term_size().
@@ -1374,6 +1381,7 @@ char* ColorArg_to_str(ColorArg carg);
 ColorJustify ColorJustify_empty(void);
 bool ColorJustify_eq(ColorJustify a, ColorJustify b);
 bool ColorJustify_is_empty(ColorJustify cjust);
+ColorJustify ColorJustify_new(ColorJustifyMethod method, int width, char padchar);
 char* ColorJustify_repr(ColorJustify cjust);
 char* ColorJustifyMethod_repr(ColorJustifyMethod meth);
 
@@ -1464,5 +1472,26 @@ char* RGB_to_str(RGB rgb);
 RGB RGB_to_term_RGB(RGB rgb);
 char* RGB_repr(RGB rgb);
 
+/*! \internal
+    Some static assertions to make sure nothing breaks.
+    \endinternal
+*/
+static_assert(
+    (
+        ((int)COLOR_INVALID == (int)TYPE_INVALID) &&
+        ((int)TYPE_INVALID == (int)BASIC_INVALID) &&
+        ((int)BASIC_INVALID == (int)EXTENDED_INVALID) &&
+        ((int)EXTENDED_INVALID == (int)STYLE_INVALID)
+    ),
+    "Return/enum values for all color/style values should match."
+);
+static_assert(
+    (
+        COLORARG_MARKER &&
+        (COLORJUSTIFY_MARKER && (COLORJUSTIFY_MARKER != COLORARG_MARKER)) &&
+        (COLORTEXT_MARKER && (COLORTEXT_MARKER != COLORJUSTIFY_MARKER))
+    ),
+    "Markers must be positive and unique for each struct in Colr!"
+);
 
 #endif // COLR_H
