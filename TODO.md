@@ -3,7 +3,6 @@
 ## Features
 
 [ ] Allow "rainbow" as an official color name for `ColorText`.
-[ ] Allow user args for `freq` and `offset` in `rainbowize()`.
 
 ## Missing Features From Colr.py
 [ ] --listcodes, list escape codes found in text.
