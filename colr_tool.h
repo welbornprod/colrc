@@ -103,6 +103,8 @@ typedef struct ColrToolOptions_s {
     bool rainbow_fore;
     bool rainbow_back;
     bool rainbow_term;
+    double rainbow_freq;
+    size_t rainbow_offset;
     // Non-colorizing options.
     bool strip_codes;
     // Commands.
@@ -120,7 +122,9 @@ char* ColrToolOptions_repr(ColrToolOptions opts);
 bool dir_exists(const char* dirpath);
 bool file_exists(const char* filepath);
 int parse_args(int argc, char** argv, ColrToolOptions* opts);
+bool parse_double_arg(const char* s, double* value);
 bool parse_int_arg(const char* s, int* value);
+bool parse_size_arg(const char* s, size_t* value);
 int print_256(bool do_back);
 int print_basic(bool do_back);
 int print_rainbow(bool do_back);

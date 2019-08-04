@@ -807,6 +807,10 @@ void str_append_reset(char *s) {
         snprintf(s, CODE_RESET_LEN, "%s", CODE_RESET_ALL);
         return;
     }
+    if (str_ends_with(s, CODE_RESET_ALL)) {
+        // Already has one.
+        return;
+    }
     size_t length = strlen(s);
     size_t lastindex = length - 1;
     size_t newlines = 0;
@@ -3956,11 +3960,11 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
     an RGB value.
 
     \pi freq Frequency ("tightness") of the colors.
-    \pi step Starting offset in the rainbow.
+    \pi offset Starting offset in the rainbow.
 
     \return  An RGB value with the next "step" in the "rainbow".
 */
-RGB rainbow_step(double freq, size_t step) {
+RGB rainbow_step(double freq, size_t offset) {
     /*  A note about the libm (math.h) dependency:
 
         libm's sin() function works on every machine, gives better results
@@ -3980,8 +3984,8 @@ RGB rainbow_step(double freq, size_t step) {
                 return res;
             }
     */
-    double redval = sin(freq * step + 0) * 127 + 128;
-    double greenval = sin(freq * step + 2 * M_PI / 3) * 127 + 128;
-    double blueval = sin(freq * step + 4 * M_PI / 3) * 127 + 128;
+    double redval = sin(freq * offset + 0) * 127 + 128;
+    double greenval = sin(freq * offset + 2 * M_PI / 3) * 127 + 128;
+    double blueval = sin(freq * offset + 4 * M_PI / 3) * 127 + 128;
     return rgb(redval, greenval, blueval);
 }

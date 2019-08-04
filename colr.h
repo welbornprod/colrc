@@ -1295,8 +1295,11 @@ void format_style(char* out, StyleValue style);
 /*! A function type that knows how to fill a string with an rgb escape code.
 */
 typedef void (*RGB_fmter)(char* out, RGB rgb);
-char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t step);
-char* _rainbow_OLD(RGB_fmter fmter, const char* s, double freq, size_t step);
+/*! A function type that knows how to create rainbowized text.
+*/
+typedef char* (*rainbow_creator)(const char* s, double freq, size_t offset);
+
+char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset);
 /*! \internal
     Rainbow-related functions.
     \endinternal
@@ -1305,7 +1308,7 @@ char* rainbow_fg(const char* s, double freq, size_t offset);
 char* rainbow_fg_term(const char* s, double freq, size_t offset);
 char* rainbow_bg(const char* s, double freq, size_t offset);
 char* rainbow_bg_term(const char* s, double freq, size_t offset);
-RGB rainbow_step(double freq, size_t step);
+RGB rainbow_step(double freq, size_t offset);
 
 /*! \internal
     String-based functions.
