@@ -410,6 +410,7 @@ const size_t ext2rgb_map_len = sizeof(ext2rgb_map) / sizeof(ext2rgb_map[0]);
 */
 char char_escape_char(const char c) {
     switch (c) {
+        // 0 is a special case for char_repr().
         case '\0': return '0';
         case '\'': return '\'';
         case '\"': return '"';
@@ -550,6 +551,7 @@ char* char_repr(char c) {
 */
 bool char_should_escape(const char c) {
     switch (c) {
+        // 0 is a special case for char_repr().
         case '\0': return true;
         case '\'': return true;
         case '\"': return true;
