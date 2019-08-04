@@ -96,6 +96,9 @@ typedef struct ColrToolOptions_s {
     // Whether to free the ColrToolOptions.text member when exiting.
     // It would need to be cleaned up if a file or stdin was read.
     bool free_text;
+    // Whether to free the resulting ColorText.text member when exiting.
+    // It would need to be cleaned up if the text was rainbowized.
+    bool free_colr_text;
     // Rainbow opts.
     bool rainbow_fore;
     bool rainbow_back;

@@ -51,6 +51,7 @@ int main(int argc, char* argv[]) {
     ctext->just = opts.just;
     // dbug_repr("Using", *ctext);
     char* text = ColorText_to_str(*ctext);
+    if (opts.free_colr_text) free(ctext->text);
     if (!text) {
         ColorText_free(ctext);
         return_error("Failed to allocate for colorized string!\n");
@@ -77,6 +78,7 @@ ColrToolOptions ColrToolOptions_new(void) {
         .just=ColorJustify_empty(),
         .filepath=NULL,
         .free_text=false,
+        .free_colr_text=false,
         .rainbow_fore=false,
         .rainbow_back=false,
         .rainbow_term=false,
@@ -109,6 +111,7 @@ char* ColrToolOptions_repr(ColrToolOptions opts) {
     .just=%s,\n\
     .filepath=%s,\n\
     .free_text=%s,\n\
+    .free_colr_text=%s,\n\
     .rainbow_fore=%s,\n\
     .rainbow_back=%s,\n\
     .rainbow_term=%s,\n\
@@ -127,6 +130,7 @@ char* ColrToolOptions_repr(ColrToolOptions opts) {
         just_repr ? just_repr : "<couldn't allocate repr>",
         file_repr ? file_repr : "NULL",
         ct_bool_str(opts.free_text),
+        ct_bool_str(opts.free_colr_text),
         ct_bool_str(opts.rainbow_fore),
         ct_bool_str(opts.rainbow_back),
         ct_bool_str(opts.rainbow_term),
@@ -409,8 +413,6 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
     if (!opts->back) opts->back = ColorArg_to_ptr(ColorArg_empty());
     if (!opts->style) opts->style = ColorArg_to_ptr(ColorArg_empty());
 
-    // Default to stdin.
-    if (!(opts->text || opts->filepath)) opts->text = "-";
 
     // Fill text with stdin if a marker argument was used.
     if (colr_streq(opts->text, "-")) {
@@ -429,6 +431,10 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
             printferr("\nFailed to allocate for file data!\n");
             return EXIT_FAILURE;
         }
+    }
+    if (!opts->text) {
+        printferr("\nNo text to work with!\n");
+        return EXIT_FAILURE;
     }
     return -1;
 }
@@ -696,6 +702,7 @@ ColorText* rainbowize(ColrToolOptions* opts) {
         free(opts->text);
         opts->text = NULL;
     }
+    opts->free_colr_text = true;
     // Some or all of the fore/back/style args are "empty" (not null).
     // They will not be used if they are empty, but they will be free'd.
     return Colr(
