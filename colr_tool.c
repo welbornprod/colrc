@@ -755,7 +755,7 @@ char* read_file_arg(const char* filepath) {
 */
 char* read_stdin_arg(void) {
     if (isatty(fileno(stdin)) && isatty(fileno(stderr))) {
-        dbug("\nReading from stdin until EOF (Ctrl + D)...\n");
+        printferr("\nReading from stdin until EOF (Ctrl + D)...\n");
     }
     return read_file(stdin);
 }

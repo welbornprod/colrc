@@ -6,7 +6,6 @@
 [ ] Allow user args for `freq` and `offset` in `rainbowize()`.
 
 ## Missing Features From Colr.py
-[ ] --stripcodes, remove all escape codes from a string (already have `str_strip_codes()`).
 [ ] --listcodes, list escape codes found in text.
 [ ] --translate, show terminal, hex, and rgb values for any color given.
 [ ] --names, the entire colr.name_data database of known color names.

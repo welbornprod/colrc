@@ -835,7 +835,8 @@ void str_append_reset(char *s) {
 
 /*! Center-justifies a string, ignoring escape codes when measuring the width.
 
-    \pi s       The string to "center".
+    \pi s       The string to justify.\n
+                \mustnullin
     \pi padchar The character to pad with. If '0', then `' '` is used.
     \pi width   The overall width for the resulting string.\n
                 If set to '0', the terminal width will be used from colr_term_size().
@@ -1088,7 +1089,8 @@ void str_lower(char* s) {
 
 /*! Left-justifies a string, ignoring escape codes when measuring the width.
 
-    \pi s       The string to justify.
+    \pi s       The string to justify.\n
+                \mustnullin
     \pi padchar The character to pad with. If '0', then `' '` is used.
     \pi width   The overall width for the resulting string.\n
                 If set to '0', the terminal width will be used from colr_term_size().
@@ -1124,7 +1126,7 @@ char* str_ljust(const char* s, const char padchar, int width) {
         return result;
     }
     char* start = result;
-    snprintf(result, length, "%s", s);
+    sprintf(result, "%s", s);
     int pos = 0;
     while (pos < diff) {
         result[length + pos++] = pad;
@@ -1265,7 +1267,8 @@ char* str_repr(const char* s) {
 
 /*! Right-justifies a string, ignoring escape codes when measuring the width.
 
-    \pi s       The string to justify.
+    \pi s       The string to justify.\n
+                \mustnullin
     \pi padchar The character to pad with. If '0', then `' '` is used.
     \pi width   The overall width for the resulting string.\n
                 If set to '0', the terminal width will be used from colr_term_size().
@@ -1306,7 +1309,7 @@ char* str_rjust(const char* s, const char padchar, int width) {
         result[pos++] = pad;
     }
     result = result + pos;
-    snprintf(result, length, "%s", s);
+    sprintf(result, "%s", s);
     return start;
 }
 
