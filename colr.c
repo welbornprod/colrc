@@ -2654,9 +2654,9 @@ char* ColorText_to_str(ColorText ctext) {
     int main(int argc, char** argv) {
         char* userarg;
         if (argc == 1) {
-            asprintf(&userarg, "%s", "123,54,25");
+            if (asprintf(&userarg, "%s", "123,54,25") < 1) return 1;
         } else {
-            asprintf(&userarg, "%s",  argv[1]);
+            if (asprintf(&userarg, "%s",  argv[1]) < 1) return 1;
         }
         ColorType type = ColorType_from_str(userarg);
         if (!ColorType_is_invalid(type)) {

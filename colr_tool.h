@@ -85,16 +85,24 @@
 #define return_error_if_null(x, ...) if (!x) return_error(__VA_ARGS__)
 
 typedef struct ColrToolOptions_s {
+    // Options that are used to colorize text.
     char* text;
     ColorArg* fore;
     ColorArg* back;
     ColorArg* style;
     ColorJustify just;
+    // A file path to read text from.
     const char* filepath;
+    // Whether to free the ColrToolOptions.text member when exiting.
+    // It would need to be cleaned up if a file or stdin was read.
     bool free_text;
+    // Rainbow opts.
     bool rainbow_fore;
     bool rainbow_back;
     bool rainbow_term;
+    // Non-colorizing options.
+    bool strip_codes;
+    // Commands.
     bool print_back;
     bool print_256;
     bool print_basic;
@@ -122,6 +130,7 @@ ColorText* rainbowize(ColrToolOptions* opts);
 char* read_file(FILE* fp);
 char* read_file_arg(const char* filepath);
 char* read_stdin_arg(void);
+int strip_codes(ColrToolOptions* opts);
 bool validate_color_arg(ColorArg carg, const char* name);
 #endif // COLR_TOOL_H
 #endif // DOXYGEN_SKIP
