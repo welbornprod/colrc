@@ -805,7 +805,7 @@ void str_append_reset(char *s) {
     if (!s) return;
     if (s[0] == '\0') {
         // Special case, an empty string, with room for CODE_RESET_ALL.
-        sprintf(s, "%s", CODE_RESET_ALL);
+        snprintf(s, CODE_RESET_LEN, "%s", CODE_RESET_ALL);
         return;
     }
     size_t length = strlen(s);
@@ -825,7 +825,7 @@ void str_append_reset(char *s) {
         lastindex++;
     }
     char* p = s + lastindex;
-    sprintf(p, "%s", CODE_RESET_ALL);
+    snprintf(p, CODE_RESET_LEN, "%s", CODE_RESET_ALL);
     p += CODE_RESET_LEN - 1;
     while (newlines--) {
         *(p++) = '\n';
@@ -1124,7 +1124,7 @@ char* str_ljust(const char* s, const char padchar, int width) {
         return result;
     }
     char* start = result;
-    sprintf(result, "%s", s);
+    snprintf(result, length, "%s", s);
     int pos = 0;
     while (pos < diff) {
         result[length + pos++] = pad;
@@ -1306,7 +1306,7 @@ char* str_rjust(const char* s, const char padchar, int width) {
         result[pos++] = pad;
     }
     result = result + pos;
-    sprintf(result, "%s", s);
+    snprintf(result, length, "%s", s);
     return start;
 }
 
@@ -1537,7 +1537,7 @@ char* _colr(void *p, ...) {
         // It's a string, or it better be anyway.
         s = (char* )p;
     }
-    sprintf(final, "%s", s);
+    strcat(final, s);
     if (cargp || ctextp) {
         // Free the temporary string created with Color(Arg/Text)_to_str().
         free(s);

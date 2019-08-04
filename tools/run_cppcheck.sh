@@ -8,12 +8,13 @@ apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 appdir="${apppath%/*}"
 colrdir="$appdir/.."
-declare -a colr_files=(
-    "$colrdir/colr.c"
-    "$colrdir/colr.h"
-    "$colrdir/colr_tool.c"
-    "$colrdir/colr_tool.h"
-)
+testdir="$colrdir/test"
+shopt -s nullglob
+
+declare -a colr_files=("$colrdir"/colr.c "$colrdir"/colr.h)
+declare -a colr_tool_files=("$colrdir"/colr_tool.c "$colrdir"/colr_tool.h)
+declare -a test_files=("$testdir"/test_*.c "$testdir"/test_*.h)
+
 declare -a cppcheck_cmd=(
     "cppcheck"
     "--std=c11"
@@ -50,6 +51,7 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
+        $appscript [-t] [-- ARGS...]
         $appscript [FILE...] [-- ARGS...]
 
     Options:
@@ -57,6 +59,7 @@ function print_usage {
         FILE          : Zero or more files to check.
                         If none are given, then the colr tool source is used.
         -h,--help     : Show this message.
+        -t,--test     : Run on test files.
         -v,--version  : Show $appname version and exit.
     "
 }
@@ -66,6 +69,7 @@ declare -a user_files
 declare -a extra_args
 
 in_args=0
+do_test=0
 
 for arg; do
     case "$arg" in
@@ -75,6 +79,9 @@ for arg; do
         "-h" | "--help")
             print_usage ""
             exit 0
+            ;;
+        "-t" | "--test")
+            do_test=1
             ;;
         "-v" | "--version")
             echo -e "$appname v. $appversion\n"
@@ -96,8 +103,16 @@ for arg; do
     esac
 done
 
-((${#user_files[@]})) || user_files=("${colr_files[@]}")
-
+((${#user_files[@]})) || {
+    ((${#colr_files[@]})) || fail "No colr source files found!"
+    if ((do_test)); then
+        ((${#test_files[@]})) || fail "No test source files found!"
+        user_files=("${colr_files[@]}" "${test_files[@]}")
+    else
+        ((${#colr_tool_files[@]})) || fail "No colr tool source files found!"
+        user_files=("${colr_files[@]}" "${colr_tool_files[@]}")
+    fi
+}
 "${cppcheck_cmd[@]}" "${extra_args[@]}" "${user_files[@]}"
 
 exit

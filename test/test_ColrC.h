@@ -122,26 +122,26 @@
 
 #define assert_range(x, xmin, xmax, msg) \
     do { \
-        char* _a_r_msg; \
-        char* _a_r_x_repr = test_repr(x); \
-        char* _a_r_xmin_repr = test_repr(xmin); \
-        char* _a_r_xmax_repr = test_repr(xmax); \
-        if_not_asprintf(&_a_r_msg, "%s (%s): %s-%s", msg, _a_r_x_repr, _a_r_xmin_repr, _a_r_xmax_repr) { \
-            fail("Allocation failed for failure message!"); \
-        } \
-        free(_a_r_x_repr); \
-        free(_a_r_xmin_repr); \
-        free(_a_r_xmax_repr); \
         if (!in_range(x, xmin, xmax)) { \
+            char* _a_r_msg; \
+            char* _a_r_x_repr = test_repr(x); \
+            char* _a_r_xmin_repr = test_repr(xmin); \
+            char* _a_r_xmax_repr = test_repr(xmax); \
+            if_not_asprintf(&_a_r_msg, "%s (%s): %s-%s", msg, _a_r_x_repr, _a_r_xmin_repr, _a_r_xmax_repr) { \
+                fail("Allocation failed for failure message!"); \
+            } \
+            free(_a_r_x_repr); \
+            free(_a_r_xmin_repr); \
+            free(_a_r_xmax_repr); \
             fail("%s", _a_r_msg); \
+            free(_a_r_msg); \
         } \
-        free(_a_r_msg); \
     } while (0)
 
 #define assert_size_eq(a, b) \
     do { \
         if (a != b) { \
-            fail("Sizes are not equal: (" #a ") %ld != (" #b ") %ld", a, b); \
+            fail("Sizes are not equal: (" #a ") %lu != (" #b ") %lu", a, b); \
         }\
     } while (0)
 
@@ -149,7 +149,7 @@
     do { \
         if (a != b) { \
             char* _a_s_e_r_repr = colr_repr(colrobj); \
-            fail("Sizes are not equal: (" #a ") %ld != (" #b ") %ld\n      Repr: %s", a, b, _a_s_e_r_repr); \
+            fail("Sizes are not equal: (" #a ") %lu != (" #b ") %lu\n      Repr: %s", a, b, _a_s_e_r_repr); \
             free(_a_s_e_r_repr); \
         }\
     } while (0)
@@ -158,7 +158,7 @@
     do { \
         if (a != b) { \
             char* _a_s_e_s_str = colr_to_str(colrobj); \
-            fail("Sizes are not equal: (" #a ") %ld != (" #b ") %ld\n    String: %s", a, b, _a_s_e_s_str); \
+            fail("Sizes are not equal: (" #a ") %lu != (" #b ") %lu\n    String: %s", a, b, _a_s_e_s_str); \
             free(_a_s_e_s_str); \
         }\
     } while (0)
@@ -171,7 +171,7 @@
             char* _a_s_e_f_strrepr = colr_repr(_a_s_e_f_str); \
             free(_a_s_e_f_str); \
             fail( \
-                "Sizes are not equal: (" #a ") %ld != (" #b ") %ld\n      Repr: %s\n    String: %s", \
+                "Sizes are not equal: (" #a ") %lu != (" #b ") %lu\n      Repr: %s\n    String: %s", \
                 a, \
                 b, \
                 _a_s_e_f_repr, \
