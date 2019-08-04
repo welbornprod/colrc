@@ -166,10 +166,15 @@
 */
 #define COLORARG_MARKER UINT_MAX
 
+/*! Marker for the ColorJustify struct, for identifying a void pointer as a
+    ColorJustify.
+*/
+#define COLORJUSTIFY_MARKER (UINT_MAX - 10)
+
 /*! Marker for the ColorText struct, for identifying a void pointer as a
     ColorText.
 */
-#define COLORTEXT_MARKER (UINT_MAX >> 1)
+#define COLORTEXT_MARKER (UINT_MAX - 20)
 
 /*! Possible error return value for BasicValue_from_str(), ExtendedValue_from_str(),
     and colorname_to_rgb().
@@ -440,16 +445,46 @@
 */
 #define Colr(text, ...) ColorText_to_ptr(ColorText_from_values(text, __VA_ARGS__, NULL))
 
+/*! \def Colr_center
+    Sets the JustifyMethod for a ColorText while allocating it.
+
+    \pi text      Text to colorize.
+    \pi justwidth Width for justification.
+    \pi ...       Fore, back, or style ColorArgs for Colr().
+
+    \return       An allocated ColorText.\n
+                  \colrmightfree
+*/
 #define Colr_center(text, justwidth, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
         (ColorJustify){.method=JUST_CENTER, .width=justwidth, .padchar=' '} \
     )
 
+/*! \def Colr_ljust
+    Sets the JustifyMethod for a ColorText while allocating it.
+
+    \pi text      Text to colorize.
+    \pi justwidth Width for justification.
+    \pi ...       Fore, back, or style ColorArgs for Colr().
+
+    \return       An allocated ColorText.\n
+                  \colrmightfree
+*/
 #define Colr_ljust(text, justwidth, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
         (ColorJustify){.method=JUST_LEFT, .width=justwidth, .padchar=' '} \
     )
 
+/*! \def Colr_rjust
+    Sets the JustifyMethod for a ColorText while allocating it.
+
+    \pi text      Text to colorize.
+    \pi justwidth Width for justification.
+    \pi ...       Fore, back, or style ColorArgs for Colr().
+
+    \return       An allocated ColorText.\n
+                  \colrmightfree
+*/
 #define Colr_rjust(text, justwidth, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
         (ColorJustify){.method=JUST_RIGHT, .width=justwidth, .padchar=' '} \
@@ -478,6 +513,68 @@
 */
 #define colr(...) _colr(__VA_ARGS__, NULL)
 
+/*! \def colr_is_empty
+    Calls the \<type\>is_empty functions for the supported types.
+
+    \pi x A supported type to build a string from.
+*/
+#define colr_is_empty(x) \
+    _Generic( \
+        (x), \
+        ColorArg: ColorArg_is_empty, \
+        ColorJustify: ColorJustify_is_empty, \
+        ColorText: ColorText_is_empty, \
+        ColorValue: ColorValue_is_empty \
+    )(x)
+
+/*! \def colr_is_invalid
+    Calls the \<type\>is_invalid functions for the supported types.
+
+
+    \pi x A supported type to build a string from.
+*/
+#define colr_is_invalid(x) \
+    _Generic( \
+        (x), \
+        ColorArg: ColorArg_is_invalid, \
+        ColorType: ColorType_is_invalid, \
+        ColorValue: ColorValue_is_invalid \
+    )(x)
+
+/*! \def colr_is_valid
+    Calls the \<type\>is_valid functions for the supported types.
+
+    \pi x A supported type to build a string from.
+*/
+#define colr_is_valid(x) \
+    _Generic( \
+        (x), \
+        ColorArg: ColorArg_is_valid, \
+        ColorType: ColorType_is_valid, \
+        ColorValue: ColorValue_is_valid \
+    )(x)
+
+/*! \def colr_istr_either
+    Convenience macro for `!strcasecmp(s1, s2) || !strcasecmp(s1, s3)`.
+
+    \pi s1 The string to compare against the other two strings.
+    \pi s2 The first string to compare with.
+    \pi s3 The second string to compare with.
+
+    \return `1` if \p s1 is equal to \p s2 or \p s3, otherwise `0`.
+*/
+#define colr_istr_either(s1, s2, s3) ((s1 && s2 && s3) ? (colr_istreq(s1, s2) || colr_istreq(s1, s3)) : 0)
+
+/*! \def colr_istreq
+    Convenience macro for `!strcasecmp(s1, s2)`.
+
+    \pi s1  The first string to compare.
+    \pi s2  The second string to compare.
+
+    \return `1` if \p s1 and \p s2 are equal, otherwise `0`.
+*/
+#define colr_istreq(s1, s2) ((s1 && s2) ? !strcasecmp(s1, s2) : 0)
+
 /*! \def colr_join
     Join ColorArg pointers, ColorText pointers, and strings by another
     ColorArg pointer, ColorText pointer, or string.
@@ -504,41 +601,6 @@
     \example colr_join_example.c
 */
 #define colr_join(joiner, ...) _colr_join(joiner, __VA_ARGS__, NULL)
-
-/*! \def colr_is_empty
-    Calls the \<type\>is_empty functions for the supported types.
-
-    \pi x A supported type to build a string from.
-*/
-#define colr_is_empty(x) \
-    _Generic( \
-        (x), \
-        ColorArg: ColorArg_is_empty, \
-        ColorJustify: ColorJustify_is_empty, \
-        ColorText: ColorText_is_empty, \
-        ColorValue: ColorValue_is_empty \
-    )(x)
-/*! \def colr_istr_either
-    Convenience macro for `!strcasecmp(s1, s2) || !strcasecmp(s1, s3)`.
-
-    \pi s1 The string to compare against the other two strings.
-    \pi s2 The first string to compare with.
-    \pi s3 The second string to compare with.
-
-    \return `1` if \p s1 is equal to \p s2 or \p s3, otherwise `0`.
-*/
-#define colr_istr_either(s1, s2, s3) ((s1 && s2 && s3) ? (colr_istreq(s1, s2) || colr_istreq(s1, s3)) : 0)
-
-/*! \def colr_istreq
-    Convenience macro for `!strcasecmp(s1, s2)`.
-
-    \pi s1  The first string to compare.
-    \pi s2  The second string to compare.
-
-    \return `1` if \p s1 and \p s2 are equal, otherwise `0`.
-*/
-#define colr_istreq(s1, s2) ((s1 && s2) ? !strcasecmp(s1, s2) : 0)
-
 
 /*! \def colr_max
     Macro for `(a > b ? a : b)`.
@@ -1133,6 +1195,8 @@ typedef struct ColorValue_s {
 
 //! Holds a string justification method, width, and padding character for ColorTexts.
 typedef struct ColorJustify_s {
+    //! A marker used to inspect void pointers and determine if they are ColorJustifys.
+    unsigned int marker;
     //! The justification method, can be JUST_NONE.
     ColorJustifyMethod method;
     //! The desired width for the final string, or `0` to use colr_term_size().
@@ -1157,6 +1221,7 @@ typedef struct ColorText_s {
     unsigned int marker;
     //! Text to colorize.
     char* text;
+    // Pointers are used for compatibility with the fore(), back(), and style() macros.
     //! ColorArg for fore color. Can be `NULL`.
     ColorArg *fore;
     //! ColorArg for back color. Can be `NULL`.
@@ -1253,6 +1318,7 @@ char* str_copy(char* dest, const char* src, size_t length);
 bool str_ends_with(const char* s, const char* suffix);
 bool str_has_codes(const char* s);
 bool str_is_all(const char* s, const char c);
+bool str_is_codes(const char* s);
 bool str_is_digits(const char* s);
 char* str_ljust(const char* s, const char padchar, int width);
 void str_lower(char* s);
@@ -1291,8 +1357,8 @@ char* ArgType_to_str(ArgType type);
     \endinternal
 */
 ColorArg ColorArg_empty(void);
+bool ColorArg_eq(ColorArg a, ColorArg b);
 void ColorArg_free(ColorArg *p);
-size_t ColorArg_length(ColorArg carg);
 ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value);
 ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value);
 ColorArg ColorArg_from_RGB(ArgType type, RGB value);
@@ -1303,8 +1369,9 @@ bool ColorArg_is_empty(ColorArg carg);
 bool ColorArg_is_invalid(ColorArg carg);
 bool ColorArg_is_ptr(void *p);
 bool ColorArg_is_valid(ColorArg carg);
-ColorArg *ColorArg_to_ptr(ColorArg carg);
+size_t ColorArg_length(ColorArg carg);
 char* ColorArg_repr(ColorArg carg);
+ColorArg* ColorArg_to_ptr(ColorArg carg);
 char* ColorArg_to_str(ColorArg carg);
 
 /*! \internal
@@ -1312,7 +1379,9 @@ char* ColorArg_to_str(ColorArg carg);
     \endinternal
 */
 ColorJustify ColorJustify_empty(void);
+bool ColorJustify_eq(ColorJustify a, ColorJustify b);
 bool ColorJustify_is_empty(ColorJustify cjust);
+ColorJustify ColorJustify_new(ColorJustifyMethod method, int width, char padchar);
 char* ColorJustify_repr(ColorJustify cjust);
 char* ColorJustifyMethod_repr(ColorJustifyMethod meth);
 
@@ -1324,6 +1393,7 @@ char* ColorJustifyMethod_repr(ColorJustifyMethod meth);
 ColorText ColorText_empty(void);
 void ColorText_free(ColorText *p);
 ColorText ColorText_from_values(char* text, ...);
+bool ColorText_has_arg(ColorText ctext, ColorArg carg);
 bool ColorText_is_empty(ColorText ctext);
 bool ColorText_is_ptr(void *p);
 size_t ColorText_length(ColorText ctext);
@@ -1347,8 +1417,13 @@ char* ColorType_repr(ColorType type);
     \endinternal
 */
 ColorValue ColorValue_empty(void);
+bool ColorValue_eq(ColorValue a, ColorValue b);
 ColorValue ColorValue_from_str(char* s);
 ColorValue ColorValue_from_value(ColorType type, void *p);
+bool ColorValue_has_BasicValue(ColorValue cval, BasicValue bval);
+bool ColorValue_has_ExtendedValue(ColorValue cval, ExtendedValue eval);
+bool ColorValue_has_StyleValue(ColorValue cval, StyleValue sval);
+bool ColorValue_has_RGB(ColorValue cval, RGB rgbval);
 bool ColorValue_is_empty(ColorValue cval);
 bool ColorValue_is_invalid(ColorValue cval);
 bool ColorValue_is_valid(ColorValue cval);
@@ -1397,5 +1472,26 @@ char* RGB_to_str(RGB rgb);
 RGB RGB_to_term_RGB(RGB rgb);
 char* RGB_repr(RGB rgb);
 
+/*! \internal
+    Some static assertions to make sure nothing breaks.
+    \endinternal
+*/
+static_assert(
+    (
+        ((int)COLOR_INVALID == (int)TYPE_INVALID) &&
+        ((int)TYPE_INVALID == (int)BASIC_INVALID) &&
+        ((int)BASIC_INVALID == (int)EXTENDED_INVALID) &&
+        ((int)EXTENDED_INVALID == (int)STYLE_INVALID)
+    ),
+    "Return/enum values for all color/style values should match."
+);
+static_assert(
+    (
+        COLORARG_MARKER &&
+        (COLORJUSTIFY_MARKER && (COLORJUSTIFY_MARKER != COLORARG_MARKER)) &&
+        (COLORTEXT_MARKER && (COLORTEXT_MARKER != COLORJUSTIFY_MARKER))
+    ),
+    "Markers must be positive and unique for each struct in Colr!"
+);
 
 #endif // COLR_H

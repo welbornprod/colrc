@@ -321,6 +321,7 @@ elif ((do_memcheck)); then
 elif [[ -n "$exe_wrapper" ]]; then
     cmd=("$exe_wrapper" "$default_binary" "${userargs[@]}")
 else
+    ((do_quiet)) && userargs+=("--quiet")
     cmd=("$default_binary" "${userargs[@]}")
 fi
 

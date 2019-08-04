@@ -64,6 +64,9 @@ const size_t extended_names_len = sizeof(extended_names) / sizeof(extended_names
 const StyleInfo style_names[] = {
     {"none", RESET_ALL},
     {"reset", RESET_ALL},
+    {"reset-all", RESET_ALL},
+    {"reset_all", RESET_ALL},
+    {"reset all", RESET_ALL},
     {"bold", BRIGHT},
     {"bright", BRIGHT},
     {"dim", DIM},
@@ -468,7 +471,7 @@ bool char_is_code_end(const char c) {
 
 /*! Creates a string representation for a char.
 
-    \pi x Value to create the representation for.
+    \pi c   Value to create the representation for.
     \return An allocated string, or `NULL` if the allocation fails.
 */
 char* char_repr(char c) {
@@ -802,7 +805,7 @@ void str_append_reset(char *s) {
     if (!s) return;
     if (s[0] == '\0') {
         // Special case, an empty string, with room for CODE_RESET_ALL.
-        sprintf(s, "%s", CODE_RESET_ALL);
+        snprintf(s, CODE_RESET_LEN, "%s", CODE_RESET_ALL);
         return;
     }
     size_t length = strlen(s);
@@ -822,7 +825,7 @@ void str_append_reset(char *s) {
         lastindex++;
     }
     char* p = s + lastindex;
-    sprintf(p, "%s", CODE_RESET_ALL);
+    snprintf(p, CODE_RESET_LEN, "%s", CODE_RESET_ALL);
     p += CODE_RESET_LEN - 1;
     while (newlines--) {
         *(p++) = '\n';
@@ -832,7 +835,8 @@ void str_append_reset(char *s) {
 
 /*! Center-justifies a string, ignoring escape codes when measuring the width.
 
-    \pi s       The string to "center".
+    \pi s       The string to justify.\n
+                \mustnullin
     \pi padchar The character to pad with. If '0', then `' '` is used.
     \pi width   The overall width for the resulting string.\n
                 If set to '0', the terminal width will be used from colr_term_size().
@@ -975,6 +979,8 @@ bool str_ends_with(const char* str, const char* suf) {
             \mustnullin
 
     \return `true` if the string has at least one escape code, otherwise `false`.
+
+    \sa str_is_codes
 */
 bool str_has_codes(const char* s) {
     if (!s) return false;
@@ -1008,6 +1014,33 @@ bool str_is_all(const char* s, const char c) {
     while (s[i]) {
         if (s[i] != c) return false;
         i++;
+    }
+    return true;
+}
+
+/*! Determines if a string is composed entirely of escape codes.
+
+    \details
+    Returns `false` if the string is `NULL`, or empty.
+
+    \pi s   The string to check.
+            \mustnullin
+    \return `true` if the string is escape-codes only, otherwise `false`.
+
+    \sa str_has_codes
+*/
+bool str_is_codes(const char* s) {
+    if (!s) return false;
+    if (s[0] == '\0') return false;
+    size_t i = 0;
+    while (s[i]) {
+        if (s[i] == '\033') {
+            // Skip past the code.
+            while (!char_is_code_end(s[i++]));
+            continue;
+        }
+        // Found a non-escape-code char.
+        return false;
     }
     return true;
 }
@@ -1056,7 +1089,8 @@ void str_lower(char* s) {
 
 /*! Left-justifies a string, ignoring escape codes when measuring the width.
 
-    \pi s       The string to justify.
+    \pi s       The string to justify.\n
+                \mustnullin
     \pi padchar The character to pad with. If '0', then `' '` is used.
     \pi width   The overall width for the resulting string.\n
                 If set to '0', the terminal width will be used from colr_term_size().
@@ -1233,7 +1267,8 @@ char* str_repr(const char* s) {
 
 /*! Right-justifies a string, ignoring escape codes when measuring the width.
 
-    \pi s       The string to justify.
+    \pi s       The string to justify.\n
+                \mustnullin
     \pi padchar The character to pad with. If '0', then `' '` is used.
     \pi width   The overall width for the resulting string.\n
                 If set to '0', the terminal width will be used from colr_term_size().
@@ -1505,7 +1540,7 @@ char* _colr(void *p, ...) {
         // It's a string, or it better be anyway.
         s = (char* )p;
     }
-    sprintf(final, "%s", s);
+    strcat(final, s);
     if (cargp || ctextp) {
         // Free the temporary string created with Color(Arg/Text)_to_str().
         free(s);
@@ -1833,6 +1868,21 @@ ColorArg ColorArg_empty(void) {
     };
 }
 
+/*! Compares two ColorArg structs.
+    \details
+    They are considered "equal" if their `.type` and `.value` match.
+
+    \pi a   First ColorArg to compare.
+    \pi b   Second ColorArg to compare.
+
+    \return `true` if they are equal, otherwise `false`.
+
+    \sa ColorArg
+*/
+bool ColorArg_eq(ColorArg a, ColorArg b) {
+    return (a.type == b.type) && ColorValue_eq(a.value, b.value);
+}
+
 /*! Free allocated memory for a ColorArg.
 
     \details
@@ -2139,10 +2189,30 @@ char* ColorArg_to_str(ColorArg carg) {
 */
 ColorJustify ColorJustify_empty(void) {
     return (ColorJustify){
+        .marker=COLORJUSTIFY_MARKER,
         .method=JUST_NONE,
         .width=0,
         .padchar=0,
     };
+}
+
+/*! Compares two ColorJustify structs.
+    \details
+    They are considered "equal" if their member values match.
+
+    \pi a   First ColorJustify to compare.
+    \pi b   Second ColorJustify to compare.
+
+    \return `true` if they are equal, otherwise `false`.
+
+    \sa ColorJustify
+*/
+bool ColorJustify_eq(ColorJustify a, ColorJustify b) {
+    return (
+        (a.method == b.method) &&
+        (a.width == b.width) &&
+        (a.padchar == b.padchar)
+    );
 }
 
 /*! Checks to see if a ColorJustify is "empty".
@@ -2151,7 +2221,7 @@ ColorJustify ColorJustify_empty(void) {
     A ColorJustify is considered "empty" if the `.method` member is set to
     `JUST_NONE`.
 
-    \pi ctext The ColorJustify to check.
+    \pi cjust The ColorJustify to check.
     \return   `true` if the ColorJustify is empty, otherwise `false`.
 
     \sa ColorJustify ColorJustify_empty
@@ -2160,14 +2230,37 @@ bool ColorJustify_is_empty(ColorJustify cjust) {
     return cjust.method == JUST_NONE;
 }
 
+/*! Creates a ColorJustify.
+
+    \details
+    This is used to ensure every ColorJustify has it's `.marker` member set
+    correctly.
+
+    \pi meth  ColorJustifyMethod to use.
+    \pi width Width for justification.
+              If `0` is given, ColorText will use the width from colr_terminal_size().
+    \pi pad   Padding character to use.
+              If `0` is given, the default, space (`' '`), is used.
+
+    \return An initialized ColorJustify.
+*/
+ColorJustify ColorJustify_new(ColorJustifyMethod method, int width, char padchar) {
+    return (ColorJustify){
+        .marker=COLORJUSTIFY_MARKER,
+        .method=method,
+        .width=width,
+        .padchar=padchar
+    };
+}
+
 /*! Creates a string representation for a ColorJustify.
 
     \details
     Allocates memory for the string representation.
 
-    \pi carg ColorJustify struct to get the representation for.
-    \return  Allocated string for the representation.\n
-             \mustfree
+    \pi cjust ColorJustify struct to get the representation for.
+    \return   Allocated string for the representation.\n
+              \mustfree
 
     \sa ColorJustify
 */
@@ -2193,7 +2286,7 @@ char* ColorJustify_repr(ColorJustify cjust) {
     \details
     Allocates memory for the string representation.
 
-    \pi carg ColorJustifyMethod to get the representation for.
+    \pi meth ColorJustifyMethod to get the representation for.
     \return  Allocated string for the representation.\n
              \mustfree
 
@@ -2276,7 +2369,6 @@ ColorText ColorText_from_values(char* text, ...) {
             ctext.back = arg;
         } else if (arg->type == STYLE) {
             ctext.style = arg;
-            break;
         } else if (ColorArg_is_empty(*arg)) {
             // Empty ColorArgs are assigned in the order they were passed in.
             if (!ctext.fore) {
@@ -2285,12 +2377,29 @@ ColorText ColorText_from_values(char* text, ...) {
                 ctext.back = arg;
             } else if (!ctext.style) {
                 ctext.style = arg;
-                break;
             }
         }
     }
     va_end(colrargs);
     return ctext;
+}
+
+/*! Checks to see if a ColorText has a certain ColorArg value set.
+
+    \details
+    Uses ColorArg_eq() to inspect the `fore`, `back`, and `style` members.
+
+    \pi ctext The ColorText to inspect.
+    \pi carg  The ColorArg to look for.
+    \return   `true` if the `fore`, `back`, or `style` arg matches `carg`,
+              otherwise `false`.
+*/
+bool ColorText_has_arg(ColorText ctext, ColorArg carg) {
+    return (
+        (ctext.fore && ColorArg_eq(*(ctext.fore), carg)) ||
+        (ctext.back && ColorArg_eq(*(ctext.back), carg)) ||
+        (ctext.style && ColorArg_eq(*(ctext.style), carg))
+    );
 }
 
 /*! Checks to see if a ColorText has no usable values.
@@ -2341,9 +2450,11 @@ size_t ColorText_length(ColorText ctext) {
     // Empty text yields an empty string, so just "\0".
     if (!ctext.text) return 1;
     size_t length = strlen(ctext.text);
-    length += ctext.fore ? ColorArg_length(*(ctext.fore)) : 0;
-    length += ctext.back ? ColorArg_length(*(ctext.back)) : 0;
-    length += ctext.style ? ColorArg_length(*(ctext.style)) : 0;
+    if (ctext.fore) length+=ColorArg_length(*(ctext.fore));
+    if (ctext.back) length+=ColorArg_length(*(ctext.back));
+    if (ctext.style) length+=ColorArg_length(*(ctext.style));
+    // If ctext.style == RESET_ALL is the only thing set, this will not
+    // append the CODE_RESET_ALL (because ctext.style == CODE_RESET_ALL == 0).
     if (ctext.style || ctext.fore || ctext.back) length += CODE_RESET_LEN;
     if (!ColorJustify_is_empty(ctext.just)) {
         // Justification will be used, calculate that in.
@@ -2379,7 +2490,7 @@ char* ColorText_repr(ColorText ctext) {
     asprintf_or_return(
         NULL,
         &repr,
-        "ColorText {.text=%s, .fore=%s, .back=%s, .style=%s, .just=%s}\n",
+        "ColorText {.text=%s, .fore=%s, .back=%s, .style=%s, .just=%s}",
         stext ? stext : "NULL",
         sfore ? sfore : "NULL",
         sback ? sback : "NULL",
@@ -2415,10 +2526,10 @@ ColorText* ColorText_set_just(ColorText* ctext, ColorJustify cjust) {
 /*! Initializes an existing ColorText from 1 mandatory string, and optional
     fore, back, and style args (pointers to ColorArgs).
 
-    \po p    A ColorText to initialize with values.
-    \pi text Text to colorize (a regular string).
-    \pi ...  A `va_list` with ColorArgs pointers for fore, back, and style, in any order.
-    \return  An initialized ColorText struct.
+    \po ctext A ColorText to initialize with values.
+    \pi text  Text to colorize (a regular string).
+    \pi ...   A `va_list` with ColorArgs pointers for fore, back, and style, in any order.
+    \return   An initialized ColorText struct.
 
     \sa ColorText
 */
@@ -2426,6 +2537,7 @@ void ColorText_set_values(ColorText* ctext, char* text, ...) {
     // Argument list must have ColorArg with NULL members at the end.
     *ctext = ColorText_empty();
     ctext->text = text;
+
     va_list colrargs;
     va_start(colrargs, text);
 
@@ -2439,7 +2551,6 @@ void ColorText_set_values(ColorText* ctext, char* text, ...) {
             ctext->back = arg;
         } else if (arg->type == STYLE) {
             ctext->style = arg;
-            break;
         } else if (ColorArg_is_empty(*arg)) {
             // Empty ColorArgs are assigned in the order they were passed in.
             if (!ctext->fore) {
@@ -2448,7 +2559,6 @@ void ColorText_set_values(ColorText* ctext, char* text, ...) {
                 ctext->back = arg;
             } else if (!ctext->style) {
                 ctext->style = arg;
-                break;
             }
         }
     }
@@ -2547,9 +2657,9 @@ char* ColorText_to_str(ColorText ctext) {
     int main(int argc, char** argv) {
         char* userarg;
         if (argc == 1) {
-            asprintf(&userarg, "%s", "123,54,25");
+            if (asprintf(&userarg, "%s", "123,54,25") < 1) return 1;
         } else {
-            asprintf(&userarg, "%s",  argv[1]);
+            if (asprintf(&userarg, "%s",  argv[1]) < 1) return 1;
         }
         ColorType type = ColorType_from_str(userarg);
         if (!ColorType_is_invalid(type)) {
@@ -2566,9 +2676,8 @@ char* ColorText_to_str(ColorText ctext) {
     \sa ColorType
 */
 ColorType ColorType_from_str(const char* arg) {
-    if (!arg) {
-        return TYPE_INVALID;
-    }
+    if (!arg) return TYPE_INVALID;
+    if (arg[0] == '\0') return TYPE_INVALID;
     // Try rgb first.
     unsigned char r, g, b;
     int rgb_ret = rgb_from_str(arg, &r, &g, &b);
@@ -2679,6 +2788,27 @@ ColorValue ColorValue_empty(void) {
     };
 }
 
+/*! Compares two ColorValue structs.
+    \details
+    They are considered "equal" if all of their members match.
+
+    \pi a   First ColorValue to compare.
+    \pi b   Second ColorValue to compare.
+
+    \return `true` if they are equal, otherwise `false`.
+
+    \sa ColorValue
+*/
+bool ColorValue_eq(ColorValue a, ColorValue b) {
+    return (
+        (a.type == b.type) &&
+        (a.basic == b.basic) &&
+        (a.ext == b.ext) &&
+        (a.style == b.style) &&
+        RGB_eq(a.rgb, b.rgb)
+    );
+}
+
 /*! Create a ColorValue from a known color name, or RGB string.
 
     \pi s    A string to parse the color name from (can be an RGB string).
@@ -2773,6 +2903,58 @@ ColorValue ColorValue_from_value(ColorType type, void *p) {
         return (ColorValue){.type=TYPE_RGB, .rgb=*rgbval};
     }
     return (ColorValue){.type=type};
+}
+
+/*! Checks to see if a ColorValue has a BasicValue set.
+
+    \pi cval ColorValue to check.
+    \pi bval BasicValue to look for.
+
+    \return `true` if the ColorValue has the exact BasicValue set.
+
+    \sa ColorValue
+*/
+bool ColorValue_has_BasicValue(ColorValue cval, BasicValue bval) {
+    return (cval.type == TYPE_BASIC) && (cval.basic == bval);
+}
+
+/*! Checks to see if a ColorValue has a ExtendedValue set.
+
+    \pi cval ColorValue to check.
+    \pi eval ExtendedValue to look for.
+
+    \return `true` if the ColorValue has the exact ExtendedValue set.
+
+    \sa ColorValue
+*/
+bool ColorValue_has_ExtendedValue(ColorValue cval, ExtendedValue eval) {
+    return (cval.type == TYPE_EXTENDED) && (cval.ext == eval);
+}
+
+/*! Checks to see if a ColorValue has a StyleValue set.
+
+    \pi cval ColorValue to check.
+    \pi sval StyleValue to look for.
+
+    \return `true` if the ColorValue has the exact StyleValue set.
+
+    \sa ColorValue
+*/
+bool ColorValue_has_StyleValue(ColorValue cval, StyleValue sval) {
+    return (cval.type == TYPE_STYLE) && (cval.style == sval);
+}
+
+/*! Checks to see if a ColorValue has a RGB value set.
+
+    \pi cval   ColorValue to check.
+    \pi rgbval RGB value to look for.
+
+    \return    `true` if the ColorValue has the exact RGB value set.
+
+    \sa ColorValue
+*/
+bool ColorValue_has_RGB(ColorValue cval, RGB rgbval) {
+    return (cval.type == TYPE_RGB) && RGB_eq(cval.rgb, rgbval);
 }
 
 /*! Checks to see if a ColorValue is an empty placeholder.

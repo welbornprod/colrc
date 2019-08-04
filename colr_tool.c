@@ -27,6 +27,11 @@ int main(int argc, char* argv[]) {
     // Any non-negative return means we should stop right here.
     if (parse_ret >= 0) return parse_ret;
 
+    // Non-colorizing/formatting options.
+    if (opts.strip_codes) {
+        return strip_codes(&opts);
+    }
+
     ColorText* ctext = NULL;
     // Rainbowize the text arg.
     // TODO: Let ColorText/colr handle "rainbow" as an official color name.
@@ -75,6 +80,7 @@ ColrToolOptions ColrToolOptions_new(void) {
         .rainbow_fore=false,
         .rainbow_back=false,
         .rainbow_term=false,
+        .strip_codes=false,
         .print_back=false,
         .print_256=false,
         .print_basic=false,
@@ -106,6 +112,7 @@ char* ColrToolOptions_repr(ColrToolOptions opts) {
     .rainbow_fore=%s,\n\
     .rainbow_back=%s,\n\
     .rainbow_term=%s,\n\
+    .strip_codes=%s,\n\
     .print_back=%s,\n\
     .print_256=%s,\n\
     .print_basic=%s,\n\
@@ -123,6 +130,7 @@ char* ColrToolOptions_repr(ColrToolOptions opts) {
         ct_bool_str(opts.rainbow_fore),
         ct_bool_str(opts.rainbow_back),
         ct_bool_str(opts.rainbow_term),
+        ct_bool_str(opts.strip_codes),
         ct_bool_str(opts.print_back),
         ct_bool_str(opts.print_256),
         ct_bool_str(opts.print_basic),
@@ -191,6 +199,7 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
         static struct option long_options[] = {
             {"help", no_argument, 0, 'h'},
             {"version", no_argument, 0, 'v'},
+            // Colorizing/formatting options.
             {"fore", required_argument, 0,  'f'},
             {"back", required_argument, 0, 'b'},
             {"style", required_argument, 0, 's'},
@@ -198,6 +207,8 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
             {"ljust", required_argument, 0, 'l'},
             {"rjust", required_argument, 0, 'r'},
             {"center", required_argument, 0, 'c'},
+            {"stripcodes", no_argument, 0, 'x'},
+            // Commands.
             {"basic", no_argument, 0, 0 },
             {"basicbg", no_argument, 0, 0 },
             {"256", no_argument, 0, 0},
@@ -211,7 +222,7 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
             {0, 0, 0, 0}
         };
 
-        c = getopt_long(argc, argv, "hvF:f:b:s:l:r:c:", long_options, &option_index);
+        c = getopt_long(argc, argv, "hvxF:f:b:s:l:r:c:", long_options, &option_index);
         if (c == -1) break;
 
         int justargval;
@@ -338,6 +349,9 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
             case 'v':
                 print_version();
                 return EXIT_SUCCESS;
+            case 'x':
+                opts->strip_codes = true;
+                break;
             case '?':
                 asprintf_or_return(1, &unknownmsg, "Unknown argument: %c", optopt);
                 print_usage(unknownmsg);
@@ -349,16 +363,16 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
                 return EXIT_FAILURE;
         }
     }
-    if (optind == argc) {
-       print_usage("No text given!");
-       return EXIT_FAILURE;
-    }
     // Remaining non-option arguments.
     while (optind < argc) {
         if (!opts->text && !opts->filepath) {
             // If a file path is set, the text will come later.
             opts->text = argv[optind];
             optind++;
+            if (opts->strip_codes) {
+                // No color options are needed for stripping codes.
+                break;
+            }
         } else if (!opts->fore) {
             if (colr_streq(argv[optind], "rainbow")) {
                 opts->rainbow_fore = true;
@@ -394,6 +408,9 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
     if (!opts->fore) opts->fore = ColorArg_to_ptr(ColorArg_empty());
     if (!opts->back) opts->back = ColorArg_to_ptr(ColorArg_empty());
     if (!opts->style) opts->style = ColorArg_to_ptr(ColorArg_empty());
+
+    // Default to stdin.
+    if (!(opts->text || opts->filepath)) opts->text = "-";
 
     // Fill text with stdin if a marker argument was used.
     if (colr_streq(opts->text, "-")) {
@@ -578,6 +595,7 @@ int print_usage(const char* reason) {
     Usage:\n\
         colr -h | -v\n\
         colr --basic | --256 | --rainbow | --rgb | --termrgb\n\
+        colr -x [TEXT]\n\
         colr [TEXT] [FORE | -f color] [BACK | -b color] [STYLE | -s style]\n\
              [-c num | -l num | -r num]\n\
         colr [-F file] [FORE | -f color] [BACK | -b color] [STYLE | -s style]\n\
@@ -627,7 +645,8 @@ int print_usage_full() {
         -r num,--rjust num   : Right-justify the resulting text using the specified width.\n\
                                If \"0\" is given, the terminal-width will be used.\n\
         -s val,--style val   : Specify the style explicitly, in any order.\n\
-        -v, --version        : Show version and exit.\n\
+        -v,--version         : Show version and exit.\n\
+        -x,--stripcodes      : Strip escape codes from the text.\n\
 \n\
     When the flag arguments are used (-f, -b, -s), the order does not matter\n\
     and any of them may be omitted. The remaining non-flag arguments are parsed\n\
@@ -736,11 +755,39 @@ char* read_file_arg(const char* filepath) {
 */
 char* read_stdin_arg(void) {
     if (isatty(fileno(stdin)) && isatty(fileno(stderr))) {
-        dbug("\nReading from stdin until EOF (Ctrl + D)...\n");
+        printferr("\nReading from stdin until EOF (Ctrl + D)...\n");
     }
     return read_file(stdin);
 }
 
+/*! Strip escape codes from `opts->text` and return an exit status code.
+*/
+int strip_codes(ColrToolOptions* opts) {
+    if (!opts->text) {
+        printferr("\nNo text to strip!\n");
+        return 1;
+    } else if (opts->text[0] == '\0') {
+        printferr("\nText was empty!\n");
+        return 1;
+    }
+    char* stripped = str_strip_codes(opts->text);
+    if (!stripped) {
+        printferr("\nFailed to create stripped text!\n");
+        return 1;
+    } else if (stripped[0] == '\0') {
+        // Empty string was given.
+        printf("\n");
+        return 0;
+    }
+    size_t length = strlen(stripped);
+    if (stripped[length - 1] == '\n') {
+        printf("%s", stripped);
+    } else {
+        // Add a newline, for prettier output.
+        printf("%s\n", stripped);
+    }
+    return 0;
+}
 
 /*! Checks `nametype` for TYPE_INVALID*, and prints the usage string
     with a warning message if it is invalid.

@@ -72,7 +72,8 @@ WARN_NO_PARAMDOC       = YES
 INPUT                  = .
 EXCLUDE                = test \
                          colr_tool.c \
-                         colr_tool.h
+                         colr_tool.h \
+                         TODO.md
 EXCLUDE_PATTERNS       = *.py
 EXAMPLE_PATH           = examples
 EXAMPLE_PATTERNS       = *.c

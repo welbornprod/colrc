@@ -415,6 +415,35 @@ subdesc(str_is_all) {
         }
     }
 }
+// str_is_codes
+subdesc(str_is_codes) {
+    it("should detect escape-code-only strings") {
+        struct {
+            char* s;
+            bool expected;
+        } tests[] = {
+            {NULL, false},
+            {"", false},
+            {"\033[4m", true},
+            {"\033[31m", true},
+            {"\033[48;5;7m", true},
+            {"\033[38;2;1;1;1m", true},
+            {"\033[4m\033[31m\033[48;5;7m\033[0m", true},
+            {"\033[1m\033[38;2;1;1;1m\033[48;5;1m\033[0m", true},
+            {"X\033[4m\033[31m\033[48;5;7m\033[0m", false},
+            {"\033[4mX\033[31m\033[48;5;7m\033[0m", false},
+            {"\033[4m\033[31mX\033[48;5;7m\033[0m", false},
+            {"\033[4m\033[31m\033[48;5;7mX\033[0m", false},
+            {"\033[4m\033[31m\033[48;5;7m\033[0mX", false},
+        };
+        for_each(tests, i) {
+            asserteq(
+                str_is_codes(tests[i].s),
+                tests[i].expected,
+            );
+        }
+    }
+}
 // str_is_digits
 subdesc(str_is_digits) {
     it("should detect digit-only strings") {
