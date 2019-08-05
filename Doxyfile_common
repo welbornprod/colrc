@@ -1,0 +1,113 @@
+QUIET                  = YES
+DOXYFILE_ENCODING      = UTF-8
+PROJECT_NAME           = ColrC
+PROJECT_NUMBER         =
+PROJECT_BRIEF          = "An easy to use C library for linux terminal colors/escape-codes."
+PROJECT_LOGO           = images/colrc-pixels.png
+OUTPUT_DIRECTORY       = docs
+CREATE_SUBDIRS         = NO
+ALLOW_UNICODE_NAMES    = NO
+OUTPUT_LANGUAGE        = English
+BRIEF_MEMBER_DESC      = YES
+REPEAT_BRIEF           = YES
+ABBREVIATE_BRIEF       = "The $name class" \
+                         "The $name widget" \
+                         "The $name file" \
+                         is \
+                         provides \
+                         specifies \
+                         contains \
+                         represents \
+                         a \
+                         an \
+                         the
+JAVADOC_AUTOBRIEF      = YES
+QT_AUTOBRIEF           = YES
+ALIASES += "pin=\param[in]"
+ALIASES += "pi=\param[in]"
+ALIASES += "pout=\param[out]"
+ALIASES += "pm=\param"
+ALIASES += "po=\param[out]"
+ALIASES += "warn=\warning"
+ALIASES += "att=\attention"
+ALIASES += "colrmacros=colr(), colr_join(), and Colr() macros"
+ALIASES += "colrmightfree=If used inside of the \colrmacros, <em>they will `free()` the result</em>.<br>Otherwise, <em>you are responsible for calling `free()`</em>.\n"
+ALIASES += "mustfree=<em>You must `free()` the memory allocated by this function.</em>\n"
+ALIASES += "mustnull=<em>must be `null`-terminated</em>.\n"
+ALIASES += "mustnullin=Input <em>must be `null`-terminated</em>.\n"
+ALIASES += "mustnotnull=<em>must not be `null`</em>.\n"
+ALIASES += "mustnotzero=<em>must not be `0`</em>.\n"
+ALIASES += "examplecode{1}=\if html_example_code \
+     <div class='examplecode'> \
+          <div class='examplecode-header'> \
+               <span class= diamond-bullet>◆&nbsp;</span> \
+               Example: \
+          </div> \
+          \code{\1}\n"
+ALIASES += "examplecodefor{2}=\if html_example_code \
+     <div class='examplecode'> \
+          <div class='examplecode-header'> \
+               <a id='\1-example' class='diamond-bullet' href='#\1-example'>◆&nbsp;</a> \
+               \1 example: \
+          </div> \
+          \code{\2}\n"
+ALIASES += "endexamplecode=\
+     \endcode \
+     </div> \
+     \endif"
+ALIASES += "endexamplecodefor=\
+     \endcode \
+     </div> \
+     \endif"
+ALIASES += "includesrc{1}=\if html_example_code \
+          <div class='included-examplecode'>\include \1</div> \
+     \else \
+     \include \1 \
+     \endif"
+OPTIMIZE_OUTPUT_FOR_C  = YES
+TOC_INCLUDE_HEADINGS   = 99
+INLINE_SIMPLE_STRUCTS  = YES
+TYPEDEF_HIDES_STRUCT   = YES
+WARN_NO_PARAMDOC       = YES
+INPUT                  = .
+EXCLUDE                = test \
+                         colr_tool.c \
+                         colr_tool.h \
+                         TODO.md
+EXCLUDE_PATTERNS       = *.py
+EXAMPLE_PATH           = examples
+EXAMPLE_PATTERNS       = *.c
+IMAGE_PATH             =
+REFERENCED_BY_RELATION = YES
+# Html settings --------------------------------------------------------------
+HTML_OUTPUT            = html
+HTML_FILE_EXTENSION    = .html
+HTML_HEADER            = doc_style/header.html
+HTML_FOOTER            = doc_style/footer.html
+HTML_STYLESHEET        = doc_style/customdoxygen.css
+HTML_COLORSTYLE_HUE    = 204
+HTML_COLORSTYLE_SAT    = 0
+HTML_COLORSTYLE_GAMMA  = 145
+DISABLE_INDEX          = YES
+GENERATE_TREEVIEW      = YES
+ENUM_VALUES_PER_LINE   = 1
+TREEVIEW_WIDTH         = 250
+# Latex settings -------------------------------------------------------------
+LATEX_OUTPUT           = latex
+COMPACT_LATEX          = YES
+LATEX_HEADER           =doc_style/header.tex
+LATEX_EXTRA_STYLESHEET =doc_style/doxygen.sty
+PDF_HYPERLINKS         = YES
+USE_PDFLATEX           = YES
+# Man page settings ----------------------------------------------------------
+MAN_OUTPUT             = man
+MAN_LINKS              = NO
+# Preprocessing settings -----------------------------------------------------
+ENABLE_PREPROCESSING   = YES
+PREDEFINED             = DEBUG=1 \
+                         _GNU_SOURCE=1 \
+                         DOXYGEN_SKIP=1
+
+# Graph settings -------------------------------------------------------------
+DOT_FONTNAME           = Arial
+INCLUDE_GRAPH          = NO

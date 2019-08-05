@@ -1,58 +1,143 @@
-/* colr_tool.h
-    Header for colr.h example implementation.
+#ifndef DOXYGEN_SKIP
+//! \file
+
+/*! Header for colr.h example implementation.
+
+    /details
     This is not required for using colr.h.
-    -Christopher Welborn 02-05-2017
+
+    \author Christopher Welborn
+    \date 02-05-2017
 */
 
 
-#ifndef _COLR_TOOL_H
-#pragma GCC diagnostic ignored "-Wunused-macros"
-#define _COLR_TOOL_H
-
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include "colr.h"
-
-#define NAME "Colr"
-#define VERSION COLR_VERSION
-#define streq(s1, s2) (!strcmp(s1, s2))
-#define argeq(arg, s1, s2) (!strcmp(arg, s1)) || (!strcmp(arg, s2))
-#define printferr(...) fprintf(stderr, __VA_ARGS__)
-
-// Maximum length for user args (fore, back, style).
-#define MAX_ARG_LEN 20
-// Maximum length for error messages.
-#define MAX_ERR_LEN 255
-// Maximum length for TEXT argument.
-#define MAX_TEXT_LEN 1024
-
-#ifdef DEBUG
-    // Debug printer.
-    #define debug(...) fprintf(stderr, __VA_ARGS__)
-#else
-    // No-op debug print.
-    #define debug(...) ((void)0)
+#ifndef COLR_TOOL_H
+#define COLR_TOOL_H
+#ifndef _GNU_SOURCE
+    #define _GNU_SOURCE
 #endif
 
-// Assumes memory allocated in a variable named `name`.
-#define print_fore_color(codename) \
-    colrfore(name, #codename, codename); \
-    printf("%s ", name);
+#include <getopt.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include "dbug.h"
+// colr.h already includes many headers that are used in the colr tool.
+#include "colr.h"
 
-typedef void (*colorext_func)(char*, char*, unsigned char);
-void debug_args(char*, char*, char*, char*);
-void example_color_build(void);
-void print_256(colorext_func);
-void print_basic(void);
-void print_rainbow_fore(void);
-void print_unrecognized_arg(const char*);
-void print_usage(const char*);
-void print_usage_full(void);
-void read_stdin_arg(char*, size_t);
-bool validate_color_arg_OLD(char*, Colors, char*);
-bool validate_color_arg(const char*, ColorNameType, const char*);
-bool validate_style_arg(Styles, char*);
-#endif // _COLR_TOOL_H
+#pragma GCC diagnostic ignored "-Wunused-macros"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-macros"
+
+#define NAME "ColrC"
+#define VERSION COLR_VERSION
+
+//! Short-hand for (x ? "true" : "false")
+#define ct_bool_str(x) (x ? "true" : "false")
+
+/*! \def ct_just_arg_str
+    Like ColorJustifyMethod_repr(), but for colr tool arguments.
+    \pi x A ColorJustify.
+*/
+#define ct_just_arg_str(x) ( \
+        x.method == JUST_LEFT ? "--ljust": \
+        x.method == JUST_RIGHT ? "--rjust": \
+        x.method == JUST_CENTER ? "--center" : \
+        "<none>" \
+    )
+
+/*! \def print_opts_repr
+    Print ColrToolOptions.
+    \pi x A ColrToolOptions to print the representation for.
+*/
+#define print_opts_repr(x) \
+    do { \
+        char* _p_o_r_s = ColrToolOptions_repr(x); \
+        printf("%s\n", _p_o_r_s); \
+        free(_p_o_r_s); \
+    } while (0)
+
+/*! \def print_repr
+    Print a representation of a ColorArg to stdout.
+    \pi x Any value with a type supported by colr_repr().
+*/
+#define print_repr(x) \
+    do { \
+        char* _pcar_valrepr = colr_repr(x); \
+        printf("%s\n", _pcar_valrepr); \
+        free(_pcar_valrepr); \
+    } while(0)
+
+/*! \def return_error
+    Print a message before returning `EXIT_FAILURE`.
+    \pi ... Arguments for `fprintf(stderr, ...)`.
+*/
+#define return_error(...) \
+    do { \
+        fprintf(stderr, __VA_ARGS__); \
+        return EXIT_FAILURE; \
+    } while (0)
+
+/*! \def return_error_if_null
+    Prints a message before returning `EXIT_FAILURE` if `x` is `NULL`/"falsey".
+    \pi x   The pointer to check.
+    \pi ... Arguments for `fprintf(stderr, ...)`.
+*/
+#define return_error_if_null(x, ...) if (!x) return_error(__VA_ARGS__)
+
+typedef struct ColrToolOptions_s {
+    // Options that are used to colorize text.
+    char* text;
+    ColorArg* fore;
+    ColorArg* back;
+    ColorArg* style;
+    ColorJustify just;
+    // A file path to read text from.
+    const char* filepath;
+    // Whether to free the ColrToolOptions.text member when exiting.
+    // It would need to be cleaned up if a file or stdin was read.
+    bool free_text;
+    // Whether to free the resulting ColorText.text member when exiting.
+    // It would need to be cleaned up if the text was rainbowized.
+    bool free_colr_text;
+    // Rainbow opts.
+    bool rainbow_fore;
+    bool rainbow_back;
+    bool rainbow_term;
+    double rainbow_freq;
+    size_t rainbow_offset;
+    // Non-colorizing options.
+    bool strip_codes;
+    // Commands.
+    bool print_back;
+    bool print_256;
+    bool print_basic;
+    bool print_rgb;
+    bool print_rgb_term;
+    bool print_rainbow;
+} ColrToolOptions;
+
+ColrToolOptions ColrToolOptions_new(void);
+char* ColrToolOptions_repr(ColrToolOptions opts);
+
+bool dir_exists(const char* dirpath);
+bool file_exists(const char* filepath);
+int parse_args(int argc, char** argv, ColrToolOptions* opts);
+bool parse_double_arg(const char* s, double* value);
+bool parse_int_arg(const char* s, int* value);
+bool parse_size_arg(const char* s, size_t* value);
+int print_256(bool do_back);
+int print_basic(bool do_back);
+int print_rainbow(bool do_back);
+int print_rgb(bool do_back, bool term_rgb);
+void print_unrecognized_arg(const char* userarg);
+int print_usage(const char* reason);
+int print_usage_full(void);
+int print_version(void);
+ColorText* rainbowize(ColrToolOptions* opts);
+char* read_file(FILE* fp);
+char* read_file_arg(const char* filepath);
+char* read_stdin_arg(void);
+int strip_codes(ColrToolOptions* opts);
+bool validate_color_arg(ColorArg carg, const char* name);
+#endif // COLR_TOOL_H
+#endif // DOXYGEN_SKIP
