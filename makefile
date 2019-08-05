@@ -57,7 +57,7 @@ latex_files=\
 	$(wildcard $(latex_dir)/*.pyg) $(latex_dir)/refman.pdf
 examples_dir=examples
 examples_source=$(wildcard $(examples_dir)/*.c)
-valgrind_cmd=bash tools/run_valgrind.sh
+valgrind_cmd=bash tools/valgrind_run.sh
 
 .PHONY: all, coverage, debug, release, release2
 all: debug
