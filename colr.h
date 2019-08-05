@@ -1295,7 +1295,11 @@ void format_style(char* out, StyleValue style);
 /*! A function type that knows how to fill a string with an rgb escape code.
 */
 typedef void (*RGB_fmter)(char* out, RGB rgb);
-char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t step);
+/*! A function type that knows how to create rainbowized text.
+*/
+typedef char* (*rainbow_creator)(const char* s, double freq, size_t offset);
+
+char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset);
 /*! \internal
     Rainbow-related functions.
     \endinternal
@@ -1304,7 +1308,7 @@ char* rainbow_fg(const char* s, double freq, size_t offset);
 char* rainbow_fg_term(const char* s, double freq, size_t offset);
 char* rainbow_bg(const char* s, double freq, size_t offset);
 char* rainbow_bg_term(const char* s, double freq, size_t offset);
-RGB rainbow_step(double freq, size_t step);
+RGB rainbow_step(double freq, size_t offset);
 
 /*! \internal
     String-based functions.
@@ -1323,14 +1327,13 @@ bool str_is_digits(const char* s);
 char* str_ljust(const char* s, const char padchar, int width);
 void str_lower(char* s);
 char* str_lstrip_chars(const char* s, const char* chars);
+size_t str_mb_len(const char* s);
 size_t str_noncode_len(const char* s);
 char* str_repr(const char* s);
 char* str_rjust(const char* s, const char padchar, int width);
 bool str_starts_with(const char* s, const char* prefix);
 char* str_strip_codes(const char* s);
 char* str_to_lower(const char* s);
-wchar_t* str_to_wide(const char* s);
-char* wide_to_str(const wchar_t* s);
 
 /*! \internal
     The multi-type variadiac function behind the colr() macro.

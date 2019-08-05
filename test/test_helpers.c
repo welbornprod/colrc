@@ -603,6 +603,30 @@ subdesc(str_lstrip_chars) {
         }
     }
 }
+// str_mb_len
+subdesc(str_mb_len) {
+    it("counts single an multi-byte chars") {
+        struct {
+            char* s;
+            size_t expected;
+        } tests[] = {
+            {NULL, 0},
+            {"", 0},
+            {" ", 1},
+            {"\n\n", 2},
+            {"⮰⮱⮲⮳⮴⮵⮶⮷", 8},
+            {"⮰test", 5},
+            {"⮵test", 5},
+            {"⮰test⮵", 6},
+            {"⇇ ⇈ ⇉ ⇊ ⇶ ⬱ ⮄ ⮅ ⮆ ⮇ ⮔", 21},
+        };
+        setlocale(LC_ALL, "");
+        for_each(tests, i) {
+            size_t length = str_mb_len(tests[i].s);
+            assert_size_eq_repr(length, tests[i].expected, tests[i].s);
+        }
+    }
+}
 // str_noncode_len
 subdesc(str_noncode_len) {
     it("counts non-escape-code chars") {

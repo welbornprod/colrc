@@ -410,6 +410,7 @@ const size_t ext2rgb_map_len = sizeof(ext2rgb_map) / sizeof(ext2rgb_map[0]);
 */
 char char_escape_char(const char c) {
     switch (c) {
+        // 0 is a special case for char_repr().
         case '\0': return '0';
         case '\'': return '\'';
         case '\"': return '"';
@@ -550,6 +551,7 @@ char* char_repr(char c) {
 */
 bool char_should_escape(const char c) {
     switch (c) {
+        // 0 is a special case for char_repr().
         case '\0': return true;
         case '\'': return true;
         case '\"': return true;
@@ -580,7 +582,6 @@ char* colr_empty_str(void) {
     s[0] = '\0';
     return s;
 }
-
 
 /*! Determine whether the current environment support RGB (True Colors).
 
@@ -806,6 +807,10 @@ void str_append_reset(char *s) {
     if (s[0] == '\0') {
         // Special case, an empty string, with room for CODE_RESET_ALL.
         snprintf(s, CODE_RESET_LEN, "%s", CODE_RESET_ALL);
+        return;
+    }
+    if (str_ends_with(s, CODE_RESET_ALL)) {
+        // Already has one.
         return;
     }
     size_t length = strlen(s);
@@ -1172,6 +1177,30 @@ char* str_lstrip_chars(const char* s, const char* chars) {
     return result;
 }
 
+
+/*! Returns the number of characters in a string, taking into account possibly
+    multi-byte characters.
+
+    \pi s The string to get the length of.
+    \return The number of characters, single and multi-byte, or `0` if \p s is
+            `NULL`, empty, or has invalid multibyte sequences.
+*/
+size_t str_mb_len(const char* s) {
+    if ((!s) || (s[0] == '\0')) return 0;
+    int i = 0;
+    int next_len = 0;
+    size_t total = 0;
+    while ((next_len = mblen(s + i, 6))) {
+        if (next_len < 0) {
+            dbug("Invalid multibyte sequence at: %d\n", i);
+            return 0;
+        }
+        i += next_len;
+        total++;
+    }
+    return total;
+}
+
 /*! Returns the length of string, ignoring escape codes and the the null-terminator.
 
     \pi s   String to get the length for.
@@ -1394,93 +1423,6 @@ char* str_to_lower(const char* s) {
         out[i] = tolower(s[i]);
         i++;
     }
-    return out;
-}
-
-/*! Converts a regular string (with possible multibyte characters) into a
-    `wchar_t*` string.
-
-    \details
-    In order for str_to_wide() and wide_to_str() to work correctly, a call to
-    `setlocale()` must be made, at least once, preferably at the beginning of
-    the program, before calling these functions.
-
-    \pi s   The string to convert.
-    \return An allocated wide char string with the result.\n
-            \mustfree
-
-    \examplecodefor{str_to_wide,.c}
-    #include "colr.h"
-
-    int main(void) {
-        setlocale(LC_ALL, "");
-        char* s = "This string has multibyte chars: ◯ →";
-        wchar_t* w;
-        w = str_to_wide(s);
-        wprintf(L"%ls\n", w);
-
-        wprintf(L"This is not the character we wanted: '%c'\n", s[35]);
-        // That last print actually removed some of the characters.
-        wprintf(L"\nIt was this one: '%lc'\n", w[35]);
-        free(w);
-    }
-    \endexamplecode
-*/
-wchar_t* str_to_wide(const char* s) {
-    mbstate_t state;
-    memset(&state, 0, sizeof(state));
-    size_t wlen = mbsrtowcs(NULL, &s, 0, &state);
-    if (wlen == (size_t) - 1) {
-        dbug("Error converting to wide-chars for length: %s\n", strerror(errno));
-        return NULL;
-    }
-    wlen++;
-    wchar_t* out = calloc(wlen, sizeof(wchar_t));
-    if (mbsrtowcs(out, &s, wlen, &state) == (size_t) - 1) {
-        dbug("Error converting to wide-chars: %s\n", strerror(errno));
-        return NULL;
-    }
-    return out;
-}
-
-/*! Converts a wide character string (with possible multibyte characters)
-    into a regular (`char*`) string.
-
-    \details
-    In order for str_to_wide() and wide_to_str() to work correctly, a call to
-    `setlocale()` must be made, at least once, preferably at the beginning of
-    the program, before calling these functions.
-
-    \pi s   The wide character string to convert.
-    \return An allocated string (`char*`) with the result.\n
-            \mustfree
-
-    \examplecodefor{wide_to_str,.c}
-    #include "colr.h"
-
-    int main(void) {
-        setlocale(LC_ALL, "");
-        wchar_t* w = L"This string has multibyte chars: ◯ →";
-        char* s;
-        s = wide_to_str(w);
-        printf("%s\n", s);
-        printf("This is not the character we wanted though: %c\n", s[35]);
-        printf("It was this one: %lc\n", w[35]);
-        free(s);
-    }
-    \endexamplecode
-*/
-char* wide_to_str(const wchar_t* s) {
-    mbstate_t state;
-    memset(&state, 0, sizeof(state));
-    size_t len = wcsrtombs(NULL, &s, 0, &state);
-    if (len == (size_t) - 1) {
-        dbug("Error converting wide-chars to str: %s\n", strerror(errno));
-        return NULL;
-    }
-    len++;
-    char* out = calloc(len, sizeof(char));
-    wcsrtombs(out, &s, len, &state);
     return out;
 }
 
@@ -3988,34 +3930,31 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
     }
     if (!offset) offset = 3;
     if (freq < 0.1) freq = 0.1;
-    // TODO: There are at least 3 iterations of this string to account for
-    //       unicode characters. It would be nice to do the conversion on the
-    //       fly, prepending RGB codes along the way.
-    wchar_t* chars = str_to_wide(s);
-    // str_to_wide prints a debug message on failure.
-    if (!chars) return NULL;
 
-    size_t charlen = wcslen(chars);
+    size_t mb_len = str_mb_len(s);
+    if (mb_len == 0) return NULL;
+
     // There is an RGB code for every wide character in the string.
-    size_t total_size = charlen + (CODE_RGB_LEN * charlen);
-    wchar_t* wc_out = calloc(total_size, sizeof(wchar_t));
+    size_t total_size = mb_len + (CODE_RGB_LEN * mb_len);
+    char* out = calloc(total_size, sizeof(char));
+    if (!out) return NULL;
 
     char codes[CODE_RGB_LEN];
-    wchar_t wcodes[CODE_RGB_LEN];
-    // Enough room for the escape code and one character.
-    size_t singlecharlen = CODE_RGB_LEN + 1;
-    wchar_t singlewchar[singlecharlen];
-    for (size_t i = 0; i < charlen; i++) {
+    // Enough room for one (possibly multi-byte) character.
+    size_t mb_char_len = 6;
+    char mb_char[mb_char_len + 1];
+    // Iterate over each multi-byte character.
+    size_t i = 0;
+    int char_len = 0;
+    while ((char_len = mblen(s + i, mb_char_len))) {
         fmter(codes, rainbow_step(freq, offset + i));
-        swprintf(wcodes, CODE_RGB_LEN, L"%s", codes);
-        swprintf(singlewchar, singlecharlen, L"%ls%c", wcodes, chars[i]);
-        wcscat(wc_out, singlewchar);
+        strcat(out, codes);
+        snprintf(mb_char, char_len + 1, "%s", s + i);
+        strcat(out, mb_char);
+        i += char_len;
     }
-    free(chars);
-    wcsncat(wc_out, WCODE_RESET_ALL, CODE_RESET_LEN);
+    strcat(out, CODE_RESET_ALL);
 
-    char* out = wide_to_str(wc_out);
-    free(wc_out);
     return out;
 }
 
@@ -4023,11 +3962,11 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
     an RGB value.
 
     \pi freq Frequency ("tightness") of the colors.
-    \pi step Starting offset in the rainbow.
+    \pi offset Starting offset in the rainbow.
 
     \return  An RGB value with the next "step" in the "rainbow".
 */
-RGB rainbow_step(double freq, size_t step) {
+RGB rainbow_step(double freq, size_t offset) {
     /*  A note about the libm (math.h) dependency:
 
         libm's sin() function works on every machine, gives better results
@@ -4047,8 +3986,8 @@ RGB rainbow_step(double freq, size_t step) {
                 return res;
             }
     */
-    double redval = sin(freq * step + 0) * 127 + 128;
-    double greenval = sin(freq * step + 2 * M_PI / 3) * 127 + 128;
-    double blueval = sin(freq * step + 4 * M_PI / 3) * 127 + 128;
+    double redval = sin(freq * offset + 0) * 127 + 128;
+    double greenval = sin(freq * offset + 2 * M_PI / 3) * 127 + 128;
+    double blueval = sin(freq * offset + 4 * M_PI / 3) * 127 + 128;
     return rgb(redval, greenval, blueval);
 }

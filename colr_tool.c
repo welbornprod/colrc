@@ -51,6 +51,7 @@ int main(int argc, char* argv[]) {
     ctext->just = opts.just;
     // dbug_repr("Using", *ctext);
     char* text = ColorText_to_str(*ctext);
+    if (opts.free_colr_text) free(ctext->text);
     if (!text) {
         ColorText_free(ctext);
         return_error("Failed to allocate for colorized string!\n");
@@ -62,7 +63,9 @@ int main(int argc, char* argv[]) {
         if (opts.free_text) free(opts.text);
         return EXIT_FAILURE;
     }
-    printf("%s\n", text);
+    printf("%s", text);
+    if (!str_ends_with(text, "\n" CODE_RESET_ALL)) printf("\n");
+
     free(text);
     if (opts.free_text) free(opts.text);
     return EXIT_SUCCESS;
@@ -77,9 +80,12 @@ ColrToolOptions ColrToolOptions_new(void) {
         .just=ColorJustify_empty(),
         .filepath=NULL,
         .free_text=false,
+        .free_colr_text=false,
         .rainbow_fore=false,
         .rainbow_back=false,
         .rainbow_term=false,
+        .rainbow_freq=0.1,
+        .rainbow_offset=3,
         .strip_codes=false,
         .print_back=false,
         .print_256=false,
@@ -109,9 +115,12 @@ char* ColrToolOptions_repr(ColrToolOptions opts) {
     .just=%s,\n\
     .filepath=%s,\n\
     .free_text=%s,\n\
+    .free_colr_text=%s,\n\
     .rainbow_fore=%s,\n\
     .rainbow_back=%s,\n\
     .rainbow_term=%s,\n\
+    .rainbow_freq=%lf,\n\
+    .rainbow_offset=%lu,\n\
     .strip_codes=%s,\n\
     .print_back=%s,\n\
     .print_256=%s,\n\
@@ -127,9 +136,12 @@ char* ColrToolOptions_repr(ColrToolOptions opts) {
         just_repr ? just_repr : "<couldn't allocate repr>",
         file_repr ? file_repr : "NULL",
         ct_bool_str(opts.free_text),
+        ct_bool_str(opts.free_colr_text),
         ct_bool_str(opts.rainbow_fore),
         ct_bool_str(opts.rainbow_back),
         ct_bool_str(opts.rainbow_term),
+        opts.rainbow_freq,
+        opts.rainbow_offset,
         ct_bool_str(opts.strip_codes),
         ct_bool_str(opts.print_back),
         ct_bool_str(opts.print_256),
@@ -208,6 +220,9 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
             {"rjust", required_argument, 0, 'r'},
             {"center", required_argument, 0, 'c'},
             {"stripcodes", no_argument, 0, 'x'},
+            // Rainbow options.
+            {"frequency", required_argument, 0, 'q'},
+            {"offset", required_argument, 0, 'o'},
             // Commands.
             {"basic", no_argument, 0, 0 },
             {"basicbg", no_argument, 0, 0 },
@@ -217,15 +232,24 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
             {"rainbowbg", no_argument, 0, 0},
             {"rgb", no_argument, 0, 0},
             {"rgbbg", no_argument, 0, 0},
-            {"termrgb", no_argument, 0, 0},
-            {"termrgbbg", no_argument, 0, 0},
+            {"rgbterm", no_argument, 0, 0},
+            {"rgbtermbg", no_argument, 0, 0},
             {0, 0, 0, 0}
         };
 
-        c = getopt_long(argc, argv, "hvxF:f:b:s:l:r:c:", long_options, &option_index);
+        c = getopt_long(
+            argc,
+            argv,
+            "hvxF:f:b:s:l:r:c:q:o:",
+            long_options,
+            &option_index
+        );
         if (c == -1) break;
 
-        int justargval;
+        int argval_just;
+        double argval_freq;
+        size_t argval_offset;
+
         switch (c) {
             case 0:
                 if (colr_streq(long_options[option_index].name, "basic")) {
@@ -286,12 +310,12 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
                     printferr("Justification was already set with: %s\n", ct_just_arg_str(opts->just));
                     return EXIT_FAILURE;
                 }
-                if (!parse_int_arg(optarg, &justargval)) {
+                if (!parse_int_arg(optarg, &argval_just)) {
                     printferr("Invalid number for --center: %s\n", optarg);
                     return EXIT_FAILURE;
                 }
                 opts->just.method = JUST_CENTER;
-                opts->just.width = justargval;
+                opts->just.width = argval_just;
                 break;
             case 'F':
                 if (colr_streq(optarg, "-")) {
@@ -323,24 +347,44 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
                     printferr("Justification was already set with: %s\n", ct_just_arg_str(opts->just));
                     return EXIT_FAILURE;
                 }
-                if (!parse_int_arg(optarg, &justargval)) {
+                if (!parse_int_arg(optarg, &argval_just)) {
                     printferr("Invalid number for --ljust: %s\n", optarg);
                     return EXIT_FAILURE;
                 }
                 opts->just.method = JUST_LEFT;
-                opts->just.width = justargval;
+                opts->just.width = argval_just;
+                break;
+            case 'o':
+                if (!parse_size_arg(optarg, &argval_offset)) {
+                    printferr("Invalid value for --offset: %s\n", optarg);
+                    return EXIT_FAILURE;
+                }
+                opts->rainbow_offset = argval_offset;
+                break;
+            case 'q':
+                if (!parse_double_arg(optarg, &argval_freq)) {
+                    printferr("Invalid value for --frequency: %s\n", optarg);
+                    return EXIT_FAILURE;
+                }
+                // Clamp the value, because it produces ugly results.
+                if (argval_freq < 0.1) {
+                    argval_freq = 0.1;
+                } else if (argval_freq > 1.0) {
+                    argval_freq = 1.0;
+                }
+                opts->rainbow_freq = argval_freq;
                 break;
             case 'r':
                 if (opts->just.method != JUST_NONE) {
                     printferr("Justification was already set with: %s\n", ct_just_arg_str(opts->just));
                     return EXIT_FAILURE;
                 }
-                if (!parse_int_arg(optarg, &justargval)) {
+                if (!parse_int_arg(optarg, &argval_just)) {
                     printferr("Invalid number for --rjust: %s\n", optarg);
                     return EXIT_FAILURE;
                 }
                 opts->just.method = JUST_RIGHT;
-                opts->just.width = justargval;
+                opts->just.width = argval_just;
                 break;
             case 's':
                 opts->style = style(optarg);
@@ -409,8 +453,6 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
     if (!opts->back) opts->back = ColorArg_to_ptr(ColorArg_empty());
     if (!opts->style) opts->style = ColorArg_to_ptr(ColorArg_empty());
 
-    // Default to stdin.
-    if (!(opts->text || opts->filepath)) opts->text = "-";
 
     // Fill text with stdin if a marker argument was used.
     if (colr_streq(opts->text, "-")) {
@@ -430,7 +472,27 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
             return EXIT_FAILURE;
         }
     }
+    if (!opts->text) {
+        printferr("\nNo text to work with!\n");
+        return EXIT_FAILURE;
+    }
     return -1;
+}
+
+/*! Parse a user argument as a double, and set `value` to the parsed double
+    value.
+
+    \details
+    On error, a message is printed and `false` is returned.
+
+    \pi s        A string to parse.
+    \po value    Pointer to a double, to set the final double value.
+    \return      `true` on success, with `value` set, otherwise `false`.
+*/
+bool parse_double_arg(const char* s, double* value) {
+    if (!s || s[0] == '\0') return false;
+    if (sscanf(s, "%lf", value) != 1) return false;
+    return true;
 }
 
 /*! Parse a user argument as an integer, and set `value` to the parsed integer
@@ -446,6 +508,21 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
 bool parse_int_arg(const char* s, int* value) {
     if (!s || s[0] == '\0') return false;
     return sscanf(s, "%d", value) == 1;
+}
+
+/*! Parse a user argument as a size_t, and set `value` to the parsed value.
+    value.
+
+    \details
+    On error, a message is printed and `false` is returned.
+
+    \pi s        A string to parse.
+    \po value    Pointer to a size_t, to set the final integer value.
+    \return      `true` on success, with `value` set, otherwise `false`.
+*/
+bool parse_size_arg(const char* s, size_t* value) {
+    if (!s || s[0] == '\0') return false;
+    return sscanf(s, "%lu", value) == 1;
 }
 
 /*! Print the 256 color range using either colrfgx or colorbgx.
@@ -597,9 +674,9 @@ int print_usage(const char* reason) {
         colr --basic | --256 | --rainbow | --rgb | --termrgb\n\
         colr -x [TEXT]\n\
         colr [TEXT] [FORE | -f color] [BACK | -b color] [STYLE | -s style]\n\
-             [-c num | -l num | -r num]\n\
+             [-c num | -l num | -r num] [-o num] [-q num]\n\
         colr [-F file] [FORE | -f color] [BACK | -b color] [STYLE | -s style]\n\
-             [-c num | -l num | -r num]\n\
+             [-c num | -l num | -r num] [-o num] [-q num]\n\
     ", NAME, VERSION);
     return EXIT_SUCCESS;
 }
@@ -621,32 +698,43 @@ int print_usage_full() {
     If 'bg' is appended to a command argument, back colors will be used.\n\
 \n\
     Options:\n\
-        TEXT                 : Text to colorize.\n\
-                               Use \"-\" or \"-F -\" to force stdin.\n\
-                               Default: stdin\n\
-        FORE                 : Fore color name/value for text.\n\
-                               If set to 'rainbow', the text will be rainbowized.\n\
-                               If set to 'rainbowterm', 256-color codes are used,\n\
-                               instead of RGB.\n\
-        BACK                 : Back color name/value for text.\n\
-                               If set to 'rainbow', the back colors will be rainbowized.\n\
-                               If set to 'rainbowterm', 256-color codes are used,\n\
-                               instead of RGB.\n\
-        STYLE                : Style name for text.\n\
-        -b val,--back val    : Specify the back color explicitly, in any order.\n\
-        -c num,--center num  : Center-justify the resulting text using the specified width.\n\
-                               If \"0\" is given, the terminal-width will be used.\n\
-        -F file,--file file  : Read text from a file.\n\
-                               Use \"-F -\" to force stdin.\n\
-        -f val,--fore val    : Specify the fore color explicitly, in any order.\n\
-        -h, --help           : Print this message and exit.\n\
-        -l num,--ljust num   : Left-justify the resulting text using the specified width.\n\
-                               If \"0\" is given, the terminal-width will be used.\n\
-        -r num,--rjust num   : Right-justify the resulting text using the specified width.\n\
-                               If \"0\" is given, the terminal-width will be used.\n\
-        -s val,--style val   : Specify the style explicitly, in any order.\n\
-        -v,--version         : Show version and exit.\n\
-        -x,--stripcodes      : Strip escape codes from the text.\n\
+        TEXT                    : Text to colorize.\n\
+                                  Use \"-\" or \"-F -\" to force stdin.\n\
+                                  Default: stdin\n\
+        FORE                    : Fore color name/value for text.\n\
+                                  If set to 'rainbow', the text will be rainbowized.\n\
+                                  If set to 'rainbowterm', 256-color codes are used,\n\
+                                  instead of RGB.\n\
+        BACK                    : Back color name/value for text.\n\
+                                  If set to 'rainbow', the back colors will be rainbowized.\n\
+                                  If set to 'rainbowterm', 256-color codes are used,\n\
+                                  instead of RGB.\n\
+        STYLE                   : Style name for text.\n\
+        -b val,--back val       : Specify the back color explicitly, in any order.\n\
+        -c num,--center num     : Center-justify the resulting text using the specified width.\n\
+                                  If \"0\" is given, the terminal-width will be used.\n\
+        -F file,--file file     : Read text from a file.\n\
+                                  Use \"-F -\" to force stdin.\n\
+        -f val,--fore val       : Specify the fore color explicitly, in any order.\n\
+        -h, --help              : Print this message and exit.\n\
+        -l num,--ljust num      : Left-justify the resulting text using the specified width.\n\
+                                  If \"0\" is given, the terminal-width will be used.\n\
+        -o num,--offset num     : Starting offset into the rainbow if \"rainbow\"\n\
+                                  is used as a fore/back color.\n\
+                                  This will \"shift\" the starting color of the\n\
+                                  rainbow.\n\
+                                  Values must be 0 or positive.\n\
+                                  Default: 3\n\
+        -q num,--frequency num  : Frequency when \"rainbow\" is used as a fore/back color.\n\
+                                  Higher numbers cause more contrast.\n\
+                                  Lower numbers cause \"smoother\" gradients.\n\
+                                  Values can be: 0.1-1.0\n\
+                                  Default: 0.1\n\
+        -r num,--rjust num      : Right-justify the resulting text using the specified width.\n\
+                                  If \"0\" is given, the terminal-width will be used.\n\
+        -s val,--style val      : Specify the style explicitly, in any order.\n\
+        -v,--version            : Show version and exit.\n\
+        -x,--stripcodes         : Strip escape codes from the text.\n\
 \n\
     When the flag arguments are used (-f, -b, -s), the order does not matter\n\
     and any of them may be omitted. The remaining non-flag arguments are parsed\n\
@@ -677,25 +765,18 @@ int print_version(void) {
 */
 ColorText* rainbowize(ColrToolOptions* opts) {
     bool do_term_rainbow = opts->rainbow_term || !colr_supports_rgb();
-    // TODO: User args for these freq and offet values.
-    double freq = 0.1;
-    double offset = 3;
-    char* rainbowized = (
+    rainbow_creator func = (
         do_term_rainbow ?
-            (opts->rainbow_fore ?
-                rainbow_fg_term(opts->text, freq, offset) :
-                rainbow_bg_term(opts->text, freq, offset)
-            ) :
-            (opts->rainbow_fore ?
-                rainbow_fg(opts->text, freq, offset) :
-                rainbow_bg(opts->text, freq, offset)
-            )
+            (opts->rainbow_fore ? rainbow_fg_term : rainbow_bg_term) :
+            (opts->rainbow_fore ? rainbow_fg : rainbow_bg)
     );
+    char* rainbowized = func(opts->text, opts->rainbow_freq, opts->rainbow_offset);
     // Text was allocated from stdin input, it's safe to free.
     if (opts->free_text) {
         free(opts->text);
         opts->text = NULL;
     }
+    opts->free_colr_text = true;
     // Some or all of the fore/back/style args are "empty" (not null).
     // They will not be used if they are empty, but they will be free'd.
     return Colr(
