@@ -38,7 +38,7 @@
 #endif
 
 //! Current version for ColrC.
-#define COLR_VERSION "0.2.3"
+#define COLR_VERSION "0.3.0"
 
 #ifndef DOXYGEN_SKIP
 /*! \def IS_C11
@@ -166,15 +166,20 @@
 */
 #define COLORARG_MARKER UINT_MAX
 
+/*! Marker for the ColorArgSet struct, for identifying a void pointer as a
+    ColorArgSet.
+*/
+#define COLORARGSET_MARKER (UINT_MAX - 10)
+
 /*! Marker for the ColorJustify struct, for identifying a void pointer as a
     ColorJustify.
 */
-#define COLORJUSTIFY_MARKER (UINT_MAX - 10)
+#define COLORJUSTIFY_MARKER (UINT_MAX - 20)
 
 /*! Marker for the ColorText struct, for identifying a void pointer as a
     ColorText.
 */
-#define COLORTEXT_MARKER (UINT_MAX - 20)
+#define COLORTEXT_MARKER (UINT_MAX - 30)
 
 /*! Possible error return value for BasicValue_from_str(), ExtendedValue_from_str(),
     and colorname_to_rgb().
@@ -428,7 +433,7 @@
     )
 
 /*! \def Colr
-    Returns a heap-allocated ColorText object that can be used by itself,
+    Returns a heap-allocated ColorText struct that can be used by itself,
     or with the colr() macro.
 
     \details
@@ -445,6 +450,7 @@
 */
 #define Colr(text, ...) ColorText_to_ptr(ColorText_from_values(text, __VA_ARGS__, NULL))
 
+
 /*! \def Colr_center
     Sets the JustifyMethod for a ColorText while allocating it.
 
@@ -457,7 +463,7 @@
 */
 #define Colr_center(text, justwidth, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
-        (ColorJustify){.method=JUST_CENTER, .width=justwidth, .padchar=' '} \
+        (ColorJustify){.method=JUST_CENTER, .width=justwidth, .padchar=' ', ._ref_count=-1} \
     )
 
 /*! \def Colr_ljust
@@ -472,7 +478,7 @@
 */
 #define Colr_ljust(text, justwidth, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
-        (ColorJustify){.method=JUST_LEFT, .width=justwidth, .padchar=' '} \
+        (ColorJustify){.method=JUST_LEFT, .width=justwidth, .padchar=' ', ._ref_count=-1} \
     )
 
 /*! \def Colr_rjust
@@ -487,7 +493,7 @@
 */
 #define Colr_rjust(text, justwidth, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
-        (ColorJustify){.method=JUST_RIGHT, .width=justwidth, .padchar=' '} \
+        (ColorJustify){.method=JUST_RIGHT, .width=justwidth, .padchar=' ', ._ref_count=-1} \
     )
 
 /*! \def colr
@@ -1203,6 +1209,10 @@ typedef struct ColorJustify_s {
     int width;
     //! The desired padding character, or `0` to use the default (`' '`).
     char padchar;
+    /*! A reference count, used internally to automatically free() resources.
+        If less than 0, free() is never called.
+    */
+    int _ref_count;
 } ColorJustify;
 
 //! Holds an ArgType, and a ColorValue.
@@ -1213,7 +1223,30 @@ typedef struct ColorArg_s {
     ArgType type;
     //! Color type and value.
     ColorValue value;
+    /*! A reference count, used internally to automatically free() resources.
+        If less than 0, free() is never called.
+    */
+    int _ref_count;
 } ColorArg;
+
+//! Holds ColorArgs and an optional ColorJustify, for use with colr() and Colr().
+typedef struct ColorArgSet_s {
+    //! A marker used to inspect void pointers and determine if they are ColorArgSets.
+    unsigned int marker;
+    // Pointers are used for compatibility with the fore(), back(), and style() macros.
+    //! ColorArg for fore color. Can be `NULL`.
+    ColorArg *fore;
+    //! ColorArg for back color. Can be `NULL`.
+    ColorArg *back;
+    //! ColorArg for style value. Can be `NULL`.
+    ColorArg *style;
+    //! ColorJustify info, set to JUST_NONE by default.
+    ColorJustify just;
+    /*! A reference count, used internally to automatically free() resources.
+        If less than 0, free() is never called.
+    */
+    int _ref_count;
+} ColorArgSet;
 
 //! Holds a string of text, and optional fore, back, and style ColorArgs.
 typedef struct ColorText_s {
@@ -1230,6 +1263,10 @@ typedef struct ColorText_s {
     ColorArg *style;
     //! ColorJustify info, set to JUST_NONE by default.
     ColorJustify just;
+    /*! A reference count, used internally to automatically free() resources.
+        If less than 0, free() is never called.
+    */
+    int _ref_count;
 } ColorText;
 
 //! Holds a terminal size, usually retrieved with colr_term_size().
@@ -1378,12 +1415,25 @@ ColorArg* ColorArg_to_ptr(ColorArg carg);
 char* ColorArg_to_str(ColorArg carg);
 
 /*! \internal
+    ColorArgSet functions that deal with ColorArg/ColorJustify arg sets.
+    \endinternal
+*/
+ColorArgSet ColorArgSet_empty(void);
+ColorArgSet ColorArgSet_from_values(void *p, ...);
+bool ColorArgSet_is_empty(ColorArgSet cargs);
+bool ColorArgSet_is_ptr(void* p);
+size_t ColorArgSet_length(ColorArgSet cargs);
+char* ColorArgSet_repr(ColorArgSet cargs);
+char* ColorArgSet_to_str(ColorArgSet cargs);
+
+/*! \internal
     ColorJustify functions that deal with colr/string justification.
     \endinternal
 */
 ColorJustify ColorJustify_empty(void);
 bool ColorJustify_eq(ColorJustify a, ColorJustify b);
 bool ColorJustify_is_empty(ColorJustify cjust);
+bool ColorJustify_is_ptr(void* p);
 ColorJustify ColorJustify_new(ColorJustifyMethod method, int width, char padchar);
 char* ColorJustify_repr(ColorJustify cjust);
 char* ColorJustifyMethod_repr(ColorJustifyMethod meth);
@@ -1491,8 +1541,19 @@ static_assert(
 static_assert(
     (
         COLORARG_MARKER &&
-        (COLORJUSTIFY_MARKER && (COLORJUSTIFY_MARKER != COLORARG_MARKER)) &&
-        (COLORTEXT_MARKER && (COLORTEXT_MARKER != COLORJUSTIFY_MARKER))
+        (COLORARGSET_MARKER &&
+            (COLORARGSET_MARKER != COLORARG_MARKER) &&
+            (COLORARGSET_MARKER != COLORJUSTIFY_MARKER) &&
+            (COLORARGSET_MARKER != COLORTEXT_MARKER)
+        ) &&
+        (COLORJUSTIFY_MARKER &&
+            (COLORJUSTIFY_MARKER != COLORARG_MARKER) &&
+            (COLORJUSTIFY_MARKER != COLORTEXT_MARKER)
+        ) &&
+        (COLORTEXT_MARKER &&
+            (COLORTEXT_MARKER != COLORARG_MARKER) &&
+            (COLORTEXT_MARKER != COLORJUSTIFY_MARKER)
+        )
     ),
     "Markers must be positive and unique for each struct in Colr!"
 );
