@@ -33,4 +33,23 @@ int main(void) {
     printf("%s\n", final);
     free(final);
 
+    /*
+        Arrays of ColorText, ColorArgs, or strings can be used with
+        colr_join_array().
+    */
+    char* joiner = " [and] ";
+    ColorText* words[] = {
+        Colr("this", fore(RED)),
+        Colr("that", fore(hex("ff3599"))),
+        Colr("the other", fore(BLUE), style(UNDERLINE)),
+        // The last member must be NULL.
+        NULL
+    };
+    char* s = colr_join_array(joiner, words);
+    printf("%s\n", s);
+    free(s);
+
+    // Don't forget to free your ColorTexts/ColorArgs.
+    size_t i = 0;
+    while (words[i]) ColorText_free(words[i++]);
 }

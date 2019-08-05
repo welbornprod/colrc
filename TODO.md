@@ -1,8 +1,8 @@
 # ColrC Todo List
 
 ## Features
-
 [ ] Allow "rainbow" as an official color name for `ColorText`.
+[ ] colr_join_arrayn() (like colr_join_array() with a length, instead of a NULL element).
 
 ## Missing Features From Colr.py
 [ ] --listcodes, list escape codes found in text.

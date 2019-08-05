@@ -458,7 +458,7 @@
 */
 #define Colr_center(text, justwidth, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
-        (ColorJustify){.method=JUST_CENTER, .width=justwidth, .padchar=' ', ._ref_count=-1} \
+        (ColorJustify){.method=JUST_CENTER, .width=justwidth, .padchar=' '} \
     )
 
 /*! \def Colr_ljust
@@ -473,7 +473,7 @@
 */
 #define Colr_ljust(text, justwidth, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
-        (ColorJustify){.method=JUST_LEFT, .width=justwidth, .padchar=' ', ._ref_count=-1} \
+        (ColorJustify){.method=JUST_LEFT, .width=justwidth, .padchar=' '} \
     )
 
 /*! \def Colr_rjust
@@ -488,7 +488,7 @@
 */
 #define Colr_rjust(text, justwidth, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
-        (ColorJustify){.method=JUST_RIGHT, .width=justwidth, .padchar=' ', ._ref_count=-1} \
+        (ColorJustify){.method=JUST_RIGHT, .width=justwidth, .padchar=' '} \
     )
 
 /*! \def colr
@@ -602,6 +602,7 @@
     \example colr_join_example.c
 */
 #define colr_join(joiner, ...) _colr_join(joiner, __VA_ARGS__, NULL)
+
 
 /*! \def colr_max
     Macro for `(a > b ? a : b)`.
@@ -1340,14 +1341,21 @@ char* str_to_lower(const char* s);
     The multi-type variadiac function behind the colr() macro.
     \endinternal
 */
-size_t _colr_length(void *p, va_list args);
-char* _colr(void *p, ...);
+size_t _colr_length(void* p, va_list args);
+char* _colr(void* p, ...);
 /*! \internal
     The multi-type variadiac function behind the colr_join() macro.
     \endinternal
 */
 size_t _colr_join_length(void* joinerp, va_list args);
 char* _colr_join(void* joinerp, ...);
+
+/*! \internal
+    The multi-type variadiac function behind the colr_join_array() macro.
+    \endinternal
+*/
+size_t _colr_join_array_length(void* joinerp, void* ps);
+char* colr_join_array(void* joinerp, void* ps);
 
 /*! \internal
     ArgType functions that only deal with argument types (fore, back, style).
@@ -1362,16 +1370,16 @@ char* ArgType_to_str(ArgType type);
 */
 ColorArg ColorArg_empty(void);
 bool ColorArg_eq(ColorArg a, ColorArg b);
-void ColorArg_free(ColorArg *p);
+void ColorArg_free(ColorArg* p);
 ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value);
 ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value);
 ColorArg ColorArg_from_RGB(ArgType type, RGB value);
 ColorArg ColorArg_from_str(ArgType type, char* colorname);
 ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value);
-ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p);
+ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void* p);
 bool ColorArg_is_empty(ColorArg carg);
 bool ColorArg_is_invalid(ColorArg carg);
-bool ColorArg_is_ptr(void *p);
+bool ColorArg_is_ptr(void* p);
 bool ColorArg_is_valid(ColorArg carg);
 size_t ColorArg_length(ColorArg carg);
 char* ColorArg_repr(ColorArg carg);
@@ -1395,11 +1403,11 @@ char* ColorJustifyMethod_repr(ColorJustifyMethod meth);
     \endinternal
 */
 ColorText ColorText_empty(void);
-void ColorText_free(ColorText *p);
+void ColorText_free(ColorText* p);
 ColorText ColorText_from_values(char* text, ...);
 bool ColorText_has_arg(ColorText ctext, ColorArg carg);
 bool ColorText_is_empty(ColorText ctext);
-bool ColorText_is_ptr(void *p);
+bool ColorText_is_ptr(void* p);
 size_t ColorText_length(ColorText ctext);
 char* ColorText_repr(ColorText);
 ColorText* ColorText_set_just(ColorText* ctext, ColorJustify cjust);
@@ -1423,7 +1431,7 @@ char* ColorType_repr(ColorType type);
 ColorValue ColorValue_empty(void);
 bool ColorValue_eq(ColorValue a, ColorValue b);
 ColorValue ColorValue_from_str(char* s);
-ColorValue ColorValue_from_value(ColorType type, void *p);
+ColorValue ColorValue_from_value(ColorType type, void* p);
 bool ColorValue_has_BasicValue(ColorValue cval, BasicValue bval);
 bool ColorValue_has_ExtendedValue(ColorValue cval, ExtendedValue eval);
 bool ColorValue_has_StyleValue(ColorValue cval, StyleValue sval);
