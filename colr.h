@@ -1209,10 +1209,6 @@ typedef struct ColorJustify_s {
     int width;
     //! The desired padding character, or `0` to use the default (`' '`).
     char padchar;
-    /*! A reference count, used internally to automatically free() resources.
-        If less than 0, free() is never called.
-    */
-    int _ref_count;
 } ColorJustify;
 
 //! Holds an ArgType, and a ColorValue.
@@ -1223,10 +1219,6 @@ typedef struct ColorArg_s {
     ArgType type;
     //! Color type and value.
     ColorValue value;
-    /*! A reference count, used internally to automatically free() resources.
-        If less than 0, free() is never called.
-    */
-    int _ref_count;
 } ColorArg;
 
 //! Holds ColorArgs and an optional ColorJustify, for use with colr() and Colr().
@@ -1242,10 +1234,6 @@ typedef struct ColorArgSet_s {
     ColorArg *style;
     //! ColorJustify info, set to JUST_NONE by default.
     ColorJustify just;
-    /*! A reference count, used internally to automatically free() resources.
-        If less than 0, free() is never called.
-    */
-    int _ref_count;
 } ColorArgSet;
 
 //! Holds a string of text, and optional fore, back, and style ColorArgs.
@@ -1263,10 +1251,6 @@ typedef struct ColorText_s {
     ColorArg *style;
     //! ColorJustify info, set to JUST_NONE by default.
     ColorJustify just;
-    /*! A reference count, used internally to automatically free() resources.
-        If less than 0, free() is never called.
-    */
-    int _ref_count;
 } ColorText;
 
 //! Holds a terminal size, usually retrieved with colr_term_size().
