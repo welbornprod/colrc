@@ -665,6 +665,7 @@ def run_compiled_exe(
         cmd = [
             'valgrind',
             '--tool=memcheck',
+            '--leak-check=full',
             '--show-leak-kinds=all',
             '--track-origins=yes',
             '--error-exitcode=1',

@@ -1685,7 +1685,7 @@ char* _colr_join(void *joinerp, ...) {
     This allows _colr_join() to allocate once, instead of reallocating for each
     argument that is passed.
 
-    \pi joinerp The first of any ColorArg, ColorText, or strings to join.
+    \pi joinerp The joiner (any ColorArg, ColorText, or string).
     \pi args    A `va_list` with zero or more ColorArgs, ColorTexts, or strings to join.
 
     \return     The length (in bytes) needed to allocate a string built with _colr().
@@ -1739,6 +1739,133 @@ size_t _colr_join_length(void *joinerp, va_list args) {
     length += CODE_RESET_LEN;
     return length;
 }
+
+/*! Join an array of strings, ColorArgs, or ColorTexts by another string,
+    ColorArg, or ColorText.
+
+    \pi joinerp The joiner (any ColorArg, ColorText, or string).
+    \pi ps      An array of pointers to ColorArgs, ColorTexts, or strings.
+                The array must have `NULL` as the last item.
+
+    \return     An allocated string with the result.\n
+                \mustfree
+
+    \examplecodefor{colr_join_array,.c}
+    char* joiner = " [and] ";
+    ColorText* words[] = {
+        Colr("this", fore(RED)),
+        Colr("that", fore(hex("ff3599"))),
+        Colr("the other", fore(BLUE), style(UNDERLINE)),
+        NULL
+    };
+    char* s = colr_join_array(joiner, words);
+    printf("%s\n", s);
+    free(s);
+
+    // Don't forget to free the ColorTexts/ColorArgs.
+    size_t i = 0;
+    while (words[i]) ColorText_free(words[i++]);
+    \endexamplecode
+    \sa colr colr_join
+*/
+char* colr_join_array(void* joinerp, void* ps) {
+    if (!(joinerp && ps)) return 0;
+    size_t length = _colr_join_array_length(joinerp, ps);
+    if (length == 1) return colr_empty_str();
+    ColorArg* joiner_cargp = NULL;
+    ColorText* joiner_ctextp = NULL;
+    char* joiner = NULL;
+    if (ColorArg_is_ptr(joinerp)) {
+        joiner_cargp = joinerp;
+        joiner = ColorArg_to_str(*joiner_cargp);
+    } else if (ColorText_is_ptr(joinerp)) {
+        joiner_ctextp = joinerp;
+        joiner = ColorText_to_str(*joiner_ctextp);
+    } else {
+        // Better be a string!
+        joiner = joinerp;
+    }
+
+    char* final = calloc(length, sizeof(char));
+    size_t i = 0;
+    ColorArg** cargps = ps;
+    ColorText** ctextps = ps;
+    if (ColorArg_is_ptr(*cargps)) {
+        while (cargps[i]) {
+            if (i) strcat(final, joiner);
+            char* s = ColorArg_to_str(*(cargps[i++]));
+            if (!s || s[0] == '\0') continue;
+            strcat(final, s);
+            free(s);
+        }
+    } else if (ColorText_is_ptr(*ctextps)) {
+        while (ctextps[i]) {
+            if (i) strcat(final, joiner);
+            char* s = ColorText_to_str(*(ctextps[i++]));
+            if (!s || s[0] == '\0') continue;
+            strcat(final, s);
+            free(s);
+        }
+    } else {
+        char** sps = ps;
+        while (sps[i]) {
+            if (i) strcat(final, joiner);
+            strcat(final, sps[i++]);
+        }
+    }
+    if (joiner_cargp || joiner_ctextp) free(joiner);
+    return final;
+}
+// TODO: colr_join_arrayn(joiner, ps, length)
+//       So colr_join_arrayn("this", my_array, sizeof(my_array) / sizeof(my_array[0]))
+//       will work, and there's no need for a NULL member.
+
+/*! Get the length needed to join an array of strings, ColorArgs, or ColorTexts
+    by another string, ColorArg, or ColorText.
+
+    \pi joinerp The joiner (any ColorArg, ColorText, or string).
+    \pi ps      An array of pointers to ColorArgs, ColorTexts, or strings.
+                The array must have `NULL` as the last item.
+
+    \return     An allocated string with the result.\n
+                \mustfree
+
+    \sa colr colr_join colr_join_array
+*/
+size_t _colr_join_array_length(void* joinerp, void* ps) {
+    if (!(joinerp && ps)) return 0;
+    size_t length = 0;
+    size_t joiner_len = 0;
+    if (ColorArg_is_ptr(joinerp)) {
+        ColorArg* cargp = joinerp;
+        joiner_len = ColorArg_length(*cargp);
+    } else if (ColorText_is_ptr(joinerp)) {
+        ColorText* ctextp = joinerp;
+        joiner_len = ColorText_length(*ctextp);
+    } else {
+        // Better be a string!
+        char* sp = joinerp;
+        joiner_len = strlen(sp);
+    }
+    if (joiner_len < 2) return 1;
+    length += joiner_len;
+
+    size_t i = 0;
+    ColorArg** cargps = ps;
+    ColorText** ctextps = ps;
+    if (ColorArg_is_ptr(*cargps)) {
+        while (cargps[i]) length += ColorArg_length(*(cargps[i++]));
+    } else if (ColorText_is_ptr(*ctextps)) {
+        while (ctextps[i]) length += ColorText_length(*(ctextps[i++]));
+    } else {
+        char** sps = ps;
+        while (sps[i]) length += strlen(sps[i++]);
+    }
+    length += joiner_len * i;
+    // One more for the null.
+    return length++;
+}
+
 /*! Creates a string representation of a ArgType.
 
     \pi type An ArgType to get the type from.
@@ -1989,6 +2116,7 @@ ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p) {
     }
     return carg;
 }
+
 
 /*! Checks to see if a ColorArg is an empty placeholder.
 
