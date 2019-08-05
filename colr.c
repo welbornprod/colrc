@@ -2178,13 +2178,13 @@ bool ColorJustify_is_empty(ColorJustify cjust) {
     This is used to ensure every ColorJustify has it's `.marker` member set
     correctly.
 
-    \pi meth  ColorJustifyMethod to use.
-    \pi width Width for justification.
-              If `0` is given, ColorText will use the width from colr_terminal_size().
-    \pi pad   Padding character to use.
-              If `0` is given, the default, space (`' '`), is used.
+    \pi method  ColorJustifyMethod to use.
+    \pi width   Width for justification.
+                If `0` is given, ColorText will use the width from colr_terminal_size().
+    \pi padchar Padding character to use.
+                If `0` is given, the default, space (`' '`), is used.
 
-    \return An initialized ColorJustify.
+    \return     An initialized ColorJustify.
 */
 ColorJustify ColorJustify_new(ColorJustifyMethod method, int width, char padchar) {
     return (ColorJustify){
