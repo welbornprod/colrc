@@ -166,11 +166,6 @@
 */
 #define COLORARG_MARKER UINT_MAX
 
-/*! Marker for the ColorArgSet struct, for identifying a void pointer as a
-    ColorArgSet.
-*/
-#define COLORARGSET_MARKER (UINT_MAX - 10)
-
 /*! Marker for the ColorJustify struct, for identifying a void pointer as a
     ColorJustify.
 */
@@ -1221,21 +1216,6 @@ typedef struct ColorArg_s {
     ColorValue value;
 } ColorArg;
 
-//! Holds ColorArgs and an optional ColorJustify, for use with colr() and Colr().
-typedef struct ColorArgSet_s {
-    //! A marker used to inspect void pointers and determine if they are ColorArgSets.
-    unsigned int marker;
-    // Pointers are used for compatibility with the fore(), back(), and style() macros.
-    //! ColorArg for fore color. Can be `NULL`.
-    ColorArg *fore;
-    //! ColorArg for back color. Can be `NULL`.
-    ColorArg *back;
-    //! ColorArg for style value. Can be `NULL`.
-    ColorArg *style;
-    //! ColorJustify info, set to JUST_NONE by default.
-    ColorJustify just;
-} ColorArgSet;
-
 //! Holds a string of text, and optional fore, back, and style ColorArgs.
 typedef struct ColorText_s {
     //! A marker used to inspect void pointers and determine if they are ColorTexts.
@@ -1399,18 +1379,6 @@ ColorArg* ColorArg_to_ptr(ColorArg carg);
 char* ColorArg_to_str(ColorArg carg);
 
 /*! \internal
-    ColorArgSet functions that deal with ColorArg/ColorJustify arg sets.
-    \endinternal
-*/
-ColorArgSet ColorArgSet_empty(void);
-ColorArgSet ColorArgSet_from_values(void *p, ...);
-bool ColorArgSet_is_empty(ColorArgSet cargs);
-bool ColorArgSet_is_ptr(void* p);
-size_t ColorArgSet_length(ColorArgSet cargs);
-char* ColorArgSet_repr(ColorArgSet cargs);
-char* ColorArgSet_to_str(ColorArgSet cargs);
-
-/*! \internal
     ColorJustify functions that deal with colr/string justification.
     \endinternal
 */
@@ -1525,11 +1493,6 @@ static_assert(
 static_assert(
     (
         COLORARG_MARKER &&
-        (COLORARGSET_MARKER &&
-            (COLORARGSET_MARKER != COLORARG_MARKER) &&
-            (COLORARGSET_MARKER != COLORJUSTIFY_MARKER) &&
-            (COLORARGSET_MARKER != COLORTEXT_MARKER)
-        ) &&
         (COLORJUSTIFY_MARKER &&
             (COLORJUSTIFY_MARKER != COLORARG_MARKER) &&
             (COLORJUSTIFY_MARKER != COLORTEXT_MARKER)
