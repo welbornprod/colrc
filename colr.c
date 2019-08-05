@@ -1836,6 +1836,7 @@ bool ColorArg_eq(ColorArg a, ColorArg b) {
     \sa ColorArg
 */
 void ColorArg_free(ColorArg *p) {
+    if (!p) return;
     free(p);
 }
 
@@ -2279,9 +2280,9 @@ ColorText ColorText_empty(void) {
 */
 void ColorText_free(ColorText *p) {
     if (!p) return;
-    free(p->fore);
-    free(p->back);
-    free(p->style);
+    ColorArg_free(p->fore);
+    ColorArg_free(p->back);
+    ColorArg_free(p->style);
 
     free(p);
 }
