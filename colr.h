@@ -1385,7 +1385,6 @@ char* ColorArg_to_str(ColorArg carg);
 ColorJustify ColorJustify_empty(void);
 bool ColorJustify_eq(ColorJustify a, ColorJustify b);
 bool ColorJustify_is_empty(ColorJustify cjust);
-bool ColorJustify_is_ptr(void* p);
 ColorJustify ColorJustify_new(ColorJustifyMethod method, int width, char padchar);
 char* ColorJustify_repr(ColorJustify cjust);
 char* ColorJustifyMethod_repr(ColorJustifyMethod meth);
