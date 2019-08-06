@@ -75,16 +75,6 @@
         }\
     } while (0)
 
-#define assert_empty_str(s) \
-    do { \
-        assert(s, "Empty string was actually NULL: " #s); \
-        char* _a_e_s_repr = colr_repr(s); \
-        if (s[0] != '\0') { \
-            fail("String was not empty: " #s " == %s", _a_e_s_repr); \
-        } \
-        free(_a_e_s_repr); \
-    } while (0)
-
 #define assert_is_invalid(colrobj) \
     do { \
         if (!colr_is_invalid(colrobj)) { \
@@ -111,14 +101,12 @@
 
 #define array_length(array) (sizeof(array) / sizeof(array[0]))
 
-#define assert_nonempty_str(s) \
+#define assert_null(x) \
     do { \
-        assert(s, "String was actually NULL: " #s); \
-        if (s[0] == '\0') { \
-            fail("String was empty: " #s " == \"\""); \
+        if (x) { \
+            fail("Supposed to be NULL: " #x); \
         } \
     } while (0)
-
 
 #define assert_range(x, xmin, xmax, msg) \
     do { \
@@ -182,28 +170,43 @@
         }\
     } while (0)
 
+
+#define assert_str_empty(s) \
+    do { \
+        assert(s, "Empty string was actually NULL: " #s); \
+        char* _a_e_s_repr = colr_repr(s); \
+        if (s[0] != '\0') { \
+            fail("String was not empty: " #s " == %s", _a_e_s_repr); \
+        } \
+        free(_a_e_s_repr); \
+    } while (0)
+
+
 #define assert_str_eq(s1, s2, msg) \
     do { \
         if (strcmp(s1, s2) != 0) { \
             char* _a_s_e_s1_repr = str_repr(s1); \
             char* _a_s_e_s2_repr = str_repr(s2); \
-            fail("%s: %s != %s", msg, _a_s_e_s1_repr, _a_s_e_s2_repr); \
+            fail( \
+                "%s:\n     %s\n  != %s", \
+                msg, \
+                _a_s_e_s1_repr, \
+                _a_s_e_s2_repr \
+            ); \
             free(_a_s_e_s1_repr); \
             free(_a_s_e_s2_repr); \
         } \
     } while (0)
 
-#define test_repr(x) \
-    _Generic( \
-        (x), \
-        char: char_repr, \
-        int: int_repr, \
-        unsigned int: uint_repr, \
-        long: long_repr, \
-        long long: long_long_repr, \
-        unsigned long: ulong_repr, \
-        unsigned long long: ulong_long_repr \
-    )(x)
+
+#define assert_str_not_empty(s) \
+    do { \
+        assert(s, "String was actually NULL: " #s); \
+        if (s[0] == '\0') { \
+            fail("String was empty: " #s " == \"\""); \
+        } \
+    } while (0)
+
 
 #define in_range(x, xmin, xmax) ((bool)((x >= xmin) && (x <= xmax)))
 
@@ -232,8 +235,39 @@
 #define for_len(len, x) \
     for (volatile size_t x = 0; x < len; x++)
 
+/*! Construct a for-loop to iterate over an array until `NULL` is reached.
 
-#define _str(x) #x
+    \details
+    The index is declared `volatile` because a `longjmp` may occur while
+    testing in `snow`.
+
+    \details
+    The array <em>must contain a `NULL` element at the end</em>!
+
+    \pi array_name The name of the array to iterate over.
+    \pi x          Variable name for the for-loop (usually `i`).
+*/
+#define for_not_null(array_name, x) \
+    for (volatile size_t x = 0; array_name[x]; x++)
+
+/*! \def test_repr
+    Calls the correct \<type\>_repr method using `_Generic`.
+
+    \pi     x The value to get a string representation for.
+    \return An allocated string with the result.\n
+            \mustfree
+*/
+#define test_repr(x) \
+    _Generic( \
+        (x), \
+        char: char_repr, \
+        int: int_repr, \
+        unsigned int: uint_repr, \
+        long: long_repr, \
+        long long: long_long_repr, \
+        unsigned long: ulong_repr, \
+        unsigned long long: ulong_long_repr \
+    )(x)
 
 char* int_repr(int x);
 char* long_repr(long x);

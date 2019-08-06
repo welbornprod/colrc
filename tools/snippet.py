@@ -42,7 +42,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.1.0'
+VERSION = '0.2.0'
 VERSIONSTR = '{} v. {}'.format(NAME, VERSION)
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -101,7 +101,9 @@ USAGE_MACROS = '\n'.join(
 USAGESTR = f"""{VERSIONSTR}
     Usage:
         {SCRIPT} -h | -v
-        {SCRIPT} [-D] (-c | -L [PATTERN])
+        {SCRIPT} [-D] -c
+        {SCRIPT} [-D] (-L | -N) [PATTERN]
+        {SCRIPT} [-D] [-n] [-q] [-w] -V
         {SCRIPT} [-D] [-n] [-q] [-m | -r exe] -b
         {SCRIPT} [-D] [-n] [-q] [-m | -r exe] -x [PATTERN] [-- ARGS...]
         {SCRIPT} [-D] [-n] [-q] [-m | -r exe] [CODE] [-- ARGS...]
@@ -137,11 +139,13 @@ USAGESTR = f"""{VERSIONSTR}
         -L,--listexamples    : List example code snippets in the source.
         -l,--last            : Re-run the last snippet.
         -m,--memcheck        : Run the snippet through `valgrind`.
+        -N,--listnames       : List example snippet names from the source.
         -n,--name            : Print the resulting binary name, for further
                                testing.
         -q,--quiet           : Don't print any status messages.
         -r exe,--run exe     : Run a program on the compiled binary, like
                                `gdb` or `kdbg`.
+        -V,--viewlast        : View the last snippet that was compiled.
         -v,--version         : Show version.
         -w,--wrapped         : Use the "wrapped" version, which is the resulting
                                `.c` file for snippets.
@@ -160,9 +164,9 @@ def main(argd):
 
     if argd['--clean']:
         return clean_tmp()
-    elif argd['--listexamples']:
+    elif argd['--listexamples'] or argd['--listnames']:
         pat = try_repat(argd['PATTERN'])
-        return list_examples(name_pat=pat)
+        return list_examples(name_pat=pat, names_only=argd['--listnames'])
     elif argd['--examples']:
         pat = try_repat(argd['PATTERN'])
         return run_examples(
@@ -178,10 +182,28 @@ def main(argd):
         return run_compiled_exe(
             config['last_binary'],
             exe=argd['--run'],
+            src_file=config['last_c_file'],
             show_name=argd['--name'],
             memcheck=argd['--memcheck'],
             quiet=argd['--quiet'],
         )
+    elif argd['--viewlast']:
+        if argd['--wrapped']:
+            if not config['last_c_file']:
+                raise InvalidArg('no "last file" found.')
+            return view_snippet(
+                filepath=config['last_c_file'],
+                show_name=argd['--name'],
+                quiet=argd['--quiet'],
+            )
+        else:
+            if not config['last_snippet']:
+                raise InvalidArg('no "last snippet" found.')
+            return view_snippet(
+                text=config['last_snippet'],
+                show_name=argd['--name'],
+                quiet=argd['--quiet'],
+            )
 
     if argd['--file']:
         snippets = [
@@ -494,7 +516,7 @@ def iter_output(cmd, stderr=subprocess.PIPE):
     )
 
 
-def list_examples(name_pat=None):
+def list_examples(name_pat=None, names_only=False):
     """ List all example snippets found in the source. """
     snippetinfo = find_src_examples()
     if not snippetinfo:
@@ -502,6 +524,7 @@ def list_examples(name_pat=None):
         return 1
 
     length = 0
+    skipped = 0
     for filepath in sorted(snippetinfo):
         snippets = snippetinfo[filepath]
         length += len(snippets)
@@ -511,29 +534,50 @@ def list_examples(name_pat=None):
                     (name_pat is not None) and
                     (name_pat.search(snippet.name) is None)):
                 debug(f'Skipping non-matching snippet: {snippet.name}')
+                skipped += 1
                 continue
             if not printed_file:
                 printed_file = True
-                print(C('').join(
-                    C(f'\n{filepath}', 'cyan', style='underline'),
-                    ':'
-                ))
-            print(C(snippet))
+                print(C(f'\n{filepath}', 'cyan', style='underline')(':'))
+            if names_only:
+                print(C(f'    {snippet.name}', 'blue'))
+            else:
+                print(C(snippet))
 
-    plural = 'snippet' if length == 1 else 'snippets'
-    lenfmt = C(length, 'blue', style='bright')
-    print(f'\nFound {lenfmt} {plural}.')
+    if (name_pat is not None) and (skipped == length):
+        print(C(': ').join(
+            C('No snippets matching', 'red'),
+            C(name_pat.pattern, 'blue')
+        ))
+        return 1
+    lenfmt = C(length, 'yellow', style='bright')
+    found = length - skipped
+    foundfmt = C(found, 'blue', style='bright')
+    plural = 'snippet' if found == 1 else 'snippets'
+    msg = f'Found {foundfmt} {plural}.'
+    if found != length:
+        msg = f'{msg} Total: {lenfmt}'
+    if skipped:
+        skipfmt = C(skipped, 'blue', style='bright')
+        msg = f'{msg}, Skipped: {skipfmt}'
+    print(f'\n{msg}')
     return 0 if length else 1
 
 
-def no_output_str(filepath):
+def no_output_str(filepath, src_file=None):
     """ Used as output (a message about no output) when a compiled example
         has none.
     """
+    if src_file:
+        srcpath = src_file
+    elif filepath.endswith('.binary'):
+        srcpath = ''.join((os.path.splitext(filepath)[0], '.c'))
+    else:
+        srcpath = f'{filepath}.c'
     msg = C('\n').join(
         C(': ').join(
             C('   Source', 'cyan'),
-            C(f'{filepath}.c', 'blue'),
+            C(f'{srcpath}', 'blue'),
         ),
         C(' ').join(
             C('no output from', 'dimgrey'),
@@ -621,7 +665,8 @@ def run_compile_cmd(filepath, args):
 
 
 def run_compiled_exe(
-        filepath, exe=None, show_name=False, memcheck=False, quiet=False):
+        filepath, exe=None, src_file=None, show_name=False,
+        memcheck=False, quiet=False):
     """ Run an executable (the compiled snippet). """
     if not filepath.startswith(TMPDIR):
         newpath = os.path.join(TMPDIR, os.path.split(filepath)[-1])
@@ -694,7 +739,7 @@ def run_compiled_exe(
     except UnicodeDecodeError:
         stderr = f'Unable to decode stderr:\n    {proc.stderr!r}\n'
     if not (stdout or stderr):
-        stderr = None if quiet else no_output_str(filepath)
+        stderr = None if quiet else no_output_str(filepath, src_file=src_file)
     if stdout:
         print(stdout)
     if stderr:
@@ -778,13 +823,14 @@ def run_snippets(
     errs = 0
     for snippet in snippets:
         binaryname = snippet.compile(user_args=compiler_args)
-        errs += run_compiled_exe(
+        errs += 0 if run_compiled_exe(
             binaryname,
             exe=exe,
+            src_file=snippet.src_file,
             show_name=show_name,
             memcheck=memcheck,
             quiet=quiet,
-        )
+        ) == 0 else 1
     return errs
 
 
@@ -845,6 +891,38 @@ def try_repat(s):
     return p
 
 
+def view_snippet(filepath=None, text=None, show_name=False, quiet=False):
+    if not (filepath or text):
+        raise ViewError('no snippet info to view.')
+    if filepath:
+        try:
+            with open(filepath, 'r') as f:
+                text = f.read()
+        except FileNotFoundError:
+            raise ViewError(f'snippet is gone: {filepath}')
+        except EnvironmentError as ex:
+            raise ViewError(f'can\'t read snippet file: {filepath}\n{ex}')
+    snippet = Snippet(text, name=filepath if filepath else 'last-snippet')
+    snippet.indent = 0
+    snippet.quiet_mode = quiet
+    if quiet:
+        snippet.code_indent = 0
+
+    print(C(snippet))
+    if show_name:
+        print(C(': ').join(
+            '\nResulting executable',
+            C(
+                config.get(
+                    'last_binary',
+                    C('none', 'red').join('<', '>')
+                ),
+                'blue'
+            )
+        ))
+    return 0
+
+
 class CompileError(ValueError):
     def __init__(self, filepath):
         self.filepath = filepath
@@ -859,6 +937,11 @@ class EditError(CompileError):
 
     def __str__(self):
         return f'Failed to edit last snippet: {self.msg}'
+
+
+class ViewError(EditError):
+    def __str__(self):
+        return f'Failed to view last snippet: {self.msg}'
 
 
 class InvalidArg(ValueError):
@@ -879,6 +962,10 @@ class UserCancelled(KeyboardInterrupt):
 
 class Snippet(object):
     """ A Snippet is just a string, with an optional name. """
+    indent = 4
+    code_indent = 4
+    quiet_mode = False
+
     def __init__(self, code, name=None):
         self.code = code
         self.name = str(name or 'unknown snippet')
@@ -886,6 +973,8 @@ class Snippet(object):
             self.name = str(format_leader(self.name))
         else:
             self.name = str(C(self.name, 'blue'))
+        # Set when code is written to a temp file:
+        self.src_file = None
 
     def __bool__(self):
         return bool(self.code)
@@ -896,10 +985,15 @@ class Snippet(object):
             code = '\n'.join(self.code.split('\n')[1:])
         else:
             code = self.code
-        code = highlight_snippet(code).replace('\n', '\n    ')
+        spaces = ' ' * self.indent
+        code_spaces = ' ' * self.code_indent
+        code = highlight_snippet(code).replace('\n', f'\n{code_spaces}')
+        codefmt = C(f'{code_spaces}{code}')
+        if self.quiet_mode:
+            return codefmt
         return C('\n').join(
-            f'\n    {self.name}:',
-            f'    {code}'
+            f'\n{spaces}{self.name}:',
+            codefmt
         )
 
     def __repr__(self):
@@ -919,22 +1013,22 @@ class Snippet(object):
             self.name,
         ))
 
-        filepath = self.write_code(self.wrap_code(self.code), ext='.c')
-        config['last_c_file'] = filepath
+        self.write_code(self.wrap_code(self.code), ext='.c')
+        config['last_c_file'] = self.src_file
         config['last_snippet'] = self.code
-        basename = os.path.split(os.path.splitext(filepath)[0])[-1]
+        basename = os.path.split(os.path.splitext(self.src_file)[0])[-1]
         objname = f'{basename}.o'
-        cfiles = [filepath, COLRC_FILE]
+        cfiles = [self.src_file, COLRC_FILE]
         cmd = get_gcc_cmd(cfiles, user_args=user_args)
         try:
             debug('Compiling C files:')
             debug(' '.join(cmd), align=True)
-            compret = run_compile_cmd(filepath, cmd)
+            compret = run_compile_cmd(self.src_file, cmd)
         except subprocess.CalledProcessError:
-            raise CompileError(filepath)
+            raise CompileError(self.src_file)
         else:
             if compret != 0:
-                raise CompileError(filepath)
+                raise CompileError(self.src_file)
         colrbase = os.path.splitext(COLRC_FILE)[0]
         colrobj = f'{colrbase}.o'
         tmpobjnames = get_obj_files()
@@ -952,17 +1046,17 @@ class Snippet(object):
             debug(' '.join(linkcmd), align=True)
             linkret = run_compile_cmd(objname, linkcmd)
         except subprocess.CalledProcessError:
-            raise CompileError(filepath)
+            raise CompileError(self.src_file)
         else:
             if linkret != 0:
                 clean_objects(tmpobjnames)
-                raise CompileError(filepath)
+                raise CompileError(self.src_file)
 
         clean_objects(tmpobjnames)
 
         if not os.path.exists(binaryname):
             debug('Compilation failed, bailing out.')
-            raise CompileError(filepath)
+            raise CompileError(self.src_file)
         debug('Making the binary executable...')
         os.chmod(binaryname, stat.S_IRWXU)
         config['last_binary'] = binaryname
@@ -1023,7 +1117,7 @@ class Snippet(object):
                 debug(f'Not including macro: {macroname}')
                 continue
             lines.append(f'#ifndef {macroname}')
-            lines.append(defline)
+            lines.append(f'    {defline}')
             lines.append(f'#endif // ifdef {macroname}')
             debug(f'Including macro: {macroname}')
 
@@ -1062,6 +1156,7 @@ class Snippet(object):
         os.write(fd, s.encode())
         os.close(fd)
         debug(f'Wrote code to: {filepath}')
+        self.src_file = filepath
         return filepath
 
 

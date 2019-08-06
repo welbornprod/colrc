@@ -167,10 +167,10 @@ subdesc(ColorValue_to_str) {
             char* expected;
         } tests[] = {
             {FORE, ColorValue_from_str("NOTACOLOR"), ""},
-            {FORE, color_val(basic), "\033[37m"},
-            {FORE, color_val(extended), "\033[38;5;7m"},
-            {STYLE, color_val(style), "\033[1m"},
-            {FORE, color_val(rgbval), "\033[38;2;1;1;1m"},
+            {FORE, color_val(basic), "\x1b[37m"},
+            {FORE, color_val(extended), "\x1b[38;5;7m"},
+            {STYLE, color_val(style), "\x1b[1m"},
+            {FORE, color_val(rgbval), "\x1b[38;2;1;1;1m"},
         };
         for_each(tests, i) {
             char* s = ColorValue_to_str(tests[i].type, tests[i].cval);

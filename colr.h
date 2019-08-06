@@ -98,9 +98,9 @@
 #pragma clang diagnostic ignored "-Wunused-macros"
 
 //! Convenience definition, because this is used a lot.
-#define CODE_RESET_ALL "\033[0m"
+#define CODE_RESET_ALL "\x1b[0m"
 //! Convenience definition for wide chars.
-#define WCODE_RESET_ALL L"\033[0m"
+#define WCODE_RESET_ALL L"\x1b[0m"
 //! Short-hand for CODE_RESET_ALL, stands for "No Color".
 #define NC CODE_RESET_ALL
 //! Short-hand for WCODE_RESET_ALL, stands for "Wide No Color".
@@ -514,6 +514,22 @@
 */
 #define colr(...) _colr(__VA_ARGS__, NULL)
 
+/*! \def colr_free
+    Calls the \<type\>_free functions for the supported types.
+
+    \details
+    If the type is not supported, a plain `free(x)` is used.
+
+    \pi x A pointer to a supported type to free.
+*/
+#define colr_free(x) \
+    _Generic( \
+        (x), \
+        ColorArg*: ColorArg_free, \
+        ColorText*: ColorText_free, \
+        default: free \
+    )(x)
+
 /*! \def colr_is_empty
     Calls the \<type\>is_empty functions for the supported types.
 
@@ -635,9 +651,11 @@
         - ColorType
         - BasicValue
         - ExtendedValue
-        - StyleValue
         - RGB
+        - StyleValue
+        - TermSize
         - char*
+        - char
 
     \pi x   A value with one of the supported types to transform into a string.
     \return Stringified representation of what was passed in.\n
@@ -656,10 +674,13 @@
         ColorType: ColorType_repr, \
         BasicValue: BasicValue_repr, \
         ExtendedValue: ExtendedValue_repr, \
-        StyleValue: StyleValue_repr, \
         RGB: RGB_repr, \
+        StyleValue: StyleValue_repr, \
+        TermSize: TermSize_repr, \
         const char*: str_repr, \
-        char*: str_repr \
+        char*: str_repr, \
+        const char: char_repr, \
+        char: char_repr \
     )(x)
 
 
@@ -1275,6 +1296,7 @@ char* colr_empty_str(void);
 bool colr_supports_rgb(void);
 TermSize colr_term_size(void);
 struct winsize colr_win_size(void);
+struct winsize colr_win_size_env(void);
 void format_bgx(char* out, unsigned char num);
 void format_bg(char* out, BasicValue value);
 void format_bg_rgb(char* out, unsigned char red, unsigned char green, unsigned char blue);
@@ -1341,21 +1363,23 @@ char* str_to_lower(const char* s);
     The multi-type variadiac function behind the colr() macro.
     \endinternal
 */
-size_t _colr_length(void* p, va_list args);
+size_t _colr_size(void* p, va_list args);
 char* _colr(void* p, ...);
 /*! \internal
     The multi-type variadiac function behind the colr_join() macro.
     \endinternal
 */
-size_t _colr_join_length(void* joinerp, va_list args);
+size_t _colr_join_size(void* joinerp, va_list args);
 char* _colr_join(void* joinerp, ...);
 
 /*! \internal
     The multi-type variadiac function behind the colr_join_array() macro.
     \endinternal
 */
-size_t _colr_join_array_length(void* joinerp, void* ps);
+size_t _colr_join_array_length(void* ps);
+size_t _colr_join_arrayn_size(void* joinerp, void* ps, size_t count);
 char* colr_join_array(void* joinerp, void* ps);
+char* colr_join_arrayn(void* joinerp, void* ps, size_t count);
 
 /*! \internal
     ArgType functions that only deal with argument types (fore, back, style).
@@ -1406,6 +1430,7 @@ ColorText ColorText_empty(void);
 void ColorText_free(ColorText* p);
 ColorText ColorText_from_values(char* text, ...);
 bool ColorText_has_arg(ColorText ctext, ColorArg carg);
+bool ColorText_has_args(ColorText ctext);
 bool ColorText_is_empty(ColorText ctext);
 bool ColorText_is_ptr(void* p);
 size_t ColorText_length(ColorText ctext);
@@ -1483,6 +1508,11 @@ char* RGB_to_hex(RGB rgb);
 char* RGB_to_str(RGB rgb);
 RGB RGB_to_term_RGB(RGB rgb);
 char* RGB_repr(RGB rgb);
+
+/*! \internal
+    Various struct-related functions.
+*/
+char* TermSize_repr(TermSize ts);
 
 /*! \internal
     Some static assertions to make sure nothing breaks.

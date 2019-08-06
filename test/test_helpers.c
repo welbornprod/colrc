@@ -14,6 +14,7 @@ subdesc(char_escape_char) {
             char input;
             char expected;
         } tests[] = {
+            {'\0', '0'},
             {'\'', '\''},
             {'\"', '\"'},
             {'\?', '\?'},
@@ -100,10 +101,40 @@ subdesc(char_is_code_end) {
         }
     }
 }
+// char_repr
+subdesc(char_repr) {
+    it("creates character representations") {
+        struct {
+            char c;
+            char* expected;
+        } tests[] = {
+            {'\0', "'\\0'"},
+            {'\x1b', "'\\x1b'"},
+            {'\'', "'\\\''"},
+            {'\"', "'\\\"'"},
+            {'\?', "'\\?'"},
+            {'\\', "'\\\\'"},
+            {'\a', "'\\a'"},
+            {'\b', "'\\b'"},
+            {'\f', "'\\f'"},
+            {'\n', "'\\n'"},
+            {'\r', "'\\r'"},
+            {'\t', "'\\t'"},
+            {'\v', "'\\v'"},
+            {3, "'\\x3'"},
+        };
+        for_each(tests, i) {
+            char *repr = char_repr(tests[i].c);
+            assert_str_eq(repr, tests[i].expected, "char_repr failed!");
+            free(repr);
+        }
+    }
+}
 // char_should_escape
 subdesc(char_should_escape) {
     it("should detect valid escape sequence chars") {
         char tests[] = {
+            '\0',
             '\'',
             '\"',
             '\?',
@@ -162,7 +193,8 @@ subdesc(colr_supports_rgb) {
 }
 // colr_term_size
 // colr_win_size
-subdesc(term_size) {
+// colr_win_size_env
+subdesc(TermSize) {
     it("colr_term_size: doesn't crash") {
         // Not sure how to test this, at least the scaffolding will be here
         // when I find out.
@@ -176,9 +208,30 @@ subdesc(term_size) {
         struct winsize ws = colr_win_size();
         assert(ws.ws_row > 0);
         assert(ws.ws_col > 0);
-        // This is always true, I just don't know what else to test.
+        // This is always true, I don't know what else to test for.
         // assert(ws.ws_xpixel >= 0);
         // assert(ws.ws_ypixel >= 0);
+    }
+    it("colr_win_size_env: doesn't crash") {
+        // Make colr_win_size_env() use LINES/COLS.
+        if (setenv("LINES", "23", 1)) perror("can't set LINES for testing");
+        if (unsetenv("COLUMNS")) perror("can't unset COLUMNS for testing");
+        if (setenv("COLS", "32", 1)) perror("can't set COLS for testing");
+        struct winsize ws = colr_win_size_env();
+        assert(ws.ws_row == 23);
+        assert(ws.ws_col == 32);
+        // Make colr_win_size_env() use LINES/COLUMNS.
+        if (setenv("COLUMNS", "54", 1)) perror("can't set COLUMNS for testing");
+        ws = colr_win_size_env();
+        assert(ws.ws_col == 54);
+        // Make colr_win_size_env() use the defaults.
+        if (unsetenv("COLS")) perror("can't unset COLS for testing");
+        if (unsetenv("COLUMNS")) perror("can't unset COLUMNS for testing");
+        if (unsetenv("LINES")) perror("can't unset LINES for testing");
+        ws = colr_win_size_env();
+        assert(ws.ws_row == 35);
+        assert(ws.ws_col == 80);
+
     }
 }
 // str_append_reset
@@ -312,6 +365,26 @@ subdesc(str_char_count) {
         }
     }
 }
+// str_copy
+subdesc(str_copy) {
+    it("copies strings") {
+        char* destp = NULL;
+        char* sp = NULL;
+        assert(str_copy(destp, sp, 1) == NULL);
+        char s[] = "testing";
+        size_t length = strlen(s);
+        assert(str_copy(destp, s, 4) == NULL);
+        char* dest = calloc(length + 1, sizeof(char));
+        assert(str_copy(dest, NULL, 4) == NULL);
+        str_copy(dest, "", 1);
+        assert_str_empty(dest);
+        str_copy(dest, s, 4);
+        assert_str_eq(dest, "test", "Failed to copy 4 bytes from string.");
+        str_copy(dest, s, length);
+        assert_str_eq(dest, s, "Failed to copy the entire string.");
+        free(dest);
+    }
+}
 // str_ends_with
 subdesc(str_ends_with) {
     it("detects string endings") {
@@ -424,17 +497,17 @@ subdesc(str_is_codes) {
         } tests[] = {
             {NULL, false},
             {"", false},
-            {"\033[4m", true},
-            {"\033[31m", true},
-            {"\033[48;5;7m", true},
-            {"\033[38;2;1;1;1m", true},
-            {"\033[4m\033[31m\033[48;5;7m\033[0m", true},
-            {"\033[1m\033[38;2;1;1;1m\033[48;5;1m\033[0m", true},
-            {"X\033[4m\033[31m\033[48;5;7m\033[0m", false},
-            {"\033[4mX\033[31m\033[48;5;7m\033[0m", false},
-            {"\033[4m\033[31mX\033[48;5;7m\033[0m", false},
-            {"\033[4m\033[31m\033[48;5;7mX\033[0m", false},
-            {"\033[4m\033[31m\033[48;5;7m\033[0mX", false},
+            {"\x1b[4m", true},
+            {"\x1b[31m", true},
+            {"\x1b[48;5;7m", true},
+            {"\x1b[38;2;1;1;1m", true},
+            {"\x1b[4m\x1b[31m\x1b[48;5;7m\x1b[0m", true},
+            {"\x1b[1m\x1b[38;2;1;1;1m\x1b[48;5;1m\x1b[0m", true},
+            {"X\x1b[4m\x1b[31m\x1b[48;5;7m\x1b[0m", false},
+            {"\x1b[4mX\x1b[31m\x1b[48;5;7m\x1b[0m", false},
+            {"\x1b[4m\x1b[31mX\x1b[48;5;7m\x1b[0m", false},
+            {"\x1b[4m\x1b[31m\x1b[48;5;7mX\x1b[0m", false},
+            {"\x1b[4m\x1b[31m\x1b[48;5;7m\x1b[0mX", false},
         };
         for_each(tests, i) {
             asserteq(
@@ -699,7 +772,7 @@ subdesc(str_repr) {
                 "All\'together\"now\?\\\a\b\f\n\r\t\vokay.",
                 "\"All\\'together\\\"now\\?\\\\\\a\\b\\f\\n\\r\\t\\vokay.\""
             },
-            {"This\033[0m.", "\"This\\033[0m.\""},
+            {"This\x1b[0m.", "\"This\\x1b[0m.\""},
         };
         for_each(tests, i) {
             char* repr = colr_repr(tests[i].input);
@@ -774,6 +847,17 @@ subdesc(str_starts_with) {
             char* prefix;
             bool expected;
         } tests[] = {
+            // Null strings.
+            {NULL, "a", false},
+            {"test", NULL, false},
+            {NULL, NULL, false},
+            // Empty strings.
+            {"", "", false},
+            {"", "x", false},
+            {"x", "", false},
+            // Prefix too long.
+            {"x", "xxx", false},
+            {"abc", "abcdefg", false},
             // Common uses.
             {"lightblue", "light", true},
             {"xred", "x", true},
@@ -784,9 +868,6 @@ subdesc(str_starts_with) {
             {"test", "a", false},
             {" test", "test", false},
             {"t", "apple", false},
-            {NULL, "a", false},
-            {"test", NULL, false},
-            {NULL, NULL, false},
         };
         for_each(tests, i) {
             asserteq(str_starts_with(tests[i].s, tests[i].prefix), tests[i].expected);

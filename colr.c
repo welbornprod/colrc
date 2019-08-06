@@ -372,7 +372,6 @@ const RGB ext2rgb_map[] = {
 //! Length of ext2rgb_map  (should always be 256).
 const size_t ext2rgb_map_len = sizeof(ext2rgb_map) / sizeof(ext2rgb_map[0]);
 
-
 /*! Returns the char needed to represent an escape sequence in C.
 
     \details
@@ -447,7 +446,7 @@ bool char_in_str(const char c, const char* s) {
 
     \details
     `m` is used as the last character in color codes, but other characters
-    can be used for escape sequences (such as "\033[2A", cursor up). Actual
+    can be used for escape sequences (such as "\x1b[2A", cursor up). Actual
     escape code endings can be in the range (`char`) 64-126 (inclusive).
 
     \details
@@ -481,11 +480,11 @@ char* char_repr(char c) {
         case '\0':
             asprintf_or_return(NULL, &repr, "'\\0'");
             break;
-        case '\033':
-            asprintf_or_return(NULL, &repr, "'\\033'");
+        case '\x1b':
+            asprintf_or_return(NULL, &repr, "'\\x1b'");
             break;
         case '\'':
-            asprintf_or_return(NULL, &repr, "'\\\'");
+            asprintf_or_return(NULL, &repr, "'\\\''");
             break;
         case '\"':
             asprintf_or_return(NULL, &repr, "'\\\"'");
@@ -494,7 +493,7 @@ char* char_repr(char c) {
             asprintf_or_return(NULL, &repr, "'\\?'");
             break;
         case '\\':
-            asprintf_or_return(NULL, &repr, "'\\\\");
+            asprintf_or_return(NULL, &repr, "'\\\\'");
             break;
         case '\a':
             asprintf_or_return(NULL, &repr, "'\\a'");
@@ -611,7 +610,7 @@ bool colr_supports_rgb(void) {
         if (colr_istr_either(colorterm, "truecolor", "24bit")) return true;
     }
     // TODO: Send an rgb code, test the terminal response?
-    // char* testcode = "\033[38:2:255:255:255m\033P$qm\033\\\n";
+    // char* testcode = "\x1b[38:2:255:255:255m\x1bP$qm\x1b\\\n";
     // Should get: 2:255:255:255m
     return false;
 }
@@ -649,24 +648,43 @@ struct winsize colr_win_size(void) {
     if (ioctl(0, TIOCGWINSZ, &ws) < 0) {
         // No support?
         dbug("No support for ioctl TIOCGWINSZ, using defaults.");
-        char* env_rows = getenv("LINES");
-        unsigned short default_rows = 0;
-        if (sscanf(env_rows, "%hu", &default_rows) != 1) {
-            default_rows = 35;
-        }
-        char* env_cols = getenv("COLUMNS");
-        unsigned short default_cols = 0;
-        if (sscanf(env_cols, "%hu", &default_cols) != 1) {
-            default_cols = 80;
-        }
-        return (struct winsize){
-            .ws_row=default_rows,
-            .ws_col=default_cols,
-            .ws_xpixel=0,
-            .ws_ypixel=0
-        };
+        return colr_win_size_env();
     }
     return ws;
+}
+
+/*! Get window/terminal size using the environment variables `LINES`, `COLUMNS`,
+    or `COLS`.
+
+    \details
+    This is used as a fallback if the `ioctl()` call fails in colr_win_size().
+    If environment variables are not available, a default `winsize` struct is returned:
+    \code
+    (struct winsize){.ws_row=35, .ws_col=80, .ws_xpixel=0, .ws_ypixel=0}
+    \endcode
+
+
+    \return A `winsize` struct (`sys/ioctl.h`) with window size information.
+*/
+struct winsize colr_win_size_env(void) {
+    char* env_rows = getenv("LINES");
+    unsigned short default_rows = 0;
+    if (!env_rows || sscanf(env_rows, "%hu", &default_rows) != 1) {
+        default_rows = 35;
+    }
+    char* env_cols = getenv("COLUMNS");
+    if (!env_cols) env_cols = getenv("COLS");
+
+    unsigned short default_cols = 0;
+    if (!env_cols || sscanf(env_cols, "%hu", &default_cols) != 1) {
+        default_cols = 80;
+    }
+    return (struct winsize){
+        .ws_row=default_rows,
+        .ws_col=default_cols,
+        .ws_xpixel=0,
+        .ws_ypixel=0
+    };
 }
 
 /*! Create an escape code for a background color.
@@ -677,7 +695,7 @@ struct winsize colr_win_size(void) {
 */
 void format_bg(char* out, BasicValue value) {
     if (!out) return;
-    snprintf(out, CODE_LEN, "\033[%dm", BasicValue_to_ansi(BACK, value));
+    snprintf(out, CODE_LEN, "\x1b[%dm", BasicValue_to_ansi(BACK, value));
 }
 
 /*! Create an escape code for an extended background color.
@@ -688,7 +706,7 @@ void format_bg(char* out, BasicValue value) {
 */
 void format_bgx(char* out, unsigned char num) {
     if (!out) return;
-    snprintf(out, CODEX_LEN, "\033[48;5;%dm", num);
+    snprintf(out, CODEX_LEN, "\x1b[48;5;%dm", num);
 }
 
 /*! Create an escape code for a true color (rgb) background color.
@@ -713,7 +731,7 @@ void format_bg_rgb(char* out, unsigned char redval, unsigned char greenval, unsi
 */
 void format_bg_RGB(char* out, RGB rgb) {
     if (!out) return;
-    snprintf(out, CODE_RGB_LEN, "\033[48;2;%d;%d;%dm", rgb.red, rgb.green, rgb.blue);
+    snprintf(out, CODE_RGB_LEN, "\x1b[48;2;%d;%d;%dm", rgb.red, rgb.green, rgb.blue);
 }
 
 /*! Create an escape code for a true color (rgb) fore color using an
@@ -734,7 +752,7 @@ void format_bg_RGB_term(char* out, RGB rgb) {
 */
 void format_fg(char* out, BasicValue value) {
     if (!out) return;
-    snprintf(out, CODE_LEN, "\033[%dm", BasicValue_to_ansi(FORE, value));
+    snprintf(out, CODE_LEN, "\x1b[%dm", BasicValue_to_ansi(FORE, value));
 }
 
 /*! Create an escape code for an extended fore color.
@@ -745,7 +763,7 @@ void format_fg(char* out, BasicValue value) {
 */
 void format_fgx(char* out, unsigned char num) {
     if (!out) return;
-    snprintf(out, CODEX_LEN, "\033[38;5;%dm", num);
+    snprintf(out, CODEX_LEN, "\x1b[38;5;%dm", num);
 }
 
 /*! Create an escape code for a true color (rgb) fore color.
@@ -769,7 +787,7 @@ void format_fg_rgb(char* out, unsigned char redval, unsigned char greenval, unsi
 */
 void format_fg_RGB(char* out, RGB rgb) {
     if (!out) return;
-        snprintf(out, CODE_RGB_LEN, "\033[38;2;%d;%d;%dm", rgb.red, rgb.green, rgb.blue);
+        snprintf(out, CODE_RGB_LEN, "\x1b[38;2;%d;%d;%dm", rgb.red, rgb.green, rgb.blue);
 }
 
 /*! Create an escape code for a true color (rgb) fore color using an
@@ -790,7 +808,7 @@ void format_fg_RGB_term(char* out, RGB rgb) {
 */
 void format_style(char* out, StyleValue style) {
     if (!out) return;
-    snprintf(out, STYLE_LEN, "\033[%dm", style < 0 ? RESET_ALL: style);
+    snprintf(out, STYLE_LEN, "\x1b[%dm", style < 0 ? RESET_ALL: style);
 }
 
 /*! Appends CODE_RESET_ALL to a string, but makes sure to do it before any
@@ -936,17 +954,36 @@ size_t str_char_count(const char* s, const char c) {
     \pi dest   Memory allocated for new string.
                _Must have room for `strlen(src)`._
     \pi src    Source string to copy.
-    \pi length Maximum characters to copy, if src is not null-terminated.
+    \pi length Maximum characters to copy.
+               <em>This does not include the null-terminator</em>.
 
     \returns On success, a pointer to dest is returned.
+
+    \examplecodefor{str_copy,.c}
+    char* s = "testing";
+    size_t length = strlen(s);
+    char* dest = malloc(length + 1);
+
+    // Copy the entire string:
+    str_copy(dest, s, length);
+    assert(strcmp(dest, "testing") == 0);
+    printf("Copied: %s\n", dest);
+
+    // Copy only 4 bytes:
+    str_copy(dest, s, 4);
+    assert(strcmp(dest, "test") == 0);
+    printf("Truncated: %s\n", dest);
+    free(dest);
+    \endexamplecode
 */
 char* str_copy(char* dest, const char* src, size_t length) {
     if (!(src && dest)) {
         return NULL;
     }
-    size_t pos;
-    for (pos=0; pos < length && src[pos] != '\0'; pos++) {
+    size_t pos = 0;
+    while (pos < length && src[pos]) {
         dest[pos] = src[pos];
+        pos++;
     }
     dest[pos] = '\0';
     return dest;
@@ -992,8 +1029,8 @@ bool str_has_codes(const char* s) {
     size_t length = strlen(s);
     size_t i = 0;
     while ((i < length) && s[i]) {
-        if ((s[i] == '\033') && (s[i + 1] == '[')) {
-            // Skip past "\033["
+        if ((s[i] == '\x1b') && (s[i + 1] == '[')) {
+            // Skip past "\x1b["
             i += 2;
             while ((i < length) && s[i]) {
                 if (s[i] == 'm') return true;
@@ -1039,7 +1076,7 @@ bool str_is_codes(const char* s) {
     if (s[0] == '\0') return false;
     size_t i = 0;
     while (s[i]) {
-        if (s[i] == '\033') {
+        if (s[i] == '\x1b') {
             // Skip past the code.
             while (!char_is_code_end(s[i++]));
             continue;
@@ -1216,7 +1253,7 @@ size_t str_noncode_len(const char* s) {
     if (s[0] == '\0') return 0;
     size_t i = 0, total = 0;
     while (s[i]) {
-        if (s[i] == '\033') {
+        if (s[i] == '\x1b') {
             // Skip past the code.
             while (!char_is_code_end(s[i++]));
             continue;
@@ -1268,7 +1305,7 @@ char* str_repr(const char* s) {
     size_t i;
     for (i = 0; i < length; i++) {
         if (char_should_escape(s[i])) esc_chars++;
-        else if (s[i] == '\033') esc_chars += 4;
+        else if (s[i] == '\x1b') esc_chars += 4;
     }
     size_t repr_length = length + (esc_chars * 2);
     // Make room for the wrapping quotes, and a null-terminator.
@@ -1281,11 +1318,11 @@ char* str_repr(const char* s) {
         if (char_should_escape(c)) {
             repr[inew++] = '\\';
             repr[inew++] = char_escape_char(c);
-        } else if (c == '\033') {
+        } else if (c == '\x1b') {
             repr[inew++] = '\\';
-            repr[inew++] = '0';
-            repr[inew++] = '3';
-            repr[inew++] = '3';
+            repr[inew++] = 'x';
+            repr[inew++] = '1';
+            repr[inew++] = 'b';
         } else {
             repr[inew++] = c;
         }
@@ -1392,7 +1429,7 @@ char* str_strip_codes(const char* s) {
     char* final = calloc(length + 1, sizeof(char));
     size_t i = 0, pos = 0;
     while (s[i]) {
-        if (s[i] == '\033') {
+        if (s[i] == '\x1b') {
             // Skip past the code.
             while (!char_is_code_end(s[i++]));
             continue;
@@ -1441,6 +1478,8 @@ char* str_to_lower(const char* s) {
 
     \pi p   The first of any ColorArgs, ColorTexts, or strings to join.
     \pi ... Zero or more ColorArgs, ColorTexts, or strings to join.
+            <em>Only one `NULL` is allowed, and only at the end of the argument
+            list.</em>
     \return An allocated string with mixed escape codes/strings.\n
             CODE_RESET_ALL is appended to all the pieces that aren't plain
             strings. This allows easy part-colored messages, so there's no
@@ -1456,10 +1495,10 @@ char* _colr(void *p, ...) {
     va_start(args, p);
     va_list argcopy;
     va_copy(argcopy, args);
-    size_t length = _colr_length(p, argcopy);
+    size_t length = _colr_size(p, argcopy);
     va_end(argcopy);
-    // If length was 1, there were no usable values in the argument list.
-    if (length == 1) {
+    // If length was 0/1, there were no usable values in the argument list.
+    if (length < 2) {
         va_end(args);
         return colr_empty_str();
     }
@@ -1487,12 +1526,12 @@ char* _colr(void *p, ...) {
         // Free the temporary string created with Color(Arg/Text)_to_str().
         free(s);
     }
-
     void *arg = NULL;
+    bool need_reset = false;
+
     while ((arg = va_arg(args, void*))) {
         cargp = NULL;
         ctextp = NULL;
-        bool is_string = false;
         // These ColorArgs/ColorTexts were heap allocated through the fore,
         // back, style, and ColrC macros. I'm going to free them, so the user
         // doesn't have to keep track of all the temporary pieces that built
@@ -1502,23 +1541,27 @@ char* _colr(void *p, ...) {
             cargp = arg;
             s = ColorArg_to_str(*cargp);
             ColorArg_free(cargp);
+            need_reset = true;
         } else if (ColorText_is_ptr(arg)) {
             ctextp = arg;
             s = ColorText_to_str(*ctextp);
+            if (ColorText_has_args(*ctextp)) need_reset = true;
             ColorText_free(ctextp);
         } else {
             // It better be a string.
             s = (char* )arg;
-            is_string = true;
         }
         strcat(final, s);
-        // String was passed, add the reset code.
-        if (is_string) str_append_reset(final);
-
-        // Free the temporary string from those ColorArgs/ColorTexts.
-        if (cargp || ctextp) free(s);
+        if (cargp || ctextp) {
+            // Free the temporary string from those ColorArgs/ColorTexts.
+            free(s);
+        } else if (need_reset) {
+            // String was passed, append reset if needed.
+            str_append_reset(final);
+            need_reset = false;
+        }
     }
-    str_append_reset(final);
+    if (need_reset) str_append_reset(final);
     va_end(args);
     return final;
 }
@@ -1537,11 +1580,11 @@ char* _colr(void *p, ...) {
 
     \sa _colr
 */
-size_t _colr_length(void *p, va_list args) {
+size_t _colr_size(void *p, va_list args) {
     // Argument list must have ColorArg/ColorText with NULL members at the end.
     if (!p) return 0;
-    ColorArg *cargp = NULL;
-    ColorText *ctextp = NULL;
+    ColorArg* cargp = NULL;
+    ColorText* ctextp = NULL;
     size_t length = 1;
     if (ColorArg_is_ptr(p)) {
         // It's a ColorArg.
@@ -1554,12 +1597,11 @@ size_t _colr_length(void *p, va_list args) {
         // It's a string, or it better be anyway.
         length += strlen((char* )p);
     }
-    length += CODE_RESET_LEN;
+    bool need_reset = false;
     void *arg = NULL;
     while ((arg = va_arg(args, void*))) {
         cargp = NULL;
         ctextp = NULL;
-        bool is_string = false;
         // These ColorArgs/ColorTexts were heap allocated through the fore,
         // back, style, and ColrC macros. I'm going to free them, so the user
         // doesn't have to keep track of all the temporary pieces that built
@@ -1568,18 +1610,23 @@ size_t _colr_length(void *p, va_list args) {
             // It's a ColorArg.
             cargp = arg;
             length += ColorArg_length(*cargp);
+            need_reset = true;
         } else if (ColorText_is_ptr(arg)) {
             ctextp = arg;
             length += ColorText_length(*ctextp);
+            if (ColorText_has_args(*ctextp)) need_reset = true;
         } else {
             // It better be a string.
             length += strlen((char* )arg);
-            is_string = true;
         }
         length += 1;
         // String was passed, add the reset code.
-        if (is_string) length += CODE_RESET_LEN;
+        if (need_reset) {
+            length += CODE_RESET_LEN;
+            need_reset = false;
+        }
     }
+    if (need_reset) length += CODE_RESET_LEN;
     return length;
 }
 
@@ -1611,7 +1658,7 @@ char* _colr_join(void *joinerp, ...) {
     va_start(args, joinerp);
     va_list argcopy;
     va_copy(argcopy, args);
-    size_t length = _colr_join_length(joinerp, argcopy);
+    size_t length = _colr_join_size(joinerp, argcopy);
     va_end(argcopy);
     // If length is 1, then no usable values were passed in.
     if (length == 1) {
@@ -1626,15 +1673,18 @@ char* _colr_join(void *joinerp, ...) {
     char* piece;
     ColorArg* cargp = NULL;
     ColorText* ctextp = NULL;
+    bool needs_reset = false;
     if (ColorArg_is_ptr(joinerp)) {
         // It's a ColorArg.
         joiner_cargp = joinerp;
         joiner = ColorArg_to_str(*joiner_cargp);
         ColorArg_free(joiner_cargp);
+        needs_reset = true;
     } else if (ColorText_is_ptr(joinerp)) {
         joiner_ctextp = joinerp;
         joiner = ColorText_to_str(*joiner_ctextp);
         ColorText_free(joiner_ctextp);
+        needs_reset = true;
     } else {
         // It's a string, or it better be anyway.
         joiner = (char* )joinerp;
@@ -1653,9 +1703,11 @@ char* _colr_join(void *joinerp, ...) {
             cargp = arg;
             piece = ColorArg_to_str(*cargp);
             ColorArg_free(cargp);
+            needs_reset = true;
         } else if (ColorText_is_ptr(arg)) {
             ctextp = arg;
             piece = ColorText_to_str(*ctextp);
+            if (ColorText_has_args(*ctextp)) needs_reset = true;
             ColorText_free(ctextp);
         } else {
             // It better be a string.
@@ -1674,11 +1726,11 @@ char* _colr_join(void *joinerp, ...) {
     if (joiner_ctextp) {
         free(joiner);
     }
-    str_append_reset(final);
+    if (needs_reset) str_append_reset(final);
     return final;
 }
 
-/*! Parse arguments, just as in _colr_join(), but only return the length needed to
+/*! Parse arguments, just as in _colr_join(), but only return the size needed to
     allocate the resulting string.
 
     \details
@@ -1692,7 +1744,7 @@ char* _colr_join(void *joinerp, ...) {
 
     \sa _colr
 */
-size_t _colr_join_length(void *joinerp, va_list args) {
+size_t _colr_join_size(void *joinerp, va_list args) {
     // Argument list must have ColorArg/ColorText with NULL members at the end.
 
     // No joiner, no strings. Empty string will be returned, so just "\0".
@@ -1746,7 +1798,6 @@ size_t _colr_join_length(void *joinerp, va_list args) {
     \pi joinerp The joiner (any ColorArg, ColorText, or string).
     \pi ps      An array of pointers to ColorArgs, ColorTexts, or strings.
                 The array must have `NULL` as the last item.
-
     \return     An allocated string with the result.\n
                 \mustfree
 
@@ -1766,11 +1817,45 @@ size_t _colr_join_length(void *joinerp, va_list args) {
     size_t i = 0;
     while (words[i]) ColorText_free(words[i++]);
     \endexamplecode
-    \sa colr colr_join
+    \sa colr colr_join colr_join_arrayn
 */
 char* colr_join_array(void* joinerp, void* ps) {
     if (!(joinerp && ps)) return 0;
-    size_t length = _colr_join_array_length(joinerp, ps);
+    size_t length = _colr_join_array_length(ps);
+    return colr_join_arrayn(joinerp, ps, length);
+}
+/*! Join an array of strings, ColorArgs, or ColorTexts by another string,
+    ColorArg, or ColorText.
+
+    \pi joinerp The joiner (any ColorArg, ColorText, or string).
+    \pi ps      An array of pointers to ColorArgs, ColorTexts, or strings.
+                The array must have at least a length of `count`, unless a
+                `NULL` element is placed at the end.
+    \pi count   The total number of items in the array.
+    \return     An allocated string with the result.\n
+                \mustfree
+
+    \examplecodefor{colr_join_arrayn,.c}
+    char* joiner = " [and] ";
+    ColorText* words[] = {
+        Colr("this", fore(RED)),
+        Colr("that", fore(hex("ff3599"))),
+        Colr("the other", fore(BLUE), style(UNDERLINE))
+    };
+    // This only works for actual arrays, not malloc'd stuff.
+    size_t arr_length = sizeof(words) / sizeof(words[0]);
+    char* s = colr_join_arrayn(joiner, words, arr_length);
+    printf("%s\n", s);
+    free(s);
+
+    // Don't forget to free the ColorTexts/ColorArgs.
+    for (size_t i = 0; i < arr_length; i++) ColorText_free(words[i]);
+    \endexamplecode
+    \sa colr colr_join
+*/
+char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
+    if (!(joinerp && ps)) return 0;
+    size_t length = _colr_join_arrayn_size(joinerp, ps, count);
     if (length == 1) return colr_empty_str();
     ColorArg* joiner_cargp = NULL;
     ColorText* joiner_ctextp = NULL;
@@ -1785,55 +1870,60 @@ char* colr_join_array(void* joinerp, void* ps) {
         // Better be a string!
         joiner = joinerp;
     }
+    bool do_reset = (joiner_cargp || joiner_ctextp);
 
     char* final = calloc(length, sizeof(char));
     size_t i = 0;
     ColorArg** cargps = ps;
     ColorText** ctextps = ps;
     if (ColorArg_is_ptr(*cargps)) {
-        while (cargps[i]) {
+        while ((i < count) && cargps[i]) {
             if (i) strcat(final, joiner);
             char* s = ColorArg_to_str(*(cargps[i++]));
             if (!s || s[0] == '\0') continue;
             strcat(final, s);
             free(s);
         }
+        do_reset = true;
     } else if (ColorText_is_ptr(*ctextps)) {
-        while (ctextps[i]) {
+        while ((i < count) && ctextps[i]) {
             if (i) strcat(final, joiner);
             char* s = ColorText_to_str(*(ctextps[i++]));
             if (!s || s[0] == '\0') continue;
             strcat(final, s);
             free(s);
         }
+        do_reset = true;
     } else {
         char** sps = ps;
-        while (sps[i]) {
+        while ((i < count) && sps[i]) {
             if (i) strcat(final, joiner);
             strcat(final, sps[i++]);
         }
     }
     if (joiner_cargp || joiner_ctextp) free(joiner);
+    if (do_reset) str_append_reset(final);
     return final;
 }
-// TODO: colr_join_arrayn(joiner, ps, length)
-//       So colr_join_arrayn("this", my_array, sizeof(my_array) / sizeof(my_array[0]))
-//       will work, and there's no need for a NULL member.
 
-/*! Get the length needed to join an array of strings, ColorArgs, or ColorTexts
-    by another string, ColorArg, or ColorText.
+/*! Get the size in bytes needed to join an array of strings, ColorArgs, or
+    ColorTexts by another string, ColorArg, or ColorText.
+
+    \details
+    This is used to allocate memory in the _colr_join_array() function.
 
     \pi joinerp The joiner (any ColorArg, ColorText, or string).
     \pi ps      An array of pointers to ColorArgs, ColorTexts, or strings.
-                The array must have `NULL` as the last item.
-
+                The array must have `NULL` as the last item if \p count is
+                greater than the total number of items.
+    \pi count   Total number of items in the array.
     \return     An allocated string with the result.\n
                 \mustfree
 
     \sa colr colr_join colr_join_array
 */
-size_t _colr_join_array_length(void* joinerp, void* ps) {
-    if (!(joinerp && ps)) return 0;
+size_t _colr_join_arrayn_size(void* joinerp, void* ps, size_t count) {
+    if (!(joinerp && ps && count)) return 0;
     size_t length = 0;
     size_t joiner_len = 0;
     if (ColorArg_is_ptr(joinerp)) {
@@ -1845,7 +1935,7 @@ size_t _colr_join_array_length(void* joinerp, void* ps) {
     } else {
         // Better be a string!
         char* sp = joinerp;
-        joiner_len = strlen(sp);
+        joiner_len = strlen(sp) + 1;
     }
     if (joiner_len < 2) return 1;
     length += joiner_len;
@@ -1854,18 +1944,41 @@ size_t _colr_join_array_length(void* joinerp, void* ps) {
     ColorArg** cargps = ps;
     ColorText** ctextps = ps;
     if (ColorArg_is_ptr(*cargps)) {
-        while (cargps[i]) length += ColorArg_length(*(cargps[i++]));
+        while ((i < count) && cargps[i]) length += ColorArg_length(*(cargps[i++]));
     } else if (ColorText_is_ptr(*ctextps)) {
-        while (ctextps[i]) length += ColorText_length(*(ctextps[i++]));
+        while ((i < count) && ctextps[i]) length += ColorText_length(*(ctextps[i++]));
     } else {
         char** sps = ps;
-        while (sps[i]) length += strlen(sps[i++]);
+        while ((i < count) && sps[i]) length += strlen(sps[i++]);
     }
     length += joiner_len * i;
+    // Add room for the reset_code.
+    length += CODE_RESET_LEN;
     // One more for the null.
     return length++;
 }
 
+/*! Determine the length of a `NULL`-terminated array of strings, ColorArgs,
+    or ColorTexts.
+
+    \pi ps  A `NULL`-terminated array of strings, ColorArgs, or ColorTexts.
+    \return The number of items (before `NULL`) in the array.
+*/
+size_t _colr_join_array_length(void* ps) {
+    if (!ps) return 0;
+    size_t i = 0;
+    ColorArg** cargps = ps;
+    ColorText** ctextps = ps;
+    if (ColorArg_is_ptr(*cargps)) {
+        while (cargps[i++]);
+    } else if (ColorText_is_ptr(*ctextps)) {
+        while (ctextps[i++]);
+    } else {
+        char** sps = ps;
+        while (sps[i++]);
+    }
+    return i - 1;
+}
 /*! Creates a string representation of a ArgType.
 
     \pi type An ArgType to get the type from.
@@ -2473,6 +2586,20 @@ bool ColorText_has_arg(ColorText ctext, ColorArg carg) {
     );
 }
 
+/*! Checks to see if a ColorText has any argument values set.
+
+    \pi ctext A ColorText to check.
+    \return   `true` if `.fore`, `.back`, or .`style` is set to a non-empty ColorArg,
+              otherwise `false`.
+*/
+bool ColorText_has_args(ColorText ctext) {
+    return (
+        (ctext.fore && !ColorArg_is_empty(*(ctext.fore))) ||
+        (ctext.back && !ColorArg_is_empty(*(ctext.back))) ||
+        (ctext.style && !ColorArg_is_empty(*(ctext.style)))
+    );
+}
+
 /*! Checks to see if a ColorText has no usable values.
 
     \details
@@ -2923,7 +3050,7 @@ ColorValue ColorValue_from_str(char* s) {
 
     // Try basic colors.
     int b_ret = BasicValue_from_str(s);
-    if ( b_ret != BASIC_INVALID) {
+    if (b_ret != BASIC_INVALID) {
         BasicValue bval = (BasicValue)b_ret;
         return ColorValue_from_value(type, &bval);
     }
@@ -3947,6 +4074,24 @@ char* StyleValue_repr(StyleValue sval) {
             // if it does.
             asprintf_or_return(NULL, &repr, "(StyleValue) %d", sval);
     }
+    return repr;
+}
+
+/*! Create a string representation for a TermSize.
+
+    \pi ts  TermSize to get the representation for.
+    \return An allocated string with the result.\n
+            \mustfree
+*/
+char* TermSize_repr(TermSize ts) {
+    char* repr;
+    asprintf_or_return(
+        NULL,
+        &repr,
+        "TermSize {.rows=%d, .columns=%d}",
+        ts.rows,
+        ts.columns
+    );
     return repr;
 }
 

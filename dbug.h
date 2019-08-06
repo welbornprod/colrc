@@ -31,13 +31,13 @@
 
 #ifdef DEBUG
     #ifndef DOXYGEN_SKIP
-    #define DBUG_COLOR_NONE "\033[0m"
-    #define DBUG_COLOR_BLUE "\033[34m"
-    #define DBUG_COLOR_CYAN "\033[36m"
-    #define DBUG_COLOR_GREEN "\033[32m"
-    #define DBUG_COLOR_RED "\033[31m"
-    #define DBUG_COLOR_YELLOW "\033[33m"
-    #define DBUG_STYLE_BRIGHT "\033[1m"
+    #define DBUG_COLOR_NONE "\x1b[0m"
+    #define DBUG_COLOR_BLUE "\x1b[34m"
+    #define DBUG_COLOR_CYAN "\x1b[36m"
+    #define DBUG_COLOR_GREEN "\x1b[32m"
+    #define DBUG_COLOR_RED "\x1b[31m"
+    #define DBUG_COLOR_YELLOW "\x1b[33m"
+    #define DBUG_STYLE_BRIGHT "\x1b[1m"
     #endif
     //! Number of characters in the file, line, and lineno info.
     #define DBUG_DEBUGWIDTH 45

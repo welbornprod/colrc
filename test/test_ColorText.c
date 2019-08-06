@@ -11,7 +11,7 @@ subdesc(ColorText_empty) {
         ColorText empty = ColorText_empty();
         assert(ColorText_is_empty(empty));
         char* s = ColorText_to_str(empty);
-        assert_empty_str(s);
+        assert_str_empty(s);
         free(s);
     }
 }
@@ -38,7 +38,7 @@ subdesc(ColorText_from_values) {
             assert(ColorText_is_ptr(p));
             char* s = ColorText_to_str(*p);
             ColorText_free(p);
-            assert_nonempty_str(s);
+            assert_str_not_empty(s);
             free(s);
         }
     }
@@ -178,7 +178,7 @@ subdesc(ColorText_to_str) {
     it("creates colorized strings") {
         ColorText empty = ColorText_empty();
         char* emptystr = ColorText_to_str(empty);
-        assert_empty_str(emptystr);
+        assert_str_empty(emptystr);
         free(emptystr);
 
         ColorText ctext = ColorText_from_values("test", NULL);

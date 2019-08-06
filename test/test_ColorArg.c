@@ -293,7 +293,7 @@ subdesc(ColorArg_to_str) {
         for_each(tests, i) {
             char* s = ColorArg_to_str(tests[i].carg);
             if (tests[i].invalid) {
-                assert_empty_str(s);
+                assert_str_empty(s);
             } else {
                 assert(str_is_codes(s));
             }
