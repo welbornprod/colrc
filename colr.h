@@ -166,15 +166,20 @@
 */
 #define COLORARG_MARKER UINT_MAX
 
+/*! Marker for the _ColrLastArg_s struct, for identifying a void pointer as a
+    _ColrLastArg_s.
+*/
+#define COLORLASTARG_MARKER (UINT_MAX - 20)
+
 /*! Marker for the ColorJustify struct, for identifying a void pointer as a
     ColorJustify.
 */
-#define COLORJUSTIFY_MARKER (UINT_MAX - 20)
+#define COLORJUSTIFY_MARKER (UINT_MAX - 30)
 
 /*! Marker for the ColorText struct, for identifying a void pointer as a
     ColorText.
 */
-#define COLORTEXT_MARKER (UINT_MAX - 30)
+#define COLORTEXT_MARKER (UINT_MAX - 40)
 
 /*! Possible error return value for BasicValue_from_str(), ExtendedValue_from_str(),
     and colorname_to_rgb().
@@ -443,7 +448,7 @@
 
     \example Colr_example.c
 */
-#define Colr(text, ...) ColorText_to_ptr(ColorText_from_values(text, __VA_ARGS__, NULL))
+#define Colr(text, ...) ColorText_to_ptr(ColorText_from_values(text, __VA_ARGS__, _ColrLastArg))
 
 
 /*! \def Colr_center
@@ -512,7 +517,7 @@
 
     \example colr_example.c
 */
-#define colr(...) _colr(__VA_ARGS__, NULL)
+#define colr(...) _colr(__VA_ARGS__, _ColrLastArg)
 
 /*! \def colr_free
     Calls the \<type\>_free functions for the supported types.
@@ -617,7 +622,7 @@
 
     \example colr_join_example.c
 */
-#define colr_join(joiner, ...) _colr_join(joiner, __VA_ARGS__, NULL)
+#define colr_join(joiner, ...) _colr_join(joiner, __VA_ARGS__, _ColrLastArg)
 
 
 /*! \def colr_max
@@ -977,6 +982,17 @@
 */
 #define style_str(x) ColorArg_to_str(style_arg(x))
 
+/*! \def while_colr_va_arg
+    Construct a while-loop over a `va_list`, where the last argument is
+    expected to be _ColrLastArg, or a pointer to a _ColrLastArg_s with the
+    same values as _ColrLastArg.
+
+    \pi ap      The `va_list` to use.
+    \pi vartype Expected type of the argument.
+    \pi x       The variable to assign to (usually `arg`).
+*/
+#define while_colr_va_arg(ap, vartype, x) while (x = va_arg(ap, vartype), !_colr_is_last_arg(x))
+
 /*! \def with_rgbs
     Iterate over every possible rgb combination, 0-255 for red, green, and blue.
 
@@ -1280,6 +1296,19 @@ extern const RGB ext2rgb_map[];
 //! Length of ext2rgb_map (should be 256).
 extern const size_t ext2rgb_map_len;
 
+//! A specific ColorArg-like struct that marks the end of variadic argument lists.
+struct _ColrLastArg_s {
+    unsigned int marker;
+    unsigned short value;
+};
+
+static const struct _ColrLastArg_s _ColrLastArgValue = {
+    .marker=COLORLASTARG_MARKER,
+    .value=1337
+};
+// clang linter says it's unused, but it's definitely used, all over the place.
+#pragma clang diagnostic ignored "-Wunused-const-variable"
+static const struct _ColrLastArg_s* const _ColrLastArg = &_ColrLastArgValue;
 #endif
 
 
@@ -1360,6 +1389,13 @@ char* str_strip_codes(const char* s);
 char* str_to_lower(const char* s);
 
 /*! \internal
+    Allocates a copy of _ColrLastArgValue, for marking the end of variadic
+    argument lists.
+    \endinternal
+*/
+bool _colr_is_last_arg(void* p);
+ColorArg* _colr_last_arg(void);
+/*! \internal
     The multi-type variadiac function behind the colr() macro.
     \endinternal
 */
@@ -1373,7 +1409,7 @@ size_t _colr_join_size(void* joinerp, va_list args);
 char* _colr_join(void* joinerp, ...);
 
 /*! \internal
-    The multi-type variadiac function behind the colr_join_array() macro.
+    Array-based versions for colr_join().
     \endinternal
 */
 size_t _colr_join_array_length(void* ps);
@@ -1530,11 +1566,15 @@ static_assert(
 static_assert(
     (
         COLORARG_MARKER &&
+        (COLORLASTARG_MARKER &&
+            (COLORLASTARG_MARKER != COLORARG_MARKER)
+        ) &&
         (COLORJUSTIFY_MARKER &&
-            (COLORJUSTIFY_MARKER != COLORARG_MARKER) &&
-            (COLORJUSTIFY_MARKER != COLORTEXT_MARKER)
+            (COLORJUSTIFY_MARKER != COLORLASTARG_MARKER) &&
+            (COLORJUSTIFY_MARKER != COLORARG_MARKER)
         ) &&
         (COLORTEXT_MARKER &&
+            (COLORTEXT_MARKER != COLORLASTARG_MARKER) &&
             (COLORTEXT_MARKER != COLORARG_MARKER) &&
             (COLORTEXT_MARKER != COLORJUSTIFY_MARKER)
         )

@@ -52,7 +52,7 @@ subdesc(ColorText_has_arg) {
         assert_ColorText_nothas_arg(ctext, forearg);
         assert_ColorText_nothas_arg(ctext, backarg);
         assert_ColorText_nothas_arg(ctext, stylearg);
-        ctext = ColorText_from_values("test", &forearg, &backarg, &stylearg, NULL);
+        ctext = ColorText_from_values("test", &forearg, &backarg, &stylearg, _ColrLastArg);
         assert_ColorText_has_arg(ctext, forearg);
         assert_ColorText_has_arg(ctext, backarg);
         assert_ColorText_has_arg(ctext, stylearg);
@@ -97,29 +97,29 @@ subdesc(ColorText_length) {
             size_t expected;
         } tests[] = {
             {
-                ColorText_from_values("test", NULL),
+                ColorText_from_values("test", _ColrLastArg),
                 slength
             },
             {
-                ColorText_from_values("test", &forearg, NULL),
+                ColorText_from_values("test", &forearg, _ColrLastArg),
                 slength + CODE_LEN + CODE_RESET_LEN
             },
             {
-                ColorText_from_values("test", &backarg, NULL),
+                ColorText_from_values("test", &backarg, _ColrLastArg),
                 slength + CODE_LEN + CODE_RESET_LEN
             },
             {
                 // The RESET_ALL style means no extra CODE_RESET_ALL is appended.
-                ColorText_from_values("test", &stylearg, NULL),
+                ColorText_from_values("test", &stylearg, _ColrLastArg),
                 slength + STYLE_LEN
             },
             {
-                ColorText_from_values("test", &forearg, &backarg, NULL),
+                ColorText_from_values("test", &forearg, &backarg, _ColrLastArg),
                 slength + (CODE_LEN * 2) + CODE_RESET_LEN
             },
             {
                 // Again, the RESET_ALL causes no extra CODE_RESET_ALL.
-                ColorText_from_values("test", &forearg, &backarg, &stylearg, NULL),
+                ColorText_from_values("test", &forearg, &backarg, &stylearg, _ColrLastArg),
                 slength + (CODE_LEN * 2) + STYLE_LEN
             },
         };
@@ -154,7 +154,7 @@ subdesc(ColorText_set_values) {
         };
         for_each(tests, i) {
             ColorText ctext = ColorText_empty();
-            ColorText_set_values(&ctext, "XXX", tests[i].arg1, tests[i].arg2, tests[i].arg3, NULL);
+            ColorText_set_values(&ctext, "XXX", tests[i].arg1, tests[i].arg2, tests[i].arg3, _ColrLastArg);
             ColorArg* arg1 = tests[i].arg1;
             assert_ColorText_has_arg(ctext, *arg1);
             ColorArg* arg2 = tests[i].arg2;
@@ -181,7 +181,7 @@ subdesc(ColorText_to_str) {
         assert_str_empty(emptystr);
         free(emptystr);
 
-        ColorText ctext = ColorText_from_values("test", NULL);
+        ColorText ctext = ColorText_from_values("test", _ColrLastArg);
         char* nocodes = ColorText_to_str(ctext);
         assert_str_eq(nocodes, "test", "Should be a simple string!");
         free(nocodes);

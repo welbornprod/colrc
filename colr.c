@@ -1478,8 +1478,8 @@ char* str_to_lower(const char* s) {
 
     \pi p   The first of any ColorArgs, ColorTexts, or strings to join.
     \pi ... Zero or more ColorArgs, ColorTexts, or strings to join.
-            <em>Only one `NULL` is allowed, and only at the end of the argument
-            list.</em>
+            The last argument must be a ColorArg pointer that is equal to
+            _ColrLastArgValue.
     \return An allocated string with mixed escape codes/strings.\n
             CODE_RESET_ALL is appended to all the pieces that aren't plain
             strings. This allows easy part-colored messages, so there's no
@@ -1526,10 +1526,11 @@ char* _colr(void *p, ...) {
         // Free the temporary string created with Color(Arg/Text)_to_str().
         free(s);
     }
-    void *arg = NULL;
     bool need_reset = false;
+    void *arg = NULL;
 
-    while ((arg = va_arg(args, void*))) {
+    while_colr_va_arg(args, void*, arg) {
+        if (!arg) continue;
         cargp = NULL;
         ctextp = NULL;
         // These ColorArgs/ColorTexts were heap allocated through the fore,
@@ -1566,6 +1567,24 @@ char* _colr(void *p, ...) {
     return final;
 }
 
+/*! Determines if a void pointer is _ColrLastArg (the last-arg-marker).
+
+    \pi p The pointer to check.
+    \return `true` if the pointer is _ColrLastArg, otherwise `false`.
+*/
+bool _colr_is_last_arg(void* p) {
+    if (!p) return false;
+    // Most likely the very same memory.
+    if (p == _ColrLastArg) return true;
+    // Check to see if someone allocated their own _ColrLastArgValue.
+    struct _ColrLastArg_s* clastp = p;
+    return (
+        (clastp->marker == _ColrLastArgValue.marker) &&
+        (clastp->value == _ColrLastArgValue.value)
+    );
+}
+
+
 /*! Parse arguments, just as in _colr(), but only return the length needed to
     allocate the resulting string.
 
@@ -1599,7 +1618,8 @@ size_t _colr_size(void *p, va_list args) {
     }
     bool need_reset = false;
     void *arg = NULL;
-    while ((arg = va_arg(args, void*))) {
+    while_colr_va_arg(args, void*, arg) {
+        if (!arg) continue;
         cargp = NULL;
         ctextp = NULL;
         // These ColorArgs/ColorTexts were heap allocated through the fore,
@@ -1691,7 +1711,8 @@ char* _colr_join(void *joinerp, ...) {
     }
     int count = 0;
     void *arg = NULL;
-    while ((arg = va_arg(args, void*))) {
+    while_colr_va_arg(args, void*, arg) {
+        if (!arg) continue;
         cargp = NULL;
         ctextp = NULL;
         // These ColorArgs/ColorTexts were heap allocated through the fore,
@@ -1769,7 +1790,8 @@ size_t _colr_join_size(void *joinerp, va_list args) {
     }
     int count = 0;
     void *arg = NULL;
-    while ((arg = va_arg(args, void*))) {
+    while_colr_va_arg(args, void*, arg) {
+        if (!arg) continue;
         count++;
         cargp = NULL;
         ctextp = NULL;
@@ -2540,11 +2562,12 @@ ColorText ColorText_from_values(char* text, ...) {
     // Argument list must have ColorArg with NULL members at the end.
     ColorText ctext = ColorText_empty();
     ctext.text = text;
-    va_list colrargs;
-    va_start(colrargs, text);
+    va_list args;
+    va_start(args, text);
 
-    ColorArg *arg;
-    while ((arg = va_arg(colrargs, ColorArg*))) {
+    ColorArg *arg = NULL;
+    while_colr_va_arg(args, ColorArg*, arg) {
+        if (!arg) continue;
         assert(ColorArg_is_ptr(arg));
         // It's a ColorArg.
         if (arg->type == FORE) {
@@ -2564,7 +2587,7 @@ ColorText ColorText_from_values(char* text, ...) {
             }
         }
     }
-    va_end(colrargs);
+    va_end(args);
     return ctext;
 }
 
@@ -2736,11 +2759,12 @@ void ColorText_set_values(ColorText* ctext, char* text, ...) {
     *ctext = ColorText_empty();
     ctext->text = text;
 
-    va_list colrargs;
-    va_start(colrargs, text);
+    va_list args;
+    va_start(args, text);
 
-    ColorArg *arg;
-    while ((arg = va_arg(colrargs, ColorArg*))) {
+    ColorArg *arg = NULL;
+    while_colr_va_arg(args, ColorArg*, arg) {
+        if (!arg) continue;
         assert(ColorArg_is_ptr(arg));
         // It's a ColorArg.
         if (arg->type == FORE) {
@@ -2760,7 +2784,7 @@ void ColorText_set_values(ColorText* ctext, char* text, ...) {
             }
         }
     }
-    va_end(colrargs);
+    va_end(args);
 }
 /*! Copies a ColorText into allocated memory and returns the pointer.
 
