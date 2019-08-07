@@ -13,13 +13,25 @@ subdesc(colr) {
         char* s = colr(NULL, "that");
         assert_str_empty(s);
         free(s);
-        // This causes a huge failure in argument handling (va_list/va_copy)!
-        // char* s2 = colr("this", NULL); // <- Transforms into _colr("this", NULL, NULL);
-        // assert_str_eq(s2, "this", "Should act like strdup() with a NULL argument.");
-        // free(s);
-
-        // TODO: Use something besides NULL to mark the end of the arg list,
-        //       like pointer to a _ColrLastArg struct, or something.
+        char* s2 = colr("this", NULL);
+        assert_str_eq(s2, "this", "Should act like strdup() with a NULL argument.");
+        free(s2);
+        char* s3 = colr("this", NULL, "that");
+        assert_str_eq(s3, "thisthat", "Should act like strdup()/strcat() with a NULL argument.");
+        free(s3);
+    }
+    it("handles sentinel value") {
+        char* s = _colr("test", "this", _ColrLastArg);
+        assert_str_eq(s, "testthis", "Failed to stop on sentinel value!");
+        free(s);
+    }
+    it("handles custom sentinel value") {
+        struct _ColrLastArg_s* sent = malloc(sizeof(struct _ColrLastArg_s));
+        *sent = _ColrLastArgValue;
+        char* s = _colr("test", "this", "thing", sent);
+        free(sent);
+        assert_str_eq(s, "testthisthing", "Failed to stop on custom allocated sentinel value!");
+        free(s);
     }
     it("joins strings") {
         char* s = colr("this", "that", "the other");
