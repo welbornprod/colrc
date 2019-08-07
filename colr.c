@@ -1604,18 +1604,7 @@ size_t _colr_size(void *p, va_list args) {
     if (!p) return 0;
     ColorArg* cargp = NULL;
     ColorText* ctextp = NULL;
-    size_t length = 1;
-    if (ColorArg_is_ptr(p)) {
-        // It's a ColorArg.
-        cargp = p;
-        length += ColorArg_length(*cargp);
-    } else if (ColorText_is_ptr(p)) {
-        ctextp = p;
-        length += ColorText_length(*ctextp);
-    } else {
-        // It's a string, or it better be anyway.
-        length += strlen((char* )p);
-    }
+    size_t length = _colr_ptr_length(p);
     bool need_reset = false;
     void *arg = NULL;
     while_colr_va_arg(args, void*, arg) {
@@ -1771,43 +1760,18 @@ size_t _colr_join_size(void *joinerp, va_list args) {
     // No joiner, no strings. Empty string will be returned, so just "\0".
     if (!joinerp) return 1;
 
-    ColorArg* joiner_cargp = NULL;
-    ColorText* joiner_ctextp = NULL;
-    ColorArg* cargp = NULL;
-    ColorText* ctextp = NULL;
     size_t length = 1;
-    size_t joiner_len = 0;
-    if (ColorArg_is_ptr(joinerp)) {
-        // It's a ColorArg.
-        joiner_cargp = joinerp;
-        joiner_len = ColorArg_length(*joiner_cargp);
-    } else if (ColorText_is_ptr(joinerp)) {
-        joiner_ctextp = joinerp;
-        joiner_len = ColorText_length(*joiner_ctextp);
-    } else {
-        // It's a string, or it better be anyway.
-        joiner_len = strlen((char* )joinerp);
-    }
-    int count = 0;
+    size_t joiner_len = _colr_ptr_length(joinerp);
+    bool need_join = false;
     void *arg = NULL;
     while_colr_va_arg(args, void*, arg) {
         if (!arg) continue;
-        count++;
-        cargp = NULL;
-        ctextp = NULL;
-        if (ColorArg_is_ptr(arg)) {
-            // It's a ColorArg.
-            cargp = arg;
-            length += ColorArg_length(*cargp);
-        } else if (ColorText_is_ptr(arg)) {
-            ctextp = arg;
-            length += ColorText_length(*ctextp);
-        } else {
-            // It better be a string.
-            length += strlen((char* )arg);
-        }
-        if (count > 1) {
+        length += _colr_ptr_length(arg);
+        if (need_join) {
             length += joiner_len;
+        } else {
+            // First time through.
+            need_join = true;
         }
     }
     length += CODE_RESET_LEN;
@@ -1876,7 +1840,7 @@ char* colr_join_array(void* joinerp, void* ps) {
     \sa colr colr_join
 */
 char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
-    if (!(joinerp && ps)) return 0;
+    if (!(joinerp && ps && count)) return colr_empty_str();
     size_t length = _colr_join_arrayn_size(joinerp, ps, count);
     if (length == 1) return colr_empty_str();
     ColorArg* joiner_cargp = NULL;
@@ -1947,18 +1911,7 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
 size_t _colr_join_arrayn_size(void* joinerp, void* ps, size_t count) {
     if (!(joinerp && ps && count)) return 0;
     size_t length = 0;
-    size_t joiner_len = 0;
-    if (ColorArg_is_ptr(joinerp)) {
-        ColorArg* cargp = joinerp;
-        joiner_len = ColorArg_length(*cargp);
-    } else if (ColorText_is_ptr(joinerp)) {
-        ColorText* ctextp = joinerp;
-        joiner_len = ColorText_length(*ctextp);
-    } else {
-        // Better be a string!
-        char* sp = joinerp;
-        joiner_len = strlen(sp) + 1;
-    }
+    size_t joiner_len = _colr_ptr_length(joinerp);
     if (joiner_len < 2) return 1;
     length += joiner_len;
 
@@ -1983,7 +1936,7 @@ size_t _colr_join_arrayn_size(void* joinerp, void* ps, size_t count) {
 /*! Determine the length of a `NULL`-terminated array of strings, ColorArgs,
     or ColorTexts.
 
-    \pi ps  A `NULL`-terminated array of strings, ColorArgs, or ColorTexts.
+    \pi ps  A `NULL`-terminated array of ColorArgs, ColorTexts, or strings.
     \return The number of items (before `NULL`) in the array.
 */
 size_t _colr_join_array_length(void* ps) {
@@ -2000,6 +1953,32 @@ size_t _colr_join_array_length(void* ps) {
         while (sps[i++]);
     }
     return i - 1;
+}
+
+/*! Get the size, in bytes, needed to convert a ColorArg, ColorText, or string
+    into a string.
+
+    \details
+    This is used in the variadic _colr* functions.
+
+    \pi p   A ColorArg pointer, ColorText pointer, or string.
+    \return The length needed to convert the object into a string
+            (`strlen() + 1` for strings).
+*/
+size_t _colr_ptr_length(void* p) {
+    size_t length = 0;
+    if (ColorArg_is_ptr(p)) {
+        // It's a ColorArg.
+        ColorArg* cargp = p;
+        length = ColorArg_length(*cargp);
+    } else if (ColorText_is_ptr(p)) {
+        ColorText* ctextp = p;
+        length = ColorText_length(*ctextp);
+    } else {
+        // It's a string, or it better be anyway.
+        length = strlen((char* )p) + 1;
+    }
+    return length;
 }
 /*! Creates a string representation of a ArgType.
 

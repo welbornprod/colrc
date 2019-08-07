@@ -1389,18 +1389,18 @@ char* str_strip_codes(const char* s);
 char* str_to_lower(const char* s);
 
 /*! \internal
-    Allocates a copy of _ColrLastArgValue, for marking the end of variadic
-    argument lists.
+    Helpers for the variadic colr* functions.
     \endinternal
 */
 bool _colr_is_last_arg(void* p);
-ColorArg* _colr_last_arg(void);
+size_t _colr_ptr_length(void* p);
+
 /*! \internal
     The multi-type variadiac function behind the colr() macro.
     \endinternal
 */
-size_t _colr_size(void* p, va_list args);
 char* _colr(void* p, ...);
+size_t _colr_size(void* p, va_list args);
 /*! \internal
     The multi-type variadiac function behind the colr_join() macro.
     \endinternal

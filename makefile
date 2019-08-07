@@ -77,11 +77,9 @@ debug: $(binary)
 
 release: CFLAGS+=-O3 -DNDEBUG
 release: $(binary)
-release: strip
 
 release2: CFLAGS+=-O2 -DNDEBUG
 release2: $(binary)
-release2: strip
 
 $(binary): $(objects)
 	@printf "\nCompiling $(binary) executable...\n    "
