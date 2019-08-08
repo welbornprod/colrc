@@ -185,7 +185,7 @@
     and colorname_to_rgb().
 */
 #define COLOR_INVALID (-2)
-//! Possible error return value for rgb_from_str() and RGB_from_str().
+//! Possible error return value for RGB_from_str().
 #define COLOR_INVALID_RANGE (-1)
 
 
@@ -355,40 +355,25 @@
         RGB: ColorArg_from_value(type, TYPE_RGB, &x) \
     )
 
-/*! \def color_name_is_valid
-    Convenience macro for checking if a color name is valid.
+/*! \def color_name_is_basic
+    Convenience macro for checking if a color name is valid, and maps to a
+    BasicValue.
 
-    \pi x Color name (`char*`) to check.
-    \return `true` if the name is a valid color name, otherwise `false`.
+    \pi x   Color name (`char*`) to check.
+    \return `true` if the name is a valid BasicValue name, otherwise `false`.
 
-    \examplecodefor{color_name_is_valid,.c}
-    char* names[] = {
-        "red",
-        "lightblue",
-        "127",
-        "123,54,67",
-        "NOTACOLOR",
-        "345",
-        "1;",
-        "1;2;"
-    };
-    size_t names_len = sizeof(names) / sizeof(names[0]);
-    for (size_t i = 0; i < names_len; i++) {
-        if (color_name_is_valid(names[i])) {
-            printf("  Valid name: %s\n", names[i]);
-        } else  {
-            printf("Invalid name: %s\n", names[i]);
-        }
-    }
-    \endexamplecode
+    \sa color_name_is_valid color_name_is_invalid
 */
-#define color_name_is_valid(x) ColorType_is_valid(ColorType_from_str(x))
+#define color_name_is_basic(x) (ColorType_from_str(x) == TYPE_BASIC)
+
 
 /*! \def color_name_is_invalid
     Convenience macro for checking if a color name is invalid.
 
     \pi x Color name (`char*`) to check.
     \return `true` if the name is an invalid color name, otherwise `false`.
+
+    \sa color_name_is_valid color_name_is_basic
 
     \examplecodefor{color_name_is_invalid,.c}
     char* names[] = {
@@ -412,6 +397,37 @@
     \endexamplecode
 */
 #define color_name_is_invalid(x) ColorType_is_invalid(ColorType_from_str(x))
+
+/*! \def color_name_is_valid
+    Convenience macro for checking if a color name is valid.
+
+    \pi x   Color name (`char*`) to check.
+    \return `true` if the name is a valid color name, otherwise `false`.
+
+    \sa color_name_is_invalid color_name_is_basic
+
+    \examplecodefor{color_name_is_valid,.c}
+    char* names[] = {
+        "red",
+        "lightblue",
+        "127",
+        "123,54,67",
+        "NOTACOLOR",
+        "345",
+        "1;",
+        "1;2;"
+    };
+    size_t names_len = sizeof(names) / sizeof(names[0]);
+    for (size_t i = 0; i < names_len; i++) {
+        if (color_name_is_valid(names[i])) {
+            printf("  Valid name: %s\n", names[i]);
+        } else  {
+            printf("Invalid name: %s\n", names[i]);
+        }
+    }
+    \endexamplecode
+*/
+#define color_name_is_valid(x) ColorType_is_valid(ColorType_from_str(x))
 
 /*! \def color_val
     Builds a correct ColorValue struct according to the type of it's first
@@ -1244,6 +1260,22 @@ typedef struct ColorJustify_s {
     char padchar;
 } ColorJustify;
 
+/*! Holds info about a known color name, like it's ExtendedValue and it's
+    RGB value. Some of the names have the same ExtendedValue, and not all
+    ExtendedValues have names.
+
+    \details
+    This is used in the colr_name_data array.
+*/
+typedef struct ColorNameData_s {
+    //! The known name of the color.
+    char* name;
+    //! ExtendedValue (256-colors) for the color.
+    ExtendedValue ext;
+    //! RGB (TrueColor) for the color.
+    RGB rgb;
+} ColorNameData;
+
 //! Holds an ArgType, and a ColorValue.
 typedef struct ColorArg_s {
     //! A marker used to inspect void pointers and determine if they are ColorArgs.
@@ -1296,6 +1328,11 @@ extern const RGB ext2rgb_map[];
 //! Length of ext2rgb_map (should be 256).
 extern const size_t ext2rgb_map_len;
 
+//! An array of ColorNameData, with all known color names, even the old/weird ones.
+extern const ColorNameData colr_name_data[];
+//! Length of colr_name_data.
+extern const size_t colr_name_data_len;
+
 //! A specific ColorArg-like struct that marks the end of variadic argument lists.
 struct _ColrLastArg_s {
     unsigned int marker;
@@ -1306,10 +1343,10 @@ static const struct _ColrLastArg_s _ColrLastArgValue = {
     .marker=COLORLASTARG_MARKER,
     .value=1337
 };
-// clang linter says it's unused, but it's definitely used, all over the place.
+// clang linter says it's unused, but it's used in the _colr* functions, and others.
 #pragma clang diagnostic ignored "-Wunused-const-variable"
 static const struct _ColrLastArg_s* const _ColrLastArg = &_ColrLastArgValue;
-#endif
+#endif // DOXYGEN_SKIP
 
 
 /*! \file colr.h
@@ -1534,11 +1571,9 @@ char* StyleValue_repr(StyleValue sval);
     rgb/RGB functions.
     \endinternal
 */
-int rgb_from_hex(const char *hexstr, unsigned char* r, unsigned char* g, unsigned char*b);
-int rgb_from_str(const char* arg, unsigned char* r, unsigned char* g, unsigned char* b);
 bool RGB_eq(RGB a, RGB b);
-int RGB_from_hex(const char* arg, RGB *rgb);
-RGB RGB_from_hex_default(const char* arg, RGB default_value);
+int RGB_from_hex(const char* hexstr, RGB *rgb);
+RGB RGB_from_hex_default(const char* hexstr, RGB default_value);
 int RGB_from_str(const char* arg, RGB* rgb);
 char* RGB_to_hex(RGB rgb);
 char* RGB_to_str(RGB rgb);

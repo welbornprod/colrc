@@ -107,13 +107,6 @@ typedef struct ColrToolOptions_s {
     size_t rainbow_offset;
     // Non-colorizing options.
     bool strip_codes;
-    // Commands.
-    bool print_back;
-    bool print_256;
-    bool print_basic;
-    bool print_rgb;
-    bool print_rgb_term;
-    bool print_rainbow;
 } ColrToolOptions;
 
 ColrToolOptions ColrToolOptions_new(void);
@@ -127,6 +120,8 @@ bool parse_int_arg(const char* s, int* value);
 bool parse_size_arg(const char* s, size_t* value);
 int print_256(bool do_back);
 int print_basic(bool do_back);
+void print_name(size_t index, bool do_rgb);
+int print_names(bool do_rgb);
 int print_rainbow(bool do_back);
 int print_rgb(bool do_back, bool term_rgb);
 void print_unrecognized_arg(const char* userarg);
