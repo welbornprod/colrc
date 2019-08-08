@@ -3992,6 +3992,7 @@ int ExtendedValue_from_str(const char* arg) {
         int hex_ret = ExtendedValue_from_hex(arglower);
         if (hex_ret >= 0) {
             // A valid hex string.
+            free(arglower);
             return hex_ret;
         }
     }
