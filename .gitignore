@@ -13,3 +13,4 @@ deleteme.*
 callgrind.*
 cachegrind.*
 images/*.xcf
+libcolr.so

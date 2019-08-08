@@ -4432,9 +4432,10 @@ char* TermSize_repr(TermSize ts) {
 /*! Rainbow-ize some text using rgb back colors, lolcat style.
 
     \details
-    This prepends a color code to every character in the input string.
-    To handle multibyte characters, the string is first converted to
-    `wchar_t*`. The end result is converted back into a regular `char*` string.
+    This prepends a color code to every character in the string.
+    Multi-byte characters are handled properly by checking `mblen()`, and
+    copying the bytes to the resulting string without codes between the
+    multi-byte characters.
 
     \details
     The `CODE_RESET_ALL` code is appended to the result.
@@ -4455,9 +4456,10 @@ char* rainbow_bg(const char* s, double freq, size_t offset) {
     closer to the standard 256-color values.
 
     \details
-    This prepends a color code to every character in the input string.
-    To handle multibyte characters, the string is first converted to
-    `wchar_t*`. The end result is converted back into a regular `char*` string.
+    This prepends a color code to every character in the string.
+    Multi-byte characters are handled properly by checking `mblen()`, and
+    copying the bytes to the resulting string without codes between the
+    multi-byte characters.
 
     \details
     The `CODE_RESET_ALL` code is appended to the result.
@@ -4477,9 +4479,10 @@ char* rainbow_bg_term(const char* s, double freq, size_t offset) {
 /*! Rainbow-ize some text using rgb fore colors, lolcat style.
 
     \details
-    This prepends a color code to every character in the input string.
-    To handle multibyte characters, the string is first converted to
-    `wchar_t*`. The end result is converted back into a regular `char*` string.
+    This prepends a color code to every character in the string.
+    Multi-byte characters are handled properly by checking `mblen()`, and
+    copying the bytes to the resulting string without codes between the
+    multi-byte characters.
 
     \details
     The `CODE_RESET_ALL` code is appended to the result.
@@ -4500,9 +4503,10 @@ char* rainbow_fg(const char* s, double freq, size_t offset) {
     closer to the standard 256-color values.
 
     \details
-    This prepends a color code to every character in the input string.
-    To handle multibyte characters, the string is first converted to
-    `wchar_t*`. The end result is converted back into a regular `char*` string.
+    This prepends a color code to every character in the string.
+    Multi-byte characters are handled properly by checking `mblen()`, and
+    copying the bytes to the resulting string without codes between the
+    multi-byte characters.
 
     \details
     The `CODE_RESET_ALL` code is appended to the result.

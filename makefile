@@ -59,7 +59,7 @@ examples_dir=examples
 examples_source=$(wildcard $(examples_dir)/*.c)
 valgrind_cmd=bash tools/valgrind_run.sh
 
-.PHONY: all, coverage, debug, release, release2
+.PHONY: all, coverage, debug, lib, libdebug, librelease, release, release2
 all: debug
 
 coverage: clean
@@ -74,6 +74,18 @@ coverage:
 debug: tags
 debug: CFLAGS+=-g3 -DDEBUG
 debug: $(binary)
+
+lib: cleancolrobjects
+lib: CFLAGS+=-fpic
+lib: colr.o
+lib:
+	$(CC) -shared -o libcolr.so colr.o
+
+libdebug: CFLAGS+=-g3 -DDEBUG
+libdebug: lib
+
+librelease: CFLAGS+=-O3 -DNDEBUG
+librelease: lib
 
 release: CFLAGS+=-O3 -DNDEBUG
 release: $(binary)
@@ -130,6 +142,10 @@ clangrelease: release
 .PHONY: clean
 clean:
 	@./tools/clean.sh "$(binary)"
+
+.PHONY: cleancolrobjects
+cleancolrobjects:
+	@./tools/clean.sh -m "Colr Objects" colr.o
 
 .PHONY: cleandebug
 cleandebug: clean
