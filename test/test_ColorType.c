@@ -60,6 +60,7 @@ subdesc(ColorType_is_invalid) {
             {"xwhite", false},
             {"255;255;255", false},
             {"#aabbcc", false},
+            {"aliceblue", false},
         };
         for_each(tests, i) {
             ColorType type = ColorType_from_str(tests[i].name);
@@ -82,6 +83,7 @@ subdesc(ColorType_is_valid) {
             {"xwhite", true},
             {"255;255;255", true},
             {"#aabbcc", true},
+            {"aliceblue", true},
         };
         for_each(tests, i) {
             ColorType type = ColorType_from_str(tests[i].name);

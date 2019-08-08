@@ -6,7 +6,6 @@
 ## Missing Features From Colr.py
 [ ] --listcodes, list escape codes found in text.
 [ ] --translate, show terminal, hex, and rgb values for any color given.
-[ ] --names, the entire colr.name_data database of known color names.
 [ ] --spread, for rainbow spread (same rgb code for several chars).
 
 ## Tests

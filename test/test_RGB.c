@@ -6,99 +6,75 @@
 #include "test_RGB.h"
 
 describe(RGB) {
-    subdesc(rgb_from_hex) {
-        it("recognizes hex strings") {
-            for_len(hex_tests_len, i) {
-                rgb_test_item item = hex_tests[i];
-                unsigned char r = 0, g = 0, b = 0;
-                // The call should return 0 itself.
-                assert_rgb_from(item.teststr, rgb_from_hex, 0, &r, &g, &b);
-                // The values returned should match the expected tests.
-                assert_RGB_eq(rgb(r, g, b), rgb(item.red, item.green, item.blue));
-            }
-        }
-        it("recognizes bad hex values") {
-            for_len(bad_hex_tests_len, i) {
-                char* badstr = bad_hex_tests[i];
-                // Should be COLOR_INVALID.
-                unsigned char r = 0, g = 0, b = 0;
-                assert_rgb_from(badstr, rgb_from_hex, COLOR_INVALID, &r, &g, &b);
-            }
+subdesc(RGB_from_hex) {
+    it("recognizes hex strings") {
+        for_len(hex_tests_len, i) {
+            RGB rgb;
+            // The call should return 0 itself.
+            assert_rgb_from(hex_tests[i].input, RGB_from_hex, 0, &rgb);
+            // The values returned should match the expected tests.
+            assert_RGB_eq(rgb, hex_tests[i].rgb);
         }
     }
-    subdesc(rgb_from_str) {
-        it("recognizes valid rgb strings") {
-            for_len(str_tests_len, i) {
-                rgb_test_item item = str_tests[i];
-                unsigned char r = 0, g = 0, b = 0;
-                // The call should return 0 itself.
-                assert_rgb_from(item.teststr, rgb_from_str, 0, &r, &g, &b);
-                // The values returned should match the expected tests.
-                assert_RGB_eq(rgb(r, g, b), rgb(item.red, item.green, item.blue));
-            }
+    it("recognizes bad hex values") {
+        for_len(bad_hex_tests_len, i) {
+            char* badstr = bad_hex_tests[i];
+            // Should be COLOR_INVALID.
+            RGB rgb;
+            assert_rgb_from(badstr, RGB_from_hex, COLOR_INVALID, &rgb);
+        }
+    }
+}
+subdesc(RGB_from_str) {
+    it("recognizes valid RGB strings") {
+        for_len(str_tests_len, i) {
+            RGB rgb;
+            // The call should return 0 itself.
+            assert_rgb_from(str_tests[i].input, RGB_from_str, 0, &rgb);
+            // The values returned should match the expected tests.
+            assert_RGB_eq(rgb, str_tests[i].rgb);
+        }
 
-        }
-        it("recognizes bad str values") {
-            for_len(bad_str_tests_len, i) {
-                char* badstr = bad_str_tests[i];
-                // Should be COLOR_INVALID.
-                unsigned char r = 0, g = 0, b = 0;
-                assert_rgb_from_either(
-                    badstr,
-                    rgb_from_str,
-                    COLOR_INVALID,
-                    COLOR_INVALID_RANGE,
-                    &r, &g, &b
-                );
-            }
+    }
+    it("recognizes bad str values") {
+        for_len(bad_str_tests_len, i) {
+            char* badstr = bad_str_tests[i];
+            // Should be COLOR_INVALID.
+            RGB rgb;
+            assert_rgb_from_either(
+                badstr,
+                RGB_from_str,
+                COLOR_INVALID,
+                COLOR_INVALID_RANGE,
+                &rgb
+            );
         }
     }
-    subdesc(RGB_from_hex) {
-        it("recognizes hex strings") {
-            for_len(hex_tests_len, i) {
-                rgb_test_item item = hex_tests[i];
-                RGB rgb;
-                // The call should return 0 itself.
-                assert_rgb_from(item.teststr, RGB_from_hex, 0, &rgb);
-                // The values returned should match the expected tests.
-                assert_RGB_eq(rgb, rgb(item.red, item.green, item.blue));
-            }
-
-        }
-        it("recognizes bad hex values") {
-            for_len(bad_hex_tests_len, i) {
-                char* badstr = bad_hex_tests[i];
-                // Should be COLOR_INVALID.
-                RGB rgb;
-                assert_rgb_from(badstr, RGB_from_hex, COLOR_INVALID, &rgb);
-            }
+    it("recognizes known color names") {
+        for_len(colr_name_data_len, i) {
+            char* name = colr_name_data[i].name;
+            RGB expected = colr_name_data[i].rgb;
+            RGB rgb;
+            assert_rgb_from(name, RGB_from_str, 0, &rgb);
+            assert_RGB_eq(rgb, expected);
         }
     }
-    subdesc(RGB_from_str) {
-        it("recognizes valid RGB strings") {
-            for_len(str_tests_len, i) {
-                rgb_test_item item = str_tests[i];
-                RGB rgb;
-                // The call should return 0 itself.
-                assert_rgb_from(item.teststr, RGB_from_str, 0, &rgb);
-                // The values returned should match the expected tests.
-                assert_RGB_eq(rgb, rgb(item.red, item.green, item.blue));
+    it("recognizes hex strings") {
+        // This is the same test for RGB_from_hex:"recognizes hex strings"
+        // It should produce the same results.
+        for_len(hex_tests_len, i) {
+            if (hex_tests[i].input[0] != '#') {
+                // RGB_from_str expects to have the leading #.
+                // It follows the same rules as the other from_str() functions,
+                // where '111' could be confused as an ExtendedValue.
+                continue;
             }
-
-        }
-        it("recognizes bad str values") {
-            for_len(bad_str_tests_len, i) {
-                char* badstr = bad_str_tests[i];
-                // Should be COLOR_INVALID.
-                RGB rgb;
-                assert_rgb_from_either(
-                    badstr,
-                    RGB_from_str,
-                    COLOR_INVALID,
-                    COLOR_INVALID_RANGE,
-                    &rgb
-                );
-            }
+            RGB rgb;
+            // The call should return 0 itself.
+            assert_rgb_from(hex_tests[i].input, RGB_from_str, 0, &rgb);
+            // The values returned should match the expected tests.
+            assert_RGB_eq(rgb, hex_tests[i].rgb);
         }
     }
+}
 }

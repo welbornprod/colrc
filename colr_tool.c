@@ -87,12 +87,6 @@ ColrToolOptions ColrToolOptions_new(void) {
         .rainbow_freq=0.1,
         .rainbow_offset=3,
         .strip_codes=false,
-        .print_back=false,
-        .print_256=false,
-        .print_basic=false,
-        .print_rainbow=false,
-        .print_rgb=false,
-        .print_rgb_term=false,
     };
 }
 
@@ -122,12 +116,6 @@ char* ColrToolOptions_repr(ColrToolOptions opts) {
     .rainbow_freq=%lf,\n\
     .rainbow_offset=%lu,\n\
     .strip_codes=%s,\n\
-    .print_back=%s,\n\
-    .print_256=%s,\n\
-    .print_basic=%s,\n\
-    .print_rgb=%s,\n\
-    .print_rgb_term=%s,\n\
-    .print_rainbow=%s,\n\
 )",
         text_repr ? text_repr : "NULL",
         fore_repr ? fore_repr : "NULL",
@@ -142,13 +130,7 @@ char* ColrToolOptions_repr(ColrToolOptions opts) {
         ct_bool_str(opts.rainbow_term),
         opts.rainbow_freq,
         opts.rainbow_offset,
-        ct_bool_str(opts.strip_codes),
-        ct_bool_str(opts.print_back),
-        ct_bool_str(opts.print_256),
-        ct_bool_str(opts.print_basic),
-        ct_bool_str(opts.print_rgb),
-        ct_bool_str(opts.print_rgb_term),
-        ct_bool_str(opts.print_rainbow)
+        ct_bool_str(opts.strip_codes)
     );
     free(text_repr);
     free(fore_repr);
@@ -228,6 +210,8 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
             {"basicbg", no_argument, 0, 0 },
             {"256", no_argument, 0, 0},
             {"256bg", no_argument, 0, 0},
+            {"names", no_argument, 0, 0},
+            {"namesrgb", no_argument, 0, 0},
             {"rainbow", no_argument, 0, 0},
             {"rainbowbg", no_argument, 0, 0},
             {"rgb", no_argument, 0, 0},
@@ -253,39 +237,28 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
         switch (c) {
             case 0:
                 if (colr_streq(long_options[option_index].name, "basic")) {
-                    opts->print_basic = true;
                     return print_basic(false);
                 } else if (colr_streq(long_options[option_index].name, "256")) {
-                    opts->print_256 = true;
                     return print_256(false);
+                } else if (colr_streq(long_options[option_index].name, "names")) {
+                    return print_names(false);
                 } else if (colr_streq(long_options[option_index].name, "rainbow")) {
-                    opts->print_rainbow = true;
                     return print_rainbow(false);
                 } else if (colr_streq(long_options[option_index].name, "rgb")) {
-                    opts->print_rgb = true;
                     return print_rgb(false, false);
-                } else if (colr_streq(long_options[option_index].name, "termrgb")) {
-                    opts->print_rgb_term = true;
+                } else if (colr_streq(long_options[option_index].name, "rgbterm")) {
                     return print_rgb(false, true);
                 } else if (colr_streq(long_options[option_index].name, "basicbg")) {
-                    opts->print_back = true;
-                    opts->print_basic = true;
                     return print_basic(true);
                 } else if (colr_streq(long_options[option_index].name, "256bg")) {
-                    opts->print_back = true;
-                    opts->print_256 = true;
                     return print_256(true);
+                } else if (colr_streq(long_options[option_index].name, "namesrgb")) {
+                    return print_names(true);
                 } else if (colr_streq(long_options[option_index].name, "rainbowbg")) {
-                    opts->print_back = true;
-                    opts->print_rainbow = true;
                     return print_rainbow(true);
                 } else if (colr_streq(long_options[option_index].name, "rgbbg")) {
-                    opts->print_back = true;
-                    opts->print_rgb = true;
                     return print_rgb(true, false);
-                } else if (colr_streq(long_options[option_index].name, "termrgbbg")) {
-                    opts->print_back = true;
-                    opts->print_rgb_term = true;
+                } else if (colr_streq(long_options[option_index].name, "rgbtermbg")) {
                     return print_rgb(true, true);
                 } else {
                     printferr(
@@ -575,7 +548,7 @@ int print_basic(bool do_back) {
     char* text = NULL;
         char* name = basic_names[i].name;
         BasicValue val = basic_names[i].value;
-        if (colr_streq(name, "black")) {
+        if (colr_str_either(name, "black", "lightblack")) {
             puts("");
         }
         BasicValue otherval = str_ends_with(name, "black") ? WHITE : BLACK;
@@ -591,6 +564,60 @@ int print_basic(bool do_back) {
     }
     printf("%s\n", CODE_RESET_ALL);
     return EXIT_SUCCESS;
+}
+
+/*! Print a single name/color from colr_name_data.
+
+    \pi index  The index into colr_name_data.
+    \pi do_rgb Whether to use RGB codes.
+*/
+void print_name(size_t index, bool do_rgb) {
+    if (index >= colr_name_data_len) return;
+    char* name = colr_name_data[index].name;
+    int bval = BasicValue_from_str(name);
+    // Use RGB if requested, use BasicValue if the name is also a BasicValue
+    // name, otherwise use the ExtendedValue.
+    // This matches the behavior of fore(name) and back(name), without doing
+    // all of the lookups.
+    char* block = colr(
+        Colr(
+            "         ",
+            do_rgb ?
+                back(colr_name_data[index].rgb) :
+                bval == BASIC_INVALID ?
+                    back(ext(colr_name_data[index].ext)) :
+                    back(basic(bval))
+            )
+    );
+    printf("%21s: %s", name, block);
+    free(block);
+}
+
+/*! Demo of the known-name database.
+*/
+int print_names(bool do_rgb) {
+    size_t third_length = colr_name_data_len / 3;
+    size_t printed = 0;
+    for (size_t i = 0; i < third_length; i++) {
+        print_name(i, do_rgb);
+        printed++;
+        size_t second = third_length + i;
+        if (second >= colr_name_data_len) continue;
+        print_name(second, do_rgb);
+        printed++;
+        size_t third = third_length + third_length + i;
+        if (third >= colr_name_data_len) continue;
+        print_name(third, do_rgb);
+        printed++;
+        printf("\n");
+    }
+    printf("\n");
+    if (printed != colr_name_data_len) {
+        // Should never happen unless colr_name_data is updated.
+        printferr("\nSome names are missing from this print-out.\n");
+        return 1;
+    }
+    return 0;
 }
 
 /*! Demo the rainbow method.
@@ -671,7 +698,7 @@ int print_usage(const char* reason) {
     printf("%s v. %s\n\
     Usage:\n\
         colr -h | -v\n\
-        colr --basic | --256 | --rainbow | --rgb | --termrgb\n\
+        colr --basic | --256 | --names | --rainbow | --rgb | --rgbterm\n\
         colr -x [TEXT]\n\
         colr [TEXT] [FORE | -f color] [BACK | -b color] [STYLE | -s style]\n\
              [-c num | -l num | -r num] [-o num] [-q num]\n\
@@ -690,10 +717,13 @@ int print_usage_full() {
 \n\
     Commands:\n\
         --basic[bg]          : Print all basic color names and colors.\n\
-        --256[bg]            : Print all extended color names and colors.\n\
+        --256[bg]            : Print all extended color values and colors.\n\
+        --names[rgb]         : Print extra extended/rgb names and colors.\n\
+                               If 'rgb' is appended to the argument, RGB colors\n\
+                               will be used.\n\
         --rainbow[bg]        : Print a rainbow example.\n\
         --rgb[bg]            : Print some rgb codes.\n\
-        --termrgb[bg]        : Print some 256-compatible rgb codes.\n\
+        --rgbterm[bg]        : Print some 256-compatible rgb codes.\n\
 \n\
     If 'bg' is appended to a command argument, back colors will be used.\n\
 \n\
@@ -741,7 +771,8 @@ int print_usage_full() {
     in order (text, fore, back, style).\n\
 \n\
     Color values can be one of:\n\
-        A known name.      \"none\", \"red\", \"blue\", \"lightblue\", \"black\", etc.\n\
+        A known name.      Use --names to list all known color names.\n\
+                           \"none\", \"red\", \"blue\", \"lightblue\", \"black\", etc.\n\
                            \"rainbow\" causes fore or back colors to be rainbowized.\n\
         A 256-color value. 0-255\n\
         An RGB string.     \"R;G;B\", \"R:G:B\", \"R,G,B\", or \"R G B\".\n\

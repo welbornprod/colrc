@@ -372,6 +372,386 @@ const RGB ext2rgb_map[] = {
 //! Length of ext2rgb_map  (should always be 256).
 const size_t ext2rgb_map_len = sizeof(ext2rgb_map) / sizeof(ext2rgb_map[0]);
 
+const ColorNameData colr_name_data[] = {
+    {"aliceblue", 231, {255, 255, 255}},
+    {"antiquewhite", 230, {255, 255, 215}},
+    {"antiquewhite2", 224, {255, 215, 215}},
+    {"antiquewhite3", 181, {215, 175, 175}},
+    {"antiquewhite4", 102, {135, 135, 135}},
+    {"aquamarine", 122, {135, 255, 215}},
+    {"aquamarine2", 79, {95, 215, 175}},
+    {"aquamarine3", 66, {95, 135, 135}},
+    {"azure", 231, {255, 255, 255}},
+    {"azure2", 195, {215, 255, 255}},
+    {"azure3", 152, {175, 215, 215}},
+    {"azure4", 102, {135, 135, 135}},
+    {"beige", 230, {255, 255, 215}},
+    {"bisque", 224, {255, 215, 215}},
+    {"bisque2", 223, {255, 215, 175}},
+    {"bisque3", 181, {215, 175, 175}},
+    {"bisque4", 101, {135, 135, 95}},
+    {"black", 16, {0, 0, 0}},
+    {"blanchedalmond", 230, {255, 255, 215}},
+    {"blue", 21, {0, 0, 255}},
+    {"blue2", 20, {0, 0, 215}},
+    {"blue3", 18, {0, 0, 135}},
+    {"blueviolet", 92, {135, 0, 215}},
+    {"brown", 124, {175, 0, 0}},
+    {"brown2", 203, {255, 95, 95}},
+    {"brown3", 167, {215, 95, 95}},
+    {"brown4", 88, {135, 0, 0}},
+    {"burlywood", 180, {215, 175, 135}},
+    {"burlywood2", 223, {255, 215, 175}},
+    {"burlywood3", 222, {255, 215, 135}},
+    {"burlywood4", 180, {215, 175, 135}},
+    {"burlywood5", 101, {135, 135, 95}},
+    {"cadetblue", 73, {95, 175, 175}},
+    {"cadetblue2", 123, {135, 255, 255}},
+    {"cadetblue3", 117, {135, 215, 255}},
+    {"cadetblue4", 116, {135, 215, 215}},
+    {"cadetblue5", 66, {95, 135, 135}},
+    {"chartreuse", 118, {135, 255, 0}},
+    {"chartreuse2", 76, {95, 215, 0}},
+    {"chartreuse3", 64, {95, 135, 0}},
+    {"chocolate", 166, {215, 95, 0}},
+    {"chocolate2", 208, {255, 135, 0}},
+    {"chocolate3", 166, {215, 95, 0}},
+    {"chocolate4", 94, {135, 95, 0}},
+    {"coral", 203, {255, 95, 95}},
+    {"coral2", 209, {255, 135, 95}},
+    {"coral3", 167, {215, 95, 95}},
+    {"coral4", 94, {135, 95, 0}},
+    {"cornflowerblue", 69, {95, 135, 255}},
+    {"cornsilk", 230, {255, 255, 215}},
+    {"cornsilk2", 224, {255, 215, 215}},
+    {"cornsilk3", 187, {215, 215, 175}},
+    {"cornsilk4", 102, {135, 135, 135}},
+    {"cyan", 51, {0, 255, 255}},
+    {"cyan2", 44, {0, 215, 215}},
+    {"cyan3", 30, {0, 135, 135}},
+    {"darkblue", 18, {0, 0, 135}},
+    {"darkcyan", 30, {0, 135, 135}},
+    {"darkgoldenrod", 136, {175, 135, 0}},
+    {"darkgoldenrod2", 214, {255, 175, 0}},
+    {"darkgoldenrod3", 172, {215, 135, 0}},
+    {"darkgoldenrod4", 94, {135, 95, 0}},
+    {"darkgray", 145, {175, 175, 175}},
+    {"darkgreen", 22, {0, 95, 0}},
+    {"darkgrey", 145, {175, 175, 175}},
+    {"darkkhaki", 143, {175, 175, 95}},
+    {"darkmagenta", 90, {135, 0, 135}},
+    {"darkolivegreen", 58, {95, 95, 0}},
+    {"darkolivegreen2", 191, {215, 255, 95}},
+    {"darkolivegreen3", 155, {175, 255, 95}},
+    {"darkolivegreen4", 149, {175, 215, 95}},
+    {"darkolivegreen5", 65, {95, 135, 95}},
+    {"darkorange", 208, {255, 135, 0}},
+    {"darkorange2", 166, {215, 95, 0}},
+    {"darkorange3", 94, {135, 95, 0}},
+    {"darkorchid", 98, {135, 95, 215}},
+    {"darkorchid2", 135, {175, 95, 255}},
+    {"darkorchid3", 98, {135, 95, 215}},
+    {"darkorchid4", 54, {95, 0, 135}},
+    {"darkred", 88, {135, 0, 0}},
+    {"darksalmon", 174, {215, 135, 135}},
+    {"darkseagreen", 108, {135, 175, 135}},
+    {"darkseagreen2", 157, {175, 255, 175}},
+    {"darkseagreen3", 151, {175, 215, 175}},
+    {"darkseagreen4", 65, {95, 135, 95}},
+    {"darkslateblue", 60, {95, 95, 135}},
+    {"darkslategray", 23, {0, 95, 95}},
+    {"darkslategray2", 123, {135, 255, 255}},
+    {"darkslategray3", 116, {135, 215, 215}},
+    {"darkslategray4", 66, {95, 135, 135}},
+    {"darkslategrey", 23, {0, 95, 95}},
+    {"darkturquoise", 44, {0, 215, 215}},
+    {"darkviolet", 92, {135, 0, 215}},
+    {"debianred", 161, {215, 0, 95}},
+    {"deeppink", 198, {255, 0, 135}},
+    {"deeppink2", 162, {215, 0, 135}},
+    {"deeppink3", 89, {135, 0, 95}},
+    {"deepskyblue", 39, {0, 175, 255}},
+    {"deepskyblue2", 32, {0, 135, 215}},
+    {"deepskyblue3", 24, {0, 95, 135}},
+    {"dimgrey", 59, {95, 95, 95}},
+    {"dodgerblue", 33, {0, 135, 255}},
+    {"dodgerblue2", 32, {0, 135, 215}},
+    {"dodgerblue3", 24, {0, 95, 135}},
+    {"firebrick", 124, {175, 0, 0}},
+    {"firebrick2", 203, {255, 95, 95}},
+    {"firebrick3", 160, {215, 0, 0}},
+    {"firebrick4", 88, {135, 0, 0}},
+    {"floralwhite", 231, {255, 255, 255}},
+    {"forestgreen", 28, {0, 135, 0}},
+    {"gainsboro", 188, {215, 215, 215}},
+    {"ghostwhite", 231, {255, 255, 255}},
+    {"gold", 220, {255, 215, 0}},
+    {"gold2", 178, {215, 175, 0}},
+    {"gold3", 100, {135, 135, 0}},
+    {"goldenrod", 178, {215, 175, 0}},
+    {"goldenrod2", 214, {255, 175, 0}},
+    {"goldenrod3", 178, {215, 175, 0}},
+    {"goldenrod4", 94, {135, 95, 0}},
+    {"gray", 145, {175, 175, 175}},
+    {"gray100", 231, {255, 255, 255}},
+    {"gray37", 59, {95, 95, 95}},
+    {"gray50", 102, {135, 135, 135}},
+    {"gray59", 102, {135, 135, 135}},
+    {"green", 46, {0, 255, 0}},
+    {"green2", 40, {0, 215, 0}},
+    {"green3", 28, {0, 135, 0}},
+    {"greenyellow", 154, {175, 255, 0}},
+    {"grey", 145, {175, 175, 175}},
+    {"grey100", 231, {255, 255, 255}},
+    {"grey37", 59, {95, 95, 95}},
+    {"grey50", 102, {135, 135, 135}},
+    {"grey59", 102, {135, 135, 135}},
+    {"honeydew2", 194, {215, 255, 215}},
+    {"honeydew3", 151, {175, 215, 175}},
+    {"honeydew4", 102, {135, 135, 135}},
+    {"hotpink", 205, {255, 95, 175}},
+    {"hotpink2", 168, {215, 95, 135}},
+    {"hotpink3", 95, {135, 95, 95}},
+    {"indianred", 167, {215, 95, 95}},
+    {"indianred2", 203, {255, 95, 95}},
+    {"indianred3", 167, {215, 95, 95}},
+    {"indianred4", 95, {135, 95, 95}},
+    {"ivory", 231, {255, 255, 255}},
+    {"ivory2", 230, {255, 255, 215}},
+    {"ivory3", 187, {215, 215, 175}},
+    {"ivory4", 102, {135, 135, 135}},
+    {"khaki", 222, {255, 215, 135}},
+    {"khaki2", 228, {255, 255, 135}},
+    {"khaki3", 186, {215, 215, 135}},
+    {"khaki4", 101, {135, 135, 95}},
+    {"lavender", 189, {215, 215, 255}},
+    {"lavenderblush", 231, {255, 255, 255}},
+    {"lavenderblush2", 224, {255, 215, 215}},
+    {"lavenderblush3", 182, {215, 175, 215}},
+    {"lavenderblush4", 102, {135, 135, 135}},
+    {"lawngreen", 118, {135, 255, 0}},
+    {"lemonchiffon", 230, {255, 255, 215}},
+    {"lemonchiffon2", 223, {255, 215, 175}},
+    {"lemonchiffon3", 187, {215, 215, 175}},
+    {"lemonchiffon4", 101, {135, 135, 95}},
+    {"lightblue", 152, {175, 215, 215}},
+    {"lightblue2", 159, {175, 255, 255}},
+    {"lightblue3", 153, {175, 215, 255}},
+    {"lightblue4", 110, {135, 175, 215}},
+    {"lightblue5", 66, {95, 135, 135}},
+    {"lightcoral", 210, {255, 135, 135}},
+    {"lightcyan", 195, {215, 255, 255}},
+    {"lightcyan3", 152, {175, 215, 215}},
+    {"lightcyan4", 102, {135, 135, 135}},
+    {"lightgoldenrod", 222, {255, 215, 135}},
+    {"lightgoldenrod2", 228, {255, 255, 135}},
+    {"lightgoldenrod3", 179, {215, 175, 95}},
+    {"lightgoldenrod4", 101, {135, 135, 95}},
+    {"lightgoldenrodyellow", 230, {255, 255, 215}},
+    {"lightgray", 188, {215, 215, 215}},
+    {"lightgreen", 120, {135, 255, 135}},
+    {"lightgrey", 188, {215, 215, 215}},
+    {"lightpink", 217, {255, 175, 175}},
+    {"lightpink2", 174, {215, 135, 135}},
+    {"lightpink3", 95, {135, 95, 95}},
+    {"lightsalmon", 216, {255, 175, 135}},
+    {"lightsalmon2", 209, {255, 135, 95}},
+    {"lightsalmon3", 173, {215, 135, 95}},
+    {"lightsalmon4", 95, {135, 95, 95}},
+    {"lightseagreen", 37, {0, 175, 175}},
+    {"lightskyblue", 117, {135, 215, 255}},
+    {"lightskyblue2", 153, {175, 215, 255}},
+    {"lightskyblue3", 110, {135, 175, 215}},
+    {"lightskyblue4", 66, {95, 135, 135}},
+    {"lightslateblue", 99, {135, 95, 255}},
+    {"lightslategray", 102, {135, 135, 135}},
+    {"lightsteelblue", 152, {175, 215, 215}},
+    {"lightsteelblue2", 189, {215, 215, 255}},
+    {"lightsteelblue3", 153, {175, 215, 255}},
+    {"lightsteelblue4", 146, {175, 175, 215}},
+    {"lightsteelblue5", 66, {95, 135, 135}},
+    {"lightyellow", 230, {255, 255, 215}},
+    {"lightyellow2", 230, {255, 255, 215}},
+    {"lightyellow3", 187, {215, 215, 175}},
+    {"lightyellow4", 102, {135, 135, 135}},
+    {"limegreen", 77, {95, 215, 95}},
+    {"linen", 230, {255, 255, 215}},
+    {"magenta", 201, {255, 0, 255}},
+    {"magenta2", 164, {215, 0, 215}},
+    {"magenta3", 90, {135, 0, 135}},
+    {"maroon", 131, {175, 95, 95}},
+    {"maroon2", 205, {255, 95, 175}},
+    {"maroon3", 162, {215, 0, 135}},
+    {"maroon4", 89, {135, 0, 95}},
+    {"mediumaquamarine", 79, {95, 215, 175}},
+    {"mediumblue", 20, {0, 0, 215}},
+    {"mediumorchid", 134, {175, 95, 215}},
+    {"mediumorchid2", 171, {215, 95, 255}},
+    {"mediumorchid3", 134, {175, 95, 215}},
+    {"mediumorchid4", 96, {135, 95, 135}},
+    {"mediumpurple", 98, {135, 95, 215}},
+    {"mediumpurple3", 141, {175, 135, 255}},
+    {"mediumpurple4", 98, {135, 95, 215}},
+    {"mediumpurple5", 60, {95, 95, 135}},
+    {"mediumseagreen", 71, {95, 175, 95}},
+    {"mediumslateblue", 99, {135, 95, 255}},
+    {"mediumspringgreen", 48, {0, 255, 135}},
+    {"mediumturquoise", 80, {95, 215, 215}},
+    {"mediumvioletred", 162, {215, 0, 135}},
+    {"midnightblue", 17, {0, 0, 95}},
+    {"mintcream", 231, {255, 255, 255}},
+    {"mistyrose", 224, {255, 215, 215}},
+    {"mistyrose2", 181, {215, 175, 175}},
+    {"mistyrose3", 102, {135, 135, 135}},
+    {"moccasin", 223, {255, 215, 175}},
+    {"navajowhite", 223, {255, 215, 175}},
+    {"navajowhite2", 180, {215, 175, 135}},
+    {"navajowhite3", 101, {135, 135, 95}},
+    {"navy", 18, {0, 0, 135}},
+    {"navyblue", 18, {0, 0, 135}},
+    {"oldlace", 230, {255, 255, 215}},
+    {"olivedrab", 64, {95, 135, 0}},
+    {"olivedrab2", 155, {175, 255, 95}},
+    {"olivedrab3", 113, {135, 215, 95}},
+    {"olivedrab4", 64, {95, 135, 0}},
+    {"orange", 214, {255, 175, 0}},
+    {"orange2", 214, {255, 175, 0}},
+    {"orange3", 208, {255, 135, 0}},
+    {"orange4", 172, {215, 135, 0}},
+    {"orange5", 94, {135, 95, 0}},
+    {"orangered", 202, {255, 95, 0}},
+    {"orangered2", 166, {215, 95, 0}},
+    {"orangered3", 88, {135, 0, 0}},
+    {"orchid", 170, {215, 95, 215}},
+    {"orchid2", 213, {255, 135, 255}},
+    {"orchid3", 212, {255, 135, 215}},
+    {"orchid4", 170, {215, 95, 215}},
+    {"orchid5", 96, {135, 95, 135}},
+    {"palegoldenrod", 223, {255, 215, 175}},
+    {"palegreen", 120, {135, 255, 135}},
+    {"palegreen2", 114, {135, 215, 135}},
+    {"palegreen3", 65, {95, 135, 95}},
+    {"paleturquoise", 159, {175, 255, 255}},
+    {"paleturquoise2", 116, {135, 215, 215}},
+    {"paleturquoise3", 66, {95, 135, 135}},
+    {"palevioletred", 168, {215, 95, 135}},
+    {"palevioletred2", 211, {255, 135, 175}},
+    {"palevioletred3", 168, {215, 95, 135}},
+    {"palevioletred4", 95, {135, 95, 95}},
+    {"papayawhip", 230, {255, 255, 215}},
+    {"peachpuff", 223, {255, 215, 175}},
+    {"peachpuff2", 223, {255, 215, 175}},
+    {"peachpuff3", 180, {215, 175, 135}},
+    {"peachpuff4", 101, {135, 135, 95}},
+    {"peru", 173, {215, 135, 95}},
+    {"pink", 218, {255, 175, 215}},
+    {"pink2", 217, {255, 175, 175}},
+    {"pink3", 175, {215, 135, 175}},
+    {"pink4", 95, {135, 95, 95}},
+    {"plum", 182, {215, 175, 215}},
+    {"plum2", 219, {255, 175, 255}},
+    {"plum3", 176, {215, 135, 215}},
+    {"plum4", 96, {135, 95, 135}},
+    {"powderblue", 152, {175, 215, 215}},
+    {"purple", 129, {175, 0, 255}},
+    {"purple2", 135, {175, 95, 255}},
+    {"purple3", 93, {135, 0, 255}},
+    {"purple4", 92, {135, 0, 215}},
+    {"purple5", 54, {95, 0, 135}},
+    {"red", 9, {255, 0, 0}},
+    {"red2", 160, {215, 0, 0}},
+    {"red3", 88, {135, 0, 0}},
+    {"rosybrown", 138, {175, 135, 135}},
+    {"rosybrown2", 217, {255, 175, 175}},
+    {"rosybrown3", 181, {215, 175, 175}},
+    {"rosybrown4", 95, {135, 95, 95}},
+    {"royalblue", 62, {95, 95, 215}},
+    {"royalblue2", 69, {95, 135, 255}},
+    {"royalblue3", 63, {95, 95, 255}},
+    {"royalblue4", 62, {95, 95, 215}},
+    {"royalblue5", 24, {0, 95, 135}},
+    {"saddlebrown", 94, {135, 95, 0}},
+    {"salmon", 209, {255, 135, 95}},
+    {"salmon2", 209, {255, 135, 95}},
+    {"salmon3", 167, {215, 95, 95}},
+    {"salmon4", 95, {135, 95, 95}},
+    {"sandybrown", 215, {255, 175, 95}},
+    {"seagreen", 29, {0, 135, 95}},
+    {"seagreen2", 85, {95, 255, 175}},
+    {"seagreen3", 84, {95, 255, 135}},
+    {"seagreen4", 78, {95, 215, 135}},
+    {"seagreen5", 29, {0, 135, 95}},
+    {"seashell", 231, {255, 255, 255}},
+    {"seashell2", 224, {255, 215, 215}},
+    {"seashell3", 187, {215, 215, 175}},
+    {"seashell4", 102, {135, 135, 135}},
+    {"sienna", 130, {175, 95, 0}},
+    {"sienna2", 209, {255, 135, 95}},
+    {"sienna3", 167, {215, 95, 95}},
+    {"sienna4", 94, {135, 95, 0}},
+    {"skyblue", 117, {135, 215, 255}},
+    {"skyblue2", 111, {135, 175, 255}},
+    {"skyblue3", 74, {95, 175, 215}},
+    {"skyblue4", 60, {95, 95, 135}},
+    {"slateblue", 62, {95, 95, 215}},
+    {"slateblue2", 99, {135, 95, 255}},
+    {"slateblue3", 62, {95, 95, 215}},
+    {"slateblue4", 60, {95, 95, 135}},
+    {"slategray", 66, {95, 135, 135}},
+    {"slategray2", 189, {215, 215, 255}},
+    {"slategray3", 153, {175, 215, 255}},
+    {"slategray4", 146, {175, 175, 215}},
+    {"slategray5", 66, {95, 135, 135}},
+    {"slategrey", 66, {95, 135, 135}},
+    {"snow", 231, {255, 255, 255}},
+    {"snow2", 224, {255, 215, 215}},
+    {"snow3", 188, {215, 215, 215}},
+    {"snow4", 102, {135, 135, 135}},
+    {"springgreen", 48, {0, 255, 135}},
+    {"springgreen2", 48, {0, 255, 135}},
+    {"springgreen3", 41, {0, 215, 95}},
+    {"springgreen4", 29, {0, 135, 95}},
+    {"steelblue", 67, {95, 135, 175}},
+    {"steelblue2", 75, {95, 175, 255}},
+    {"steelblue3", 68, {95, 135, 215}},
+    {"steelblue4", 60, {95, 95, 135}},
+    {"tan", 180, {215, 175, 135}},
+    {"tan2", 215, {255, 175, 95}},
+    {"tan3", 209, {255, 135, 95}},
+    {"tan4", 173, {215, 135, 95}},
+    {"tan5", 94, {135, 95, 0}},
+    {"thistle", 182, {215, 175, 215}},
+    {"thistle2", 225, {255, 215, 255}},
+    {"thistle3", 225, {255, 215, 255}},
+    {"thistle4", 182, {215, 175, 215}},
+    {"thistle5", 102, {135, 135, 135}},
+    {"tomato", 203, {255, 95, 95}},
+    {"tomato2", 167, {215, 95, 95}},
+    {"tomato3", 94, {135, 95, 0}},
+    {"turquoise", 80, {95, 215, 215}},
+    {"turquoise2", 51, {0, 255, 255}},
+    {"turquoise3", 45, {0, 215, 255}},
+    {"turquoise4", 44, {0, 215, 215}},
+    {"turquoise5", 30, {0, 135, 135}},
+    {"violet", 213, {255, 135, 255}},
+    {"violetred", 162, {215, 0, 135}},
+    {"violetred2", 204, {255, 95, 135}},
+    {"violetred3", 168, {215, 95, 135}},
+    {"violetred4", 89, {135, 0, 95}},
+    {"wheat", 223, {255, 215, 175}},
+    {"wheat2", 223, {255, 215, 175}},
+    {"wheat3", 180, {215, 175, 135}},
+    {"wheat4", 101, {135, 135, 95}},
+    {"white", 231, {255, 255, 255}},
+    {"whitesmoke", 231, {255, 255, 255}},
+    {"yellow", 11, {255, 255, 0}},
+    {"yellow2", 184, {215, 215, 0}},
+    {"yellow3", 100, {135, 135, 0}},
+    {"yellowgreen", 113, {135, 215, 95}}
+};
+
+const size_t colr_name_data_len = sizeof(colr_name_data) / sizeof(colr_name_data[0]);
+
 /*! Returns the char needed to represent an escape sequence in C.
 
     \details
@@ -2879,21 +3259,9 @@ char* ColorText_to_str(ColorText ctext) {
 ColorType ColorType_from_str(const char* arg) {
     if (!arg) return TYPE_INVALID;
     if (arg[0] == '\0') return TYPE_INVALID;
-    // Try rgb first.
-    unsigned char r, g, b;
-    int rgb_ret = rgb_from_str(arg, &r, &g, &b);
-    if (rgb_ret == COLOR_INVALID_RANGE) {
-        return TYPE_INVALID_RGB_RANGE;
-    } else if (rgb_ret != COLOR_INVALID) {
-        return TYPE_RGB;
-    }
     // Try basic colors.
     if (BasicValue_from_str(arg) != BASIC_INVALID) {
         return TYPE_BASIC;
-    }
-    // Try styles.
-    if (StyleValue_from_str(arg) != STYLE_INVALID) {
-        return TYPE_STYLE;
     }
     // Extended colors.
     int x_ret = ExtendedValue_from_str(arg);
@@ -2901,6 +3269,18 @@ ColorType ColorType_from_str(const char* arg) {
         return TYPE_INVALID_EXTENDED_RANGE;
     } else if (x_ret != COLOR_INVALID) {
         return TYPE_EXTENDED;
+    }
+    // Try styles.
+    if (StyleValue_from_str(arg) != STYLE_INVALID) {
+        return TYPE_STYLE;
+    }
+    // Try rgb.
+    RGB rgb;
+    int rgb_ret = RGB_from_str(arg, &rgb);
+    if (rgb_ret == COLOR_INVALID_RANGE) {
+        return TYPE_INVALID_RGB_RANGE;
+    } else if (rgb_ret != COLOR_INVALID) {
+        return TYPE_RGB;
     }
     return TYPE_INVALID;
 }
@@ -3020,20 +3400,19 @@ bool ColorValue_eq(ColorValue a, ColorValue b) {
 ColorValue ColorValue_from_str(char* s) {
     if (!s || s[0] == '\0') return ColorValue_from_value(TYPE_INVALID, NULL);
 
-    // Get the actual type, even if it's invalid.
-    ColorType type = ColorType_from_str(s);
-    if (ColorType_is_invalid(type)) {
-        return ColorValue_from_value(type, NULL);
+    // // Get the actual type, even if it's invalid.
+    // ColorType type = ColorType_from_str(s);
+    // if (ColorType_is_invalid(type)) {
+    //     return ColorValue_from_value(type, NULL);
+    // }
+
+    // Basic color name?
+    int b_ret = BasicValue_from_str(s);
+    if (b_ret != BASIC_INVALID) {
+        BasicValue bval = (BasicValue)b_ret;
+        return ColorValue_from_value(TYPE_BASIC, &bval);
     }
-    // Try rgb first.
-    RGB rgb;
-    int rgb_ret = RGB_from_str(s, &rgb);
-    if (rgb_ret == COLOR_INVALID_RANGE) {
-        return ColorValue_from_value(TYPE_INVALID_RGB_RANGE, NULL);
-    } else if (rgb_ret != TYPE_INVALID) {
-        return ColorValue_from_value(type, &rgb);
-    }
-    // Extended colors.
+    // Extended colors, or known extended name?
     int x_ret = ExtendedValue_from_str(s);
     if (x_ret == COLOR_INVALID_RANGE) {
         return ColorValue_from_value(TYPE_INVALID_EXTENDED_RANGE, NULL);
@@ -3042,20 +3421,21 @@ ColorValue ColorValue_from_str(char* s) {
         // not invalid. Also, ColorValue_from_value expects a pointer, to
         // help with it's "dynamic" uses.
         ExtendedValue xval = ext(x_ret);
-        return ColorValue_from_value(type, &xval);
+        return ColorValue_from_value(TYPE_EXTENDED, &xval);
     }
-    // Try styles.
+    // Style name?
     int s_ret = StyleValue_from_str(s);
     if (s_ret != STYLE_INVALID) {
         StyleValue sval = (StyleValue)s_ret;
-        return ColorValue_from_value(type, &sval);
+        return ColorValue_from_value(TYPE_STYLE, &sval);
     }
-
-    // Try basic colors.
-    int b_ret = BasicValue_from_str(s);
-    if (b_ret != BASIC_INVALID) {
-        BasicValue bval = (BasicValue)b_ret;
-        return ColorValue_from_value(type, &bval);
+    RGB rgb;
+    // RGB string, or known name?
+    int rgb_ret = RGB_from_str(s, &rgb);
+    if (rgb_ret == COLOR_INVALID_RANGE) {
+        return ColorValue_from_value(TYPE_INVALID_RGB_RANGE, NULL);
+    } else if (rgb_ret != TYPE_INVALID) {
+        return ColorValue_from_value(TYPE_RGB, &rgb);
     }
     return ColorValue_from_value(TYPE_INVALID, NULL);
 }
@@ -3389,7 +3769,7 @@ BasicValue BasicValue_from_str(const char* arg) {
     }
     char* arglower = str_to_lower(arg);
     if (!arglower) return BASIC_INVALID;
-    for (size_t i=0; i < basic_names_len; i++) {
+    for (size_t i = 0; i < basic_names_len; i++) {
         if (!strcmp(arglower, basic_names[i].name)) {
             free(arglower);
             return basic_names[i].value;
@@ -3591,11 +3971,20 @@ int ExtendedValue_from_str(const char* arg) {
 
     char* arglower = str_to_lower(arg);
     if (!arglower) return COLOR_INVALID;
-    for (size_t i=0; i < extended_names_len; i++) {
+    // Check the simple extended names.
+    for (size_t i = 0; i < extended_names_len; i++) {
         if (!strcmp(arglower, extended_names[i].name)) {
             // A known extended value name.
             free(arglower);
             return extended_names[i].value;
+        }
+    }
+    // Check the big known-name list.
+    for (size_t i = 0; i < colr_name_data_len; i++) {
+        if (!strcmp(arglower, colr_name_data[i].name)) {
+            // A known name.
+            free(arglower);
+            return colr_name_data[i].ext;
         }
     }
     if (arglower[0] == '#') {
@@ -3677,26 +4066,38 @@ char* ExtendedValue_to_str(ExtendedValue eval) {
     return repr;
 }
 
-/*! Convert a hex color into separate red, green, blue values.
+/*! Compare two RGB structs.
+
+    \pi a First RGB value to check.
+    \pi b Second RGB value to check.
+    \return `true` if \p a and \p b have the same `r`, `g`, and `b` values, otherwise `false`.
+
+    \sa RGB
+*/
+bool RGB_eq(RGB a, RGB b) {
+    return (
+        (a.red == b.red) &&
+        (a.green == b.green) &&
+        (a.blue == b.blue)
+    );
+}
+
+/*! Convert a hex color into an RGB value.
     \details
     The format for hex strings can be one of:
         - "[#]ffffff" (Leading hash symbol is optional)
         - "[#]fff" (short-form)
 
-    \details
-    Three-digit numbers are valid hex strings, so values like `011` are accepted
-    and transformed into `#001111`.
-
-    \pi hexstr String to convert into red, green, blue values.
+    \pi hexstr String to check for hex values.
                \mustnullin
-    \po r      Pointer to an unsigned char for red value on success.
-    \po g      Pointer to an unsigned char for green value on success.
-    \po b      Pointer to an unsigned char for blue value on success.
+    \po rgb    Pointer to an RGB struct to fill in the values for.
 
-    \retval 0 on success, with \p r, \p g, and \p b filled with the values.
-    \retval COLOR_INVALID for non-hex strings.
+    \retval    0 on success, with \p rgbval filled with the values.
+    \retval    COLOR_INVALID for non-hex strings.
+
+    \sa RGB
 */
-int rgb_from_hex(const char* hexstr, unsigned char* r, unsigned char* g, unsigned char* b) {
+int RGB_from_hex(const char* hexstr, RGB *rgbval) {
     if (!hexstr) return COLOR_INVALID;
     size_t length = strnlen(hexstr, 7);
     if ((length < 3) || (length > 7)) return COLOR_INVALID;
@@ -3705,7 +4106,7 @@ int rgb_from_hex(const char* hexstr, unsigned char* r, unsigned char* g, unsigne
     inline_str_lstrip_char(copy, hexstr, length, '#');
     size_t copy_length = strlen(copy);
     if (copy_length < length - 1) {
-        // There was more then one # symbol, I'm not gonna be *that* nice.
+        // There was more than one # symbol, I'm not gonna be *that* nice.
         return COLOR_INVALID;
     }
     unsigned int redval, greenval, blueval;
@@ -3729,105 +4130,9 @@ int rgb_from_hex(const char* hexstr, unsigned char* r, unsigned char* g, unsigne
             return COLOR_INVALID;
     }
 
-    *r = redval;
-    *g = greenval;
-    *b = blueval;
-    return 0;
-}
-
-/*! Convert an RGB string into separate red, green, blue values.
-
-    \details
-    The format for RGB strings can be one of:
-        - "RED,GREEN,BLUE"
-        - "RED GREEN BLUE"
-        - "RED:GREEN:BLUE"
-        - "RED;GREEN;BLUE"
-    Or hex strings can be used:
-        - "#ffffff" (Leading hash symbol is __NOT__ optional)
-        - "#fff" (short-form)
-
-    \pi arg String to check for RGB values.
-    \po r   Pointer to an unsigned char for red value on success.
-    \po g   Pointer to an unsigned char for green value on success.
-    \po b   Pointer to an unsigned char for blue value on success.
-
-    \retval 0 on success, with \p r, \p g, and \p b filled with the values.
-    \retval COLOR_INVALID for non-rgb strings.
-    \retval COLOR_INVALID_RANGE for rgb values outside of 0-255.
-*/
-int rgb_from_str(const char* arg, unsigned char* r, unsigned char* g, unsigned char* b) {
-    if (!arg) return COLOR_INVALID;
-    const char* formats[] = {
-        "%ld,%ld,%ld",
-        "%ld %ld %ld",
-        "%ld:%ld:%ld",
-        "%ld;%ld;%ld",
-        NULL
-    };
-    long userred, usergreen, userblue;
-    int i = 0;
-    while (formats[i]) {
-        if (sscanf(arg, formats[i], &userred, &usergreen, &userblue) == 3) {
-            // Found a match.
-            if (userred < 0 || userred > 255) return COLOR_INVALID_RANGE;
-            if (usergreen < 0 || usergreen > 255) return COLOR_INVALID_RANGE;
-            if (userblue < 0 || userblue > 255) return COLOR_INVALID_RANGE;
-            // Valid ranges, set values for out parameters.
-            *r = (unsigned char)userred;
-            *g = (unsigned char)usergreen;
-            *b = (unsigned char)userblue;
-            return 0;
-        }
-        i++;
-    }
-    return arg[0] == '#' ? rgb_from_hex(arg, r, g, b) : COLOR_INVALID;
-}
-
-/*! Compare two RGB structs.
-
-    \pi a First RGB value to check.
-    \pi b Second RGB value to check.
-    \return `true` if \p a and \p b have the same `r`, `g`, and `b` values, otherwise `false`.
-
-    \sa RGB
-*/
-bool RGB_eq(RGB a, RGB b) {
-    return (
-        (a.red == b.red) &&
-        (a.green == b.green) &&
-        (a.blue == b.blue)
-    );
-}
-
-/*! Convert a hex color into an RGB value.
-    \details
-    The format for hex strings can be one of:
-        - "[#]ffffff" (Leading hash symbol is optional)
-        - "[#]fff" (short-form)
-
-    \pi arg String to check for RGB values.
-            \mustnullin
-    \po rgb Pointer to an RGB struct to fill in the values for.
-
-    \retval 0 on success, with \p rgbval filled with the values.
-    \retval COLOR_INVALID for non-hex strings.
-
-    \sa RGB
-*/
-int RGB_from_hex(const char* arg, RGB *rgb) {
-    if (!arg) return COLOR_INVALID;
-    unsigned char r = 0;
-    unsigned char g = 0;
-    unsigned char b = 0;
-    int ret = rgb_from_hex(arg, &r, &g, &b);
-    if (ret) {
-        // An error occurred.
-        return ret;
-    }
-    rgb->red = r;
-    rgb->green = g;
-    rgb->blue = b;
+    rgbval->red = redval;
+    rgbval->green = greenval;
+    rgbval->blue = blueval;
     return 0;
 }
 
@@ -3839,7 +4144,7 @@ int RGB_from_hex(const char* arg, RGB *rgb) {
         - "[#]ffffff" (Leading hash symbol is optional)
         - "[#]fff" (short-form)
 
-    \pi arg           String to check for RGB values.
+    \pi hexstr        String to check for RGB values.
                       \mustnullin
     \po default_value An RGB value to use when errors occur.
 
@@ -3848,17 +4153,15 @@ int RGB_from_hex(const char* arg, RGB *rgb) {
     \sa RGB
     \sa hex
 */
-RGB RGB_from_hex_default(const char* arg, RGB default_value) {
-    if (!arg) return default_value;
-    unsigned char r = 0;
-    unsigned char g = 0;
-    unsigned char b = 0;
-    int ret = rgb_from_hex(arg, &r, &g, &b);
+RGB RGB_from_hex_default(const char* hexstr, RGB default_value) {
+    if (!hexstr) return default_value;
+    RGB rgb;
+    int ret = RGB_from_hex(hexstr, &rgb);
     if (ret) {
         // An error occurred.
         return default_value;
     }
-    return rgb(r, g, b);
+    return rgb;
 }
 /*! Convert an RGB string into an RGB value.
 
@@ -3894,18 +4197,45 @@ RGB RGB_from_hex_default(const char* arg, RGB default_value) {
 */
 int RGB_from_str(const char* arg, RGB *rgbval) {
     if (!arg) return COLOR_INVALID;
-    unsigned char r = 0;
-    unsigned char g = 0;
-    unsigned char b = 0;
-    int ret = rgb_from_str(arg, &r, &g, &b);
-    if (ret) {
-        // An error occurred.
-        return ret;
+    const char* formats[] = {
+        "%ld,%ld,%ld",
+        "%ld %ld %ld",
+        "%ld:%ld:%ld",
+        "%ld;%ld;%ld",
+        NULL
+    };
+    long userred, usergreen, userblue;
+    int i = 0;
+    while (formats[i]) {
+        if (sscanf(arg, formats[i], &userred, &usergreen, &userblue) == 3) {
+            // Found a match.
+            if (userred < 0 || userred > 255) return COLOR_INVALID_RANGE;
+            if (usergreen < 0 || usergreen > 255) return COLOR_INVALID_RANGE;
+            if (userblue < 0 || userblue > 255) return COLOR_INVALID_RANGE;
+            // Valid ranges, set values for out parameters.
+            rgbval->red = (unsigned char)userred;
+            rgbval->green = (unsigned char)usergreen;
+            rgbval->blue = (unsigned char)userblue;
+            return 0;
+        }
+        i++;
     }
-    rgbval->red = r;
-    rgbval->green = g;
-    rgbval->blue = b;
-    return 0;
+
+    // Try hex strings.
+    if (arg[0] == '#') return RGB_from_hex(arg, rgbval);
+
+    // Try known names.
+    char* arglower = str_to_lower(arg);
+    if (!arglower) return COLOR_INVALID;
+    for (size_t j = 0; j < colr_name_data_len; j++) {
+        if (colr_streq(arglower, colr_name_data[j].name)) {
+            free(arglower);
+            *rgbval = colr_name_data[j].rgb;
+            return 0;
+        }
+    }
+    free(arglower);
+    return COLOR_INVALID;
 }
 
 /*! Converts an RGB value into a hex string.
@@ -4009,7 +4339,7 @@ StyleValue StyleValue_from_str(const char* arg) {
     }
     char* arglower = str_to_lower(arg);
     if (!arglower) return STYLE_INVALID;
-    for (size_t i=0; i < style_names_len; i++) {
+    for (size_t i = 0; i < style_names_len; i++) {
         if (!strcmp(arglower, style_names[i].name)) {
             free(arglower);
             return style_names[i].value;

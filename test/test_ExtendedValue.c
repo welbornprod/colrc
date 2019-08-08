@@ -18,15 +18,26 @@ describe(ExtendedValue) {
             }
         }
         subdesc(valid_colors) {
-            it("recognizes known color names") {
+            it("recognizes extended color names") {
                 // Test all basic names, in case of some weird regression.
-                for (size_t i = 0; i < extended_names_len; i++) {
+                for_len(extended_names_len, i) {
                     char* name = extended_names[i].name;
-                    int bval = extended_names[i].value;
+                    int eval = extended_names[i].value;
                     assert_ext_from_str_eq(
                        name,
-                        bval,
+                        eval,
                         "Known ExtendedValue didn't match"
+                    );
+                }
+            }
+            it("recognizes known color names") {
+                for_len(colr_name_data_len, i) {
+                    char* name = colr_name_data[i].name;
+                    ExtendedValue eval = colr_name_data[i].ext;
+                    assert_ext_from_str_eq(
+                        name,
+                        eval,
+                        "Known name didn't match ExtendedValue."
                     );
                 }
             }
