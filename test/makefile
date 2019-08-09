@@ -29,7 +29,7 @@ objects:=$(source:.c=.o)
 binobjects:=$(notdir $(objects))
 
 .PHONY: all, coverage, debug, debugnotags, release, sanitize
-all: debug
+all: sanitize
 
 coverage: clean
 coverage: coverageclean
@@ -102,10 +102,21 @@ coverageview:
 	@$(cov_cmd) "$(binary)" "$(cov_dir)" --view
 
 .PHONY: memcheck, memcheckquiet
+
+memcheck: debug
 memcheck:
+	@if ldd $(binary) | grep libasan &>/dev/null; then \
+		printf "\nRebuilding in non-sanitized mode for memcheck.\n"; \
+		$(MAKE) $(MAKEFLAGS) clean debug; \
+	fi;
 	@$(valgrind_cmd) -- $(TEST_ARGS)
 
+memcheckquiet: debug
 memcheckquiet:
+	@if ldd $(binary) | grep libasan &>/dev/null; then \
+		printf "\nRebuilding in non-sanitized mode for memcheck.\n"; \
+		$(MAKE) $(MAKEFLAGS) clean debug; \
+	fi;
 	@$(valgrind_cmd) -q -- $(TEST_ARGS)
 
 .PHONY: strip

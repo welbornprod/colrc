@@ -200,10 +200,20 @@ examples: $(examples_source)
 	@cd examples && $(MAKE) $(MAKEFLAGS) --no-print-directory $(COLR_ARGS)
 
 .PHONY: memcheck, memcheckquiet
+memcheck: debug
 memcheck:
+	@if ldd $(binary) | grep libasan &>/dev/null; then \
+		printf "\nRebuilding in non-sanitized mode for memcheck.\n"; \
+		$(MAKE) $(MAKEFLAGS) clean debug; \
+	fi;
 	@$(valgrind_cmd) -- $(COLR_ARGS)
 
+memcheckquiet: debug
 memcheckquiet:
+	@if ldd $(binary) | grep libasan &>/dev/null; then \
+		printf "\nRebuilding in non-sanitized mode for memcheck.\n"; \
+		$(MAKE) $(MAKEFLAGS) clean debug; \
+	fi;
 	@$(valgrind_cmd) -q -- $(COLR_ARGS)
 
 .PHONY: run
