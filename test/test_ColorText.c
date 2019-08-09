@@ -188,7 +188,7 @@ subdesc(ColorText_to_str) {
 
         ColorText* p = Colr("test", fore(RED));
         char* codes = ColorText_to_str(*p);
-        assert(str_has_codes(codes));
+        assert(colr_str_has_codes(codes));
         free(codes);
         ColorText_free(p);
     }

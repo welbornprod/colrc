@@ -138,6 +138,33 @@ function make_in {
     popd
 }
 
+function run_colrc_modes {
+    local colrc_cmd run_mode=$1
+    declare -a colrc_cmd=("$colrexe")
+    [[ "$run_mode" == "memcheck"* ]] && colrc_cmd=(
+        "$toolsdir/valgrind_run.sh"
+        "-e" "$colrexe"
+    )
+    [[ "$run_mode" == "memcheck-quiet" ]] && colrc_cmd+=("--quiet")
+    colrc_cmd+=("--")
+
+    "${colrc_cmd[@]}" "Testing colr in sanitize mode." red white underline || \
+        fail "Failed on basic colorization."
+    "${colrc_cmd[@]}" "Testing colr in sanitize mode." white rainbow || \
+        fail "Failed on back rainbow."
+    "${colrc_cmd[@]}" "Testing colr in sanitize mode." rainbow black || \
+        fail "Failed on fore rainbow."
+    "${colrc_cmd[@]}" --basic || \
+        fail "Failed on basic colors example."
+    "${colrc_cmd[@]}" --256 || \
+        fail "Failed on 256-colors example."
+    "${colrc_cmd[@]}" --names || \
+        fail "Failed on known names example."
+    "${colrc_cmd[@]}" --rainbow || \
+        fail "Failed on rainbow colors example."
+    "${colrc_cmd[@]}" --rgb || \
+        fail "Failed on rgb colors example."
+}
 
 function run_examples {
     # Clean all of the examples in ../examples, rebuild them, and run them.
@@ -170,13 +197,20 @@ function run_everything {
     make_in "$colrdir" clean debug
 
     echo_status "Trying to run memcheck on (debug)" "$colrexe"
-    COLR_ARGS="TEST red white underline" make_in "$colrdir" "$memcheck_target"
+    run_colrc_modes "memcheck-quiet"
 
     echo_status "Trying to build (debug)" "$testexe"
     make_in "$testdir" clean debug
 
     echo_status "Trying to run memcheck on (debug)" "$testexe"
     make_in "$testdir" "$memcheck_target"
+
+    echo_status "Trying to build (sanitize)" "$colrexe"
+    make_in "$colrdir" clean sanitize
+    run_colrc_modes "normal"
+
+    echo_status "Trying to build (sanitize)" "$testexe"
+    make_in "$testdir" clean sanitize testquiet
 
     echo_status "Running examples..."
     run_examples "${example_args[@]}"
@@ -191,7 +225,7 @@ function run_everything {
     make_in "$colrdir" clean release
 
     echo_status "Trying to run memcheck on (release)" "$colrexe"
-    COLR_ARGS="TEST red white underline" make_in "$colrdir" "$memcheck_target"
+    run_colrc_modes "memcheck-quiet"
 
     echo_status "Trying to build (release)" "$testexe"
     make_in "$testdir" clean release

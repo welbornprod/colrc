@@ -3,12 +3,20 @@
 # Runs cppcheck with some defaults.
 # -Christopher Welborn 07-27-2019
 appname="ColrC - cppcheck runner"
-appversion="0.1.0"
+appversion="0.1.1"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 appdir="${apppath%/*}"
 colrdir="$appdir/.."
 testdir="$colrdir/test"
+declare -A script_deps=(["cppcheck"]="cppcheck")
+for script_dep in "${!script_deps[@]}"; do
+    hash "$script_dep" &>/dev/null || {
+        printf "\nMissing \`%s\` command.\n" "$script_dep" 1>&2
+        printf "Install the \`%s\` package with your package manager.\n" "${script_deps[$script_dep]}" 1>&2
+        exit 1
+    }
+done
 shopt -s nullglob
 
 declare -a colr_files=("$colrdir"/colr.c "$colrdir"/colr.h)

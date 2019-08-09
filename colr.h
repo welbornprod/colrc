@@ -698,14 +698,14 @@
         RGB: RGB_repr, \
         StyleValue: StyleValue_repr, \
         TermSize: TermSize_repr, \
-        const char*: str_repr, \
-        char*: str_repr, \
+        const char*: colr_str_repr, \
+        char*: colr_str_repr, \
         const char: char_repr, \
         char: char_repr \
     )(x)
 
 
-/*! \def colr_streq
+/*! \def colr_str_eq
     Convenience macro for `!strcmp(s1, s2)`.
 
     \pi s1  The first string to compare.
@@ -713,7 +713,7 @@
 
     \return `1` if \p s1 and \p s2 are equal, otherwise `0`.
 */
-#define colr_streq(s1, s2) ((s1 && s2) ? !strcmp(s1, s2) : 0)
+#define colr_str_eq(s1, s2) ((s1 && s2) ? !strcmp(s1, s2) : 0)
 
 /*! \def colr_str_either
     Convenience macro for `!strcmp(s1, s2) || !strcmp(s1, s3)`.
@@ -724,7 +724,7 @@
 
     \return `1` if \p s1 is equal to \p s2 or \p s3, otherwise `0`.
 */
-#define colr_str_either(s1, s2, s3) (colr_streq(s1, s2) || colr_streq(s1, s3))
+#define colr_str_either(s1, s2, s3) (colr_str_eq(s1, s2) || colr_str_eq(s1, s3))
 
 /*! \def colr_to_str
     Calls the \<type\>to_str functions for the supported types.
@@ -1024,8 +1024,8 @@
             char* repr = colr_repr(val);
             char* s = colr(fore(val), repr);
             printf("Found RGB: %s\n", s);
-            free(s);
             free(repr);
+            free(s);
         }
     }
     \endexamplecode
@@ -1230,6 +1230,23 @@ typedef struct StyleInfo_s {
     StyleValue value;
 } StyleInfo;
 
+static_assert(
+    sizeof(unsigned int) == 4,
+    "Struct markers will not work without a 32-bit `unsigned int` type."
+);
+
+//! Breaks down Colr struct markers, such as COLORARG_MARKER, into individual bytes.
+typedef union ColorStructMarker_u {
+    //! The actual unsigned int marker value.
+    unsigned int marker;
+    //! Individual bytes that make up the marker.
+    struct {
+        unsigned char b1;
+        unsigned char b2;
+        unsigned char b3;
+        unsigned char b4;
+    } bytes;
+} ColorStructMarker;
 /*! Holds a color type and it's value.
 
     \details
@@ -1358,8 +1375,31 @@ bool char_in_str(const char c, const char* s);
 bool char_is_code_end(const char c);
 char* char_repr(char x);
 bool char_should_escape(const char c);
+
+void colr_append_reset(char* s);
+bool colr_check_marker(unsigned int marker, void* p);
 char* colr_empty_str(void);
 bool colr_supports_rgb(void);
+
+size_t colr_str_char_count(const char*s, const char c);
+char* colr_str_center(const char* s, const char padchar, int width);
+char* colr_str_copy(char* dest, const char* src, size_t length);
+bool colr_str_ends_with(const char* s, const char* suffix);
+bool colr_str_has_codes(const char* s);
+bool colr_str_is_all(const char* s, const char c);
+bool colr_str_is_codes(const char* s);
+bool colr_str_is_digits(const char* s);
+char* colr_str_ljust(const char* s, const char padchar, int width);
+void colr_str_lower(char* s);
+char* colr_str_lstrip_chars(const char* s, const char* chars);
+size_t colr_str_mb_len(const char* s);
+size_t colr_str_noncode_len(const char* s);
+char* colr_str_repr(const char* s);
+char* colr_str_rjust(const char* s, const char padchar, int width);
+bool colr_str_starts_with(const char* s, const char* prefix);
+char* colr_str_strip_codes(const char* s);
+char* colr_str_to_lower(const char* s);
+
 TermSize colr_term_size(void);
 struct winsize colr_win_size(void);
 struct winsize colr_win_size_env(void);
@@ -1399,31 +1439,6 @@ char* rainbow_fg_term(const char* s, double freq, size_t offset);
 char* rainbow_bg(const char* s, double freq, size_t offset);
 char* rainbow_bg_term(const char* s, double freq, size_t offset);
 RGB rainbow_step(double freq, size_t offset);
-
-/*! \internal
-    String-based functions.
-    \endinternal
-*/
-
-void str_append_reset(char* s);
-size_t str_char_count(const char*s, const char c);
-char* str_center(const char* s, const char padchar, int width);
-char* str_copy(char* dest, const char* src, size_t length);
-bool str_ends_with(const char* s, const char* suffix);
-bool str_has_codes(const char* s);
-bool str_is_all(const char* s, const char c);
-bool str_is_codes(const char* s);
-bool str_is_digits(const char* s);
-char* str_ljust(const char* s, const char padchar, int width);
-void str_lower(char* s);
-char* str_lstrip_chars(const char* s, const char* chars);
-size_t str_mb_len(const char* s);
-size_t str_noncode_len(const char* s);
-char* str_repr(const char* s);
-char* str_rjust(const char* s, const char padchar, int width);
-bool str_starts_with(const char* s, const char* prefix);
-char* str_strip_codes(const char* s);
-char* str_to_lower(const char* s);
 
 /*! \internal
     Helpers for the variadic colr* functions.

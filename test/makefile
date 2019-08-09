@@ -12,6 +12,9 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
        -std=gnu11
 INCLUDES=-iquote../
 LIBS=-lm
+# Sanitizers/protectors to optionally enable.
+FFLAGS=-fno-omit-frame-pointer -fstack-protector-strong \
+    -fsanitize=address -fsanitize=leak -fsanitize=undefined
 
 binary=test_colrc
 cov_cmd=bash ../tools/gen_coverage_html.sh --
@@ -25,7 +28,7 @@ test_objects=$(test_source:.c=.o)
 objects:=$(source:.c=.o)
 binobjects:=$(notdir $(objects))
 
-.PHONY: all, coverage, debug, debugnotags, release
+.PHONY: all, coverage, debug, debugnotags, release, sanitize
 all: debug
 
 coverage: clean
@@ -44,6 +47,10 @@ debug: $(binary)
 release: CFLAGS+=-O3 -DNDEBUG
 release: $(binary)
 release: strip
+
+sanitize: CFLAGS+=-g3 -DDEBUG $(FFLAGS)
+sanitize: LIBS+=-lasan
+sanitize: $(binary)
 
 $(binary): $(binobjects)
 	@printf "\nCompiling test executable, $(binary)...\n    "
@@ -122,6 +129,7 @@ help targets:
     debug           : Build the executable with debug symbols.\n\
     memcheck        : Run valgrind's memcheck on the executable.\n\
     release         : Build the executable with optimization, and strip it.\n\
+    sanitize        : Build debug with \`-fsanitize\` options.\n\
     strip           : Run \`strip\` on the executable.\n\
     tags            : Build tags for this project using \`ctags\`.\n\
     test            : Make debug (if needed), then run the tests.\n\
@@ -134,19 +142,19 @@ help targets:
 cleantest: clean
 cleantest: test
 
-test: debug
+test: sanitize
 test:
 	-@./run_tests.sh $(TEST_ARGS)
 
-testgdb: debug
+testgdb: sanitize
 testgdb:
 	-@./run_tests.sh -e gdb $(TEST_ARGS)
 
-testkdbg: debug
+testkdbg: sanitize
 testkdbg:
 	-@./run_tests.sh -e kdbg $(TEST_ARGS)
 
-testquiet: debug
+testquiet: sanitize
 testquiet:
 	-@./run_tests.sh $(TEST_ARGS) --quiet
 

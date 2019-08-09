@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
     printf("%s", text);
-    if (!str_ends_with(text, "\n" CODE_RESET_ALL)) printf("\n");
+    if (!colr_str_ends_with(text, "\n" CODE_RESET_ALL)) printf("\n");
 
     free(text);
     if (opts.free_text) free(opts.text);
@@ -236,29 +236,29 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
 
         switch (c) {
             case 0:
-                if (colr_streq(long_options[option_index].name, "basic")) {
+                if (colr_str_eq(long_options[option_index].name, "basic")) {
                     return print_basic(false);
-                } else if (colr_streq(long_options[option_index].name, "256")) {
+                } else if (colr_str_eq(long_options[option_index].name, "256")) {
                     return print_256(false);
-                } else if (colr_streq(long_options[option_index].name, "names")) {
+                } else if (colr_str_eq(long_options[option_index].name, "names")) {
                     return print_names(false);
-                } else if (colr_streq(long_options[option_index].name, "rainbow")) {
+                } else if (colr_str_eq(long_options[option_index].name, "rainbow")) {
                     return print_rainbow(false);
-                } else if (colr_streq(long_options[option_index].name, "rgb")) {
+                } else if (colr_str_eq(long_options[option_index].name, "rgb")) {
                     return print_rgb(false, false);
-                } else if (colr_streq(long_options[option_index].name, "rgbterm")) {
+                } else if (colr_str_eq(long_options[option_index].name, "rgbterm")) {
                     return print_rgb(false, true);
-                } else if (colr_streq(long_options[option_index].name, "basicbg")) {
+                } else if (colr_str_eq(long_options[option_index].name, "basicbg")) {
                     return print_basic(true);
-                } else if (colr_streq(long_options[option_index].name, "256bg")) {
+                } else if (colr_str_eq(long_options[option_index].name, "256bg")) {
                     return print_256(true);
-                } else if (colr_streq(long_options[option_index].name, "namesrgb")) {
+                } else if (colr_str_eq(long_options[option_index].name, "namesrgb")) {
                     return print_names(true);
-                } else if (colr_streq(long_options[option_index].name, "rainbowbg")) {
+                } else if (colr_str_eq(long_options[option_index].name, "rainbowbg")) {
                     return print_rainbow(true);
-                } else if (colr_streq(long_options[option_index].name, "rgbbg")) {
+                } else if (colr_str_eq(long_options[option_index].name, "rgbbg")) {
                     return print_rgb(true, false);
-                } else if (colr_streq(long_options[option_index].name, "rgbtermbg")) {
+                } else if (colr_str_eq(long_options[option_index].name, "rgbtermbg")) {
                     return print_rgb(true, true);
                 } else {
                     printferr(
@@ -270,7 +270,7 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
                 break;
             case 'b':
                 if (colr_str_either(optarg, "rainbow", "rainbowterm")) {
-                    opts->rainbow_term = colr_streq(optarg, "rainbowterm");
+                    opts->rainbow_term = colr_str_eq(optarg, "rainbowterm");
                     opts->rainbow_back = true;
                     opts->back = ColorArg_to_ptr(ColorArg_empty());
                 } else  {
@@ -291,7 +291,7 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
                 opts->just.width = argval_just;
                 break;
             case 'F':
-                if (colr_streq(optarg, "-")) {
+                if (colr_str_eq(optarg, "-")) {
                     // Another way to read stdin data, with --file -.
                     opts->text = "-";
                 } else {
@@ -304,7 +304,7 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
                 break;
             case 'f':
                 if (colr_str_either(optarg, "rainbow", "rainbowterm")) {
-                    opts->rainbow_term = colr_streq(optarg, "rainbowterm");
+                    opts->rainbow_term = colr_str_eq(optarg, "rainbowterm");
                     opts->rainbow_fore = true;
                     opts->fore = ColorArg_to_ptr(ColorArg_empty());
                 } else  {
@@ -391,9 +391,9 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
                 break;
             }
         } else if (!opts->fore) {
-            if (colr_streq(argv[optind], "rainbow")) {
+            if (colr_str_eq(argv[optind], "rainbow")) {
                 opts->rainbow_fore = true;
-            } else if (colr_streq(argv[optind], "rainbowterm")) {
+            } else if (colr_str_eq(argv[optind], "rainbowterm")) {
                 opts->rainbow_fore = true;
                 opts->rainbow_term = true;
             } else {
@@ -402,9 +402,9 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
             }
             optind++;
         } else if (!opts->back) {
-            if (colr_streq(argv[optind], "rainbow")) {
+            if (colr_str_eq(argv[optind], "rainbow")) {
                 opts->rainbow_back = true;
-            } else if (colr_streq(argv[optind], "rainbowterm")) {
+            } else if (colr_str_eq(argv[optind], "rainbowterm")) {
                 opts->rainbow_back = true;
                 opts->rainbow_term = true;
             } else {
@@ -428,7 +428,7 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
 
 
     // Fill text with stdin if a marker argument was used.
-    if (colr_streq(opts->text, "-")) {
+    if (colr_str_eq(opts->text, "-")) {
         // Read from stdin.
         opts->text = read_stdin_arg();
         opts->free_text = true;
@@ -551,7 +551,7 @@ int print_basic(bool do_back) {
         if (colr_str_either(name, "black", "lightblack")) {
             puts("");
         }
-        BasicValue otherval = str_ends_with(name, "black") ? WHITE : BLACK;
+        BasicValue otherval = colr_str_ends_with(name, "black") ? WHITE : BLACK;
         asprintf_or_return(1, &namefmt, "%-14s", name);
         if (do_back) {
             text = colr(back(val), fore(otherval), namefmt);
@@ -882,7 +882,7 @@ int strip_codes(ColrToolOptions* opts) {
         printferr("\nText was empty!\n");
         return 1;
     }
-    char* stripped = str_strip_codes(opts->text);
+    char* stripped = colr_str_strip_codes(opts->text);
     if (!stripped) {
         printferr("\nFailed to create stripped text!\n");
         return 1;

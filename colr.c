@@ -372,6 +372,7 @@ const RGB ext2rgb_map[] = {
 //! Length of ext2rgb_map  (should always be 256).
 const size_t ext2rgb_map_len = sizeof(ext2rgb_map) / sizeof(ext2rgb_map[0]);
 
+//! An array that holds a known color name, it's ExtendedValue, and it's RGB value.
 const ColorNameData colr_name_data[] = {
     {"aliceblue", 231, {255, 255, 255}},
     {"antiquewhite", 230, {255, 255, 215}},
@@ -750,6 +751,7 @@ const ColorNameData colr_name_data[] = {
     {"yellowgreen", 113, {135, 215, 95}}
 };
 
+//! Length of colr_name_data.
 const size_t colr_name_data_len = sizeof(colr_name_data) / sizeof(colr_name_data[0]);
 
 /*! Returns the char needed to represent an escape sequence in C.
@@ -948,6 +950,90 @@ bool char_should_escape(const char c) {
     }
 }
 
+/*! Appends CODE_RESET_ALL to a string, but makes sure to do it before any
+    newlines.
+
+    \details
+    \mustnullin
+
+    \pi s The string to append to.
+          <em>Must have extra room for CODE_RESET_ALL</em>.
+*/
+void colr_append_reset(char *s) {
+    if (!s) return;
+    if (s[0] == '\0') {
+        // Special case, an empty string, with room for CODE_RESET_ALL.
+        snprintf(s, CODE_RESET_LEN, "%s", CODE_RESET_ALL);
+        return;
+    }
+    if (colr_str_ends_with(s, CODE_RESET_ALL)) {
+        // Already has one.
+        return;
+    }
+    size_t length = strlen(s);
+    size_t lastindex = length - 1;
+    size_t newlines = 0;
+    // Cut newlines off if needed. I'll add them after the reset code.
+    while ((lastindex > 0) && (s[lastindex] == '\n')) {
+        s[lastindex] = '\0';
+        newlines++;
+        lastindex--;
+    }
+    if ((lastindex == 0) && s[lastindex] == '\n') {
+        // String starts with a newline.
+        s[lastindex] = '\0';
+        newlines++;
+    } else {
+        lastindex++;
+    }
+    char* p = s + lastindex;
+    snprintf(p, CODE_RESET_LEN, "%s", CODE_RESET_ALL);
+    p += CODE_RESET_LEN - 1;
+    while (newlines--) {
+        *(p++) = '\n';
+    }
+    *p = '\0';
+}
+
+/*! Checks an unsigned int against the individual bytes behind a pointer's
+    value. This helps to guard against overflows, because only a single
+    byte is checked at a time. If any byte doesn't match the marker, `false`
+    is immediately returned, instead of continuing past the pointer's bounds.
+
+    \pi marker A colr marker, like COLORARG_MARKER, COLORTEXT_MARKER, etc.
+    \pi p      A pointer to check, to see if it starts with the marker.
+    \return    `true` if all bytes match the marker, otherwise `false`.
+
+    \sa ColorArg_is_ptr ColorText_is_ptr
+
+    \examplecodefor{colr_check_marker,.c}
+    // This is actually used with void pointer, where the type is not known.
+    // It's only known that the pointer will be 1 of 3 types.
+    ColorArg* cargp = fore(GREEN);
+    assert(colr_check_marker(COLORARG_MARKER, cargp));
+    colr_free(cargp);
+
+    char* s = "Not a ColorText at all.";
+    assert(!colr_check_marker(COLORTEXT_MARKER, s));
+
+    ColorText* ctextp = Colr("But this is a ColorText.", fore(GREEN));
+    assert(colr_check_marker(COLORTEXT_MARKER, ctextp));
+    colr_free(ctextp);
+
+    printf("colr_check_marker() assertions held up.\n");
+    \endexamplecode
+*/
+bool colr_check_marker(unsigned int marker, void* p) {
+    // Don't overflow the bounds. Check a byte at a time.
+    ColorStructMarker byte_checker = {marker};
+    unsigned char* singlebyte = p;
+    if (*singlebyte != byte_checker.bytes.b1) return false;
+    else if (*(singlebyte + 1) != byte_checker.bytes.b2) return false;
+    else if (*(singlebyte + 2) != byte_checker.bytes.b3) return false;
+    else if (*(singlebyte + 3) != byte_checker.bytes.b4) return false;
+    return true;
+}
+
 /*! Allocates an empty string.
     \details
     This is for keeping the interface simple, so the return values from
@@ -960,6 +1046,614 @@ char* colr_empty_str(void) {
     if (!s) return NULL;
     s[0] = '\0';
     return s;
+}
+
+
+/*! Center-justifies a string, ignoring escape codes when measuring the width.
+
+    \pi s       The string to justify.\n
+                \mustnullin
+    \pi padchar The character to pad with. If '0', then `' '` is used.
+    \pi width   The overall width for the resulting string.\n
+                If set to '0', the terminal width will be used from colr_term_size().
+
+    \return     An allocated string with the result,
+                or `NULL` if \p s is `NULL` or the allocation failed.
+                or `NULL` if \p s is `NULL` or the allocation failed.
+
+    \sa colr_str_ljust colr_str_rjust colr_term_size
+*/
+char* colr_str_center(const char* s, const char padchar, int width) {
+    if (!s) return NULL;
+    char pad = padchar == '\0' ? ' ' : padchar;
+    size_t length = strlen(s);
+    size_t noncode_len = colr_str_noncode_len(s);
+    if (width == 0) {
+        TermSize ts = colr_term_size();
+        width = ts.columns;
+    }
+    int diff = width - noncode_len;
+    char* result;
+    if (diff < 1) {
+        // No room for padding, also asprintf can't do empty strings.
+        if (s[0] == '\0') return colr_empty_str();
+        asprintf_or_return(NULL, &result, "%s", s);
+        return result;
+    }
+    size_t final_len = length + diff + 1;
+    result = calloc(final_len, sizeof(char));
+    if (!result) return NULL;
+    if (s[0] == '\0') {
+        // Shortcut for a simple pad-only string.
+        memset(result, pad, final_len - 1);
+        return result;
+    }
+    size_t pos = 0;
+    size_t leftdiff = diff / 2;
+    if (diff % 2 == 1) leftdiff++;
+    // Handle left-just.
+    while (pos < leftdiff) {
+        result[pos++] = pad;
+    }
+    // Handle string.
+    size_t i = 0;
+    while (s[i]) {
+        result[pos++] = s[i++];
+    }
+    // Handle remaining right-just.
+    final_len--;
+    while (pos < final_len) {
+        result[pos++] = pad;
+    }
+    return result;
+}
+
+/*! Counts the number of characters (`c`) that are found in a string (`s`).
+
+    \details
+    Returns `0` if `s` is `NULL`, or `c` is `'\0'`.
+
+    \pi s The string to examine.
+          \mustnullin
+    \pi c The character to count.
+          \mustnotzero
+
+    \return The number of times \p c occurs in \p s.
+*/
+size_t colr_str_char_count(const char* s, const char c) {
+    if (!(s && c)) return 0;
+    if (s[0] == '\0') return 0;
+
+    size_t i = 0;
+    size_t total = 0;
+    while (s[i]) {
+        if (s[i++] == c) total++;
+    }
+    return total;
+}
+
+/*! Like strncopy, but ensures null-termination.
+
+    \details
+    If src is NULL, or dest is NULL, NULL is returned.
+
+    \details
+    If src does not contain a null-terminator, _this function
+    will truncate at `length` characters_.
+
+    \details
+    A null-terminator is always appended to dest.
+
+    \pi dest   Memory allocated for new string.
+               _Must have room for `strlen(src)`._
+    \pi src    Source string to copy.
+    \pi length Maximum characters to copy.
+               <em>This does not include the null-terminator</em>.
+
+    \returns On success, a pointer to dest is returned.
+
+    \examplecodefor{colr_str_copy,.c}
+    char* s = "testing";
+    size_t length = strlen(s);
+    char* dest = malloc(length + 1);
+
+    // Copy the entire string:
+    colr_str_copy(dest, s, length);
+    assert(strcmp(dest, "testing") == 0);
+    printf("Copied: %s\n", dest);
+
+    // Copy only 4 bytes:
+    colr_str_copy(dest, s, 4);
+    assert(strcmp(dest, "test") == 0);
+    printf("Truncated: %s\n", dest);
+    free(dest);
+    \endexamplecode
+*/
+char* colr_str_copy(char* dest, const char* src, size_t length) {
+    if (!(src && dest)) {
+        return NULL;
+    }
+    size_t pos = 0;
+    while (pos < length && src[pos]) {
+        dest[pos] = src[pos];
+        pos++;
+    }
+    dest[pos] = '\0';
+    return dest;
+}
+
+/*! Determine if one string ends with another.
+
+    \details
+    `str` and `suf` \mustnull
+
+    \pi str String to check.
+    \pi suf Suffix to check for.
+    \return True if `str` ends with `suf`.
+    \return False if either is NULL, or the string doesn't end with the suffix.
+*/
+bool colr_str_ends_with(const char* str, const char* suf) {
+    if (!str || !suf) {
+        return false;
+    }
+    size_t strlength = strlen(str);
+    size_t suflength = strlen(suf);
+    if ((!(suflength && strlength)) || (suflength > strlength)) {
+        // Empty strings, or suffix is longer than the entire string.
+        return false;
+    }
+    return (strncmp(str + (strlength - suflength), suf, suflength) == 0);
+}
+
+/*! Determines if a string (`char*`) has ANSI escape codes in it.
+
+    \details
+    This will detect any ansi escape code, not just colors.
+
+    \pi s   The string to check. Can be `NULL`.
+            \mustnullin
+
+    \return `true` if the string has at least one escape code, otherwise `false`.
+
+    \sa colr_str_is_codes
+*/
+bool colr_str_has_codes(const char* s) {
+    if (!s) return false;
+    size_t length = strlen(s);
+    size_t i = 0;
+    while ((i < length) && s[i]) {
+        if ((s[i] == '\x1b') && (s[i + 1] == '[')) {
+            // Skip past "\x1b["
+            i += 2;
+            while ((i < length) && s[i]) {
+                if (s[i] == 'm') return true;
+                if (!(isdigit(s[i]) || s[i] == ';')) return false;
+                i++;
+            }
+        }
+        i++;
+    }
+    return false;
+}
+
+/*! Determines whether a string consists of only one character, possibly repeated.
+
+    \pi s   String to check.
+    \pi c   Character to test for. Must not be `0`.
+
+    \return `true` if \p s contains only the character \p c, otherwise `false`.
+*/
+bool colr_str_is_all(const char* s, const char c) {
+    if (!(s && c)) return false;
+    size_t i = 0;
+    while (s[i]) {
+        if (s[i] != c) return false;
+        i++;
+    }
+    return true;
+}
+
+/*! Determines if a string is composed entirely of escape codes.
+
+    \details
+    Returns `false` if the string is `NULL`, or empty.
+
+    \pi s   The string to check.
+            \mustnullin
+    \return `true` if the string is escape-codes only, otherwise `false`.
+
+    \sa colr_str_has_codes
+*/
+bool colr_str_is_codes(const char* s) {
+    if (!s) return false;
+    if (s[0] == '\0') return false;
+    size_t i = 0;
+    while (s[i]) {
+        if (s[i] == '\x1b') {
+            // Skip past the code.
+            while (!char_is_code_end(s[i++]));
+            continue;
+        }
+        // Found a non-escape-code char.
+        return false;
+    }
+    return true;
+}
+/*! Determines whether all characters in a string are digits.
+
+    \details
+    If \p s is NULL or an empty string (`""`), `false` is returned.
+
+    \pi s   String to check.
+            \mustnullin
+    \return `true` if all characters are digits (0-9), otherwise `false`.
+*/
+bool colr_str_is_digits(const char* s) {
+    if (!s) return false;
+    if (s[0] == '\0') return false;
+
+    size_t i = 0;
+    while (s[i]) {
+        if (!isdigit(s[i])) return false;
+        i++;
+    }
+    return true;
+}
+
+/*! Converts a string into lower case in place.
+    \details
+    \mustnullin
+
+    \details
+    If `s` is `NULL`, nothing is done.
+
+    \pi s The input string to convert to lower case.
+*/
+void colr_str_lower(char* s) {
+    if (!s) return;
+    size_t i = 0;
+    while (s[i]) {
+        char c = tolower(s[i]);
+        s[i] = c;
+        i++;
+    }
+    // This works for empty strings too.
+    if (s[i] != '\0') s[i] = '\0';
+}
+
+
+/*! Left-justifies a string, ignoring escape codes when measuring the width.
+
+    \pi s       The string to justify.\n
+                \mustnullin
+    \pi padchar The character to pad with. If '0', then `' '` is used.
+    \pi width   The overall width for the resulting string.\n
+                If set to '0', the terminal width will be used from colr_term_size().
+
+    \return     An allocated string with the result,
+                or `NULL` if \p s is `NULL` or the allocation failed.
+
+    \sa colr_str_center colr_str_rjust colr_term_size
+*/
+char* colr_str_ljust(const char* s, const char padchar, int width) {
+    if (!s) return NULL;
+    char pad = padchar == '\0' ? ' ' : padchar;
+    size_t length = strlen(s);
+    size_t noncode_len = colr_str_noncode_len(s);
+    if (width == 0) {
+        TermSize ts = colr_term_size();
+        width = ts.columns;
+    }
+    int diff = width - noncode_len;
+    char* result;
+    if (diff < 1) {
+        // No room for padding, also asprintf can't do empty strings.
+        if (s[0] == '\0') return colr_empty_str();
+        asprintf_or_return(NULL, &result, "%s", s);
+        return result;
+    }
+    size_t final_len = length + diff + 1;
+    result = calloc(final_len, sizeof(char));
+    if (!result) return NULL;
+    if (s[0] == '\0') {
+        // Shortcut for a simple pad-only string.
+        memset(result, pad, final_len - 1);
+        return result;
+    }
+    char* start = result;
+    sprintf(result, "%s", s);
+    int pos = 0;
+    while (pos < diff) {
+        result[length + pos++] = pad;
+    }
+    return start;
+}
+
+/*! Removes certain characters from the start of a string.
+    \details
+    The order of the characters in \p chars does not matter. If any of them
+    are found at the start of a string, they will be removed.
+
+    `colr_str_lstrip_chars("aabbccTEST", "bca") == "TEST"`
+
+
+    \pi s     The string to strip.
+              \p s \mustnull
+    \pi chars A string of characters to remove. Each will be removed from the start
+              of the string.
+              \p chars \mustnull
+    \return   An allocated string with the result. May return NULL if the allocation
+              fails, or if \p s or \p chars is NULL.
+              \mustfree
+*/
+char* colr_str_lstrip_chars(const char* s, const char* chars) {
+    if (!(s && chars)) return NULL;
+    if ((s[0] == '\0') || (chars[0] == '\0')) return NULL;
+
+    size_t length = strlen(s);
+    char* result = calloc(length + 1, sizeof(char));
+    size_t result_pos = 0;
+    bool done_trimming = false;
+    for (size_t i = 0; i < length; i++) {
+        if ((!done_trimming) && char_in_str(s[i], chars)) {
+            continue;
+        } else {
+            // First non-`chars` character. We're done.
+            done_trimming = true;
+        }
+        result[result_pos] = s[i];
+        result_pos++;
+    }
+    return result;
+}
+
+
+/*! Returns the number of characters in a string, taking into account possibly
+    multi-byte characters.
+
+    \pi s The string to get the length of.
+    \return The number of characters, single and multi-byte, or `0` if \p s is
+            `NULL`, empty, or has invalid multibyte sequences.
+*/
+size_t colr_str_mb_len(const char* s) {
+    if ((!s) || (s[0] == '\0')) return 0;
+    int i = 0;
+    int next_len = 0;
+    size_t total = 0;
+    while ((next_len = mblen(s + i, 6))) {
+        if (next_len < 0) {
+            dbug("Invalid multibyte sequence at: %d\n", i);
+            return 0;
+        }
+        i += next_len;
+        total++;
+    }
+    return total;
+}
+
+/*! Returns the length of string, ignoring escape codes and the the null-terminator.
+
+    \pi s   String to get the length for.
+            \mustnullin
+    \return The length of the string, as if it didn't contain escape codes.\n
+            For non-escape-code strings, this is like `strlen()`.\n
+            For `NULL` or "empty" strings, `0` is returned.
+
+    \sa colr_str_strip_codes
+*/
+size_t colr_str_noncode_len(const char* s) {
+    if (!s) return 0;
+    if (s[0] == '\0') return 0;
+    size_t i = 0, total = 0;
+    while (s[i]) {
+        if (s[i] == '\x1b') {
+            // Skip past the code.
+            while (!char_is_code_end(s[i++]));
+            continue;
+        }
+        i++;
+        total++;
+    }
+    return total;
+}
+
+/*! Convert a string into a representation of a string, by wrapping it in
+    quotes and escaping characters that need escaping.
+
+    \details
+    If \p s is NULL, then an allocated string containing the string "NULL" is
+    returned (without quotes).
+
+    \details
+    Escape codes will be escaped, so the terminal will ignore them if the
+    result is printed.
+
+    \pi     s The string to represent.
+    \return An allocated string with the respresentation.\n
+            \mustfree
+
+    \sa char_should_escape char_escape_char
+
+    \examplecodefor{colr_str_repr,.c}
+    char* s = colr_str_repr("This\nhas \bspecial\tchars.");
+    // The string `s` contains an escaped string, it *looks like* the definition,
+    // but no real newlines, backspaces, or tabs are in it.
+    assert(strcmp(s, "\"This\\nhas \\bspecial\\tchars.\"") == 0);
+    free(s);
+    \endexamplecode
+*/
+char* colr_str_repr(const char* s) {
+    if (!s) {
+        char* nullrepr;
+        asprintf_or_return(NULL, &nullrepr, "NULL");
+        return nullrepr;
+    }
+    if (s[0] == '\0') {
+        char* emptyrepr;
+        asprintf_or_return(NULL, &emptyrepr, "\"\"");
+        return emptyrepr;
+    }
+    size_t length = strlen(s);
+    size_t esc_chars = 0;
+    size_t i;
+    for (i = 0; i < length; i++) {
+        if (char_should_escape(s[i])) esc_chars++;
+        else if (s[i] == '\x1b') esc_chars += 4;
+    }
+    size_t repr_length = length + (esc_chars * 2);
+    // Make room for the wrapping quotes, and a null-terminator.
+    repr_length += 3;
+    char *repr = calloc(repr_length + 1, sizeof(char));
+    size_t inew = 0;
+    repr[0] = '"';
+    for (i = 0, inew = 1; i < length; i++) {
+        char c = s[i];
+        if (char_should_escape(c)) {
+            repr[inew++] = '\\';
+            repr[inew++] = char_escape_char(c);
+        } else if (c == '\x1b') {
+            repr[inew++] = '\\';
+            repr[inew++] = 'x';
+            repr[inew++] = '1';
+            repr[inew++] = 'b';
+        } else {
+            repr[inew++] = c;
+        }
+    }
+    repr[inew] = '"';
+    return repr;
+}
+
+/*! Right-justifies a string, ignoring escape codes when measuring the width.
+
+    \pi s       The string to justify.\n
+                \mustnullin
+    \pi padchar The character to pad with. If '0', then `' '` is used.
+    \pi width   The overall width for the resulting string.\n
+                If set to '0', the terminal width will be used from colr_term_size().
+
+    \return     An allocated string with the result,
+                or `NULL` if \p s is `NULL` or the allocation failed.
+
+    \sa colr_str_center colr_str_ljust colr_term_size
+*/
+char* colr_str_rjust(const char* s, const char padchar, int width) {
+    if (!s) return NULL;
+    char pad = padchar == '\0' ? ' ' : padchar;
+    size_t length = strlen(s);
+    size_t noncode_len = colr_str_noncode_len(s);
+    if (width == 0) {
+        TermSize ts = colr_term_size();
+        width = ts.columns;
+    }
+    int diff = width - noncode_len;
+    char* result;
+    if (diff < 1) {
+        // No room for padding, also asprintf can't do empty strings.
+        if (s[0] == '\0') return colr_empty_str();
+        asprintf_or_return(NULL, &result, "%s", s);
+        return result;
+    }
+    size_t final_len = length + diff + 1;
+    result = calloc(final_len, sizeof(char));
+    if (!result) return NULL;
+    if (s[0] == '\0') {
+        // Shortcut for a simple pad-only string.
+        memset(result, pad, final_len - 1);
+        return result;
+    }
+    char* start = result;
+    int pos = 0;
+    while (pos < diff) {
+        result[pos++] = pad;
+    }
+    result = result + pos;
+    sprintf(result, "%s", s);
+    return start;
+}
+
+/*! Checks a string for a certain prefix substring.
+
+    \details
+    `prefix` \mustnull
+
+    \pi s      The string to check.
+    \pi prefix The prefix string to look for.
+
+    \return True if the string `s` starts with prefix.
+    \return False if one of the strings is null, or the prefix isn't found.
+*/
+bool colr_str_starts_with(const char* s, const char* prefix) {
+    if (!(s && prefix)) {
+        // One of the strings is null.
+        return false;
+    }
+    if ((s[0] == '\0') || (prefix[0] == '\0')) {
+        // One of the strings is empty.
+        return false;
+    }
+    size_t pre_len = strlen(prefix);
+    for (size_t i = 0; i < pre_len; i++) {
+        if (s[i] == '\0') {
+            // Reached the end of s before the end of prefix.
+            return false;
+        }
+        if (prefix[i] != s[i]) {
+            // Character differs from the prefix.
+            return false;
+        }
+    }
+    return true;
+}
+
+/*! Strips escape codes from a string, resulting in a new allocated string.
+
+    \pi s   The string to strip escape codes from.
+            \mustnullin
+    \return An allocated string with the result, or `NULL` if the allocation fails.\n
+            \mustfree
+
+    \sa colr_str_noncode_len
+*/
+char* colr_str_strip_codes(const char* s) {
+    if (!s) return NULL;
+    if (s[0] == '\0') return colr_empty_str();
+    size_t length = strlen(s);
+    char* final = calloc(length + 1, sizeof(char));
+    size_t i = 0, pos = 0;
+    while (s[i]) {
+        if (s[i] == '\x1b') {
+            // Skip past the code.
+            while (!char_is_code_end(s[i++]));
+            continue;
+        }
+        final[pos++] = s[i++];
+    }
+    return final;
+}
+
+/*! Allocate a new lowercase version of a string.
+
+    \details
+    \mustfree
+
+    \pi s   The input string to convert to lower case.\n
+            \mustnull
+    \return The allocated string, or `NULL` if \p s is `NULL` or the allocation fails.
+*/
+char* colr_str_to_lower(const char* s) {
+    if (!s) return NULL;
+    size_t length = strlen(s);
+    char* out = calloc(length + 1, sizeof(char));
+    if (!out) return NULL;
+    if (s[0] == '\0') return out;
+
+    size_t i = 0;
+    while (s[i]) {
+        out[i] = tolower(s[i]);
+        i++;
+    }
+    return out;
 }
 
 /*! Determine whether the current environment support RGB (True Colors).
@@ -1191,657 +1885,6 @@ void format_style(char* out, StyleValue style) {
     snprintf(out, STYLE_LEN, "\x1b[%dm", style < 0 ? RESET_ALL: style);
 }
 
-/*! Appends CODE_RESET_ALL to a string, but makes sure to do it before any
-    newlines.
-
-    \details
-    \mustnullin
-
-    \pi s The string to append to.
-          <em>Must have extra room for CODE_RESET_ALL</em>.
-*/
-void str_append_reset(char *s) {
-    if (!s) return;
-    if (s[0] == '\0') {
-        // Special case, an empty string, with room for CODE_RESET_ALL.
-        snprintf(s, CODE_RESET_LEN, "%s", CODE_RESET_ALL);
-        return;
-    }
-    if (str_ends_with(s, CODE_RESET_ALL)) {
-        // Already has one.
-        return;
-    }
-    size_t length = strlen(s);
-    size_t lastindex = length - 1;
-    size_t newlines = 0;
-    // Cut newlines off if needed. I'll add them after the reset code.
-    while ((lastindex > 0) && (s[lastindex] == '\n')) {
-        s[lastindex] = '\0';
-        newlines++;
-        lastindex--;
-    }
-    if ((lastindex == 0) && s[lastindex] == '\n') {
-        // String starts with a newline.
-        s[lastindex] = '\0';
-        newlines++;
-    } else {
-        lastindex++;
-    }
-    char* p = s + lastindex;
-    snprintf(p, CODE_RESET_LEN, "%s", CODE_RESET_ALL);
-    p += CODE_RESET_LEN - 1;
-    while (newlines--) {
-        *(p++) = '\n';
-    }
-    *p = '\0';
-}
-
-/*! Center-justifies a string, ignoring escape codes when measuring the width.
-
-    \pi s       The string to justify.\n
-                \mustnullin
-    \pi padchar The character to pad with. If '0', then `' '` is used.
-    \pi width   The overall width for the resulting string.\n
-                If set to '0', the terminal width will be used from colr_term_size().
-
-    \return     An allocated string with the result,
-                or `NULL` if \p s is `NULL` or the allocation failed.
-                or `NULL` if \p s is `NULL` or the allocation failed.
-
-    \sa str_ljust str_rjust colr_term_size
-*/
-char* str_center(const char* s, const char padchar, int width) {
-    if (!s) return NULL;
-    char pad = padchar == '\0' ? ' ' : padchar;
-    size_t length = strlen(s);
-    size_t noncode_len = str_noncode_len(s);
-    if (width == 0) {
-        TermSize ts = colr_term_size();
-        width = ts.columns;
-    }
-    int diff = width - noncode_len;
-    char* result;
-    if (diff < 1) {
-        // No room for padding, also asprintf can't do empty strings.
-        if (s[0] == '\0') return colr_empty_str();
-        asprintf_or_return(NULL, &result, "%s", s);
-        return result;
-    }
-    size_t final_len = length + diff + 1;
-    result = calloc(final_len, sizeof(char));
-    if (!result) return NULL;
-    if (s[0] == '\0') {
-        // Shortcut for a simple pad-only string.
-        memset(result, pad, final_len - 1);
-        return result;
-    }
-    size_t pos = 0;
-    size_t leftdiff = diff / 2;
-    if (diff % 2 == 1) leftdiff++;
-    // Handle left-just.
-    while (pos < leftdiff) {
-        result[pos++] = pad;
-    }
-    // Handle string.
-    size_t i = 0;
-    while (s[i]) {
-        result[pos++] = s[i++];
-    }
-    // Handle remaining right-just.
-    final_len--;
-    while (pos < final_len) {
-        result[pos++] = pad;
-    }
-    return result;
-}
-
-/*! Counts the number of characters (`c`) that are found in a string (`s`).
-
-    \details
-    Returns `0` if `s` is `NULL`, or `c` is `'\0'`.
-
-    \pi s The string to examine.
-          \mustnullin
-    \pi c The character to count.
-          \mustnotzero
-
-    \return The number of times \p c occurs in \p s.
-*/
-size_t str_char_count(const char* s, const char c) {
-    if (!(s && c)) return 0;
-    if (s[0] == '\0') return 0;
-
-    size_t i = 0;
-    size_t total = 0;
-    while (s[i]) {
-        if (s[i++] == c) total++;
-    }
-    return total;
-}
-
-/*! Like strncopy, but ensures null-termination.
-
-    \details
-    If src is NULL, or dest is NULL, NULL is returned.
-
-    \details
-    If src does not contain a null-terminator, _this function
-    will truncate at `length` characters_.
-
-    \details
-    A null-terminator is always appended to dest.
-
-    \pi dest   Memory allocated for new string.
-               _Must have room for `strlen(src)`._
-    \pi src    Source string to copy.
-    \pi length Maximum characters to copy.
-               <em>This does not include the null-terminator</em>.
-
-    \returns On success, a pointer to dest is returned.
-
-    \examplecodefor{str_copy,.c}
-    char* s = "testing";
-    size_t length = strlen(s);
-    char* dest = malloc(length + 1);
-
-    // Copy the entire string:
-    str_copy(dest, s, length);
-    assert(strcmp(dest, "testing") == 0);
-    printf("Copied: %s\n", dest);
-
-    // Copy only 4 bytes:
-    str_copy(dest, s, 4);
-    assert(strcmp(dest, "test") == 0);
-    printf("Truncated: %s\n", dest);
-    free(dest);
-    \endexamplecode
-*/
-char* str_copy(char* dest, const char* src, size_t length) {
-    if (!(src && dest)) {
-        return NULL;
-    }
-    size_t pos = 0;
-    while (pos < length && src[pos]) {
-        dest[pos] = src[pos];
-        pos++;
-    }
-    dest[pos] = '\0';
-    return dest;
-}
-
-/*! Determine if one string ends with another.
-
-    \details
-    `str` and `suf` \mustnull
-
-    \pi str String to check.
-    \pi suf Suffix to check for.
-    \return True if `str` ends with `suf`.
-    \return False if either is NULL, or the string doesn't end with the suffix.
-*/
-bool str_ends_with(const char* str, const char* suf) {
-    if (!str || !suf) {
-        return false;
-    }
-    size_t strlength = strlen(str);
-    size_t suflength = strlen(suf);
-    if ((!(suflength && strlength)) || (suflength > strlength)) {
-        // Empty strings, or suffix is longer than the entire string.
-        return false;
-    }
-    return (strncmp(str + (strlength - suflength), suf, suflength) == 0);
-}
-
-/*! Determines if a string (`char*`) has ANSI escape codes in it.
-
-    \details
-    This will detect any ansi escape code, not just colors.
-
-    \pi s   The string to check. Can be `NULL`.
-            \mustnullin
-
-    \return `true` if the string has at least one escape code, otherwise `false`.
-
-    \sa str_is_codes
-*/
-bool str_has_codes(const char* s) {
-    if (!s) return false;
-    size_t length = strlen(s);
-    size_t i = 0;
-    while ((i < length) && s[i]) {
-        if ((s[i] == '\x1b') && (s[i + 1] == '[')) {
-            // Skip past "\x1b["
-            i += 2;
-            while ((i < length) && s[i]) {
-                if (s[i] == 'm') return true;
-                if (!(isdigit(s[i]) || s[i] == ';')) return false;
-                i++;
-            }
-        }
-        i++;
-    }
-    return false;
-}
-
-/*! Determines whether a string consists of only one character, possibly repeated.
-
-    \pi s   String to check.
-    \pi c   Character to test for. Must not be `0`.
-
-    \return `true` if \p s contains only the character \p c, otherwise `false`.
-*/
-bool str_is_all(const char* s, const char c) {
-    if (!(s && c)) return false;
-    size_t i = 0;
-    while (s[i]) {
-        if (s[i] != c) return false;
-        i++;
-    }
-    return true;
-}
-
-/*! Determines if a string is composed entirely of escape codes.
-
-    \details
-    Returns `false` if the string is `NULL`, or empty.
-
-    \pi s   The string to check.
-            \mustnullin
-    \return `true` if the string is escape-codes only, otherwise `false`.
-
-    \sa str_has_codes
-*/
-bool str_is_codes(const char* s) {
-    if (!s) return false;
-    if (s[0] == '\0') return false;
-    size_t i = 0;
-    while (s[i]) {
-        if (s[i] == '\x1b') {
-            // Skip past the code.
-            while (!char_is_code_end(s[i++]));
-            continue;
-        }
-        // Found a non-escape-code char.
-        return false;
-    }
-    return true;
-}
-/*! Determines whether all characters in a string are digits.
-
-    \details
-    If \p s is NULL or an empty string (`""`), `false` is returned.
-
-    \pi s   String to check.
-            \mustnullin
-    \return `true` if all characters are digits (0-9), otherwise `false`.
-*/
-bool str_is_digits(const char* s) {
-    if (!s) return false;
-    if (s[0] == '\0') return false;
-
-    size_t i = 0;
-    while (s[i]) {
-        if (!isdigit(s[i])) return false;
-        i++;
-    }
-    return true;
-}
-
-/*! Converts a string into lower case in place.
-    \details
-    \mustnullin
-
-    \details
-    If `s` is `NULL`, nothing is done.
-
-    \pi s The input string to convert to lower case.
-*/
-void str_lower(char* s) {
-    if (!s) return;
-    size_t i = 0;
-    while (s[i]) {
-        char c = tolower(s[i]);
-        s[i] = c;
-        i++;
-    }
-    // This works for empty strings too.
-    if (s[i] != '\0') s[i] = '\0';
-}
-
-
-/*! Left-justifies a string, ignoring escape codes when measuring the width.
-
-    \pi s       The string to justify.\n
-                \mustnullin
-    \pi padchar The character to pad with. If '0', then `' '` is used.
-    \pi width   The overall width for the resulting string.\n
-                If set to '0', the terminal width will be used from colr_term_size().
-
-    \return     An allocated string with the result,
-                or `NULL` if \p s is `NULL` or the allocation failed.
-
-    \sa str_center str_rjust colr_term_size
-*/
-char* str_ljust(const char* s, const char padchar, int width) {
-    if (!s) return NULL;
-    char pad = padchar == '\0' ? ' ' : padchar;
-    size_t length = strlen(s);
-    size_t noncode_len = str_noncode_len(s);
-    if (width == 0) {
-        TermSize ts = colr_term_size();
-        width = ts.columns;
-    }
-    int diff = width - noncode_len;
-    char* result;
-    if (diff < 1) {
-        // No room for padding, also asprintf can't do empty strings.
-        if (s[0] == '\0') return colr_empty_str();
-        asprintf_or_return(NULL, &result, "%s", s);
-        return result;
-    }
-    size_t final_len = length + diff + 1;
-    result = calloc(final_len, sizeof(char));
-    if (!result) return NULL;
-    if (s[0] == '\0') {
-        // Shortcut for a simple pad-only string.
-        memset(result, pad, final_len - 1);
-        return result;
-    }
-    char* start = result;
-    sprintf(result, "%s", s);
-    int pos = 0;
-    while (pos < diff) {
-        result[length + pos++] = pad;
-    }
-    return start;
-}
-
-/*! Removes certain characters from the start of a string.
-    \details
-    The order of the characters in \p chars does not matter. If any of them
-    are found at the start of a string, they will be removed.
-
-    `str_lstrip_chars("aabbccTEST", "bca") == "TEST"`
-
-
-    \pi s     The string to strip.
-              \p s \mustnull
-    \pi chars A string of characters to remove. Each will be removed from the start
-              of the string.
-              \p chars \mustnull
-    \return   An allocated string with the result. May return NULL if the allocation
-              fails, or if \p s or \p chars is NULL.
-              \mustfree
-*/
-char* str_lstrip_chars(const char* s, const char* chars) {
-    if (!(s && chars)) return NULL;
-    if ((s[0] == '\0') || (chars[0] == '\0')) return NULL;
-
-    size_t length = strlen(s);
-    char* result = calloc(length + 1, sizeof(char));
-    size_t result_pos = 0;
-    bool done_trimming = false;
-    for (size_t i = 0; i < length; i++) {
-        if ((!done_trimming) && char_in_str(s[i], chars)) {
-            continue;
-        } else {
-            // First non-`chars` character. We're done.
-            done_trimming = true;
-        }
-        result[result_pos] = s[i];
-        result_pos++;
-    }
-    return result;
-}
-
-
-/*! Returns the number of characters in a string, taking into account possibly
-    multi-byte characters.
-
-    \pi s The string to get the length of.
-    \return The number of characters, single and multi-byte, or `0` if \p s is
-            `NULL`, empty, or has invalid multibyte sequences.
-*/
-size_t str_mb_len(const char* s) {
-    if ((!s) || (s[0] == '\0')) return 0;
-    int i = 0;
-    int next_len = 0;
-    size_t total = 0;
-    while ((next_len = mblen(s + i, 6))) {
-        if (next_len < 0) {
-            dbug("Invalid multibyte sequence at: %d\n", i);
-            return 0;
-        }
-        i += next_len;
-        total++;
-    }
-    return total;
-}
-
-/*! Returns the length of string, ignoring escape codes and the the null-terminator.
-
-    \pi s   String to get the length for.
-            \mustnullin
-    \return The length of the string, as if it didn't contain escape codes.\n
-            For non-escape-code strings, this is like `strlen()`.\n
-            For `NULL` or "empty" strings, `0` is returned.
-
-    \sa str_strip_codes
-*/
-size_t str_noncode_len(const char* s) {
-    if (!s) return 0;
-    if (s[0] == '\0') return 0;
-    size_t i = 0, total = 0;
-    while (s[i]) {
-        if (s[i] == '\x1b') {
-            // Skip past the code.
-            while (!char_is_code_end(s[i++]));
-            continue;
-        }
-        i++;
-        total++;
-    }
-    return total;
-}
-
-/*! Convert a string into a representation of a string, by wrapping it in
-    quotes and escaping characters that need escaping.
-
-    \details
-    If \p s is NULL, then an allocated string containing the string "NULL" is
-    returned (without quotes).
-
-    \details
-    Escape codes will be escaped, so the terminal will ignore them if the
-    result is printed.
-
-    \pi     s The string to represent.
-    \return An allocated string with the respresentation.\n
-            \mustfree
-
-    \sa char_should_escape char_escape_char
-
-    \examplecodefor{str_repr,.c}
-    char* s = str_repr("This\nhas \bspecial\tchars.");
-    // The string `s` contains an escaped string, it *looks like* the definition,
-    // but no real newlines, backspaces, or tabs are in it.
-    assert(strcmp(s, "\"This\\nhas \\bspecial\\tchars.\"") == 0);
-    free(s);
-    \endexamplecode
-*/
-char* str_repr(const char* s) {
-    if (!s) {
-        char* nullrepr;
-        asprintf_or_return(NULL, &nullrepr, "NULL");
-        return nullrepr;
-    }
-    if (s[0] == '\0') {
-        char* emptyrepr;
-        asprintf_or_return(NULL, &emptyrepr, "\"\"");
-        return emptyrepr;
-    }
-    size_t length = strlen(s);
-    size_t esc_chars = 0;
-    size_t i;
-    for (i = 0; i < length; i++) {
-        if (char_should_escape(s[i])) esc_chars++;
-        else if (s[i] == '\x1b') esc_chars += 4;
-    }
-    size_t repr_length = length + (esc_chars * 2);
-    // Make room for the wrapping quotes, and a null-terminator.
-    repr_length += 3;
-    char *repr = calloc(repr_length + 1, sizeof(char));
-    size_t inew = 0;
-    repr[0] = '"';
-    for (i = 0, inew = 1; i < length; i++) {
-        char c = s[i];
-        if (char_should_escape(c)) {
-            repr[inew++] = '\\';
-            repr[inew++] = char_escape_char(c);
-        } else if (c == '\x1b') {
-            repr[inew++] = '\\';
-            repr[inew++] = 'x';
-            repr[inew++] = '1';
-            repr[inew++] = 'b';
-        } else {
-            repr[inew++] = c;
-        }
-    }
-    repr[inew] = '"';
-    return repr;
-}
-
-/*! Right-justifies a string, ignoring escape codes when measuring the width.
-
-    \pi s       The string to justify.\n
-                \mustnullin
-    \pi padchar The character to pad with. If '0', then `' '` is used.
-    \pi width   The overall width for the resulting string.\n
-                If set to '0', the terminal width will be used from colr_term_size().
-
-    \return     An allocated string with the result,
-                or `NULL` if \p s is `NULL` or the allocation failed.
-
-    \sa str_center str_ljust colr_term_size
-*/
-char* str_rjust(const char* s, const char padchar, int width) {
-    if (!s) return NULL;
-    char pad = padchar == '\0' ? ' ' : padchar;
-    size_t length = strlen(s);
-    size_t noncode_len = str_noncode_len(s);
-    if (width == 0) {
-        TermSize ts = colr_term_size();
-        width = ts.columns;
-    }
-    int diff = width - noncode_len;
-    char* result;
-    if (diff < 1) {
-        // No room for padding, also asprintf can't do empty strings.
-        if (s[0] == '\0') return colr_empty_str();
-        asprintf_or_return(NULL, &result, "%s", s);
-        return result;
-    }
-    size_t final_len = length + diff + 1;
-    result = calloc(final_len, sizeof(char));
-    if (!result) return NULL;
-    if (s[0] == '\0') {
-        // Shortcut for a simple pad-only string.
-        memset(result, pad, final_len - 1);
-        return result;
-    }
-    char* start = result;
-    int pos = 0;
-    while (pos < diff) {
-        result[pos++] = pad;
-    }
-    result = result + pos;
-    sprintf(result, "%s", s);
-    return start;
-}
-
-/*! Checks a string for a certain prefix substring.
-
-    \details
-    `prefix` \mustnull
-
-    \pi s      The string to check.
-    \pi prefix The prefix string to look for.
-
-    \return True if the string `s` starts with prefix.
-    \return False if one of the strings is null, or the prefix isn't found.
-*/
-bool str_starts_with(const char* s, const char* prefix) {
-    if (!(s && prefix)) {
-        // One of the strings is null.
-        return false;
-    }
-    if ((s[0] == '\0') || (prefix[0] == '\0')) {
-        // One of the strings is empty.
-        return false;
-    }
-    size_t pre_len = strlen(prefix);
-    for (size_t i = 0; i < pre_len; i++) {
-        if (s[i] == '\0') {
-            // Reached the end of s before the end of prefix.
-            return false;
-        }
-        if (prefix[i] != s[i]) {
-            // Character differs from the prefix.
-            return false;
-        }
-    }
-    return true;
-}
-
-/*! Strips escape codes from a string, resulting in a new allocated string.
-
-    \pi s   The string to strip escape codes from.
-            \mustnullin
-    \return An allocated string with the result, or `NULL` if the allocation fails.\n
-            \mustfree
-
-    \sa str_noncode_len
-*/
-char* str_strip_codes(const char* s) {
-    if (!s) return NULL;
-    if (s[0] == '\0') return colr_empty_str();
-    size_t length = strlen(s);
-    char* final = calloc(length + 1, sizeof(char));
-    size_t i = 0, pos = 0;
-    while (s[i]) {
-        if (s[i] == '\x1b') {
-            // Skip past the code.
-            while (!char_is_code_end(s[i++]));
-            continue;
-        }
-        final[pos++] = s[i++];
-    }
-    return final;
-}
-
-/*! Allocate a new lowercase version of a string.
-
-    \details
-    \mustfree
-
-    \pi s   The input string to convert to lower case.\n
-            \mustnull
-    \return The allocated string, or `NULL` if \p s is `NULL` or the allocation fails.
-*/
-char* str_to_lower(const char* s) {
-    if (!s) return NULL;
-    size_t length = strlen(s);
-    char* out = calloc(length + 1, sizeof(char));
-    if (!out) return NULL;
-    if (s[0] == '\0') return out;
-
-    size_t i = 0;
-    while (s[i]) {
-        out[i] = tolower(s[i]);
-        i++;
-    }
-    return out;
-}
 
 /* ---------------------------- ColrC Functions ---------------------------- */
 
@@ -1888,11 +1931,13 @@ char* _colr(void *p, ...) {
     char* s;
     ColorArg *cargp = NULL;
     ColorText *ctextp = NULL;
+    bool need_reset = false;
     if (ColorArg_is_ptr(p)) {
         // It's a ColorArg.
         cargp = p;
         s = ColorArg_to_str(*cargp);
         ColorArg_free(cargp);
+        need_reset = true;
     } else if (ColorText_is_ptr(p)) {
         ctextp = p;
         s = ColorText_to_str(*ctextp);
@@ -1906,13 +1951,13 @@ char* _colr(void *p, ...) {
         // Free the temporary string created with Color(Arg/Text)_to_str().
         free(s);
     }
-    bool need_reset = false;
     void *arg = NULL;
 
     while_colr_va_arg(args, void*, arg) {
         if (!arg) continue;
         cargp = NULL;
         ctextp = NULL;
+        bool is_string = false;
         // These ColorArgs/ColorTexts were heap allocated through the fore,
         // back, style, and ColrC macros. I'm going to free them, so the user
         // doesn't have to keep track of all the temporary pieces that built
@@ -1931,18 +1976,19 @@ char* _colr(void *p, ...) {
         } else {
             // It better be a string.
             s = (char* )arg;
+            is_string = true;
         }
         strcat(final, s);
         if (cargp || ctextp) {
             // Free the temporary string from those ColorArgs/ColorTexts.
             free(s);
-        } else if (need_reset) {
+        } else if (is_string && need_reset) {
             // String was passed, append reset if needed.
-            str_append_reset(final);
+            colr_append_reset(final);
             need_reset = false;
         }
     }
-    if (need_reset) str_append_reset(final);
+    if (need_reset) colr_append_reset(final);
     va_end(args);
     return final;
 }
@@ -1956,6 +2002,11 @@ bool _colr_is_last_arg(void* p) {
     if (!p) return false;
     // Most likely the very same memory.
     if (p == _ColrLastArg) return true;
+    // Don't overflow the bounds. Check a byte at a time.
+    unsigned char* singlebyte = p;
+    if (*singlebyte != 235) return false;
+    else if (*(singlebyte + 1) != 255) return false;
+    else if (*(singlebyte + 2) != 255) return false;
     // Check to see if someone allocated their own _ColrLastArgValue.
     struct _ColrLastArg_s* clastp = p;
     return (
@@ -2116,7 +2167,7 @@ char* _colr_join(void *joinerp, ...) {
     if (joiner_ctextp) {
         free(joiner);
     }
-    if (needs_reset) str_append_reset(final);
+    if (needs_reset) colr_append_reset(final);
     return final;
 }
 
@@ -2268,7 +2319,7 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
         }
     }
     if (joiner_cargp || joiner_ctextp) free(joiner);
-    if (do_reset) str_append_reset(final);
+    if (do_reset) colr_append_reset(final);
     return final;
 }
 
@@ -2351,6 +2402,9 @@ size_t _colr_ptr_length(void* p) {
         // It's a ColorArg.
         ColorArg* cargp = p;
         length = ColorArg_length(*cargp);
+        // Gonna need a reset to close this code if a plain string follows it
+        // in the _colr() function arguments.
+        length += CODE_RESET_LEN;
     } else if (ColorText_is_ptr(p)) {
         ColorText* ctextp = p;
         length = ColorText_length(*ctextp);
@@ -2646,7 +2700,9 @@ bool ColorArg_is_invalid(ColorArg carg) {
 */
 bool ColorArg_is_ptr(void *p) {
     if (!p) return false;
+    if (!colr_check_marker(COLORARG_MARKER, p)) return false;
     // The head of a ColorArg is always a valid marker.
+    // This is probably not needed, now that colr_check_marker is implemented.
     ColorArg *cargp = p;
     return cargp->marker == COLORARG_MARKER;
 }
@@ -3011,7 +3067,10 @@ bool ColorText_is_empty(ColorText ctext) {
 */
 bool ColorText_is_ptr(void *p) {
     if (!p) return false;
+    if (!colr_check_marker(COLORTEXT_MARKER, p)) return false;
+
     // The head of a ColorText is always a valid marker.
+    // This is probably not needed, now that colr_check_marker is implemented.
     ColorText *ctextp = p;
     return ctextp->marker == COLORTEXT_MARKER;
 }
@@ -3038,7 +3097,7 @@ size_t ColorText_length(ColorText ctext) {
     if (ctext.style || ctext.fore || ctext.back) length += CODE_RESET_LEN;
     if (!ColorJustify_is_empty(ctext.just)) {
         // Justification will be used, calculate that in.
-        size_t noncode_len = str_noncode_len(ctext.text);
+        size_t noncode_len = colr_str_noncode_len(ctext.text);
         if (ctext.just.width == 0) {
             // Go ahead and set the actual width, to reduce calls to colr_term_size().
             TermSize ts = colr_term_size();
@@ -3062,7 +3121,7 @@ size_t ColorText_length(ColorText ctext) {
 */
 char* ColorText_repr(ColorText ctext) {
     char* repr;
-    char* stext = ctext.text ? str_repr(ctext.text) : NULL;
+    char* stext = ctext.text ? colr_str_repr(ctext.text) : NULL;
     char* sfore = ctext.fore ? ColorArg_repr(*(ctext.fore)) : NULL;
     char* sback = ctext.back ? ColorArg_repr(*(ctext.back)) : NULL;
     char* sstyle = ctext.style ? ColorArg_repr(*(ctext.style)) : NULL;
@@ -3195,22 +3254,22 @@ char* ColorText_to_str(ColorText ctext) {
         free(backcode);
     }
     strcat(final, ctext.text);
-    if (do_reset) str_append_reset(final);
+    if (do_reset) colr_append_reset(final);
     char* justified = NULL;
     switch (ctext.just.method) {
         // TODO: It would be nice to do this all in one pass, but this works.
         case JUST_NONE:
             break;
         case JUST_LEFT:
-            justified = str_ljust(final, ctext.just.padchar, ctext.just.width);
+            justified = colr_str_ljust(final, ctext.just.padchar, ctext.just.width);
             free(final);
             return justified;
         case JUST_RIGHT:
-            justified = str_rjust(final, ctext.just.padchar, ctext.just.width);
+            justified = colr_str_rjust(final, ctext.just.padchar, ctext.just.width);
             free(final);
             return justified;
         case JUST_CENTER:
-            justified = str_center(final, ctext.just.padchar, ctext.just.width);
+            justified = colr_str_center(final, ctext.just.padchar, ctext.just.width);
             free(final);
             return justified;
     }
@@ -3767,7 +3826,7 @@ BasicValue BasicValue_from_str(const char* arg) {
     if (!arg) {
         return BASIC_INVALID;
     }
-    char* arglower = str_to_lower(arg);
+    char* arglower = colr_str_to_lower(arg);
     if (!arglower) return BASIC_INVALID;
     for (size_t i = 0; i < basic_names_len; i++) {
         if (!strcmp(arglower, basic_names[i].name)) {
@@ -3969,7 +4028,7 @@ int ExtendedValue_from_str(const char* arg) {
     if (!arg) return COLOR_INVALID;
     if (arg[0] == '\0') return COLOR_INVALID;
 
-    char* arglower = str_to_lower(arg);
+    char* arglower = colr_str_to_lower(arg);
     if (!arglower) return COLOR_INVALID;
     // Check the simple extended names.
     for (size_t i = 0; i < extended_names_len; i++) {
@@ -3996,8 +4055,8 @@ int ExtendedValue_from_str(const char* arg) {
             return hex_ret;
         }
     }
-    if (!str_is_digits(arg)) {
-        if ((arg[0] == '-') && (strlen(arg) > 1) && str_is_digits(arg + 1)) {
+    if (!colr_str_is_digits(arg)) {
+        if ((arg[0] == '-') && (strlen(arg) > 1) && colr_str_is_digits(arg + 1)) {
             free(arglower);
             // Negative number given.
             return COLOR_INVALID_RANGE;
@@ -4091,7 +4150,7 @@ bool RGB_eq(RGB a, RGB b) {
 
     \pi hexstr String to check for hex values.
                \mustnullin
-    \po rgb    Pointer to an RGB struct to fill in the values for.
+    \po rgbval Pointer to an RGB struct to fill in the values for.
 
     \retval    0 on success, with \p rgbval filled with the values.
     \retval    COLOR_INVALID for non-hex strings.
@@ -4226,10 +4285,10 @@ int RGB_from_str(const char* arg, RGB *rgbval) {
     if (arg[0] == '#') return RGB_from_hex(arg, rgbval);
 
     // Try known names.
-    char* arglower = str_to_lower(arg);
+    char* arglower = colr_str_to_lower(arg);
     if (!arglower) return COLOR_INVALID;
     for (size_t j = 0; j < colr_name_data_len; j++) {
-        if (colr_streq(arglower, colr_name_data[j].name)) {
+        if (colr_str_eq(arglower, colr_name_data[j].name)) {
             free(arglower);
             *rgbval = colr_name_data[j].rgb;
             return 0;
@@ -4338,7 +4397,7 @@ StyleValue StyleValue_from_str(const char* arg) {
     if (!arg) {
         return STYLE_INVALID;
     }
-    char* arglower = str_to_lower(arg);
+    char* arglower = colr_str_to_lower(arg);
     if (!arglower) return STYLE_INVALID;
     for (size_t i = 0; i < style_names_len; i++) {
         if (!strcmp(arglower, style_names[i].name)) {
@@ -4543,7 +4602,7 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
     if (!offset) offset = 3;
     if (freq < 0.1) freq = 0.1;
 
-    size_t mb_len = str_mb_len(s);
+    size_t mb_len = colr_str_mb_len(s);
     if (mb_len == 0) return NULL;
 
     // There is an RGB code for every wide character in the string.

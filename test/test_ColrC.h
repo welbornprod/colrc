@@ -185,8 +185,8 @@
 #define assert_str_eq(s1, s2, msg) \
     do { \
         if (strcmp(s1, s2) != 0) { \
-            char* _a_s_e_s1_repr = str_repr(s1); \
-            char* _a_s_e_s2_repr = str_repr(s2); \
+            char* _a_s_e_s1_repr = colr_str_repr(s1); \
+            char* _a_s_e_s2_repr = colr_str_repr(s2); \
             fail( \
                 "%s:\n     %s\n  != %s", \
                 msg, \

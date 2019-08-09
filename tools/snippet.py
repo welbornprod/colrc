@@ -21,16 +21,21 @@ import stat
 import sys
 import tempfile
 
-from colr import (
-    Colr as C,
-    auto_disable as colr_auto_disable,
-    docopt,
-)
-from easysettings import load_json_settings
-from printdebug import DebugColrPrinter
-from pygments import highlight
-from pygments.lexers import get_lexer_by_name
-from pygments.formatters import Terminal256Formatter
+try:
+    from colr import (
+        Colr as C,
+        auto_disable as colr_auto_disable,
+        docopt,
+    )
+    from easysettings import load_json_settings
+    from printdebug import DebugColrPrinter
+    from pygments import highlight
+    from pygments.lexers import get_lexer_by_name
+    from pygments.formatters import Terminal256Formatter
+except ImportError as ex:
+    print(f'\nMissing third-party library: {ex.name}', file=sys.stderr)
+    print('It is installable with `pip`.', file=sys.stderr)
+    sys.exit(1)
 
 debugprinter = DebugColrPrinter()
 debugprinter.enable(('-D' in sys.argv) or ('--debug' in sys.argv))
@@ -42,8 +47,8 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.2.0'
-VERSIONSTR = '{} v. {}'.format(NAME, VERSION)
+VERSION = '0.2.1'
+VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
 

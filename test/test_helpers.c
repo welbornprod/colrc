@@ -234,8 +234,8 @@ subdesc(TermSize) {
 
     }
 }
-// str_append_reset
-subdesc(str_append_reset) {
+// colr_append_reset
+subdesc(colr_append_reset) {
     it("accounts for newlines") {
         struct {
             char* input;
@@ -251,11 +251,11 @@ subdesc(str_append_reset) {
         for_each(tests, i) {
             size_t expected_len = strlen(tests[i].expected);
             char s[expected_len + 1];
-            str_copy(s, tests[i].input, strlen(tests[i].input));
-            str_append_reset(s);
-            char* input_repr = str_repr(tests[i].input);
+            colr_str_copy(s, tests[i].input, strlen(tests[i].input));
+            colr_append_reset(s);
+            char* input_repr = colr_str_repr(tests[i].input);
             char* input_msg;
-            if_not_asprintf(&input_msg, "str_append_reset(%s) failed", input_repr) {
+            if_not_asprintf(&input_msg, "colr_append_reset(%s) failed", input_repr) {
                 fail("Allocation failed for failure message!");
             }
             free(input_repr);
@@ -268,8 +268,8 @@ subdesc(str_append_reset) {
         }
     }
 }
-// str_center
-subdesc(str_center) {
+// colr_str_center
+subdesc(colr_str_center) {
     it("center-justifies non-escape-code strings") {
         struct {
             char* s;
@@ -318,7 +318,7 @@ subdesc(str_center) {
 
         };
         for_each(tests, i) {
-            char* result = str_center(tests[i].s, tests[i].padchar, tests[i].width);
+            char* result = colr_str_center(tests[i].s, tests[i].padchar, tests[i].width);
             if (!result) {
                 if (!tests[i].expected) {
                     // Expected null.
@@ -326,12 +326,12 @@ subdesc(str_center) {
                 }
                 char* input_repr = colr_repr(tests[i].s);
                 char* expected_repr = colr_repr(tests[i].expected);
-                fail("Unexpected NULL from str_center(%s): %s", input_repr, expected_repr);
+                fail("Unexpected NULL from colr_str_center(%s): %s", input_repr, expected_repr);
             }
             char* input_repr = colr_repr(tests[i].s);
             char* c_repr = char_repr(tests[i].padchar);
             char* msg;
-            if_not_asprintf(&msg, "str_center(%s, %s, %d) failed", input_repr, c_repr, tests[i].width) {
+            if_not_asprintf(&msg, "colr_str_center(%s, %s, %d) failed", input_repr, c_repr, tests[i].width) {
                 fail("Failed to allocated for failure message!");
             }
             free(input_repr);
@@ -342,8 +342,8 @@ subdesc(str_center) {
         }
     }
 }
-// str_char_count
-subdesc(str_char_count) {
+// colr_str_char_count
+subdesc(colr_str_char_count) {
     it("counts characters") {
         struct {
             char* input;
@@ -361,92 +361,92 @@ subdesc(str_char_count) {
             {"\nspecial\nchars\n\n", '\n', 4},
         };
         for_each(tests, i) {
-            asserteq(str_char_count(tests[i].input, tests[i].c), tests[i].expected);
+            asserteq(colr_str_char_count(tests[i].input, tests[i].c), tests[i].expected);
         }
     }
 }
-// str_copy
-subdesc(str_copy) {
+// colr_str_copy
+subdesc(colr_str_copy) {
     it("copies strings") {
         char* destp = NULL;
         char* sp = NULL;
-        assert(str_copy(destp, sp, 1) == NULL);
+        assert(colr_str_copy(destp, sp, 1) == NULL);
         char s[] = "testing";
         size_t length = strlen(s);
-        assert(str_copy(destp, s, 4) == NULL);
+        assert(colr_str_copy(destp, s, 4) == NULL);
         char* dest = calloc(length + 1, sizeof(char));
-        assert(str_copy(dest, NULL, 4) == NULL);
-        str_copy(dest, "", 1);
+        assert(colr_str_copy(dest, NULL, 4) == NULL);
+        colr_str_copy(dest, "", 1);
         assert_str_empty(dest);
-        str_copy(dest, s, 4);
+        colr_str_copy(dest, s, 4);
         assert_str_eq(dest, "test", "Failed to copy 4 bytes from string.");
-        str_copy(dest, s, length);
+        colr_str_copy(dest, s, length);
         assert_str_eq(dest, s, "Failed to copy the entire string.");
         free(dest);
     }
 }
-// str_ends_with
-subdesc(str_ends_with) {
+// colr_str_ends_with
+subdesc(colr_str_ends_with) {
     it("detects string endings") {
         // Common uses.
         assert(
-            str_ends_with("lightblue", "blue"),
+            colr_str_ends_with("lightblue", "blue"),
             "Known suffix was not detected."
         );
         assert(
-            str_ends_with("xred", "red"),
+            colr_str_ends_with("xred", "red"),
             "Known suffix was not detected."
         );
         assert(
-            str_ends_with("yellow", "low"),
+            colr_str_ends_with("yellow", "low"),
             "Known suffix was not detected."
         );
         assert(
-            str_ends_with("!@#$^&*", "&*"),
+            colr_str_ends_with("!@#$^&*", "&*"),
             "Known suffix was not detected."
         );
         assert(
-            str_ends_with("    test    ", "    "),
+            colr_str_ends_with("    test    ", "    "),
             "Known suffix was not detected."
         );
         // Should not trigger a match.
         assert(
-            !str_ends_with("test", "a"),
+            !colr_str_ends_with("test", "a"),
             "Bad suffix was falsey detected."
         );
         assert(
-            !str_ends_with(" test ", "test"),
+            !colr_str_ends_with(" test ", "test"),
             "Bad suffix was falsey detected."
         );
         assert(
-            !str_ends_with("t", "apple"),
+            !colr_str_ends_with("t", "apple"),
             "Bad suffix was falsey detected."
         );
         assert(
-            !str_ends_with(NULL, "a"),
+            !colr_str_ends_with(NULL, "a"),
             "Null argument did not return false."
         );
         assert(
-            !str_ends_with("test", NULL),
+            !colr_str_ends_with("test", NULL),
             "Null argument did not return false."
         );
         assert(
-            !str_ends_with(NULL, NULL),
+            !colr_str_ends_with(NULL, NULL),
             "Null arguments did not return false."
         );
     }
 }
-// str_has_codes
-subdesc(str_has_codes) {
+// colr_str_has_codes
+subdesc(colr_str_has_codes) {
     it("should detect escape codes") {
         // NULL should just return false.
-        assert(str_has_codes(NULL) == false);
+        assert(colr_str_has_codes(NULL) == false);
 
         // Normal strings should not trigger this.
-        assert(str_has_codes("This is a string.") == false);
+        assert(colr_str_has_codes("This is a string.") == false);
 
         // Empty strings should not trigger this.
-        assert(str_has_codes("") == false);
+        assert(colr_str_has_codes("") == false);
 
         // Colors should though.
         ColorArg* args[] = {
@@ -461,13 +461,13 @@ subdesc(str_has_codes) {
         size_t args_len = array_length(args);
         for (size_t i = 0; i < args_len; i++) {
             char* s = colr("This prefix.", args[i], "This suffix.");
-            assert(str_has_codes(s));
+            assert(colr_str_has_codes(s));
             free(s);
         }
     }
 }
-// str_is_all
-subdesc(str_is_all) {
+// colr_str_is_all
+subdesc(colr_str_is_all) {
     it("should detect single-char strings") {
         struct {
             char* s;
@@ -484,12 +484,12 @@ subdesc(str_is_all) {
             {"xaaa", 'a', false},
         };
         for_each(tests, i) {
-            asserteq(str_is_all(tests[i].s, tests[i].c), tests[i].expected);
+            asserteq(colr_str_is_all(tests[i].s, tests[i].c), tests[i].expected);
         }
     }
 }
-// str_is_codes
-subdesc(str_is_codes) {
+// colr_str_is_codes
+subdesc(colr_str_is_codes) {
     it("should detect escape-code-only strings") {
         struct {
             char* s;
@@ -511,14 +511,14 @@ subdesc(str_is_codes) {
         };
         for_each(tests, i) {
             asserteq(
-                str_is_codes(tests[i].s),
+                colr_str_is_codes(tests[i].s),
                 tests[i].expected,
             );
         }
     }
 }
-// str_is_digits
-subdesc(str_is_digits) {
+// colr_str_is_digits
+subdesc(colr_str_is_digits) {
     it("should detect digit-only strings") {
         struct {
             char* s;
@@ -534,12 +534,12 @@ subdesc(str_is_digits) {
             {"a1111", false},
         };
         for_each(tests, i) {
-            asserteq(str_is_digits(tests[i].s), tests[i].expected);
+            asserteq(colr_str_is_digits(tests[i].s), tests[i].expected);
         }
     }
 }
-// str_ljust
-subdesc(str_ljust) {
+// colr_str_ljust
+subdesc(colr_str_ljust) {
     it("left-justifies non-escape-code strings") {
         struct {
             char* s;
@@ -576,7 +576,7 @@ subdesc(str_ljust) {
 
         };
         for_each(tests, i) {
-            char* result = str_ljust(tests[i].s, tests[i].padchar, tests[i].width);
+            char* result = colr_str_ljust(tests[i].s, tests[i].padchar, tests[i].width);
             if (!result) {
                 if (!tests[i].expected) {
                     // Expected null.
@@ -584,29 +584,29 @@ subdesc(str_ljust) {
                 }
                 char* input_repr = colr_repr(tests[i].s);
                 char* expected_repr = colr_repr(tests[i].expected);
-                fail("Unexpected NULL from str_ljust(%s): %s", input_repr, expected_repr);
+                fail("Unexpected NULL from colr_str_ljust(%s): %s", input_repr, expected_repr);
             }
-            assert_str_eq(result, tests[i].expected, "str_ljust failed to justify.");
+            assert_str_eq(result, tests[i].expected, "colr_str_ljust failed to justify.");
             free(result);
         }
     }
 }
-// str_lower
-subdesc(str_lower) {
+// colr_str_lower
+subdesc(colr_str_lower) {
     it("should handle empty strings") {
         // Should not fail.
-        str_lower(NULL);
+        colr_str_lower(NULL);
 
         // Should not fail.
         char* empty = "";
-        str_lower(empty);
+        colr_str_lower(empty);
         asserteq(
             empty,
             "",
             "Empty string did not return empty string."
         );
         char* allocempty = colr_empty_str();
-        str_lower(allocempty);
+        colr_str_lower(allocempty);
         asserteq(
             empty,
             "",
@@ -628,7 +628,7 @@ subdesc(str_lower) {
             if_not_asprintf(&input, "%s", tests[i].input) {
                 fail("Allocation failed for test input string!");
             }
-            str_lower(input);
+            colr_str_lower(input);
             asserteq(
                 input,
                 tests[i].expected,
@@ -638,8 +638,8 @@ subdesc(str_lower) {
         }
     }
 }
-// str_lstrip_chars
-subdesc(str_lstrip_chars) {
+// colr_str_lstrip_chars
+subdesc(colr_str_lstrip_chars) {
     it("should lstrip chars") {
         struct {
             char* s;
@@ -658,11 +658,11 @@ subdesc(str_lstrip_chars) {
             {"aabbcctest", "cba", "test"},
         };
         for_each(tests, i) {
-            char* result = str_lstrip_chars(tests[i].s, tests[i].chars);
+            char* result = colr_str_lstrip_chars(tests[i].s, tests[i].chars);
             if (!result) {
                 if (tests[i].expected) {
                     fail(
-                        "Falsely returned NULL: str_lstrip_chars(%s, %s)\n",
+                        "Falsely returned NULL: colr_str_lstrip_chars(%s, %s)\n",
                         colr_repr(tests[i].s),
                         colr_repr(tests[i].chars)
                     );
@@ -676,8 +676,8 @@ subdesc(str_lstrip_chars) {
         }
     }
 }
-// str_mb_len
-subdesc(str_mb_len) {
+// colr_str_mb_len
+subdesc(colr_str_mb_len) {
     it("counts single an multi-byte chars") {
         struct {
             char* s;
@@ -695,13 +695,13 @@ subdesc(str_mb_len) {
         };
         setlocale(LC_ALL, "");
         for_each(tests, i) {
-            size_t length = str_mb_len(tests[i].s);
+            size_t length = colr_str_mb_len(tests[i].s);
             assert_size_eq_repr(length, tests[i].expected, tests[i].s);
         }
     }
 }
-// str_noncode_len
-subdesc(str_noncode_len) {
+// colr_str_noncode_len
+subdesc(colr_str_noncode_len) {
     it("counts non-escape-code chars") {
         struct {
             char* s;
@@ -744,13 +744,13 @@ subdesc(str_noncode_len) {
             },
         };
         for_each(tests, i) {
-            size_t length = str_noncode_len(tests[i].s);
+            size_t length = colr_str_noncode_len(tests[i].s);
             asserteq(length, tests[i].expected, "Failed to count non-code-chars");
         }
     }
 }
-// str_repr
-subdesc(str_repr) {
+// colr_str_repr
+subdesc(colr_str_repr) {
     it("escapes properly") {
         struct {
             char* input;
@@ -786,8 +786,8 @@ subdesc(str_repr) {
 
     }
 }
-// str_rjust.
-subdesc(str_rjust) {
+// colr_str_rjust.
+subdesc(colr_str_rjust) {
     it("right-justifies non-escape-code strings") {
         struct {
             char* s;
@@ -824,7 +824,7 @@ subdesc(str_rjust) {
 
         };
         for_each(tests, i) {
-            char* result = str_rjust(tests[i].s, tests[i].padchar, tests[i].width);
+            char* result = colr_str_rjust(tests[i].s, tests[i].padchar, tests[i].width);
             if (!result) {
                 if (!tests[i].expected) {
                     // Expected null.
@@ -832,15 +832,15 @@ subdesc(str_rjust) {
                 }
                 char* input_repr = colr_repr(tests[i].s);
                 char* expected_repr = colr_repr(tests[i].expected);
-                fail("Unexpected NULL from str_rjust(%s): %s", input_repr, expected_repr);
+                fail("Unexpected NULL from colr_str_rjust(%s): %s", input_repr, expected_repr);
             }
-            assert_str_eq(result, tests[i].expected, "str_rjust failed to justify.");
+            assert_str_eq(result, tests[i].expected, "colr_str_rjust failed to justify.");
             free(result);
         }
     }
 }
-// str_starts_with
-subdesc(str_starts_with) {
+// colr_str_starts_with
+subdesc(colr_str_starts_with) {
     it("recognizes string prefixes") {
         struct {
             char* s;
@@ -870,12 +870,12 @@ subdesc(str_starts_with) {
             {"t", "apple", false},
         };
         for_each(tests, i) {
-            asserteq(str_starts_with(tests[i].s, tests[i].prefix), tests[i].expected);
+            asserteq(colr_str_starts_with(tests[i].s, tests[i].prefix), tests[i].expected);
         }
     }
 }
-// str_strip_codes
-subdesc(str_strip_codes) {
+// colr_str_strip_codes
+subdesc(colr_str_strip_codes) {
     it("strips all escape codes") {
         struct {
             char* s;
@@ -918,7 +918,7 @@ subdesc(str_strip_codes) {
             },
         };
         for_each(tests, i) {
-            char* stripped = str_strip_codes(tests[i].s);
+            char* stripped = colr_str_strip_codes(tests[i].s);
             if (!stripped) {
                 // Expected failure.
                 if (!tests[i].expected) continue;
@@ -929,8 +929,8 @@ subdesc(str_strip_codes) {
         }
     }
 }
-// str_to_lower
-subdesc(str_to_lower) {
+// colr_str_to_lower
+subdesc(colr_str_to_lower) {
     it("lowercases strings") {
         struct {
             char* s;
@@ -943,11 +943,11 @@ subdesc(str_to_lower) {
             {"  TeSt  ", "  test  "}
         };
         for_each(tests, i) {
-            char* result = str_to_lower(tests[i].s);
+            char* result = colr_str_to_lower(tests[i].s);
             if (tests[i].expected) {
-                assert(result != NULL, "Unexpected NULL from str_to_lower()");
+                assert(result != NULL, "Unexpected NULL from colr_str_to_lower()");
             } else {
-                assert(result == NULL, "Expected NULL from str_to_lower()");
+                assert(result == NULL, "Expected NULL from colr_str_to_lower()");
                 free(result);
                 continue;
             }

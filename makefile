@@ -16,6 +16,9 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Wenum-compare -Winline -Wlogical-op \
        -std=$(STD)
 # ColrC uses libm right now, but it's pretty standard.
 LIBS=-lm
+# Sanitizers/protectors to optionally enable.
+FFLAGS=-fno-omit-frame-pointer -fstack-protector-strong \
+    -fsanitize=address -fsanitize=leak -fsanitize=undefined
 
 binary=colrc
 colr_source=colr.c
@@ -59,7 +62,7 @@ examples_dir=examples
 examples_source=$(wildcard $(examples_dir)/*.c)
 valgrind_cmd=bash tools/valgrind_run.sh
 
-.PHONY: all, coverage, debug, lib, libdebug, librelease, release, release2
+.PHONY: all, coverage, debug, lib, libdebug, librelease, release, release2, sanitize
 all: debug
 
 coverage: clean
@@ -92,6 +95,10 @@ release: $(binary)
 
 release2: CFLAGS+=-O2 -DNDEBUG
 release2: $(binary)
+
+sanitize: CFLAGS+=-g3 -DDEBUG $(FFLAGS)
+sanitize: LIBS+=-lasan
+sanitize: $(binary)
 
 $(binary): $(objects)
 	@printf "\nCompiling $(binary) executable...\n    "
@@ -248,6 +255,7 @@ help targets:
     release2        : Same as \`release\` target, but with -O2 instead of -O3.\n\
     run             : Run the executable. Args are set with COLR_ARGS.\n\
     runexamples     : Run the example executables in $(examples_dir).\n\
+    sanitize        : Build debug with \`-fsanitize\` options.\n\
     strip           : Run \`strip\` on the executable.\n\
     tags            : Build tags for this project using \`ctags\`.\n\
     test            : Build debug (if needed), build the test debug (if needed),\n\

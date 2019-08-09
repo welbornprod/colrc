@@ -3,10 +3,20 @@
 # Run valgrind cachegrind, callgrind, or memcheck on this project.
 # -Christopher Welborn 06-09-2019
 appname="Valgrind Runner"
-appversion="0.0.1"
+appversion="0.0.2"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 # appdir="${apppath%/*}"
+
+declare -A script_deps=(["valgrind"]="valgrind")
+for script_dep in "${!script_deps[@]}"; do
+    hash "$script_dep" &>/dev/null || {
+        printf "\nMissing \`%s\` command.\n" "$script_dep" 1>&2
+        printf "Install the \`%s\` package with your package manager.\n" "${script_deps[$script_dep]}" 1>&2
+        exit 1
+    }
+done
+
 # This should be the only variable that needs to change for other projects.
 binaryname=$(find . -maxdepth 1 -type f -executable '!' -name "*.*" | head -n 1)
 if [[ -z "$binaryname" ]]; then
@@ -157,7 +167,7 @@ cmd+=("${nonflags[@]}")
 cmd+=("$binary")
 cmd+=("${exeargs[@]}")
 
-echo_err "Running: ${cmd[*]}"
+((do_quiet)) || echo_err "Running: ${cmd[*]}"
 "${cmd[@]}"
 
 exit

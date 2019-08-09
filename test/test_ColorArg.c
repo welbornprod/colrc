@@ -295,7 +295,7 @@ subdesc(ColorArg_to_str) {
             if (tests[i].invalid) {
                 assert_str_empty(s);
             } else {
-                assert(str_is_codes(s));
+                assert(colr_str_is_codes(s));
             }
             free(s);
         }

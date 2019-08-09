@@ -14,7 +14,7 @@ default_man_dir="${appdir}/${default_docs_dir}/man"
 
 
 function clean_compiled {
-    printf "Removing compiled files:\n"
+    printf_status "Removing compiled files:\n"
     if [[ -n "$binary" ]]; then
         if [[ -e "$binary" ]]; then
             rm "$binary" || echo_err "Cannot remove binary: $binary"
@@ -26,7 +26,7 @@ function clean_compiled {
             clean_msg 0 "$binary"
         fi
     else
-        printf "No binary specified for removal.\n"
+        printf_status "No binary specified for removal.\n"
     fi
 
     if ((${#objfiles} == 0)); then
@@ -62,15 +62,15 @@ function clean_docs {
     local html_dir=$1 man_dir=$2
     if [[ -n "$html_dir" ]] && [[ -e "$html_dir" ]]; then
         rm -r "$html_dir" || fail "Can't remove HTML docs dir: $html_dir"
-        printf "HTML docs cleaned:\n    %s\n" "$html_dir/*"
+        printf_status "HTML docs cleaned:\n    %s\n" "$html_dir/*"
     else
-        printf "HTML docs already clean:\n    %s\n" "$html_dir/*"
+        printf_status "HTML docs already clean:\n    %s\n" "$html_dir/*"
     fi
     if [[ -n "$man_dir" ]] && [[ -e "$man_dir" ]]; then
         rm -r "$man_dir" || fail "Can't remove Man docs dir: $man_dir"
-        printf "Man docs cleaned:\n    %s\n" "$man_dir/*"
+        printf_status "Man docs cleaned:\n    %s\n" "$man_dir/*"
     else
-        printf "Man docs already clean:\n    %s\n" "$man_dir/*"
+        printf_status "Man docs already clean:\n    %s\n" "$man_dir/*"
     fi
 }
 
@@ -96,16 +96,16 @@ function clean_manual {
         fi
     done
     ((${#cleaned[@]})) && {
-        printf "%s files cleaned:\n" "$desc"
-        printf "    %s\n" "${cleaned[@]}"
+        printf_status "%s files cleaned:\n" "$desc"
+        printf_status "    %s\n" "${cleaned[@]}"
     }
     ((${#cleaneddirs[@]})) && {
-        printf "%s dirs cleaned:\n" "$desc"
-        printf "    %s\n" "${cleaneddirs[@]}"
+        printf_status "%s dirs cleaned:\n" "$desc"
+        printf_status "    %s\n" "${cleaneddirs[@]}"
     }
     ((${#missing[@]})) && {
-        printf "%s already cleaned:\n" "$desc"
-        printf "    %s\n" "${missing[@]}"
+        printf_status "%s already cleaned:\n" "$desc"
+        printf_status "    %s\n" "${missing[@]}"
     }
     return $errs
 }
@@ -114,9 +114,9 @@ function clean_msg {
     # Print a message about whether a file has been "cleaned".
     local wascleaned=$1 filepath=$2
     if [[ "$wascleaned" =~ (1)|(yes)|(true) ]]; then
-        printf "             Cleaned: %s\n" "$filepath"
+        printf_status "             Cleaned: %s\n" "$filepath"
     else
-        printf "     Already cleaned: %s\n" "$filepath" 1>&2
+        printf_status "     Already cleaned: %s\n" "$filepath"
     fi
 }
 
@@ -164,19 +164,26 @@ function print_usage {
                         This will not clean the binary or object files.
         -h,--help     : Show this message.
         -m,--manual   : Just \`rm\` all arguments, without a custom message.
+        -q,--quiet    : Only print errors.
         -v,--version  : Show $appname version and exit.
     "
 }
 
+function printf_status {
+    ((do_quiet)) && return 0
+    # shellcheck disable=SC2059
+    # ...I know shellcheck. It's a wrapper, I meant to do it.
+    printf "$@"
+}
 
 declare -a objfiles
 binary=""
 do_docs=0
 do_manual=0
+do_quiet=0
 doc_dir=$default_docs_dir
 doc_html_dir=$default_html_dir
 doc_man_dir=$default_man_dir
-
 for arg; do
     case "$arg" in
         "-d" | "--docs")
@@ -190,6 +197,9 @@ for arg; do
         "-m" | "--manual")
             do_manual=1
             do_docs=0
+            ;;
+        "-q" | "--quiet")
+            do_quiet=1
             ;;
         "-v" | "--version")
             echo -e "$appname v. $appversion\n"
