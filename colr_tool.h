@@ -109,6 +109,7 @@ typedef struct ColrToolOptions_s {
     bool strip_codes;
 } ColrToolOptions;
 
+void ColrToolOptions_free_text(ColrToolOptions opts);
 ColrToolOptions ColrToolOptions_new(void);
 char* ColrToolOptions_repr(ColrToolOptions opts);
 

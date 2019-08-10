@@ -46,7 +46,11 @@ int main(int argc, char* argv[]) {
             opts.style
         );
     }
-    return_error_if_null(ctext, "Failed to allocate for ColorText!\n");
+    // Both types of ColorText allocation may have failed.
+    if (!ctext) {
+        ColrToolOptions_free_text(opts);
+        return_error("Failed to allocate for ColorText!\n");
+    }
 
     ctext->just = opts.just;
     // dbug_repr("Using", *ctext);
@@ -67,10 +71,23 @@ int main(int argc, char* argv[]) {
     if (!colr_str_ends_with(text, "\n" CODE_RESET_ALL)) printf("\n");
 
     free(text);
-    if (opts.free_text) free(opts.text);
+    ColrToolOptions_free_text(opts);
     return EXIT_SUCCESS;
 }
 
+void ColrToolOptions_free_text(ColrToolOptions opts) {
+    if (opts.text && opts.free_text) {
+        free(opts.text);
+        opts.text = NULL;
+        // This function will not try to double-free the text.
+        opts.free_text = false;
+    }
+}
+
+/*! Create a ColrToolOptions with all of the default values set.
+
+    \return An initialized ColrToolOptions, with defaults set.
+*/
 ColrToolOptions ColrToolOptions_new(void) {
     return (ColrToolOptions){
         .text=NULL,
@@ -90,6 +107,15 @@ ColrToolOptions ColrToolOptions_new(void) {
     };
 }
 
+/*! Create a string representation for ColrToolOptions.
+
+    \details
+    This is used in debugging arg parsing.
+
+    \pi opts The ColrToolOptions to get the representation for.
+    \return  An allocated string with the result, or `NULL` if allocation failed.\n
+             \mustfree
+*/
 char* ColrToolOptions_repr(ColrToolOptions opts) {
     char* text_repr = opts.text ? colr_repr(opts.text) : NULL;
     char* fore_repr = opts.fore ? colr_repr(*(opts.fore)) : NULL;
@@ -802,11 +828,15 @@ ColorText* rainbowize(ColrToolOptions* opts) {
             (opts->rainbow_fore ? rainbow_fg : rainbow_bg)
     );
     char* rainbowized = func(opts->text, opts->rainbow_freq, opts->rainbow_offset);
+    if (!rainbowized) return NULL;
     // Text was allocated from stdin input, it's safe to free.
     if (opts->free_text) {
         free(opts->text);
+        // Don't use or free the text again.
         opts->text = NULL;
+        opts->free_text = false;
     }
+
     opts->free_colr_text = true;
     // Some or all of the fore/back/style args are "empty" (not null).
     // They will not be used if they are empty, but they will be free'd.
