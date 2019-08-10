@@ -49,6 +49,10 @@ release: CFLAGS+=-O3 -DNDEBUG
 release: $(binary)
 release: strip
 
+# Build the tests with all of the -fsanitize options. This will make the
+# executable slower and bigger, but helps to catch things that valgrind doesn't.
+# Valgrind cannot be used with this build, so the `memcheck` target will
+# rebuild in `debug` mode if needed.
 sanitize: CFLAGS+=-g3 -DDEBUG $(FFLAGS)
 sanitize: LIBS+=-lasan
 sanitize: $(binary)

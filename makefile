@@ -97,6 +97,9 @@ release: $(binary)
 release2: CFLAGS+=-O2 -DNDEBUG
 release2: $(binary)
 
+# Build the tests with all of the -fsanitize options. This will make the
+# executable slower and bigger, but helps to catch things that valgrind doesn't.
+# This should never be used as a release build.
 sanitize: CFLAGS+=-g3 -DDEBUG $(FFLAGS)
 sanitize: LIBS+=-lasan
 sanitize: $(binary)
