@@ -4612,16 +4612,19 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
 
     char codes[CODE_RGB_LEN];
     // Enough room for one (possibly multi-byte) character.
-    size_t mb_char_len = 6;
-    char mb_char[mb_char_len + 1];
+    char mb_char[MB_LEN_MAX + 1];
     // Iterate over each multi-byte character.
     size_t i = 0;
     int char_len = 0;
-    while ((char_len = mblen(s + i, mb_char_len))) {
+    while ((char_len = mblen(s + i, MB_LEN_MAX))) {
+        // Add a rainbow code to the output.
         fmter(codes, rainbow_step(freq, offset + i));
         strcat(out, codes);
+        // Write the multibyte char at (s + i), the length is char_len.
+        // Basically copying the string from (s + i) through (s + i + char_len).
         snprintf(mb_char, char_len + 1, "%s", s + i);
         strcat(out, mb_char);
+        // Jump past the multibyte character for the next code.
         i += char_len;
     }
     strcat(out, CODE_RESET_ALL);
