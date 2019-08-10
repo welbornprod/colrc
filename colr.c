@@ -1420,7 +1420,7 @@ size_t colr_str_mb_len(const char* s) {
     int i = 0;
     int next_len = 0;
     size_t total = 0;
-    while ((next_len = mblen(s + i, 6))) {
+    while ((next_len = mblen(s + i, MB_LEN_MAX))) {
         if (next_len < 0) {
             dbug("Invalid multibyte sequence at: %d\n", i);
             return 0;
@@ -4602,11 +4602,13 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
     if (!offset) offset = 3;
     if (freq < 0.1) freq = 0.1;
 
+    size_t byte_len = strlen(s);
     size_t mb_len = colr_str_mb_len(s);
     if (mb_len == 0) return NULL;
 
-    // There is an RGB code for every wide character in the string.
-    size_t total_size = mb_len + (CODE_RGB_LEN * mb_len);
+    // There is an RGB code for every multibyte character in the string.
+    // The entire original string, plus an rgb code for every multibyte char.
+    size_t total_size = byte_len + (CODE_RGB_LEN * mb_len);
     char* out = calloc(total_size, sizeof(char));
     if (!out) return NULL;
 
