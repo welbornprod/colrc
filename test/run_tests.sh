@@ -8,6 +8,7 @@ appversion="0.0.1"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 appdir="${apppath%/*}"
+
 colrdir="$(readlink -f "${appdir}/..")"
 examplesdir="${colrdir}/examples"
 testdir=$appdir # May change.

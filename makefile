@@ -29,6 +29,7 @@ headers=colr_tool.h $(colr_headers)
 optional_headers=dbug.h
 optional_flags=$(foreach header, $(optional_headers), -include $(header))
 cov_dir=coverage
+is_build_cmd=bash tools/is_build.sh
 custom_dir=doc_style
 docs_config=Doxyfile_common
 docs_html_config=Doxyfile_html
@@ -202,16 +203,16 @@ examples: $(examples_source)
 .PHONY: memcheck, memcheckquiet
 memcheck: debug
 memcheck:
-	@if ldd $(binary) | grep libasan &>/dev/null; then \
-		printf "\nRebuilding in non-sanitized mode for memcheck.\n"; \
+	@if $(is_build_cmd) "sanitize" || ! $(is_build_cmd) "debug"; then \
+		printf "\nRebuilding in debug non-sanitized mode for memcheck.\n"; \
 		$(MAKE) $(MAKEFLAGS) clean debug; \
 	fi;
 	@$(valgrind_cmd) -- $(COLR_ARGS)
 
 memcheckquiet: debug
 memcheckquiet:
-	@if ldd $(binary) | grep libasan &>/dev/null; then \
-		printf "\nRebuilding in non-sanitized mode for memcheck.\n"; \
+	@if $(is_build_cmd) "sanitize" || ! $(is_build_cmd) "debug"; then \
+		printf "\nRebuilding in debug non-sanitized mode for memcheck.\n"; \
 		$(MAKE) $(MAKEFLAGS) clean debug; \
 	fi;
 	@$(valgrind_cmd) -q -- $(COLR_ARGS)

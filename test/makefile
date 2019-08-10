@@ -19,6 +19,7 @@ FFLAGS=-fno-omit-frame-pointer -fstack-protector-strong \
 binary=test_colrc
 cov_cmd=bash ../tools/gen_coverage_html.sh --
 cov_dir=coverage
+is_build_cmd=bash ../tools/is_build.sh
 valgrind_cmd=bash ../tools/valgrind_run.sh
 test_source:=$(wildcard *.c)
 source:=$(test_source) ../colr.c
@@ -105,16 +106,16 @@ coverageview:
 
 memcheck: debug
 memcheck:
-	@if ldd $(binary) | grep libasan &>/dev/null; then \
-		printf "\nRebuilding in non-sanitized mode for memcheck.\n"; \
+	@if $(is_build_cmd) "sanitize" || ! $(is_build_cmd) "debug"; then \
+		printf "\nRebuilding in debug non-sanitized mode for memcheck.\n"; \
 		$(MAKE) $(MAKEFLAGS) clean debug; \
 	fi;
 	@$(valgrind_cmd) -- $(TEST_ARGS)
 
 memcheckquiet: debug
 memcheckquiet:
-	@if ldd $(binary) | grep libasan &>/dev/null; then \
-		printf "\nRebuilding in non-sanitized mode for memcheck.\n"; \
+	@if $(is_build_cmd) "sanitize" || ! $(is_build_cmd) "debug"; then \
+		printf "\nRebuilding in debug non-sanitized mode for memcheck.\n"; \
 		$(MAKE) $(MAKEFLAGS) clean debug; \
 	fi;
 	@$(valgrind_cmd) -q -- $(TEST_ARGS)
