@@ -700,8 +700,8 @@
         TermSize: TermSize_repr, \
         const char*: colr_str_repr, \
         char*: colr_str_repr, \
-        const char: char_repr, \
-        char: char_repr \
+        const char: colr_char_repr, \
+        char: colr_char_repr \
     )(x)
 
 
@@ -1370,13 +1370,14 @@ static const struct _ColrLastArg_s* const _ColrLastArg = &_ColrLastArgValue;
     Common macros and definitions are found here in colr.h,
     however the functions are documented in colr.c.
 */
-char char_escape_char(const char c);
-bool char_in_str(const char c, const char* s);
-bool char_is_code_end(const char c);
-char* char_repr(char x);
-bool char_should_escape(const char c);
-
 void colr_append_reset(char* s);
+
+char colr_char_escape_char(const char c);
+bool colr_char_in_str(const char c, const char* s);
+bool colr_char_is_code_end(const char c);
+char* colr_char_repr(char x);
+bool colr_char_should_escape(const char c);
+
 bool colr_check_marker(unsigned int marker, void* p);
 char* colr_empty_str(void);
 bool colr_supports_rgb(void);

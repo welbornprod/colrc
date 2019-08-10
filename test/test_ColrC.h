@@ -260,7 +260,7 @@
 #define test_repr(x) \
     _Generic( \
         (x), \
-        char: char_repr, \
+        char: colr_char_repr, \
         int: int_repr, \
         unsigned int: uint_repr, \
         long: long_repr, \

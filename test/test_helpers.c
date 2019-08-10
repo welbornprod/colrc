@@ -7,8 +7,8 @@
 #include "test_helpers.h"
 
 describe(helpers) {
-// char_escape_char
-subdesc(char_escape_char) {
+// colr_char_escape_char
+subdesc(colr_char_escape_char) {
     it("should recognize valid escape sequence chars") {
         struct {
             char input;
@@ -29,7 +29,7 @@ subdesc(char_escape_char) {
         };
         for_each(tests, i) {
             asserteq(
-                char_escape_char(tests[i].input),
+                colr_char_escape_char(tests[i].input),
                 tests[i].expected,
                 "Known escape char was not escaped."
             );
@@ -39,7 +39,7 @@ subdesc(char_escape_char) {
         // 65-90 inclusive == A-Z.
         for (char C = 65; C <= 90; C++) { // Hah.
             asserteq(
-                char_escape_char(C),
+                colr_char_escape_char(C),
                 C,
                 "Known non-escape char was escaped."
             );
@@ -47,15 +47,15 @@ subdesc(char_escape_char) {
         // 97-122 inclusive == a-z.
         for (char c = 97; c <= 122; c++) {
             asserteq(
-                char_escape_char(c),
+                colr_char_escape_char(c),
                 c,
                 "Known non-escape char was escaped."
             );
         }
     }
 }
-// char_in_str
-subdesc(char_in_str) {
+// colr_char_in_str
+subdesc(colr_char_in_str) {
     it("should recognize characters in strings") {
         struct {
             char c;
@@ -71,15 +71,15 @@ subdesc(char_in_str) {
         };
         for_each(tests, i) {
             asserteq(
-                char_in_str(tests[i].c, tests[i].s),
+                colr_char_in_str(tests[i].c, tests[i].s),
                 tests[i].expected,
                 "Known char was not detected."
             );
         }
     }
 }
-// char_is_code_end
-subdesc(char_is_code_end) {
+// colr_char_is_code_end
+subdesc(colr_char_is_code_end) {
     it("detects known code-end chars") {
         struct {
             char c;
@@ -97,12 +97,12 @@ subdesc(char_is_code_end) {
             {';', false},
         };
         for_each(tests, i) {
-            asserteq(char_is_code_end(tests[i].c), tests[i].expected);
+            asserteq(colr_char_is_code_end(tests[i].c), tests[i].expected);
         }
     }
 }
-// char_repr
-subdesc(char_repr) {
+// colr_char_repr
+subdesc(colr_char_repr) {
     it("creates character representations") {
         struct {
             char c;
@@ -124,14 +124,14 @@ subdesc(char_repr) {
             {3, "'\\x3'"},
         };
         for_each(tests, i) {
-            char *repr = char_repr(tests[i].c);
-            assert_str_eq(repr, tests[i].expected, "char_repr failed!");
+            char *repr = colr_char_repr(tests[i].c);
+            assert_str_eq(repr, tests[i].expected, "colr_char_repr failed!");
             free(repr);
         }
     }
 }
-// char_should_escape
-subdesc(char_should_escape) {
+// colr_char_should_escape
+subdesc(colr_char_should_escape) {
     it("should detect valid escape sequence chars") {
         char tests[] = {
             '\0',
@@ -149,7 +149,7 @@ subdesc(char_should_escape) {
         };
         for_each(tests, i) {
             assert(
-                char_should_escape(tests[i]),
+                colr_char_should_escape(tests[i]),
                 "Known escape char returned false."
             );
         }
@@ -158,14 +158,14 @@ subdesc(char_should_escape) {
         // 65-90 inclusive == A-Z.
         for (char C = 65; C <= 90; C++) { // Hah.
             assert(
-                !char_should_escape(C),
+                !colr_char_should_escape(C),
                 "Known non-escape char returned true."
             );
         }
         // 97-122 inclusive == a-z.
         for (char c = 97; c <= 122; c++) {
             assert(
-                !char_should_escape(c),
+                !colr_char_should_escape(c),
                 "Known non-escape char returned true."
             );
         }
@@ -329,7 +329,7 @@ subdesc(colr_str_center) {
                 fail("Unexpected NULL from colr_str_center(%s): %s", input_repr, expected_repr);
             }
             char* input_repr = colr_repr(tests[i].s);
-            char* c_repr = char_repr(tests[i].padchar);
+            char* c_repr = colr_char_repr(tests[i].padchar);
             char* msg;
             if_not_asprintf(&msg, "colr_str_center(%s, %s, %d) failed", input_repr, c_repr, tests[i].width) {
                 fail("Failed to allocated for failure message!");

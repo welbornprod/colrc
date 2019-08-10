@@ -754,6 +754,51 @@ const ColorNameData colr_name_data[] = {
 //! Length of colr_name_data.
 const size_t colr_name_data_len = sizeof(colr_name_data) / sizeof(colr_name_data[0]);
 
+/*! Appends CODE_RESET_ALL to a string, but makes sure to do it before any
+    newlines.
+
+    \details
+    \mustnullin
+
+    \pi s The string to append to.
+          <em>Must have extra room for CODE_RESET_ALL</em>.
+*/
+void colr_append_reset(char *s) {
+    if (!s) return;
+    if (s[0] == '\0') {
+        // Special case, an empty string, with room for CODE_RESET_ALL.
+        snprintf(s, CODE_RESET_LEN, "%s", CODE_RESET_ALL);
+        return;
+    }
+    if (colr_str_ends_with(s, CODE_RESET_ALL)) {
+        // Already has one.
+        return;
+    }
+    size_t length = strlen(s);
+    size_t lastindex = length - 1;
+    size_t newlines = 0;
+    // Cut newlines off if needed. I'll add them after the reset code.
+    while ((lastindex > 0) && (s[lastindex] == '\n')) {
+        s[lastindex] = '\0';
+        newlines++;
+        lastindex--;
+    }
+    if ((lastindex == 0) && s[lastindex] == '\n') {
+        // String starts with a newline.
+        s[lastindex] = '\0';
+        newlines++;
+    } else {
+        lastindex++;
+    }
+    char* p = s + lastindex;
+    snprintf(p, CODE_RESET_LEN, "%s", CODE_RESET_ALL);
+    p += CODE_RESET_LEN - 1;
+    while (newlines--) {
+        *(p++) = '\n';
+    }
+    *p = '\0';
+}
+
 /*! Returns the char needed to represent an escape sequence in C.
 
     \details
@@ -776,22 +821,22 @@ const size_t colr_name_data_len = sizeof(colr_name_data) / sizeof(colr_name_data
     \return The letter, without a backslash, needed to create an escape sequence.
             If the char doesn't need an escape sequence, it is simply returned.
 
-    \examplecodefor{char_escape_char,.c}
-        char constantchar = char_escape_char('\n');
+    \examplecodefor{colr_char_escape_char,.c}
+        char constantchar = colr_char_escape_char('\n');
         assert(constantchar == 'n');
 
-        char constantquote = char_escape_char('"');
+        char constantquote = colr_char_escape_char('"');
         assert(constantquote == '"');
 
         // The actual escape sequence would need the backslash added to it:
         char* escaped;
-        asprintf(&escaped, "\\%c", char_escape_char('\t'));
+        asprintf(&escaped, "\\%c", colr_char_escape_char('\t'));
         free(escaped);
     \endexamplecode
 */
-char char_escape_char(const char c) {
+char colr_char_escape_char(const char c) {
     switch (c) {
-        // 0 is a special case for char_repr().
+        // 0 is a special case for colr_char_repr().
         case '\0': return '0';
         case '\'': return '\'';
         case '\"': return '"';
@@ -816,7 +861,7 @@ char char_escape_char(const char c) {
 
     \return `true` if \p c is found in \p s, otherwise `false`.
 */
-bool char_in_str(const char c, const char* s) {
+bool colr_char_in_str(const char c, const char* s) {
     size_t length = strlen(s);
     for (size_t i = 0; i < length; i++) {
         if (s[i] == c) return true;
@@ -841,7 +886,7 @@ bool char_in_str(const char c, const char* s) {
     \pi c   Character to test.
     \return `true` if the character is a possible escape code ending, otherwise `false`.
 */
-bool char_is_code_end(const char c) {
+bool colr_char_is_code_end(const char c) {
     /*  The actual end chars can be: 64-126 (inclusive) ( ASCII: @A–Z[\]^_`a–z{ )
         I'm just testing for alpha chars. A: 65, Z: 90, a: 97, z: 122
         This is not a macro because it may be expanded in the future to detect
@@ -856,7 +901,7 @@ bool char_is_code_end(const char c) {
     \pi c   Value to create the representation for.
     \return An allocated string, or `NULL` if the allocation fails.
 */
-char* char_repr(char c) {
+char* colr_char_repr(char c) {
     char* repr;
     switch (c) {
         case '\0':
@@ -930,9 +975,9 @@ char* char_repr(char c) {
     \pi c   The character to check.
     \return `true` if the character needs an escape sequence, otherwise `false`.
 */
-bool char_should_escape(const char c) {
+bool colr_char_should_escape(const char c) {
     switch (c) {
-        // 0 is a special case for char_repr().
+        // 0 is a special case for colr_char_repr().
         case '\0': return true;
         case '\'': return true;
         case '\"': return true;
@@ -950,50 +995,6 @@ bool char_should_escape(const char c) {
     }
 }
 
-/*! Appends CODE_RESET_ALL to a string, but makes sure to do it before any
-    newlines.
-
-    \details
-    \mustnullin
-
-    \pi s The string to append to.
-          <em>Must have extra room for CODE_RESET_ALL</em>.
-*/
-void colr_append_reset(char *s) {
-    if (!s) return;
-    if (s[0] == '\0') {
-        // Special case, an empty string, with room for CODE_RESET_ALL.
-        snprintf(s, CODE_RESET_LEN, "%s", CODE_RESET_ALL);
-        return;
-    }
-    if (colr_str_ends_with(s, CODE_RESET_ALL)) {
-        // Already has one.
-        return;
-    }
-    size_t length = strlen(s);
-    size_t lastindex = length - 1;
-    size_t newlines = 0;
-    // Cut newlines off if needed. I'll add them after the reset code.
-    while ((lastindex > 0) && (s[lastindex] == '\n')) {
-        s[lastindex] = '\0';
-        newlines++;
-        lastindex--;
-    }
-    if ((lastindex == 0) && s[lastindex] == '\n') {
-        // String starts with a newline.
-        s[lastindex] = '\0';
-        newlines++;
-    } else {
-        lastindex++;
-    }
-    char* p = s + lastindex;
-    snprintf(p, CODE_RESET_LEN, "%s", CODE_RESET_ALL);
-    p += CODE_RESET_LEN - 1;
-    while (newlines--) {
-        *(p++) = '\n';
-    }
-    *p = '\0';
-}
 
 /*! Checks an unsigned int against the individual bytes behind a pointer's
     value. This helps to guard against overflows, because only a single
@@ -1271,7 +1272,7 @@ bool colr_str_is_codes(const char* s) {
     while (s[i]) {
         if (s[i] == '\x1b') {
             // Skip past the code.
-            while (!char_is_code_end(s[i++]));
+            while (!colr_char_is_code_end(s[i++]));
             continue;
         }
         // Found a non-escape-code char.
@@ -1395,7 +1396,7 @@ char* colr_str_lstrip_chars(const char* s, const char* chars) {
     size_t result_pos = 0;
     bool done_trimming = false;
     for (size_t i = 0; i < length; i++) {
-        if ((!done_trimming) && char_in_str(s[i], chars)) {
+        if ((!done_trimming) && colr_char_in_str(s[i], chars)) {
             continue;
         } else {
             // First non-`chars` character. We're done.
@@ -1448,7 +1449,7 @@ size_t colr_str_noncode_len(const char* s) {
     while (s[i]) {
         if (s[i] == '\x1b') {
             // Skip past the code.
-            while (!char_is_code_end(s[i++]));
+            while (!colr_char_is_code_end(s[i++]));
             continue;
         }
         i++;
@@ -1472,7 +1473,7 @@ size_t colr_str_noncode_len(const char* s) {
     \return An allocated string with the respresentation.\n
             \mustfree
 
-    \sa char_should_escape char_escape_char
+    \sa colr_char_should_escape colr_char_escape_char
 
     \examplecodefor{colr_str_repr,.c}
     char* s = colr_str_repr("This\nhas \bspecial\tchars.");
@@ -1497,7 +1498,7 @@ char* colr_str_repr(const char* s) {
     size_t esc_chars = 0;
     size_t i;
     for (i = 0; i < length; i++) {
-        if (char_should_escape(s[i])) esc_chars++;
+        if (colr_char_should_escape(s[i])) esc_chars++;
         else if (s[i] == '\x1b') esc_chars += 4;
     }
     size_t repr_length = length + (esc_chars * 2);
@@ -1508,9 +1509,9 @@ char* colr_str_repr(const char* s) {
     repr[0] = '"';
     for (i = 0, inew = 1; i < length; i++) {
         char c = s[i];
-        if (char_should_escape(c)) {
+        if (colr_char_should_escape(c)) {
             repr[inew++] = '\\';
-            repr[inew++] = char_escape_char(c);
+            repr[inew++] = colr_char_escape_char(c);
         } else if (c == '\x1b') {
             repr[inew++] = '\\';
             repr[inew++] = 'x';
@@ -1624,7 +1625,7 @@ char* colr_str_strip_codes(const char* s) {
     while (s[i]) {
         if (s[i] == '\x1b') {
             // Skip past the code.
-            while (!char_is_code_end(s[i++]));
+            while (!colr_char_is_code_end(s[i++]));
             continue;
         }
         final[pos++] = s[i++];
@@ -2887,7 +2888,7 @@ ColorJustify ColorJustify_new(ColorJustifyMethod method, int width, char padchar
 */
 char* ColorJustify_repr(ColorJustify cjust) {
     char* meth_repr = ColorJustifyMethod_repr(cjust.method);
-    char* pad_repr = char_repr(cjust.padchar);
+    char* pad_repr = colr_char_repr(cjust.padchar);
     char* repr;
     asprintf_or_return(
         NULL,

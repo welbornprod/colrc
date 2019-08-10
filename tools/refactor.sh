@@ -8,7 +8,7 @@ apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 # appdir="${apppath%/*}"
 
-hash replacestr &>dev/null || {
+hash replacestr &>/dev/null || {
     printf "\nMissing \`replacestr\` (replacestr.py).\n" 1>&2
     exit 1
 }
@@ -41,10 +41,11 @@ function print_usage {
         $appscript TARGET REPL
         $appscript -s str repl TARGET...
     Options:
-        REPL          : Replacement for the thing.
-        TARGET        : Thing to replace.
-        -h,--help     : Show this message.
-        -v,--version  : Show $appname version and exit.
+        REPL            : Replacement for the thing.
+        TARGET          : Thing to replace.
+        -h,--help       : Show this message.
+        -s,--substring  : Replace \`str\` with \`repl\` in all targets.
+        -v,--version    : Show $appname version and exit.
     "
 }
 
