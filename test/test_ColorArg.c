@@ -139,6 +139,10 @@ subdesc(ColorArg_from_StyleValue) {
     }
 }
 subdesc(ColorArg_from_value) {
+    it("handles NULL") {
+        ColorArg carg = ColorArg_from_value(FORE, TYPE_STYLE, NULL);
+        assert_is_invalid(carg);
+    }
     it("creates args from void pointers") {
         BasicValue basic = WHITE;
         ExtendedValue extended = XWHITE;

@@ -535,6 +535,29 @@
 */
 #define colr(...) _colr(__VA_ARGS__, _ColrLastArg)
 
+/*! \def colr_eq
+    Calls the \<type\>_eq functions for the supported types.
+
+    \details
+    The types for \p s1 and \p s2 must be the same.
+
+    \pi x1 First supported type to compare.
+    \pi x2 Second supported type to compare.
+    \return `true` if the values are equal, otherwise `false`.
+*/
+#define colr_eq(x1, x2) \
+    _Generic( \
+        (x1), \
+        BasicValue: BasicValue_eq, \
+        ColorArg: ColorArg_eq, \
+        ColorJustify: ColorJustify_eq, \
+        ColorType: ColorType_eq, \
+        ColorValue: ColorValue_eq, \
+        ExtendedValue: ExtendedValue_eq, \
+        RGB: RGB_eq, \
+        StyleValue: StyleValue_eq \
+    )(x1, x2)
+
 /*! \def colr_free
     Calls the \<type\>_free functions for the supported types.
 
@@ -649,6 +672,40 @@
     \return `a` if `a > b`, otherwise `b`.
 */
 #define colr_max(a, b) (a > b ? a : b)
+
+/*! \def colr_replace
+    Replace a substring in \p s with another string, ColorArg string, or
+    ColorText string.
+
+    \details
+    If a string (`char*`) is used as \p repl, this is just a wrapper around
+    colr_str_replace().
+
+    \details
+    If a ColorArg or ColorText is used as \p repl, the appropriate
+    colr_str_replace_\<type\> function is called. The function will create a
+    string of escape-codes/text to be used as a replacement.
+
+    \details
+    If \p repl is `NULL`, then an empty string (`""`) is used as the replacement,
+    which causes the \p target string to be removed.
+
+    \pi s      The string to operate on.
+               \mustnull
+    \pi target A target string to replace in \p s.
+               \mustnull
+    \pi repl   A string, ColorArg, or ColorText to replace the target string with.
+               If this is `NULL`, then an empty string is used (`""`) as the replacement.
+    \return    An allocated string with the result.\n
+               \mustfree
+*/
+#define colr_replace(s, target, repl) \
+    _Generic( \
+        (repl), \
+        char*: colr_str_replace, \
+        ColorArg*: colr_str_replace_ColorArg, \
+        ColorText*: colr_str_replace_ColorText \
+    )(s, target, repl)
 
 /*! \def colr_repr
     Transforms several ColrC objects into their string representations.
@@ -1156,6 +1213,10 @@ typedef enum StyleValue_t {
     ENCIRCLE = 52,
     OVERLINE = 53, // Supported in Konsole.
 } StyleValue;
+//! Maximum value allowed for a StyleValue.
+#define STYLE_MAX_VALUE ((enum StyleValue_t)OVERLINE)
+//! Minimum value allowed for a StyleValue.
+#define STYLE_MIN_VALUE ((enum StyleValue_t)STYLE_INVALID)
 
 #ifndef DOXYGEN_SKIP
 #define STYLE_INVALID ((enum StyleValue_t)STYLE_INVALID)
@@ -1395,6 +1456,9 @@ void colr_str_lower(char* s);
 char* colr_str_lstrip_chars(const char* s, const char* chars);
 size_t colr_str_mb_len(const char* s);
 size_t colr_str_noncode_len(const char* s);
+char* colr_str_replace(char* s, const char *target, const char* repl);
+char* colr_str_replace_ColorArg(char* s, const char *target, const ColorArg* repl);
+char* colr_str_replace_ColorText(char* s, const char *target, const ColorText* repl);
 char* colr_str_repr(const char* s);
 char* colr_str_rjust(const char* s, const char padchar, int width);
 bool colr_str_starts_with(const char* s, const char* prefix);
@@ -1533,6 +1597,7 @@ char* ColorText_to_str(ColorText ctext);
     ColorType functions that deal with the type of ColorValue (basic, ext, rgb.)
     \endinternal
 */
+bool ColorType_eq(ColorType a, ColorType b);
 ColorType ColorType_from_str(const char* arg);
 bool ColorType_is_invalid(ColorType type);
 bool ColorType_is_valid(ColorType type);
@@ -1562,6 +1627,7 @@ char* ColorValue_to_str(ArgType type, ColorValue cval);
     BasicValue functions.
     \endinternal
 */
+bool BasicValue_eq(BasicValue a, BasicValue b);
 BasicValue BasicValue_from_str(const char* arg);
 int BasicValue_to_ansi(ArgType type, BasicValue bval);
 char* BasicValue_repr(BasicValue bval);
@@ -1569,6 +1635,7 @@ char* BasicValue_repr(BasicValue bval);
     ExtendedValue functions.
     \endinternal
 */
+bool ExtendedValue_eq(ExtendedValue a, ExtendedValue b);
 int ExtendedValue_from_hex(const char* hexstr);
 ExtendedValue ExtendedValue_from_hex_default(const char* hexstr, ExtendedValue default_value);
 ExtendedValue ExtendedValue_from_RGB(RGB rgb);
@@ -1580,6 +1647,7 @@ char* ExtendedValue_to_str(ExtendedValue eval);
     StyleValue functions.
     \endinternal
 */
+bool StyleValue_eq(StyleValue a, StyleValue b);
 StyleValue StyleValue_from_str(const char* arg);
 char* StyleValue_repr(StyleValue sval);
 

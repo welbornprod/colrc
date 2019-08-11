@@ -67,6 +67,11 @@ subdesc(colr) {
 } // subdesc(colr)
 // colr_join
 subdesc(colr_join) {
+    it("handles NULL") {
+        char* result = colr_join(NULL, "this", "that");
+        assert_str_empty(result);
+        free(result);
+    }
     it("joins strings by a string") {
         char* s = colr_join("-", "this", "that", "the other");
         assert_str_eq(
@@ -337,6 +342,88 @@ subdesc(colr_join_array) {
         colr_free(ctextp);
         for_not_null(ctexts, i) colr_free(ctexts[i]);
         free(s);
+    }
+}
+subdesc(colr_replace) {
+    it("replaces with strings") {
+        // helpers.colr_str_replace already tests colr_str_replace.
+        // Since colr_replace is just a wrapper around that function, these
+        // tests will just ensure that the correct function is called.
+        char* result = colr_replace("test", "s", "z");
+        assert_str_eq(result, "tezt", "Failed to call colr_str_replace()");
+        free(result);
+    }
+    it("replaces ColorArgs") {
+        struct {
+            char* s;
+            char* target;
+            ColorArg* repl;
+            char* expected;
+        } tests[] = {
+            // Null/empty string and/or target.
+            {NULL, "", NULL, NULL},
+            {"", "", NULL, NULL},
+            {"a", NULL, NULL, NULL},
+            {"a", "", NULL, NULL},
+            // Empty replacements.
+            {"a", "a", NULL, ""},
+            // ColorArgs.
+            {"apple", "a", fore(RED), "\x1b[31mpple"},
+            {"apple", "e", fore(RED), "appl\x1b[31m"},
+            {"apple", "p", fore(RED), "a\x1b[31m\x1b[31mle"},
+            {
+                " this has spaces ",
+                " ",
+                fore(RED),
+                "\x1b[31mthis\x1b[31mhas\x1b[31mspaces\x1b[31m"
+            }
+        };
+        for_each(tests, i) {
+            char* result = colr_replace(
+                tests[i].s,
+                tests[i].target,
+                tests[i].repl
+            );
+            colr_free(tests[i].repl);
+            assert_str_eq(result, tests[i].expected, "Failed on ColorArg");
+            free(result);
+        }
+    }
+    it("replaces ColorTexts") {
+        struct {
+            char* s;
+            char* target;
+            ColorText* repl;
+            char* expected;
+        } tests[] = {
+            // Null/empty string and/or target.
+            {NULL, "", NULL, NULL},
+            {"", "", NULL, NULL},
+            {"a", NULL, NULL, NULL},
+            {"a", "", NULL, NULL},
+            // Empty replacements.
+            {"a", "a", NULL, ""},
+            // ColorTexts.
+            {"apple", "a", Colr("test", fore(RED)), "\x1b[31mtest\x1b[0mpple"},
+            {"apple", "e", Colr("test", fore(RED)), "appl\x1b[31mtest\x1b[0m"},
+            {"apple", "p", Colr("test", fore(RED)), "a\x1b[31mtest\x1b[0m\x1b[31mtest\x1b[0mle"},
+            {
+                " this has spaces ",
+                " ",
+                Colr("test", fore(RED)),
+                "\x1b[31mtest\x1b[0mthis\x1b[31mtest\x1b[0mhas\x1b[31mtest\x1b[0mspaces\x1b[31mtest\x1b[0m"
+            }
+        };
+        for_each(tests, i) {
+            char* result = colr_replace(
+                tests[i].s,
+                tests[i].target,
+                tests[i].repl
+            );
+            colr_free(tests[i].repl);
+            assert_str_eq(result, tests[i].expected, "Failed on ColorText");
+            free(result);
+        }
     }
 }
 } // describe(colr_api)

@@ -7,6 +7,40 @@
 #include "test_helpers.h"
 
 describe(helpers) {
+// colr_append_reset
+subdesc(colr_append_reset) {
+    it("accounts for newlines") {
+        struct {
+            char* input;
+            char* expected;
+        } tests[] = {
+            {"", CODE_RESET_ALL},
+            {"\n", CODE_RESET_ALL "\n"},
+            {"test\n", "test" CODE_RESET_ALL "\n"},
+            {"test\n\n\n\n", "test" CODE_RESET_ALL "\n\n\n\n"},
+            {"test\n\n\n\n\n", "test" CODE_RESET_ALL "\n\n\n\n\n"},
+            {"test\n another \n\n", "test\n another " CODE_RESET_ALL "\n\n"},
+        };
+        for_each(tests, i) {
+            size_t expected_len = strlen(tests[i].expected);
+            char s[expected_len + 1];
+            colr_str_copy(s, tests[i].input, strlen(tests[i].input));
+            colr_append_reset(s);
+            char* input_repr = colr_str_repr(tests[i].input);
+            char* input_msg = NULL;
+            if_not_asprintf(&input_msg, "colr_append_reset(%s) failed", input_repr) {
+                fail("Allocation failed for failure message!");
+            }
+            free(input_repr);
+            assert_str_eq(
+                s,
+                tests[i].expected,
+                input_msg
+            );
+            free(input_msg);
+        }
+    }
+}
 // colr_char_escape_char
 subdesc(colr_char_escape_char) {
     it("should recognize valid escape sequence chars") {
@@ -234,40 +268,6 @@ subdesc(TermSize) {
 
     }
 }
-// colr_append_reset
-subdesc(colr_append_reset) {
-    it("accounts for newlines") {
-        struct {
-            char* input;
-            char* expected;
-        } tests[] = {
-            {"", CODE_RESET_ALL},
-            {"\n", CODE_RESET_ALL "\n"},
-            {"test\n", "test" CODE_RESET_ALL "\n"},
-            {"test\n\n\n\n", "test" CODE_RESET_ALL "\n\n\n\n"},
-            {"test\n\n\n\n\n", "test" CODE_RESET_ALL "\n\n\n\n\n"},
-            {"test\n another \n\n", "test\n another " CODE_RESET_ALL "\n\n"},
-        };
-        for_each(tests, i) {
-            size_t expected_len = strlen(tests[i].expected);
-            char s[expected_len + 1];
-            colr_str_copy(s, tests[i].input, strlen(tests[i].input));
-            colr_append_reset(s);
-            char* input_repr = colr_str_repr(tests[i].input);
-            char* input_msg;
-            if_not_asprintf(&input_msg, "colr_append_reset(%s) failed", input_repr) {
-                fail("Allocation failed for failure message!");
-            }
-            free(input_repr);
-            assert_str_eq(
-                s,
-                tests[i].expected,
-                input_msg
-            );
-            free(input_msg);
-        }
-    }
-}
 // colr_str_center
 subdesc(colr_str_center) {
     it("center-justifies non-escape-code strings") {
@@ -330,7 +330,7 @@ subdesc(colr_str_center) {
             }
             char* input_repr = colr_repr(tests[i].s);
             char* c_repr = colr_char_repr(tests[i].padchar);
-            char* msg;
+            char* msg = NULL;
             if_not_asprintf(&msg, "colr_str_center(%s, %s, %d) failed", input_repr, c_repr, tests[i].width) {
                 fail("Failed to allocated for failure message!");
             }
@@ -340,6 +340,15 @@ subdesc(colr_str_center) {
             free(msg);
             free(result);
         }
+        // For terminal-width, all I can do is make sure it doesn't crash.
+        // Unless I can mock the ioctl somehow, but I'm not ready to do that.
+        char* result = colr_str_center("test", ' ', 0);
+        assert_not_null(result);
+        assert_str_not_empty(result);
+        assert(colr_str_starts_with(result, "  "));
+        assert(colr_str_ends_with(result, "  "));
+        assert_str_contains(result, "test");
+        free(result);
     }
 }
 // colr_str_char_count
@@ -589,6 +598,14 @@ subdesc(colr_str_ljust) {
             assert_str_eq(result, tests[i].expected, "colr_str_ljust failed to justify.");
             free(result);
         }
+        // For terminal-width, all I can do is make sure it doesn't crash.
+        // Unless I can mock the ioctl somehow, but I'm not ready to do that.
+        char* result = colr_str_ljust("test", ' ', 0);
+        assert_not_null(result);
+        assert_str_not_empty(result);
+        assert(colr_str_ends_with(result, "  "));
+        assert_str_contains(result, "test");
+        free(result);
     }
 }
 // colr_str_lower
@@ -624,7 +641,7 @@ subdesc(colr_str_lower) {
         };
 
         for_each(tests, i) {
-            char* input;
+            char* input = NULL;
             if_not_asprintf(&input, "%s", tests[i].input) {
                 fail("Allocation failed for test input string!");
             }
@@ -786,6 +803,78 @@ subdesc(colr_str_repr) {
 
     }
 }
+// colr_str_replace
+subdesc(colr_str_replace) {
+    it("replaces substrings") {
+        struct {
+            char* s;
+            char* target;
+            char* repl;
+            char* expected;
+        } tests[] = {
+            // Null/empty string and/or target.
+            {NULL, "", "", NULL},
+            {"", "", "", NULL},
+            {"a", NULL, "", NULL},
+            {"a", "", "", NULL},
+            // Empty replacements.
+            {"a", "a", NULL, ""},
+            {"a", "a", "", ""},
+            // Removals (using empty string as a replacement).
+            {"apple", "p", "", "ale"},
+            {"zblue", "z", "", "blue"},
+            {"bluez", "z", "", "blue"},
+            {
+                " this string has spaces   all over    it ",
+                " ",
+                "",
+                "thisstringhasspacesalloverit"
+            },
+            // Single char replacements.
+            {"a", "a", "b", "b"},
+            {"apple", "p", "z", "azzle"},
+            {"banana", "a", "z", "bznznz"},
+            // Larger replacements.
+            {"apple", "p", "XXX", "aXXXXXXle"},
+            {"apple", "a", "XXX", "XXXpple"},
+            {"apple", "e", "XXX", "applXXX"},
+            // Smaller replacements.
+            {"apple beer tomato", "apple", "a", "a beer tomato"},
+            {"apple beer tomato", "beer", "a", "apple a tomato"},
+            {"apple beer tomato", "tomato", "a", "apple beer a"},
+            // Long strings/targets.
+            {
+                "a1b1c1d1e1f1g1h1i",
+                "1",
+                " and ",
+                "a and b and c and d and e and f and g and h and i"
+            },
+            {
+                "a and b and c and d and e and f and g and h and i",
+                " and ",
+                "1",
+                "a1b1c1d1e1f1g1h1i"
+            },
+        };
+        for_each(tests, i) {
+            char* result = colr_str_replace(
+                tests[i].s,
+                tests[i].target,
+                tests[i].repl
+            );
+            if (!result) {
+                if (!tests[i].expected) continue;
+                fail(
+                    "Expected NULL result for (%s, %s)",
+                    tests[i].target ? tests[i].target : "NULL",
+                    tests[i].repl ? tests[i].repl : "NULL"
+                );
+            }
+            assert_str_eq(result, tests[i].expected, "str_replace didn't work!");
+            free(result);
+        }
+    }
+}
 // colr_str_rjust.
 subdesc(colr_str_rjust) {
     it("right-justifies non-escape-code strings") {
@@ -837,6 +926,14 @@ subdesc(colr_str_rjust) {
             assert_str_eq(result, tests[i].expected, "colr_str_rjust failed to justify.");
             free(result);
         }
+        // For terminal-width, all I can do is make sure it doesn't crash.
+        // Unless I can mock the ioctl somehow, but I'm not ready to do that.
+        char* result = colr_str_rjust("test", ' ', 0);
+        assert_not_null(result);
+        assert_str_not_empty(result);
+        assert(colr_str_starts_with(result, "  "));
+        assert_str_contains(result, "test");
+        free(result);
     }
 }
 // colr_str_starts_with

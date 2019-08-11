@@ -521,7 +521,7 @@ bool parse_int_arg(const char* s, int* value) {
 */
 bool parse_size_arg(const char* s, size_t* value) {
     if (!s || s[0] == '\0') return false;
-    return sscanf(s, "%lu", value) == 1;
+    return sscanf(s, "%zu", value) == 1;
 }
 
 /*! Print the 256 color range using either colrfgx or colorbgx.

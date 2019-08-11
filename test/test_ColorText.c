@@ -5,6 +5,8 @@
 
 #include "test_ColrC.h"
 
+#define empty_colorarg() ColorArg_to_ptr(ColorArg_empty())
+
 describe(ColorText) {
 subdesc(ColorText_empty) {
     it("creates an empty ColorText") {
@@ -31,6 +33,9 @@ subdesc(ColorText_from_values) {
             {fore(RED), back(XWHITE), style(BRIGHT)},
             {back(RED), fore(XWHITE), style(BRIGHT)},
             {fore(RED), style(BRIGHT), back(XWHITE)},
+            {empty_colorarg(), back(XWHITE), style(BRIGHT)},
+            {fore(XWHITE), empty_colorarg(), style(BRIGHT)},
+            {fore(RED), back(XWHITE), empty_colorarg()},
             {style(UNDERLINE), back(rgb(0, 0, 0)), fore(RED)},
         };
         for_each(tests, i) {
@@ -56,6 +61,21 @@ subdesc(ColorText_has_arg) {
         assert_ColorText_has_arg(ctext, forearg);
         assert_ColorText_has_arg(ctext, backarg);
         assert_ColorText_has_arg(ctext, stylearg);
+    }
+}
+subdesc(ColorText_has_args) {
+    it("detects usable args") {
+        ColorText* ctexts[] = {
+            Colr("test", fore(RED)),
+            Colr("test", back(WHITE)),
+            Colr("test", style(UNDERLINE)),
+        };
+        for_each(ctexts, i) {
+            assert(ColorText_has_args(*ctexts[i]));
+            ColorText_free(ctexts[i]);
+        }
+        ColorText empty = ColorText_empty();
+        assert(!ColorText_has_args(empty));
     }
 }
 subdesc(ColorText_is_empty) {
@@ -127,6 +147,30 @@ subdesc(ColorText_length) {
             size_t length = ColorText_length(tests[i].ctext);
             assert_size_eq_full(length, tests[i].expected, tests[i].ctext);
         }
+
+        // TODO: More justification tests.
+        struct {
+            ColorText* ctextp;
+            size_t expected;
+        } just_tests[] = {
+            {Colr_ljust("test", 10, NULL), 11},
+            {Colr_rjust("test", 10, NULL), 11},
+            {Colr_center("test", 10, NULL), 11},
+        };
+
+        for_each(just_tests, i) {
+            size_t length = ColorText_length(*(just_tests[i].ctextp));
+            assert_size_eq_full(length, just_tests[i].expected, *(just_tests[i].ctextp));
+            ColorText_free(just_tests[i].ctextp);
+        }
+        ColorText* ctextp = Colr_center(teststr, 0, NULL);
+        size_t length = ColorText_length(*ctextp);
+        char* s = ColorText_to_str(*ctextp);
+        assert(colr_str_starts_with(s, "  "));
+        assert(colr_str_ends_with(s, "  "));
+        assert_size_gt_full(length, 5, *ctextp);
+        ColorText_free(ctextp);
+        free(s);
     }
 }
 subdesc(ColorText_repr) {
@@ -151,6 +195,10 @@ subdesc(ColorText_set_values) {
             {back(RED), fore(XWHITE), style(BRIGHT)},
             {fore(RED), style(BRIGHT), back(XWHITE)},
             {style(UNDERLINE), back(rgb(0, 0, 0)), fore(RED)},
+            {empty_colorarg(), back(WHITE), style(UNDERLINE)},
+            {fore(RED), empty_colorarg(), style(UNDERLINE)},
+            {fore(RED), back(WHITE), empty_colorarg()},
+            {empty_colorarg(), empty_colorarg(), empty_colorarg()}
         };
         for_each(tests, i) {
             ColorText ctext = ColorText_empty();
@@ -161,10 +209,11 @@ subdesc(ColorText_set_values) {
             assert_ColorText_has_arg(ctext, *arg2);
             ColorArg* arg3 = tests[i].arg3;
             assert_ColorText_has_arg(ctext, *arg3);
-            free(tests[i].arg1);
-            free(tests[i].arg2);
-            free(tests[i].arg3);
+            colr_free(tests[i].arg1);
+            colr_free(tests[i].arg2);
+            colr_free(tests[i].arg3);
         }
+
     }
 }
 subdesc(ColorText_to_ptr) {
@@ -191,6 +240,33 @@ subdesc(ColorText_to_str) {
         assert(colr_str_has_codes(codes));
         free(codes);
         ColorText_free(p);
+    }
+    it("handles basic justification") {
+        // TODO: This is a mess, but it's only here for a while for test coverage.
+        // It *is* testing for correct justification, and covering all the
+        // code paths, but there is a better way to do it. I'll have to come
+        // back to it.
+        struct {
+            bool (*test_func)(const char* s, const char* pat);
+            bool (*test_func2)(const char* s, const char* pat);
+            char* pattern;
+            ColorText* ctextp;
+        } just_tests[] = {
+            {colr_str_ends_with, NULL, "      ", Colr_ljust("test", 10, fore(RED))},
+            {colr_str_starts_with, NULL, "      ", Colr_rjust("test", 10, fore(RED))},
+            {colr_str_starts_with, colr_str_ends_with, "   ", Colr_center("test", 10, fore(RED))},
+        };
+        for_each(just_tests, i) {
+            char* s = ColorText_to_str(*(just_tests[i].ctextp));
+            // Make sure the strings starts/ends with the correct pattern/string.
+            assert(just_tests[i].test_func(s, just_tests[i].pattern));
+            if (just_tests[i].test_func2) {
+                // Test the second str_ function against the result.
+                assert(just_tests[i].test_func2(s, "  "));
+            }
+            free(s);
+            ColorText_free(just_tests[i].ctextp);
+        }
     }
 }
 } // describe(ColorText)

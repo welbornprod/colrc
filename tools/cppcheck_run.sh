@@ -7,8 +7,17 @@ appversion="0.1.1"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 appdir="${apppath%/*}"
-colrdir="$appdir/.."
-testdir="$colrdir/test"
+colr_dir="$appdir/.."
+test_dir="$colr_dir/test"
+xml_dir="$colr_dir/cppcheck_report"
+xml_file="$xml_dir/cppcheck-report.xml"
+html_file="$xml_dir/index.html"
+suppress_file="${appdir}/cppcheck.suppress.txt"
+test_xml_dir="$test_dir/cppcheck_report"
+test_xml_file="$test_xml_dir/cppcheck-report.xml"
+test_html_file="$test_xml_dir/index.html"
+test_suppress_file="${appdir}/cppcheck.suppress.test.txt"
+
 declare -A script_deps=(["cppcheck"]="cppcheck")
 for script_dep in "${!script_deps[@]}"; do
     hash "$script_dep" &>/dev/null || {
@@ -19,9 +28,9 @@ for script_dep in "${!script_deps[@]}"; do
 done
 shopt -s nullglob
 
-declare -a colr_files=("$colrdir"/colr.c "$colrdir"/colr.h)
-declare -a colr_tool_files=("$colrdir"/colr_tool.c "$colrdir"/colr_tool.h)
-declare -a test_files=("$testdir"/test_*.c "$testdir"/test_*.h)
+declare -a colr_files=("$colr_dir"/colr.c "$colr_dir"/colr.h)
+declare -a colr_tool_files=("$colr_dir"/colr_tool.c "$colr_dir"/colr_tool.h)
+declare -a test_files=("$test_dir"/test_*.c "$test_dir"/test_*.h)
 
 declare -a cppcheck_cmd=(
     "cppcheck"
@@ -60,10 +69,10 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
-        $appscript [-f pat] [-e pat] [-t] [-- ARGS...]
-        $appscript [-f pat] [-e pat] [FILE...] [-- ARGS...]
-        $appscript [-E] [-t] [-- ARGS...]
-        $appscript [-E] [FILE...] [-- ARGS...]
+        $appscript [-f pat] [-e pat] [-t | FILE...] [-- ARGS...]
+        $appscript [-E] [-t | FILE...] [-- ARGS...]
+        $appscript [-t | FILE...] (-r | -x) [-- ARGS...]
+        $appscript [-t] -V
 
     Options:
         ARGS                  : Extra arguments for cppcheck.
@@ -75,11 +84,20 @@ function print_usage {
         -f pat,--filter pat   : Only show lines that match this pattern.
                                 These work in the order they are given.
         -h,--help             : Show this message.
+        -r,--report           : Generate HTML report.
         -t,--test             : Run on test files.
+        -V,--view             : View a previously generated HTML report.
         -v,--version          : Show $appname version and exit.
+        -x,--xml              : Generate xml report in: $xml_dir
     "
 }
 
+function view_html {
+    local index_file=$html_file
+    ((do_test)) && index_file=$test_html_file
+    [[ -e "$index_file" ]] || fail "HTML index file doesn't exist: $index_file"
+    xdg-open "$index_file" &>/dev/null
+}
 
 declare -a user_files
 declare -a extra_args
@@ -87,10 +105,13 @@ declare -a extra_args
 in_args=0
 in_filter_arg=0
 in_exclude_arg=0
+do_errors=0
+do_report=0
 do_test=0
+do_view=0
+do_xml=0
 exclude_pat=""
 filter_pat=""
-do_errors=0
 filter_first=1
 
 for arg; do
@@ -115,12 +136,21 @@ for arg; do
             print_usage ""
             exit 0
             ;;
+        "-r" | "--report")
+            do_report=1
+            ;;
         "-t" | "--test")
             do_test=1
+            ;;
+        "-V" | "--view")
+            do_view=1
             ;;
         "-v" | "--version")
             echo -e "$appname v. $appversion\n"
             exit 0
+            ;;
+        "-x" | "--xml")
+            do_xml=1
             ;;
         -*)
             if ((in_args)); then
@@ -150,6 +180,12 @@ for arg; do
     esac
 done
 
+((do_view)) && {
+    # Just view the cppcheck report, if it exists.
+    view_html
+    exit
+}
+
 ((${#user_files[@]})) || {
     ((${#colr_files[@]})) || fail "No colr source files found!"
     if ((do_test)); then
@@ -160,7 +196,57 @@ done
         user_files=("${colr_files[@]}" "${colr_tool_files[@]}")
     fi
 }
+
+if ((do_test)); then
+    [[ -e "$test_suppress_file" ]] && cppcheck_cmd+=("--suppressions-list=$test_suppress_file")
+else
+    [[ -e "$suppress_file" ]] && cppcheck_cmd+=("--suppressions-list=$suppress_file")
+fi
+
+declare -a report_cmd=(
+    "cppcheck-htmlreport"
+    "--file=$xml_file"
+    "--report-dir=$xml_dir"
+    "--source-dir=$colr_dir"
+    "--title=ColrC - CppCheck Report"
+)
+
+((do_test)) && report_cmd=(
+    "cppcheck-htmlreport"
+    "--file" "$test_xml_file"
+    "--report-dir" "$test_xml_dir"
+    "--source-dir" "$test_dir"
+    "--title" "ColrC - Test - CppCheck Report"
+)
+
+((do_report)) && {
+    # Generate a report.
+    cppcheck_cmd+=("--quiet" "--xml")
+    use_xml_dir=$xml_dir
+    use_xml_file=$xml_file
+    ((do_test)) && {
+        use_xml_dir=$test_xml_dir
+        use_xml_file=$test_xml_file
+    }
+    mkdir -p "$use_xml_dir" || fail "Failed to create report directory."
+    printf "\nGenerating cppcheck report for:\n"
+    for user_file in "${user_files[@]}"; do
+        printf "    %s\n" "$(readlink -f "$user_file")"
+    done
+    echo "${cppcheck_cmd[@]}" "${extra_args[@]}"
+    printf "\n"
+    "${cppcheck_cmd[@]}" "${extra_args[@]}" "${user_files[@]}" 1>"$use_xml_file" 2>&1
+    [[ -e "$use_xml_file" ]] || fail "No xml file to generate report with: $use_xml_file"
+    printf "\nGenerating cppcheck html...\n"
+    echo "${report_cmd[@]}"
+    "${report_cmd[@]}" || fail "Failed to generate HTML report."
+    exit 0
+}
+
+# Regular run, with optional errors, filtering, exlcuding, or xml to stdout.
 if ((do_errors)); then
+    ((do_xml)) && fail "--errors cannot be used with --xml."
+    ((do_report)) && fail "--errors cannot be used with --report."
     if [[ -n "$filter_pat" ]]; then
         if [[ "$filter_pat" == \(*\) ]]; then
             filter_pat="$filter_pat|(error)|(warn)"
@@ -170,6 +256,11 @@ if ((do_errors)); then
     else
         filter_pat="(error)|(warn)"
     fi
+fi
+if ((do_xml)); then
+    cppcheck_cmd+=("--quiet" "--xml")
+    [[ -z "$exclude_pat" ]] || fail "--exclude cannot be used with --xml."
+    [[ -z "$filter_pat" ]] || fail "--filter cannot be used with --xml."
 fi
 if [[ -n "$exclude_pat" ]] && [[ -n "$filter_pat" ]]; then
     if ((filter_first)); then

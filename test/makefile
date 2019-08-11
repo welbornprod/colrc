@@ -19,7 +19,9 @@ FFLAGS=-fno-omit-frame-pointer -fstack-protector-strong \
 binary=test_colrc
 cov_cmd=bash ../tools/gen_coverage_html.sh --
 cov_dir=coverage
-is_build_cmd=bash ../tools/is_build.sh
+cppcheck_cmd=bash ../tools/cppcheck_run.sh -t
+cppcheck_html=./cppcheck_report/index.html
+is_build_cmd=bash ../tools/is_build.sh $(binary)
 valgrind_cmd=bash ../tools/valgrind_run.sh
 test_source:=$(wildcard *.c)
 source:=$(test_source) ../colr.c
@@ -33,7 +35,7 @@ binobjects:=$(notdir $(objects))
 all: sanitize
 
 coverage: clean
-coverage: coverageclean
+coverage: cleancoverage
 coverage: CFLAGS+=-O0 -DDEBUG
 coverage: CFLAGS+=-fprofile-arcs -ftest-coverage
 coverage: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
@@ -84,8 +86,8 @@ clang: debug
 clean:
 	-@bash ../tools/clean.sh "$(binary)"
 
-.PHONY: coverageclean, coveragesummary, coverageview
-coverageclean:
+.PHONY: cleancoverage, coveragesummary, coverageview
+cleancoverage:
 	@shopt -s nullglob; \
 	declare -a covfiles=($(cov_dir)/*.gc{da,no} $(cov_dir)/*.info $(cov_dir)/html); \
 	if (($${#covfiles[@]})) && [[ "$${covfiles[*]}" != $(cov_dir)/html ]]; then \
@@ -100,27 +102,39 @@ coverageclean:
 	else \
 		printf "Coverage files already clean.\n"; \
 	fi;
+
 coveragesummary:
 	@$(cov_cmd) "$(binary)" "$(cov_dir)" --summary
 
 coverageview:
 	@$(cov_cmd) "$(binary)" "$(cov_dir)" --view
 
+.PHONY: cppcheck, cppcheckreport, cppcheckview
+
+cppcheck:
+	@$(cppcheck_cmd)
+
+cppcheckreport:
+	@$(cppcheck_cmd) -r
+
+cppcheckview:
+	@$(cppcheck_cmd) --view
+
 .PHONY: memcheck, memcheckquiet
 
 memcheck: debug
 memcheck:
-	@if $(is_build_cmd) "sanitize" || ! $(is_build_cmd) "debug"; then \
-		printf "\nRebuilding in debug non-sanitized mode for memcheck.\n"; \
-		$(MAKE) $(MAKEFLAGS) clean debug; \
+	@if $(is_build_cmd) "sanitize" -o "coverage" || ! $(is_build_cmd) "debug"; then \
+		printf "\nRebuilding in debug non-sanitized/coverage mode for memcheck.\n"; \
+		$(MAKE) clean debug; \
 	fi;
 	@$(valgrind_cmd) -- $(TEST_ARGS)
 
 memcheckquiet: debug
 memcheckquiet:
-	@if $(is_build_cmd) "sanitize" || ! $(is_build_cmd) "debug"; then \
-		printf "\nRebuilding in debug non-sanitized mode for memcheck.\n"; \
-		$(MAKE) $(MAKEFLAGS) clean debug; \
+	@if $(is_build_cmd) "sanitize" -o "coverage" || ! $(is_build_cmd) "debug"; then \
+		printf "\nRebuilding in debug non-sanitized/coverage mode for memcheck.\n"; \
+		$(MAKE) clean debug; \
 	fi;
 	@$(valgrind_cmd) -q -- $(TEST_ARGS)
 
@@ -138,40 +152,60 @@ help targets:
     all             : Build with no optimization or debug symbols.\n\
     clang           : Use \`clang\` to build the default target.\n\
     clean           : Delete previous build files.\n\
+    cleancoverage   : Delete previous coverage files.\n\
     cleantest       : Delete previous build files, then build and run the tests.\n\
     coverage        : Compile the debug build and generate coverage reports.\n\
     coveragesummary : View a summary of previously generated coverage reports.\n\
     coverageview    : View previously generated html coverage reports.\n\
+    cppcheck        : Run cppcheck on the tests.\n\
+    cppcheckreport  : Generate a cppcheck HTML report.\n\
+    cppcheckview    : View previously generated cppcheck HTML report.\n\
     debug           : Build the executable with debug symbols.\n\
     memcheck        : Run valgrind's memcheck on the executable.\n\
     release         : Build the executable with optimization, and strip it.\n\
     sanitize        : Build debug with \`-fsanitize\` options.\n\
     strip           : Run \`strip\` on the executable.\n\
     tags            : Build tags for this project using \`ctags\`.\n\
-    test            : Make debug (if needed), then run the tests.\n\
-    testgdb         : Make debug (if needed), then run the tests through GDB.\n\
-    testkdbg        : Make debug (if needed), then run the tests through KDbg.\n\
-    testquiet       : Make debug (if needed), then run the tests with --quiet.\n\
+    test            : Make sanitize (if needed), then run the tests.\n\
+    testfast        : Make debug (if needed), then run the tests.\n\
+                      This is used to build faster and fail faster.\n\
+                      If the tests pass, the \`test\` target still needs to run\n\
+                      to thoroughly test ColrC.\n\
+    testfull        : Delete previous build files, build/run tests in \`debug\`\n\
+                      mode, run tests for \`memcheck\`, and finally build\n\
+                      \`sanitize\` target and run tests.\n\
+    testgdb         : Make sanitize (if needed), then run the tests through GDB.\n\
+    testkdbg        : Make sanitize (if needed), then run the tests through KDbg.\n\
+    testquiet       : Make sanitize (if needed), then run the tests with --quiet.\n\
 	";
 
-.PHONY: cleantest, testgdb, testkdbg, testquiet, test
+.PHONY: cleantest, testfast, testfull, testgdb, testkdbg, testquiet, test
 cleantest: clean
 cleantest: test
 
 test: sanitize
 test:
-	-@./run_tests.sh $(TEST_ARGS)
+	@./run_tests.sh $(TEST_ARGS)
+
+testfast: clean
+testfast: debug
+testfast:
+	@./run_tests.sh $(TEST_ARGS)
+
+testfull: testfast memcheck
+testfull:
+	@$(MAKE) clean sanitize test
 
 testgdb: sanitize
 testgdb:
-	-@./run_tests.sh -e gdb $(TEST_ARGS)
+	@./run_tests.sh -e gdb $(TEST_ARGS)
 
 testkdbg: sanitize
 testkdbg:
-	-@./run_tests.sh -e kdbg $(TEST_ARGS)
+	@./run_tests.sh -e kdbg $(TEST_ARGS)
 
 testquiet: sanitize
 testquiet:
-	-@./run_tests.sh $(TEST_ARGS) --quiet
+	@./run_tests.sh $(TEST_ARGS) --quiet
 
 

@@ -1458,6 +1458,99 @@ size_t colr_str_noncode_len(const char* s) {
     return total;
 }
 
+/*! Replaces substrings in a string.
+
+    \details
+    Using `NULL` as a replacement is like using an empty string ("").
+
+    \pi s      The string to operate on.
+    \pi target The string to replace.
+    \pi repl   The string to replace with.
+    \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+               \p target is `NULL`/empty, or the result allocation fails.
+*/
+char* colr_str_replace(char *s, const char *target, const char *repl) {
+    if (!(s && target)) return NULL;
+    if ((s[0] == '\0') || (target[0] == '\0')) return NULL;
+    if (!repl) repl = "";
+
+    // Keeps track of the target strings.
+    char* ins = s;
+    // Count the number of replacements needed, by using strstr and skipping
+    // past the targets for each call.
+    size_t target_len = strlen(target);
+    size_t count;
+    for (count = 0; (ins = strstr(ins, target)); ++count) ins += target_len;
+
+    size_t repl_len = strlen(repl);
+    size_t extra_chars = repl_len >= target_len ? (repl_len - target_len) : 0;
+
+    char* result;
+    // Pointer for writing results to each position in the string.
+    char* tmp;
+    tmp = result = calloc(
+        strlen(s) + (extra_chars * count) + 1,
+        sizeof(char)
+    );
+    if (!result) return NULL;
+
+    // Start writing replacements.
+    while (count--) {
+        // Find the next target.
+        ins = strstr(s, target);
+        // Write everything before the target.
+        size_t front_len = ins - s;
+        tmp = strncpy(tmp, s, front_len);
+        // Write the replacement to the end of `tmp`.
+        tmp += front_len;
+        tmp = strcpy(tmp, repl);
+        tmp += repl_len;
+        // Skip past our last writes.
+        s += front_len + target_len;
+    }
+    // Write any remaining characters.
+    strcpy(tmp, s);
+    return result;
+}
+
+/*! Replace substrings in a string with a ColorArg's string result.
+    \details
+    Using `NULL` as a replacement is like using an empty string ("").
+
+    \pi s      The string to operate on.
+    \pi target The string to replace.
+    \pi repl   The ColorArg to produce escape-codes to replace with.
+    \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+               \p target is `NULL`/empty, or the result allocation fails.
+*/
+char* colr_str_replace_ColorArg(char* s, const char* target, const ColorArg* repl) {
+    if (!(s && target)) return NULL;
+    if ((s[0] == '\0') || (target[0] == '\0')) return NULL;
+    char* replstr = repl ? ColorArg_to_str(*repl): NULL;
+    char* result = colr_str_replace(s, target, replstr);
+    if (replstr) free(replstr);
+    return result;
+}
+
+/*! Replace substrings in a string with a ColorText's string result.
+    \details
+    Using `NULL` as a replacement is like using an empty string ("").
+
+    \pi s      The string to operate on.
+    \pi target The string to replace.
+    \pi repl   The ColorText to produce text/escape-codes to replace with.
+    \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+               \p target is `NULL`/empty, or the result allocation fails.
+*/
+char* colr_str_replace_ColorText(char* s, const char* target, const ColorText* repl) {
+    if (!(s && target)) return NULL;
+    if ((s[0] == '\0') || (target[0] == '\0')) return NULL;
+    char* replstr = repl ? ColorText_to_str(*repl): NULL;
+    char* result = colr_str_replace(s, target, replstr);
+    if (replstr) free(replstr);
+    return result;
+}
+
 /*! Convert a string into a representation of a string, by wrapping it in
     quotes and escaping characters that need escaping.
 
@@ -2101,11 +2194,6 @@ char* _colr_join(void *joinerp, ...) {
     va_copy(argcopy, args);
     size_t length = _colr_join_size(joinerp, argcopy);
     va_end(argcopy);
-    // If length is 1, then no usable values were passed in.
-    if (length == 1) {
-        va_end(args);
-        return colr_empty_str();
-    }
 
     char* final = calloc(length, sizeof(char));
     char* joiner;
@@ -2660,9 +2748,6 @@ ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p) {
         .type=type,
         .value=ColorValue_from_value(colrtype, p),
     };
-    if ((type == STYLE) && (carg.value.type == TYPE_INVALID)) {
-        carg.value.type = TYPE_INVALID_STYLE;
-    }
     return carg;
 }
 
@@ -3277,6 +3362,19 @@ char* ColorText_to_str(ColorText ctext) {
     return final;
 }
 
+/*! Compares two ColorTypes.
+
+    \details
+    This is used to implement colr_eq().
+
+    \pi a   The first ColorType to compare.
+    \pi b   The second ColorType to compare.
+    \return `true` if they are equal, otherwise `false`.
+*/
+bool ColorType_eq(ColorType a, ColorType b) {
+    return ((ColorType)a == (ColorType)b);
+}
+
 /*! Determine which type of color value is desired by name.
 
     \details
@@ -3516,15 +3614,14 @@ ColorValue ColorValue_from_str(char* s) {
     \sa ColorValue
 */
 ColorValue ColorValue_from_value(ColorType type, void *p) {
-    if (!p) {
-        return (ColorValue){.type=TYPE_INVALID};
-    }
     if (
         type == TYPE_INVALID ||
         type == TYPE_INVALID_EXTENDED_RANGE ||
         type == TYPE_INVALID_RGB_RANGE
         ) {
         return (ColorValue){.type=type};
+    } else if (!p) {
+        return (ColorValue){.type=TYPE_INVALID};
     }
     if (type == TYPE_BASIC) {
         BasicValue *bval = p;
@@ -3537,12 +3634,19 @@ ColorValue ColorValue_from_value(ColorType type, void *p) {
         return (ColorValue){.type=TYPE_EXTENDED, .ext=*eval};
     } else if (type == TYPE_STYLE) {
         StyleValue *sval = p;
-        ColorType ctype = (*sval == STYLE_INVALID) ? TYPE_INVALID_STYLE : TYPE_STYLE;
+        ColorType ctype = TYPE_STYLE;
+        if ((*sval < STYLE_MIN_VALUE) || (*sval > STYLE_MAX_VALUE)) {
+            ctype = TYPE_INVALID_STYLE;
+            *sval = STYLE_INVALID;
+        } else if (*sval == STYLE_INVALID) {
+            ctype = TYPE_INVALID_STYLE;
+        }
         return (ColorValue){.type=ctype, .style=*sval};
     } else if (type == TYPE_RGB) {
         RGB *rgbval = p;
         return (ColorValue){.type=TYPE_RGB, .rgb=*rgbval};
     }
+    // TYPE_NONE:
     return (ColorValue){.type=type};
 }
 
@@ -3816,6 +3920,20 @@ char* ColorValue_to_str(ArgType type, ColorValue cval) {
     }
     return colr_empty_str();
 }
+
+/*! Compares two BasicValues.
+
+    \details
+    This is used to implement colr_eq().
+
+    \pi a   The first BasicValue to compare.
+    \pi b   The second BasicValue to compare.
+    \return `true` if they are equal, otherwise `false`.
+*/
+bool BasicValue_eq(BasicValue a, BasicValue b) {
+    return ((BasicValue)a == (BasicValue)b);
+}
+
 /*! Convert named argument to an actual BasicValue enum value.
 
     \pi arg Color name to find the BasicValue for.
@@ -3937,6 +4055,19 @@ int BasicValue_to_ansi(ArgType type, BasicValue bval) {
     }
     // Bright back colors.
     return use_value + (type == BACK ? 90 : 80);
+}
+
+/*! Compares two ExtendedValues.
+
+    \details
+    This is used to implement colr_eq().
+
+    \pi a   The first ExtendedValue to compare.
+    \pi b   The second ExtendedValue to compare.
+    \return `true` if they are equal, otherwise `false`.
+*/
+bool ExtendedValue_eq(ExtendedValue a, ExtendedValue b) {
+    return ((ExtendedValue)a == (ExtendedValue)b);
 }
 
 /*! Create an ExtendedValue from a hex string.
@@ -4068,7 +4199,7 @@ int ExtendedValue_from_str(const char* arg) {
     }
 
     // Regular number, hopefully 0-255, but I'll check that in a second.
-    size_t length = strnlen(arglower, 4);
+    size_t length = strnlen(arglower, 5);
     if (length > 3) {
         // Definitely not 0-255.
         free(arglower);
@@ -4385,6 +4516,19 @@ char* RGB_repr(RGB rgb) {
         rgb.blue
     );
     return repr;
+}
+
+/*! Compares two StyleValues.
+
+    \details
+    This is used to implement colr_eq().
+
+    \pi a   The first StyleValue to compare.
+    \pi b   The second StyleValue to compare.
+    \return `true` if they are equal, otherwise `false`.
+*/
+bool StyleValue_eq(StyleValue a, StyleValue b) {
+    return ((StyleValue)a == (StyleValue)b);
 }
 
 /*! Convert a named argument to actual StyleValue enum value.

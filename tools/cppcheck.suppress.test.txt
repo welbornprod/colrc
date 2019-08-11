@@ -1,0 +1,5 @@
+// Suppress if (s == NULL) for string literals in tests.
+literalWithCharPtrCompare
+
+// Suppress 'explanation' var scope from snow.h. It's not a big deal.
+variableScope

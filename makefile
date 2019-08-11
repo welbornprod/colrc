@@ -29,6 +29,8 @@ headers=colr_tool.h $(colr_headers)
 optional_headers=dbug.h
 optional_flags=$(foreach header, $(optional_headers), -include $(header))
 cov_dir=coverage
+cppcheck_cmd=bash ./tools/cppcheck_run.sh
+cppcheck_html=./cppcheck_report/index.html
 is_build_cmd=bash tools/is_build.sh
 custom_dir=doc_style
 docs_config=Doxyfile_common
@@ -67,7 +69,7 @@ valgrind_cmd=bash tools/valgrind_run.sh
 all: debug
 
 coverage: clean
-coverage: coverageclean
+coverage: cleancoverage
 coverage: CFLAGS+=-O0 -DDEBUG
 coverage: CFLAGS+=-fprofile-arcs -ftest-coverage
 coverage: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
@@ -174,20 +176,52 @@ cleanlatex:
 	@./tools/clean.sh -m "Latex" $(doxy_latex_files)
 
 cleanexamples:
-	@$(MAKE) $(MAKEFLAGS) clean && \
+	@$(MAKE) clean && \
 		cd examples && \
-			$(MAKE) $(MAKEFLAGS) --no-print-directory clean
+			$(MAKE) --no-print-directory clean
 
 cleanpdf:
 	@./tools/clean.sh -m "PDF" $(docs_pdf) $(latex_files)
 
-.PHONY: coveragesummary
+.PHONY: cleancoverage, coveragesummary, coverageview
+cleancoverage:
+	@shopt -s nullglob; \
+	declare -a covfiles=($(cov_dir)/*.gc{da,no} $(cov_dir)/*.info $(cov_dir)/html); \
+	if (($${#covfiles[@]})) && [[ "$${covfiles[*]}" != $(cov_dir)/html ]]; then \
+		printf "Removing coverage files...\n"; \
+		for covfile in "$${covfiles[@]}"; do \
+			if rm -r "$$covfile" &>/dev/null; then \
+				printf "    Cleaned: $$covfile\n"; \
+			elif [[ -e "$$covfile" ]]; then \
+				printf "     Failed: $$covfile\n"; \
+			fi; \
+		done; \
+	else \
+		printf "Coverage files already clean.\n"; \
+	fi;
+
 coveragesummary:
 	@./tools/gen_coverage_html.sh "$(binary)" "$(cov_dir)" --summary
 
-.PHONY: coverageview
 coverageview:
 	@./tools/gen_coverage_html.sh "$(binary)" "$(cov_dir)" --view
+
+.PHONY: cppcheck, cppcheckreport, cppcheckreportall, cppcheckview, cppcheckviewall
+
+cppcheck:
+	@$(cppcheck_cmd)
+
+cppcheckreport:
+	@$(cppcheck_cmd) -r
+
+cppcheckreportall:
+	@$(cppcheck_cmd) -r && $(cppcheck_cmd) -t -r
+
+cppcheckview:
+	@$(cppcheck_cmd) --view
+
+cppcheckviewall:
+	@$(cppcheck_cmd) --view && $(cppcheck_cmd) -t --view
 
 .PHONY: docshtml, docslatex, docspdf, docsrebuild
 docshtml: $(docs_main_file)
@@ -201,14 +235,14 @@ docsrebuild: docs
 
 .PHONY: examples
 examples: $(examples_source)
-	@cd examples && $(MAKE) $(MAKEFLAGS) --no-print-directory $(COLR_ARGS)
+	@cd examples && $(MAKE) --no-print-directory $(COLR_ARGS)
 
 .PHONY: memcheck, memcheckquiet
 memcheck: debug
 memcheck:
 	@if $(is_build_cmd) "sanitize" || ! $(is_build_cmd) "debug"; then \
 		printf "\nRebuilding in debug non-sanitized mode for memcheck.\n"; \
-		$(MAKE) $(MAKEFLAGS) clean debug; \
+		$(MAKE) clean debug; \
 	fi;
 	@$(valgrind_cmd) -- $(COLR_ARGS)
 
@@ -216,7 +250,7 @@ memcheckquiet: debug
 memcheckquiet:
 	@if $(is_build_cmd) "sanitize" || ! $(is_build_cmd) "debug"; then \
 		printf "\nRebuilding in debug non-sanitized mode for memcheck.\n"; \
-		$(MAKE) $(MAKEFLAGS) clean debug; \
+		$(MAKE) clean debug; \
 	fi;
 	@$(valgrind_cmd) -q -- $(COLR_ARGS)
 
@@ -243,93 +277,126 @@ strip:
 .PHONY: help, targets
 help targets:
 	-@printf "Make targets available:\n\
-    all             : Build with no optimization or debug symbols.\n\
-    clang           : Use \`clang\` to build the default target.\n\
-    clangrelease    : Use \`clang\` to build the release target.\n\
-    clean           : Delete previous build files.\n\
-    cleandebug      : Like running \`make clean debug\`.\n\
-    cleandocs       : Delete Doxygen docs from ./$(docs_dir).\n\
-    cleanexamples   : Delete previous build files from the examples in $(examples_dir).\n\
-    cleantest       : Delete previous build files, build the binary and the \n\
-                      test binary, and run the tests.\n\
-    coverage        : Compile the debug build and generate coverage reports.\n\
-                      This only checks the main binary, not the tests.\n\
-                      See the \`testcoverage\` target.\n\
-    coveragesummary : View a summary of previously generated coverage reports.\n\
-                      This is only for the main binary, not the tests.\n\
-                      See the \`testsummary\` target.\n\
-    coverageview    : View previously generated html coverage reports.\n\
-                      This is only for the main binary, not the tests.\n\
-                      See the \`testview\` target.\n\
-    debug           : Build the executable with debug symbols.\n\
-    docs            : Build the Doxygen docs.\n\
-    docsrebuild     : Like running \`make cleandocs docs\`\n\
-    examples        : Build example executables in $(examples_dir).\n\
-    release         : Build the executable with optimization, and strip it.\n\
-    release2        : Same as \`release\` target, but with -O2 instead of -O3.\n\
-    run             : Run the executable. Args are set with COLR_ARGS.\n\
-    runexamples     : Run the example executables in $(examples_dir).\n\
-    sanitize        : Build debug with \`-fsanitize\` options.\n\
-    strip           : Run \`strip\` on the executable.\n\
-    tags            : Build tags for this project using \`ctags\`.\n\
-    test            : Build debug (if needed), build the test debug (if needed),\n\
-                      and run the tests.\n\
-    testcoverage    : Delete previous test build files, and build the tests for coverage.\n\
-    testgdb         : Build debug (if needed), build the test debug (if needed),\n\
-                      and run the tests through GDB.\n\
-    testkdbg        : Build debug (if needed), build the test debug (if needed),\n\
-                      and run the tests through KDbg.\n\
-    testmemcheck    : Build  debug tests (if needed), and run them through valgrind.\n\
-    testquiet       : Build debug (if needed), build the test debug (if needed),\n\
-                      and run the tests with --quiet.\n\
-    testsummary     : View a summary of previously built test coverage reports.\n\
-    testview        : View previously generated html test coverage reports.\n\
-    memcheck        : Run valgrind's memcheck on the executable.\n\
+    all               : Build with no optimization or debug symbols.\n\
+    clang             : Use \`clang\` to build the default target.\n\
+    clangrelease      : Use \`clang\` to build the release target.\n\
+    clean             : Delete previous build files.\n\
+    cleancoverage     : Delete previous coverage files.\n\
+    cleandebug        : Like running \`make clean debug\`.\n\
+    cleandocs         : Delete Doxygen docs from ./$(docs_dir).\n\
+    cleanexamples     : Delete previous build files from the examples in $(examples_dir).\n\
+    cleantest         : Delete previous build files, build the binary and the \n\
+                        test binary, and run the tests.\n\
+    coverage          : Compile the debug build and generate coverage reports.\n\
+                        This only checks the main binary, not the tests.\n\
+                        See the \`testcoverage\` target.\n\
+    coveragesummary   : View a summary of previously generated coverage reports.\n\
+                        This is only for the main binary, not the tests.\n\
+                        See the \`testsummary\` target.\n\
+    coverageview      : View previously generated html coverage reports.\n\
+                        This is only for the main binary, not the tests.\n\
+                        See the \`testview\` target.\n\
+    cppcheck          : Run cppcheck on the tests.\n\
+    cppcheckreport    : Generate a cppcheck HTML report.\n\
+    cppcheckreportall : Generate a cppcheck HTML report.\n\
+    					This will also generate a report for the tests.\n\
+    cppcheckview      : View previously generated cppcheck HTML report.\n\
+    cppcheckviewall   : View previously generated cppcheck HTML report.\n\
+    				    This will also view the report for the tests.\n\
+    debug             : Build the executable with debug symbols.\n\
+    docs              : Build the Doxygen docs.\n\
+    docsrebuild       : Like running \`make cleandocs docs\`\n\
+    examples          : Build example executables in $(examples_dir).\n\
+    release           : Build the executable with optimization, and strip it.\n\
+    release2          : Same as \`release\` target, but with -O2 instead of -O3.\n\
+    run               : Run the executable. Args are set with COLR_ARGS.\n\
+    runexamples       : Run the example executables in $(examples_dir).\n\
+    sanitize          : Build debug with \`-fsanitize\` options.\n\
+    strip             : Run \`strip\` on the executable.\n\
+    tags              : Build tags for this project using \`ctags\`.\n\
+    test              : Build debug (if needed), build the test sanitize (if needed),\n\
+                        and run the tests.\n\
+    testcoverage      : Delete previous test build files, and build the tests for coverage.\n\
+    testfast          : Build the test debug and run the tests.\n\
+    				    It's not as thorough as \`test\`, but it catches some\n\
+    				    errors.\n\
+    testfull          : Build/run \`testfast\`, if nothing fails run \`memcheck\`,\n\
+                        and if that succeeds, run the tests in \`sanitize\` mode.\n\
+                        This will show errors early, and if everything passes\n\
+                        then there is a low chance of show-stopping bugs.\n\
+    testgdb           : Build debug (if needed), build the test debug (if needed),\n\
+                        and run the tests through GDB.\n\
+    testkdbg          : Build debug (if needed), build the test debug (if needed),\n\
+                        and run the tests through KDbg.\n\
+    testmemcheck      : Build  debug tests (if needed), and run them through valgrind.\n\
+    testquiet         : Build debug (if needed), build the test debug (if needed),\n\
+                        and run the tests with --quiet.\n\
+    testsummary       : View a summary of previously built test coverage reports.\n\
+    testview          : View previously generated html test coverage reports.\n\
+    memcheck          : Run valgrind's memcheck on the executable.\n\
 	";
 
 .PHONY: cleantest, test
 cleantest:
-	-@$(MAKE) $(MAKEFLAGS) --no-print-directory clean debug && { \
+	-@$(MAKE) --no-print-directory clean debug && { \
 		cd test && \
-			TEST_ARGS=$(TEST_ARGS) $(MAKE) $(MAKEFLAGS) --no-print-directory cleantest; \
+			TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory cleantest; \
 	};
 
 test:
-	-@$(MAKE) $(MAKEFLAGS) --no-print-directory debug && { \
+	-@$(MAKE) --no-print-directory debug && { \
 		cd test && \
-			TEST_ARGS=$(TEST_ARGS) $(MAKE) $(MAKEFLAGS) --no-print-directory test; \
+			TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory test; \
 	};
 
-.PHONY: testcoverage, testmemcheck, testsummary, testview
+.PHONY: testcppcheckreport, testcoverage, testcoverageview
+testcppcheckreport:
+	@cd test && $(MAKE) cppcheckreport
+
 testcoverage:
 	-@cd test && \
-		TEST_ARGS=$(TEST_ARGS) $(MAKE) $(MAKEFLAGS) --no-print-directory clean coverage
+		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory clean coverage
+
+# This is the same as `testview`.
+testcoverageview:
+	-@cd test && \
+		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory coverageview
+
+.PHONY: testfast, testfull, testgdb, testkdbg
+testfast:
+	-@cd test && \
+		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory testfast;
+
+testfull:
+	-@cd test && \
+		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory testfull;
 
 testgdb:
-	-@$(MAKE) $(MAKEFLAGS) --no-print-directory debug && { \
+	-@$(MAKE) --no-print-directory debug && { \
 		cd test && \
-			TEST_ARGS=$(TEST_ARGS) $(MAKE) $(MAKEFLAGS) --no-print-directory debug testgdb; \
+			TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory debug testgdb; \
 		};
 
 testkdbg:
-	-@$(MAKE) $(MAKEFLAGS) --no-print-directory debug && { \
+	-@$(MAKE) --no-print-directory debug && { \
 		cd test && \
-			TEST_ARGS=$(TEST_ARGS) $(MAKE) $(MAKEFLAGS) --no-print-directory debug testkdbg; \
+			TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory debug testkdbg; \
 		};
 
+.PHONY: testmemcheck, testquiet, testsummary, testview
 testmemcheck:
 	-@cd test && \
-		TEST_ARGS=$(TEST_ARGS) $(MAKE) $(MAKEFLAGS) --no-print-directory debug memcheck
+		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory debug memcheck
 
 testquiet:
-	-@$(MAKE) $(MAKEFLAGS) --no-print-directory debug && { \
+	-@$(MAKE) --no-print-directory debug && { \
 		cd test && \
-		TEST_ARGS=$(TEST_ARGS) $(MAKE) $(MAKEFLAGS) --no-print-directory debug testquiet; \
+		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory debug testquiet; \
 	};
 
 testsummary:
-	-@cd test && $(MAKE) $(MAKEFLAGS) --no-print-directory coveragesummary
+	-@cd test && $(MAKE) --no-print-directory coveragesummary
 
 testview:
-	-@cd test && $(MAKE) $(MAKEFLAGS) --no-print-directory coverageview
+	-@cd test && $(MAKE) --no-print-directory coverageview
 

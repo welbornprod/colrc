@@ -4,7 +4,7 @@
 #  sanitizer (libasan), or neither of those (release mode).
 # -Christopher Welborn 08-09-2019
 appname="is_build"
-appversion="0.0.1"
+appversion="0.0.2"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 # appdir="${apppath%/*}"
@@ -32,7 +32,7 @@ NC="${NC:-\x1b[0m}"
 function current_build {
     local exepath=$1
     [[ -e "$exepath" ]] || fail "Executable doesn't exist: $exepath"
-    local filetype libs
+    local filetype libs symbols
     filetype="$(file "$exepath")" || fail "Can't get file type for: $exepath"
     local names namesfmt
     declare -a names
@@ -44,6 +44,11 @@ function current_build {
     libs="$(ldd "$exepath")"
     [[ "$libs" == *libasan* ]] && {
         names+=("sanitize")
+        is_release=0
+    }
+    symbols="$(nm "$exepath")"
+    [[ "$symbols" == *__gcov* ]] && {
+        names+=("coverage")
         is_release=0
     }
     ((is_release)) && names+=("release")
@@ -147,19 +152,29 @@ for arg; do
 done
 
 { (( $# > 0 )) ||  [[ -x "$binary" ]]; } ||  fail "No executable given, none found either."
-((${#nonflags[@]})) || nonflags[0]=$binary
-[[ -n "$binary" ]] || binary="${nonflags[0]}"
+
+no_args=0
+if ((${#nonflags[@]})); then
+    binary="${nonflags[0]}"
+    nonflags=("${nonflags[@]:1}")
+else
+    nonflags[0]=$binary
+    no_args=1
+fi
+{ [[ -n "$binary" ]] && ((${#nonflags[@]})); } || {
+    no_args=1
+}
+
 [[ -e "$binary" ]] || fail "Executable doesn't exist: $binary"
 binaryname="${binary##*/}"
 
-if ((${#nonflags[@]} == 1)); then
+if ((no_args)); then
     # Just print the detected build type.
     print_build "$binary"
 else
     # Check the build against the user's arguments.
     current="$(current_build "$binary")"
-    declare -a buildnames=("${nonflags[@]:1}")
-    for buildname in "${buildnames[@]}"; do
+    for buildname in "${nonflags[@]}"; do
         if [[ "$current" == *${buildname}* ]]; then
             # Got a match, return successful in --or mode.
             ((do_or)) && {
@@ -176,12 +191,12 @@ else
     done
     # In --or mode, none of the patterns matched, so this is a failure.
     ((do_or)) && {
-        ((do_status)) && print_build "$binary" "$current" "No matches for '${buildnames[*]}'."
+        ((do_status)) && print_build "$binary" "$current" "No matches for '${nonflags[*]}'."
         exit 1
     }
     # Without --or, all of the patterns matched, so this is a success.
 fi
 
-((do_status)) && print_build "$binary" "$current"
+((do_status)) && ((!no_args)) && print_build "$binary" "$current"
 exit 0
 

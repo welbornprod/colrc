@@ -75,6 +75,58 @@
         }\
     } while (0)
 
+#define assert_colr_eq(a, b) \
+    do { \
+        if (!colr_eq(a, b)) { \
+            char* _a_c_eq_a = colr_repr(a); \
+            char* _a_c_eq_b = colr_repr(b); \
+            fail("Not equal: (" #a ") %s != (" #b ") %s", _a_c_eq_a, _a_c_eq_b); \
+            free(_a_c_eq_a); \
+            free(_a_c_eq_b); \
+        }\
+    } while (0)
+
+#define assert_colr_neq(a, b) \
+    do { \
+        if (colr_eq(a, b)) { \
+            char* _a_c_neq_a = colr_repr(a); \
+            char* _a_c_neq_b = colr_repr(b); \
+            fail("Equal: (" #a ") %s == (" #b ") %s", _a_c_neq_a, _a_c_neq_b); \
+            free(_a_c_neq_a); \
+            free(_a_c_neq_b); \
+        }\
+    } while (0)
+
+#define assert_from_str_eq(s, val) \
+    assert_colr_eq( \
+        _Generic( \
+            (val), \
+            BasicValue: BasicValue_from_str, \
+            ColorArg: ColorArg_from_str, \
+            ColorType: ColorType_from_str, \
+            ColorValue: ColorValue_from_str, \
+            ExtendedValue: ExtendedValue_from_str, \
+            RGB: RGB_from_str, \
+            StyleValue: StyleValue_from_str \
+        )(s), \
+        val \
+    )
+
+#define assert_from_str_neq(s, val, msg) \
+    assert_colr_neq( \
+        _Generic( \
+            (val), \
+            BasicValue: BasicValue_from_str, \
+            ColorArg: ColorArg_from_str, \
+            ColorType: ColorType_from_str, \
+            ColorValue: ColorValue_from_str, \
+            ExtendedValue: ExtendedValue_from_str, \
+            RGB: RGB_from_str, \
+            StyleValue: StyleValue_from_str \
+        )(s), \
+        val \
+    )
+
 #define assert_is_invalid(colrobj) \
     do { \
         if (!colr_is_invalid(colrobj)) { \
@@ -108,10 +160,17 @@
         } \
     } while (0)
 
+#define assert_not_null(x) \
+    do { \
+        if (!x) { \
+            fail("Not supposed to be NULL: " #x); \
+        } \
+    } while (0)
+
 #define assert_range(x, xmin, xmax, msg) \
     do { \
         if (!in_range(x, xmin, xmax)) { \
-            char* _a_r_msg; \
+            char* _a_r_msg = NULL; \
             char* _a_r_x_repr = test_repr(x); \
             char* _a_r_xmin_repr = test_repr(xmin); \
             char* _a_r_xmax_repr = test_repr(xmax); \
@@ -127,49 +186,92 @@
     } while (0)
 
 #define assert_size_eq(a, b) \
-    do { \
-        if (a != b) { \
-            fail("Sizes are not equal: (" #a ") %lu != (" #b ") %lu", a, b); \
-        }\
-    } while (0)
-
-#define assert_size_eq_repr(a, b, colrobj) \
-    do { \
-        if (a != b) { \
-            char* _a_s_e_r_repr = colr_repr(colrobj); \
-            fail("Sizes are not equal: (" #a ") %lu != (" #b ") %lu\n      Repr: %s", a, b, _a_s_e_r_repr); \
-            free(_a_s_e_r_repr); \
-        }\
-    } while (0)
-
-#define assert_size_eq_str(a, b, colrobj) \
-    do { \
-        if (a != b) { \
-            char* _a_s_e_s_str = colr_to_str(colrobj); \
-            fail("Sizes are not equal: (" #a ") %lu != (" #b ") %lu\n    String: %s", a, b, _a_s_e_s_str); \
-            free(_a_s_e_s_str); \
-        }\
-    } while (0)
+    assert_size_op(a, ==, b, "Sizes are not equal")
 
 #define assert_size_eq_full(a, b, colrobj) \
+    assert_size_op_full(a, ==, b, colrobj, "Sizes are not equal")
+
+#define assert_size_eq_repr(a, b, colrobj) \
+    assert_size_op_repr(a, ==, b, colrobj, "Sizes are not equal")
+
+#define assert_size_eq_str(a, b, colrobj) \
+    assert_size_op_str(a, ==, b, colrobj, "Sizes are not equal")
+
+#define assert_size_gt_full(a, b, colrobj) \
+    assert_size_op_full(a, >, b, colrobj, "Size is not greater")
+
+#define assert_size_gte_full(a, b, colrobj) \
+    assert_size_op_full(a, >=, b, colrobj, "Size is not greater or equal")
+
+#define assert_size_op(a, op, b, msg) \
     do { \
-        if (a != b) { \
-            char* _a_s_e_f_repr = colr_repr(colrobj); \
-            char* _a_s_e_f_str = colr_to_str(colrobj); \
-            char* _a_s_e_f_strrepr = colr_repr(_a_s_e_f_str); \
-            free(_a_s_e_f_str); \
-            fail( \
-                "Sizes are not equal: (" #a ") %lu != (" #b ") %lu\n      Repr: %s\n    String: %s", \
-                a, \
-                b, \
-                _a_s_e_f_repr, \
-                _a_s_e_f_strrepr \
-            ); \
-            free(_a_s_e_f_repr); \
-            free(_a_s_e_f_strrepr); \
+        if (!(a op b)) { \
+            fail("%s: (" #a ") %zu " #op " (" #b ") %zu", msg, a, b); \
         }\
     } while (0)
 
+#define assert_size_op_full(a, op,  b, colrobj, msg) \
+    do { \
+        if (!(a op b)) { \
+            char* _a_s_op_f_repr = colr_repr(colrobj); \
+            char* _a_s_op_f_str = colr_to_str(colrobj); \
+            char* _a_s_op_f_strrepr = colr_repr(_a_s_op_f_str); \
+            free(_a_s_op_f_str); \
+            fail( \
+                "%s: (" #a ") %zu " #op " (" #b ") %zu\n      Repr: %s\n    String: %s", \
+                msg, \
+                (size_t) a, \
+                (size_t) b, \
+                _a_s_op_f_repr, \
+                _a_s_op_f_strrepr \
+            ); \
+            free(_a_s_op_f_repr); \
+            free(_a_s_op_f_strrepr); \
+        }\
+    } while (0)
+
+#define assert_size_op_repr(a, op, b, colrobj, msg) \
+    do { \
+        if (!(a op b)) { \
+            char* _a_s_op_r_repr = colr_repr(colrobj); \
+            fail( \
+                "%s: (" #a ") %zu " #op " (" #b ") %zu\n      Repr: %s", \
+                msg, \
+                (size_t) a, \
+                (size_t) b, \
+                _a_s_op_r_repr \
+            ); \
+            free(_a_s_op_r_repr); \
+        }\
+    } while (0)
+
+#define assert_size_op_str(a, op, b, colrobj, msg) \
+    do { \
+        if (!(a op b)) { \
+            char* _a_s_op_s_str = colr_to_str(colrobj); \
+            fail( \
+                "%s: (" #a ") %zu " #op " (" #b ") %zu\n    String: %s", \
+                msg, \
+                (size_t) a, \
+                (size_t) b, \
+                _a_s_op_s_str \
+            ); \
+            free(_a_s_op_s_str); \
+        }\
+    } while (0)
+
+#define assert_str_contains(s, needle) \
+    do { \
+        assert_not_null(s); \
+        assert_not_null(needle); \
+        assert_str_not_empty(s); \
+        assert_str_not_empty(needle); \
+        if (!strstr(s, needle)) { \
+            char* _a_s_c_repr = colr_repr(s); \
+            char* _a_s_c_needle = colr_repr(needle); \
+            fail("String does not contain %s: %s", _a_s_c_needle, _a_s_c_repr); \
+        } \
+    } while (0)
 
 #define assert_str_empty(s) \
     do { \
@@ -182,14 +284,32 @@
     } while (0)
 
 
+/*! \def assert_str_eq
+    Assert that two strings are equal, with a nice message with string reprs.
+
+    \pi s1  First string to compare.
+    \pi s2  Second string to compare.
+    \pi msg Message for failures.
+*/
 #define assert_str_eq(s1, s2, msg) \
     do { \
-        if (strcmp(s1, s2) != 0) { \
+        char* _a_s_e_use_msg = msg ? (msg[0] == '\0' ? "Strings aren't equal" : msg) : "Strings aren't equal"; \
+        if (s1 == NULL && s2 == NULL) { /* cppcheck-suppress literalWithCharPtrCompare */ \
+            (void)0; \
+        } else if (s1 != NULL && s2 == NULL) { /* cppcheck-suppress literalWithCharPtrCompare */ \
+            char* _a_s_e_s1_repr = colr_str_repr(s1); \
+            fail("%s:\n    %s\n  != NULL", _a_s_e_use_msg, _a_s_e_s1_repr); \
+            free(_a_s_e_s1_repr); \
+        } else if (s2 != NULL && s1 == NULL) { /* cppcheck-suppress literalWithCharPtrCompare */ \
+            char* _a_s_e_s2_repr = colr_str_repr(s2); \
+            fail("%s:\n    NULL\n  != %s", _a_s_e_use_msg, _a_s_e_s2_repr); \
+            free(_a_s_e_s2_repr); \
+        } else if (strcmp(s1, s2) != 0) { \
             char* _a_s_e_s1_repr = colr_str_repr(s1); \
             char* _a_s_e_s2_repr = colr_str_repr(s2); \
             fail( \
                 "%s:\n     %s\n  != %s", \
-                msg, \
+                _a_s_e_use_msg, \
                 _a_s_e_s1_repr, \
                 _a_s_e_s2_repr \
             ); \
@@ -261,6 +381,7 @@
     _Generic( \
         (x), \
         char: colr_char_repr, \
+        char*: colr_str_repr, \
         int: int_repr, \
         unsigned int: uint_repr, \
         long: long_repr, \
@@ -268,6 +389,16 @@
         unsigned long: ulong_repr, \
         unsigned long long: ulong_long_repr \
     )(x)
+
+/*! Kinda like colr_str_repr, but nothing is escaped.
+    If the string is NULL, then "NULL" is returned.
+    If the string is empty, then "\"\"" is returned.
+    Otherwise, the string itself is returned.
+
+    \pi s   The string to get the repr for.
+    \return Either the string, "NULL", or "\"\"".
+*/
+#define test_str_repr(s) (s ? ((s[0] == '\0') ? "\"\"" : s) : "NULL")
 
 char* int_repr(int x);
 char* long_repr(long x);
