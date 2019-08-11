@@ -49,7 +49,6 @@ debug: $(binary)
 
 release: CFLAGS+=-O3 -DNDEBUG
 release: $(binary)
-release: strip
 
 # Build the tests with all of the -fsanitize options. This will make the
 # executable slower and bigger, but helps to catch things that valgrind doesn't.
@@ -167,6 +166,7 @@ help targets:
     strip           : Run \`strip\` on the executable.\n\
     tags            : Build tags for this project using \`ctags\`.\n\
     test            : Make sanitize (if needed), then run the tests.\n\
+    testeverything  : Alias for \`./run_tests.sh --all --quiet\`.\n\
     testfast        : Make debug (if needed), then run the tests.\n\
                       This is used to build faster and fail faster.\n\
                       If the tests pass, the \`test\` target still needs to run\n\
@@ -179,13 +179,16 @@ help targets:
     testquiet       : Make sanitize (if needed), then run the tests with --quiet.\n\
 	";
 
-.PHONY: cleantest, testfast, testfull, testgdb, testkdbg, testquiet, test
+.PHONY: cleantest, testeverything, testfast, testfull, testgdb, testkdbg, testquiet, test
 cleantest: clean
 cleantest: test
 
 test: sanitize
 test:
 	@./run_tests.sh $(TEST_ARGS)
+
+testeverything:
+	@./run_tests.sh --all --quiet
 
 testfast: clean
 testfast: debug

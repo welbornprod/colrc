@@ -1,18 +1,32 @@
-## Getting Started
+# Documentation {#index}
+
+# Getting Started
 **ColrC** is a C library for terminal colors/escape-codes on linux.
 
 It is designed to be easy to use. Calculations and allocations are done for you
 when it comes to the escape codes needed to colorize text. You are responsible
 for the text strings themselves (the words you want to colorize).
 
-## Compiling
+## Including
 You must include colr.h and link colr.c in with your
 program.
 ```c
 #include "colr.h"
 
-// ..use ColrC functions/macros/etc.
+int main(void) {
+    char* s = Colr_str("Hello from ColrC!", fore("blueviolet"), back(WHITE));
+    if (!s) return EXIT_FAILURE;
+
+    printf("%s\n", s);
+    free(s);
+    return EXIT_SUCCESS;
+}
 ```
+
+There are plenty of examples in the [documentation](docs/examples.html), and
+[on this page](#example-usage).
+
+## Compiling
 
 ColrC uses a couple glibc features, which may not be compatible with your system.
 Most linux distros are compatible.
@@ -111,42 +125,4 @@ At least, in the libraries that I've seen so far.
 
 In the future there may be a shared library or a python extension based on
 ColrC, but for now I'm finishing out the basic features and testing.
-
-## Tests
-
-ColrC uses [snow](https://github.com/mortie/snow) for testing.
-If you want to run them you will have to download/clone the source and
-build/run them:
-```bash
-make test
-```
-
-This will build all of the tests using the latest `colr.c` and run them.
-
-You can also run the tests through `valgrind` with the `testmemcheck` target:
-```bash
-make testmemcheck
-```
-
-The 'everything test' builds the colr tool and unit tests, both debug and
-release mode (some bugs only show up in release mode), and runs them through
-`valgrind`.
-The examples are built and ran through `valgrind`, including the examples found
-in the source code (see `snippet.py --examples`).
-The coverage target is built (with the html report).
-Finally, the binaries may be rebuilt if they are in a different state than
-when the process started (switch back to debug build for development).
-
-If any of those things fail, the process is stopped and there
-is probably a bug worth fixing. Errors are always reported, but the
-noise from all of those steps can be silenced with `--quiet`.
-
-Each of these steps has found one or more bugs in the code or documentation
-while developing ColrC. I don't mind running this before committing my changes.
-
-If you'd like to run every possible compile target, with tests and memcheck,
-including the example code and source-file examples (the 'everything test'):
-```bash
-./test/run_tests.sh --all --quiet
-```
 

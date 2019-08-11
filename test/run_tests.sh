@@ -15,6 +15,7 @@ testdir=$appdir # May change.
 toolsdir="${colrdir}/tools"
 colrexe="${colrdir}/colrc"
 testexe="${appdir}/test_colrc"
+declare -a is_build_cmd=("bash" "$toolsdir/is_build.sh")
 
 declare -a binaries=($(find "$appdir" -maxdepth 1 -executable -type f -name "test_*" ! -name "*.*"))
 ((${#binaries[@]})) || {
@@ -265,12 +266,9 @@ function run_everything {
         rebuild_tests="release"
     fi
 
-    rebuild_colr="release"
-    rebuild_tests="release"
-    is_debug_exe "$colrexe" && rebuild_colr="debug"
-    is_debug_exe "$testexe" && rebuild_tests="debug"
-    binmode="${colrexe##*/}:$rebuild_colr, ${testexe##*/}:$rebuild_tests"
-    printf "\n%sSuccess%s, the binaries are: %s\n" "$GREEN" "$NC" "$binmode" 1>&2
+    printf "\n%sSuccess%s, the binaries are:\n" "$GREEN" "$NC" 1>&2
+    "${is_build_cmd[@]}" "$colrexe"
+    "${is_build_cmd[@]}" "$testexe"
 }
 
 function run_source_examples {

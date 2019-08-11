@@ -466,6 +466,21 @@
 */
 #define Colr(text, ...) ColorText_to_ptr(ColorText_from_values(text, __VA_ARGS__, _ColrLastArg))
 
+/*! \def Colr_str
+    Create an allocated string directly from Colr() arguments.
+
+    \details
+    This is a wrapper around `colr(Colr(text, ...))`, which will automatically
+    `free()` the ColorText, and return a string that you are responsible for.
+
+    \pi text String to colorize/style.
+    \pi ...  No more than 3 ColorArg pointers for fore, back, and style in any order.
+
+    \return An allocated string with the result.\n
+            \mustfree
+            \maybenullreturn
+*/
+#define Colr_str(text, ...) colr(Colr(text, __VA_ARGS__))
 
 /*! \def Colr_center
     Sets the JustifyMethod for a ColorText while allocating it.
@@ -539,15 +554,15 @@
     Calls the \<type\>_eq functions for the supported types.
 
     \details
-    The types for \p s1 and \p s2 must be the same.
+    The types for \p a and \p b must be the same.
 
-    \pi x1 First supported type to compare.
-    \pi x2 Second supported type to compare.
+    \pi a First supported type to compare.
+    \pi b Second supported type to compare.
     \return `true` if the values are equal, otherwise `false`.
 */
-#define colr_eq(x1, x2) \
+#define colr_eq(a, b) \
     _Generic( \
-        (x1), \
+        (a), \
         BasicValue: BasicValue_eq, \
         ColorArg: ColorArg_eq, \
         ColorJustify: ColorJustify_eq, \
@@ -556,7 +571,7 @@
         ExtendedValue: ExtendedValue_eq, \
         RGB: RGB_eq, \
         StyleValue: StyleValue_eq \
-    )(x1, x2)
+    )(a, b)
 
 /*! \def colr_free
     Calls the \<type\>_free functions for the supported types.

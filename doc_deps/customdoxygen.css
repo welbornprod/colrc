@@ -125,6 +125,10 @@ a {
 	text-decoration: none;
 }
 
+.contents a {
+    font-weight: bold;
+}
+
 .contents a:visited {
 	color: #3D3D3D;
 }

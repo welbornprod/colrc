@@ -4,7 +4,7 @@
 #  sanitizer (libasan), or neither of those (release mode).
 # -Christopher Welborn 08-09-2019
 appname="is_build"
-appversion="0.0.2"
+appversion="0.0.3"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 # appdir="${apppath%/*}"
@@ -41,12 +41,12 @@ function current_build {
         names+=("debug")
         is_release=0
     }
-    libs="$(ldd "$exepath")"
+    libs="$(ldd "$exepath" 2>/dev/null)"
     [[ "$libs" == *libasan* ]] && {
         names+=("sanitize")
         is_release=0
     }
-    symbols="$(nm "$exepath")"
+    symbols="$(nm "$exepath" 2>/dev/null)"
     [[ "$symbols" == *__gcov* ]] && {
         names+=("coverage")
         is_release=0

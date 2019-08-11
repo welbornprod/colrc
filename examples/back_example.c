@@ -7,6 +7,7 @@ int main(void) {
         back(RED), "This is a test",
         back(BLUE), " and only a test."
     );
+    if (!s) return 1;
     printf("%s\n", s);
     free(s);
 
@@ -16,16 +17,19 @@ int main(void) {
         fore("white"),
         "This is blue."
     );
+    if (!n) return 1;
     printf("%s\nThis is not.\n", n);
     free(n);
 
     // Extended (256) colors:
     char* e = colr(fore(ext(0)), back(ext(35)), "Extended colors.\n");
+    if (!e) return 1;
     printf("%s", e);
     free(e);
 
     // RGB (True Color) colors:
     char* r = colr(back(rgb(35, 0, 155)), "RGB");
+    if (!r) return 1;
     printf("%s\n", r);
     free(r);
 
@@ -35,6 +39,7 @@ int main(void) {
         back(hex("fff")), fore(hex("000000")), "Hex macro RGB\n",
         back(hex_or("NOTHEX", rgb(255, 255, 255))), "Using default for bad hex str"
     );
+    if (!h) return 1;
     printf("%s\n", h);
     free(h);
 
@@ -43,6 +48,7 @@ int main(void) {
         back(ext_hex("ff0000")), "Closest ExtendedValue Hex\n",
         back(ext_hex_or("NOTAHEX", ext(255))), "Using default for bad hex str"
     );
+    if (!he) return 1;
     printf("%s\n", he);
     free(he);
 
@@ -55,6 +61,7 @@ int main(void) {
         Colr("This is also red.\n", fore("white"), back("red")),
         "This is not."
     );
+    if (!colorized) return 1;
     printf("%s\n", colorized);
     free(colorized);
 }

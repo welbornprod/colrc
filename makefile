@@ -32,21 +32,22 @@ cov_dir=coverage
 cppcheck_cmd=bash ./tools/cppcheck_run.sh
 cppcheck_html=./cppcheck_report/index.html
 is_build_cmd=bash tools/is_build.sh
-custom_dir=doc_style
+custom_dir=doc_deps
 docs_config=Doxyfile_common
 docs_html_config=Doxyfile_html
 docs_latex_config=Doxyfile_latex
 docs_dir=docs
-docs_readme=README.md
+docs_github_readme=README.md
+docs_index_md=$(custom_dir)/index.md
 docs_main_file=$(docs_dir)/html/index.html
 docs_css=$(custom_dir)/customdoxygen.css
 docs_examples=$(wildcard examples/*.c)
-docs_deps=$(docs_config) $(docs_html_config) $(docs_readme) $(docs_examples) $(docs_css)
+docs_deps=$(docs_config) $(docs_html_config) $(docs_index_md) $(docs_examples) $(docs_css)
 docs_pdf=$(docs_dir)/ColrC-manual.pdf
 latex_dir=$(docs_dir)/latex
 latex_header=$(custom_dir)/header.tex
 latex_style=$(custom_dir)/doxygen.sty
-latex_deps=$(docs_config) $(docs_latex_config) $(docs_readme) $(latex_header) $(latex_style)
+latex_deps=$(docs_config) $(docs_latex_config) $(docs_index_md) $(latex_header) $(latex_style)
 latex_tex=$(latex_dir)/refman.tex
 latex_pdf=$(latex_dir)/refman.pdf
 doxy_latex_files=\
@@ -117,6 +118,12 @@ $(binary): $(objects)
 # Build all docs (html and pdf) if needed.
 docs: $(docs_main_file)
 docs: $(docs_pdf)
+
+# Build the github-friendly README.
+$(docs_github_readme): $(docs_index_md)
+	@printf "\nGenerating the GitHub README: $(docs_github_readme)\n"
+	@printf "# ColrC\n\nFor full documentation see [docs/index.html](docs/index.html)\n\n" > $(docs_github_readme) && \
+		tail -n+3 doc_deps/index.md | sed 's/^# /## /g' >> $(docs_github_readme)
 
 # Build the html docs, with example code included.
 $(docs_main_file): $(source) $(headers) $(docs_deps)
@@ -223,12 +230,14 @@ cppcheckview:
 cppcheckviewall:
 	@$(cppcheck_cmd) --view && $(cppcheck_cmd) -t --view
 
-.PHONY: docshtml, docslatex, docspdf, docsrebuild
+.PHONY: docshtml, docslatex, docspdf, docsreadme, docsrebuild
 docshtml: $(docs_main_file)
 
 docslatex: $(latex_idx)
 
 docspdf: $(docs_pdf)
+
+docsreadme: $(docs_github_readme)
 
 docsrebuild: cleandocs
 docsrebuild: docs
@@ -305,6 +314,7 @@ help targets:
     				    This will also view the report for the tests.\n\
     debug             : Build the executable with debug symbols.\n\
     docs              : Build the Doxygen docs.\n\
+    docsreadme        : Build the GitHub README.\n\
     docsrebuild       : Like running \`make cleandocs docs\`\n\
     examples          : Build example executables in $(examples_dir).\n\
     release           : Build the executable with optimization, and strip it.\n\
@@ -317,6 +327,7 @@ help targets:
     test              : Build debug (if needed), build the test sanitize (if needed),\n\
                         and run the tests.\n\
     testcoverage      : Delete previous test build files, and build the tests for coverage.\n\
+    testeverything    : Alias for \`./test/run_tests.sh --all --quiet\`.\n\
     testfast          : Build the test debug and run the tests.\n\
     				    It's not as thorough as \`test\`, but it catches some\n\
     				    errors.\n\
@@ -351,52 +362,56 @@ test:
 
 .PHONY: testcppcheckreport, testcoverage, testcoverageview
 testcppcheckreport:
-	@cd test && $(MAKE) cppcheckreport
+	@cd test && $(MAKE) cppcheckreport;
 
 testcoverage:
-	-@cd test && \
-		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory clean coverage
+	@cd test && \
+		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory clean coverage;
 
 # This is the same as `testview`.
 testcoverageview:
-	-@cd test && \
-		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory coverageview
+	@cd test && \
+		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory coverageview;
 
-.PHONY: testfast, testfull, testgdb, testkdbg
+.PHONY: testeverything, testfast, testfull, testgdb, testkdbg
+testeverything:
+	@cd test && \
+		$(MAKE) --no-print-directory testeverything;
+
 testfast:
-	-@cd test && \
+	@cd test && \
 		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory testfast;
 
 testfull:
-	-@cd test && \
+	@cd test && \
 		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory testfull;
 
 testgdb:
-	-@$(MAKE) --no-print-directory debug && { \
+	@$(MAKE) --no-print-directory debug && { \
 		cd test && \
 			TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory debug testgdb; \
 		};
 
 testkdbg:
-	-@$(MAKE) --no-print-directory debug && { \
+	@$(MAKE) --no-print-directory debug && { \
 		cd test && \
 			TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory debug testkdbg; \
 		};
 
 .PHONY: testmemcheck, testquiet, testsummary, testview
 testmemcheck:
-	-@cd test && \
-		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory debug memcheck
+	@cd test && \
+		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory debug memcheck;
 
 testquiet:
-	-@$(MAKE) --no-print-directory debug && { \
+	@$(MAKE) --no-print-directory debug && { \
 		cd test && \
 		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory debug testquiet; \
 	};
 
 testsummary:
-	-@cd test && $(MAKE) --no-print-directory coveragesummary
+	@cd test && $(MAKE) --no-print-directory coveragesummary;
 
 testview:
-	-@cd test && $(MAKE) --no-print-directory coverageview
+	@cd test && $(MAKE) --no-print-directory coverageview;
 
