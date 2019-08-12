@@ -1,6 +1,7 @@
 # Documentation {#index}
 
 # Getting Started
+
 **ColrC** is a C library for terminal colors/escape-codes on linux.
 
 It is designed to be easy to use. Calculations and allocations are done for you
@@ -23,7 +24,7 @@ int main(void) {
 }
 ```
 
-There are plenty of examples in the [documentation](docs/examples.html), and
+There are plenty of examples in the [documentation](examples.html), and
 [on this page](#example-usage).
 
 ## Compiling
@@ -48,6 +49,7 @@ colr.h | The interface to ColrC.
 colr.c | Where ColrC is implemented. This must be compiled/linked with your program.
 dbug.h | Some debugging support for the colr tool executable, only enabled when compiled with `-DDEBUG`.
 
+\anchor example-usage
 ## Example Usage
 
 You use colr(), colr_join(), and Colr(), along with fore(), back(), and style()

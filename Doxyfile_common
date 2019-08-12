@@ -1,15 +1,18 @@
 QUIET                  = YES
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = ColrC
-PROJECT_NUMBER         =
 PROJECT_BRIEF          = "An easy to use C library for linux terminal colors/escape-codes."
 PROJECT_LOGO           = images/colrc-pixels.png
+FILE_VERSION_FILTER    = "bash tools/get_version.sh"
 OUTPUT_DIRECTORY       = docs
 CREATE_SUBDIRS         = NO
 ALLOW_UNICODE_NAMES    = NO
 OUTPUT_LANGUAGE        = English
 BRIEF_MEMBER_DESC      = YES
 REPEAT_BRIEF           = YES
+ALPHABETICAL_INDEX     = NO
+SORT_BRIEF_DOCS        = YES
+SORT_MEMBER_DOCS       = YES
 ABBREVIATE_BRIEF       = "The $name class" \
                          "The $name widget" \
                          "The $name file" \
@@ -77,6 +80,7 @@ INPUT                  = . doc_deps
 EXCLUDE                = test \
                          colr_tool.c \
                          colr_tool.h \
+                         dbug.h \
                          TODO.md \
                          README.md
 EXCLUDE_PATTERNS       = *.py
@@ -89,7 +93,7 @@ HTML_OUTPUT            = html
 HTML_FILE_EXTENSION    = .html
 HTML_HEADER            = doc_deps/header.html
 HTML_FOOTER            = doc_deps/footer.html
-HTML_STYLESHEET        = doc_deps/customdoxygen.css
+HTML_EXTRA_STYLESHEET  = doc_deps/customdoxygen.css
 HTML_COLORSTYLE_HUE    = 204
 HTML_COLORSTYLE_SAT    = 0
 HTML_COLORSTYLE_GAMMA  = 145
@@ -100,8 +104,8 @@ TREEVIEW_WIDTH         = 250
 # Latex settings -------------------------------------------------------------
 LATEX_OUTPUT           = latex
 COMPACT_LATEX          = YES
-LATEX_HEADER           =doc_deps/header.tex
-LATEX_EXTRA_STYLESHEET =doc_deps/doxygen.sty
+LATEX_HEADER           = doc_deps/header.tex
+LATEX_EXTRA_STYLESHEET = doc_deps/doxygen.sty
 PDF_HYPERLINKS         = YES
 USE_PDFLATEX           = YES
 # Man page settings ----------------------------------------------------------

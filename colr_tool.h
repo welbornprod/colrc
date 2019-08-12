@@ -20,6 +20,7 @@
 #include <getopt.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+// colr.h does not include dbug.h.
 #include "dbug.h"
 // colr.h already includes many headers that are used in the colr tool.
 #include "colr.h"

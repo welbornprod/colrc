@@ -86,7 +86,7 @@
 #include <wchar.h>
 #include <ttyent.h>
 
-#include "dbug.h"
+// #include "dbug.h"
 
 /* Tell gcc to ignore unused macros. */
 #pragma GCC diagnostic ignored "-Wunused-macros"
@@ -814,19 +814,21 @@
         RGB: RGB_to_str \
     )(x)
 
-/*! \def dbug_repr
-    Uses colr_repr() to build a string representation of a ColrC object,
-    dbug prints it, and calls free() when it's done.
-
-    \details
-    This is for dbugging purposes, and is a no-op when DEBUG is not
-    defined.
-
-    \pi lbl Label text for the dbug print.
-    \pi x   Any object supported by colr_repr().
-
-*/
+#ifndef DOXYGEN_SKIP
 #if defined(DEBUG) && defined(dbug)
+    /*! \def dbug_repr
+        Uses colr_repr() to build a string representation of a ColrC object,
+        dbug prints it, and calls free() when it's done.
+
+        \details
+        Without `dbug.h` (defines dbug()) and `DEBUG` these calls will be disabled.
+        This is for debugging purposes, and is a no-op when DEBUG is not
+        defined.
+
+        \pi lbl Label text for the dbug print.
+        \pi x   Any object supported by colr_repr().
+
+    */
     #define dbug_repr(lbl, x) \
         do { \
             char* _dbug_repr_s = colr_repr(x); \
@@ -835,10 +837,26 @@
         } while(0)
 #else
     #if !defined(dbug)
+        /*! \def dbug
+            This is a no-op macro call. If dbug.h is included before colr.h
+            this will be defined as a printf-wrapper to print debug messages
+            with function/line info.
+
+            \pi ... Arguments for `fprintf(stderr, ...)`
+        */
         #define dbug(...) ((void)0)
     #endif
+    /*! \def dbug_repr
+        This is a no-op macro call. If dbug.h is included before colr.h this
+        will be defined as a printf-wrapper to print a label/colr_repr pair
+        with function/line info.
+
+        \pi lbl Label text for the dbug print.
+        \pi x   Any object supported by colr_repr().
+    */
     #define dbug_repr(lbl, x) ((void)0)
 #endif
+#endif // DOXYGEN_SKIP
 
 /*! \def ext
     Casts to ExtendedValue (unsigned char).

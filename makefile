@@ -32,6 +32,8 @@ cov_dir=coverage
 cppcheck_cmd=bash ./tools/cppcheck_run.sh
 cppcheck_html=./cppcheck_report/index.html
 is_build_cmd=bash tools/is_build.sh
+undoxy_md_cmd=python3 tools/undoxy_markdown.py
+version_cmd=bash tools/get_version.sh
 custom_dir=doc_deps
 docs_config=Doxyfile_common
 docs_html_config=Doxyfile_html
@@ -44,6 +46,7 @@ docs_css=$(custom_dir)/customdoxygen.css
 docs_examples=$(wildcard examples/*.c)
 docs_deps=$(docs_config) $(docs_html_config) $(docs_index_md) $(docs_examples) $(docs_css)
 docs_pdf=$(docs_dir)/ColrC-manual.pdf
+docs_cj_dir=$(realpath ../../cjwelborn.github.io/colrc)
 latex_dir=$(docs_dir)/latex
 latex_header=$(custom_dir)/header.tex
 latex_style=$(custom_dir)/doxygen.sty
@@ -122,19 +125,26 @@ docs: $(docs_pdf)
 # Build the github-friendly README.
 $(docs_github_readme): $(docs_index_md)
 	@printf "\nGenerating the GitHub README: $(docs_github_readme)\n"
-	@printf "# ColrC\n\nFor full documentation see [docs/index.html](docs/index.html)\n\n" > $(docs_github_readme) && \
-		tail -n+3 doc_deps/index.md | sed 's/^# /## /g' >> $(docs_github_readme)
+	@$(undoxy_md_cmd) \
+		-t "ColrC" \
+		-H "For full documentation see [docs/index.html](docs/index.html)" \
+		$(docs_index_md) \
+		$(docs_github_readme)
 
 # Build the html docs, with example code included.
 $(docs_main_file): $(source) $(headers) $(docs_deps)
 	@printf "\nBuilding html doxygen docs...\n    Target: $@\n    For: $?\n    "
-	doxygen $(docs_html_config)
+	@(cat $(docs_html_config); $(version_cmd) -p) | doxygen -
+	@printf "\n"
+# NOT READY FOR THIS YET:
+#$(docs_main_file): docscj
 
 # Build the doxygen latex docs, without example code (latex_pdf and docs_pdf need this).
 # The example code (custom html-wrapper aliases) cause latex to fail.
 $(latex_tex): $(source) $(headers) $(latex_deps)
 	@printf "\nBuilding latex doxygen docs...\n    Target: $@\n    For: $?\n    "
-	doxygen $(docs_latex_config)
+	@(cat $(docs_latex_config); $(version_cmd) -p) | doxygen -
+	@printf "\n"
 
 $(latex_pdf): $(latex_tex)
 	@./tools/gen_latex_pdf.sh --reference && \
@@ -230,7 +240,19 @@ cppcheckview:
 cppcheckviewall:
 	@$(cppcheck_cmd) --view && $(cppcheck_cmd) -t --view
 
-.PHONY: docshtml, docslatex, docspdf, docsreadme, docsrebuild
+.PHONY: docscj, docshtml, docslatex, docspdf, docsreadme, docsrebuild
+docscj:
+	@if [[ -n "$(docs_cj_dir)" ]] && [[ -d "$(docs_cj_dir)" ]]; then \
+		printf "\nCopying docs for cjwelborn.github.io.\n"; \
+		cp -r "$(docs_dir)" "$(docs_cj_dir)"; \
+	else \
+		if [[ -n "$(docs_cj_dir)" ]]; then \
+			printf "\nSite dir missing: %s\n" $(docs_cj_dir) 1>&2; \
+		else \
+			printf "\nSite dir missing, this make target is not for everyone.\n" 1>&2; \
+		fi; \
+	fi;
+
 docshtml: $(docs_main_file)
 
 docslatex: $(latex_idx)
