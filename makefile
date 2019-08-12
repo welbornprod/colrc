@@ -32,6 +32,7 @@ cov_dir=coverage
 cppcheck_cmd=bash ./tools/cppcheck_run.sh
 cppcheck_html=./cppcheck_report/index.html
 is_build_cmd=bash tools/is_build.sh
+make_help_fmt_cmd=python3 tools/make_help_fmter.py
 undoxy_md_cmd=python3 tools/undoxy_markdown.py
 version_cmd=bash tools/get_version.sh
 custom_dir=doc_deps
@@ -332,7 +333,7 @@ help targets:
 	-@printf "Make targets available:\n\
     all               : Build with no optimization or debug symbols.\n\
     clang             : Use \`clang\` to build the default target.\n\
-    clangrelease      : Use \`clang\` to build the release target.\n\
+    clangrelease      : Use \`clang\` to build the \`release\` target.\n\
     clean             : Delete previous build files.\n\
     cleancoverage     : Delete previous coverage files.\n\
     cleandebug        : Like running \`make clean debug\`.\n\
@@ -340,7 +341,7 @@ help targets:
     cleanexamples     : Delete previous build files from the examples in $(examples_dir).\n\
     cleantest         : Delete previous build files, build the binary and the \n\
                         test binary, and run the tests.\n\
-    coverage          : Compile the debug build and generate coverage reports.\n\
+    coverage          : Compile the \`debug\` build and generate coverage reports.\n\
                         This only checks the main binary, not the tests.\n\
                         See the \`testcoverage\` target.\n\
     coveragesummary   : View a summary of previously generated coverage reports.\n\
@@ -374,24 +375,24 @@ help targets:
                         and run the tests.\n\
     testcoverage      : Delete previous test build files, and build the tests for coverage.\n\
     testeverything    : Alias for \`./test/run_tests.sh --all --quiet\`.\n\
-    testfast          : Build the test debug and run the tests.\n\
+    testfast          : Build the \`test debug\` and run the tests.\n\
                         It's not as thorough as \`test\`, but it catches some\n\
                         errors.\n\
     testfull          : Build/run \`testfast\`, if nothing fails run \`memcheck\`,\n\
                         and if that succeeds, run the tests in \`sanitize\` mode.\n\
                         This will show errors early, and if everything passes\n\
                         then there is a low chance of show-stopping bugs.\n\
-    testgdb           : Build debug (if needed), build the test debug (if needed),\n\
+    testgdb           : Build \`debug\` (if needed), build the test \`debug\` (if needed),\n\
                         and run the tests through GDB.\n\
-    testkdbg          : Build debug (if needed), build the test debug (if needed),\n\
+    testkdbg          : Build \`debug\` (if needed), build the test \`debug\` (if needed),\n\
                         and run the tests through KDbg.\n\
-    testmemcheck      : Build  debug tests (if needed), and run them through valgrind.\n\
-    testquiet         : Build debug (if needed), build the test debug (if needed),\n\
-                        and run the tests with --quiet.\n\
+    testmemcheck      : Build \`debug\` tests (if needed), and run them through \`valgrind\`.\n\
+    testquiet         : Build \`debug\` (if needed), build the test \`debug\` (if needed),\n\
+                        and run the tests with \`--quiet\`.\n\
     testsummary       : View a summary of previously built test coverage reports.\n\
     testview          : View previously generated html test coverage reports.\n\
-    memcheck          : Run valgrind's memcheck on the executable.\n\
-";
+    memcheck          : Run \`valgrind --tool=memcheck\` on the executable.\n\
+" | $(make_help_fmt_cmd);
 
 .PHONY: cleantest, test
 cleantest:

@@ -22,6 +22,7 @@ cov_dir=coverage
 cppcheck_cmd=bash ../tools/cppcheck_run.sh -t
 cppcheck_html=./cppcheck_report/index.html
 is_build_cmd=bash ../tools/is_build.sh $(binary)
+make_help_fmt_cmd=python3 ../tools/make_help_fmter.py
 valgrind_cmd=bash ../tools/valgrind_run.sh
 test_source:=$(wildcard *.c)
 source:=$(test_source) ../colr.c
@@ -153,31 +154,31 @@ help targets:
     clean           : Delete previous build files.\n\
     cleancoverage   : Delete previous coverage files.\n\
     cleantest       : Delete previous build files, then build and run the tests.\n\
-    coverage        : Compile the debug build and generate coverage reports.\n\
+    coverage        : Compile the \`debug\` build and generate coverage reports.\n\
     coveragesummary : View a summary of previously generated coverage reports.\n\
     coverageview    : View previously generated html coverage reports.\n\
-    cppcheck        : Run cppcheck on the tests.\n\
-    cppcheckreport  : Generate a cppcheck HTML report.\n\
+    cppcheck        : Run \`cppcheck\` on the tests.\n\
+    cppcheckreport  : Generate a \`cppcheck\` HTML report.\n\
     cppcheckview    : View previously generated cppcheck HTML report.\n\
     debug           : Build the executable with debug symbols.\n\
-    memcheck        : Run valgrind's memcheck on the executable.\n\
+    memcheck        : Run \`valgrind --tool=memcheck\` on the executable.\n\
     release         : Build the executable with optimization, and strip it.\n\
     sanitize        : Build debug with \`-fsanitize\` options.\n\
     strip           : Run \`strip\` on the executable.\n\
     tags            : Build tags for this project using \`ctags\`.\n\
-    test            : Make sanitize (if needed), then run the tests.\n\
+    test            : Make \`sanitize\` (if needed), then run the tests.\n\
     testeverything  : Alias for \`./run_tests.sh --all --quiet\`.\n\
-    testfast        : Make debug (if needed), then run the tests.\n\
+    testfast        : Make \`debug\` (if needed), then run the tests.\n\
                       This is used to build faster and fail faster.\n\
                       If the tests pass, the \`test\` target still needs to run\n\
                       to thoroughly test ColrC.\n\
     testfull        : Delete previous build files, build/run tests in \`debug\`\n\
                       mode, run tests for \`memcheck\`, and finally build\n\
                       \`sanitize\` target and run tests.\n\
-    testgdb         : Make sanitize (if needed), then run the tests through GDB.\n\
-    testkdbg        : Make sanitize (if needed), then run the tests through KDbg.\n\
-    testquiet       : Make sanitize (if needed), then run the tests with --quiet.\n\
-	";
+    testgdb         : Make \`sanitize\` (if needed), then run the tests through GDB.\n\
+    testkdbg        : Make \`sanitize\` (if needed), then run the tests through KDbg.\n\
+    testquiet       : Make \`sanitize\` (if needed), then run the tests with --quiet.\n\
+" | $(make_help_fmt_cmd);
 
 .PHONY: cleantest, testeverything, testfast, testfull, testgdb, testkdbg, testquiet, test
 cleantest: clean
