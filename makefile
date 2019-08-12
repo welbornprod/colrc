@@ -68,6 +68,19 @@ latex_files=\
 examples_dir=examples
 examples_source=$(wildcard $(examples_dir)/*.c)
 valgrind_cmd=bash tools/valgrind_run.sh
+# Set `viewing_file` to a filepath, and run $(view_file) to open it with `xdg-open`.
+define view_file =
+@if [[ -n "$(viewing_file)" ]]; then \
+    if [[ -e "$(viewing_file)" ]]; then \
+        printf "Viewing: $(viewing_file)\n"; \
+        xdg-open "$(viewing_file)" &>/dev/null; \
+    else \
+        printf "Missing file: $(viewing_file)\n" 1>&2; \
+    fi; \
+else \
+    printf "No filepath provided to make target!\n" 1>&2; \
+fi;
+endef
 
 .PHONY: all, coverage, debug, lib, libdebug, librelease, release, release2, sanitize
 all: debug
@@ -264,6 +277,15 @@ docsreadme: $(docs_github_readme)
 docsrebuild: cleandocs
 docsrebuild: docs
 
+.PHONY: docsview, docsviewpdf
+docsview: viewing_file=$(docs_main_file)
+docsview:
+	@$(view_file)
+
+docsviewpdf: viewing_file=$(docs_pdf)
+docsviewpdf:
+	@$(view_file)
+
 .PHONY: examples
 examples: $(examples_source)
 	@cd examples && $(MAKE) --no-print-directory $(COLR_ARGS)
@@ -330,14 +352,16 @@ help targets:
     cppcheck          : Run cppcheck on the tests.\n\
     cppcheckreport    : Generate a cppcheck HTML report.\n\
     cppcheckreportall : Generate a cppcheck HTML report.\n\
-    					This will also generate a report for the tests.\n\
+                        This will also generate a report for the tests.\n\
     cppcheckview      : View previously generated cppcheck HTML report.\n\
     cppcheckviewall   : View previously generated cppcheck HTML report.\n\
-    				    This will also view the report for the tests.\n\
+                        This will also view the report for the tests.\n\
     debug             : Build the executable with debug symbols.\n\
     docs              : Build the Doxygen docs.\n\
     docsreadme        : Build the GitHub README.\n\
     docsrebuild       : Like running \`make cleandocs docs\`\n\
+    docsview          : View previously generated HTML docs in your browser.\n\
+    docsviewpdf       : View previously generated PDF docs in your viewer.\n\
     examples          : Build example executables in $(examples_dir).\n\
     release           : Build the executable with optimization, and strip it.\n\
     release2          : Same as \`release\` target, but with -O2 instead of -O3.\n\
@@ -351,8 +375,8 @@ help targets:
     testcoverage      : Delete previous test build files, and build the tests for coverage.\n\
     testeverything    : Alias for \`./test/run_tests.sh --all --quiet\`.\n\
     testfast          : Build the test debug and run the tests.\n\
-    				    It's not as thorough as \`test\`, but it catches some\n\
-    				    errors.\n\
+                        It's not as thorough as \`test\`, but it catches some\n\
+                        errors.\n\
     testfull          : Build/run \`testfast\`, if nothing fails run \`memcheck\`,\n\
                         and if that succeeds, run the tests in \`sanitize\` mode.\n\
                         This will show errors early, and if everything passes\n\
@@ -367,7 +391,7 @@ help targets:
     testsummary       : View a summary of previously built test coverage reports.\n\
     testview          : View previously generated html test coverage reports.\n\
     memcheck          : Run valgrind's memcheck on the executable.\n\
-	";
+";
 
 .PHONY: cleantest, test
 cleantest:

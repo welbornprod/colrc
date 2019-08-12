@@ -39,6 +39,7 @@ The colr.h header defines `_GNU_SOURCE` if it's not already defined (see `man fe
 gcc -std=c11 -c myprogram.c colr.c -o myexecutable -lm
 ```
 
+\anchor files
 ## Files
 
 The only two files that are needed to use ColrC are colr.h and colr.c.
@@ -47,7 +48,6 @@ Name   | Description
 :----- | :---------------------------------------------
 colr.h | The interface to ColrC.
 colr.c | Where ColrC is implemented. This must be compiled/linked with your program.
-dbug.h | Some debugging support for the colr tool executable, only enabled when compiled with `-DDEBUG`.
 
 \anchor example-usage
 ## Example Usage
@@ -73,6 +73,7 @@ you're going to need to know how to `free()` them:
 
 \includesrc{examples/Colr_manual_example.c}
 
+\anchor example-files
 ### Example Files
 
 For all examples, check the [documentation](examples.html).
@@ -110,6 +111,7 @@ To see the source-based examples in the terminal you can run:
 ./tools/snippet.py --listexamples
 ```
 
+\anchor why
 ## Why
 
 ColrC is the `C` version of [Colr](https://github.com/welbornprod/colr)
@@ -122,7 +124,7 @@ There are other terminal color libraries out there, but I'm not fond of the
 approach that they take (wrapping file descriptors, and manually concatenating).
 At least, in the libraries that I've seen so far.
 
-
+\anchor future
 ## Future
 
 In the future there may be a shared library or a python extension based on
