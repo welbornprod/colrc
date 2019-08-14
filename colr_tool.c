@@ -9,14 +9,6 @@
 */
 #include "colr_tool.h"
 
-#define return_on_null(x) \
-    do { \
-        if (!(x)) { \
-            printferr("Failed to allocate memory for arguments!\n"); \
-            return EXIT_FAILURE; \
-        } \
-    } while (0)
-
 
 int main(int argc, char* argv[]) {
     // Needed for str_to_wide(), and wide_to_str(), and the rainbow() funcs.
@@ -31,6 +23,8 @@ int main(int argc, char* argv[]) {
     if (opts.strip_codes) {
         return strip_codes(&opts);
     }
+    // TODO: if (opts.auto_disable and isatty(fileno(stdout))) printf(opts.text);
+    // TODO: if (opts.use_stderr) out_stream = stderr;
 
     ColorText* ctext = NULL;
     // Rainbowize the text arg.

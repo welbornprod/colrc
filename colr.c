@@ -1053,6 +1053,36 @@ char* colr_empty_str(void) {
     return s;
 }
 
+/*! Free an allocated list of strings, including the list itself.
+
+    \details
+    Each individual string will be released, and finally the allocated memory
+    for the list of pointers will be released.
+
+    \examplecodefor{colr_free_str_list,.c}
+    #include "colr.h"
+    int main(void) {
+        char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
+        if (!s) return 1;
+        // Call something that creates a list of strings on the heap.
+        char** code_list = colr_str_get_codes(s);
+        free(s);
+        if (!code_list) return 1;
+        // ... do something with the list of strings.
+
+        // And then free it:
+        colr_free_str_list(code_list);
+    }
+    \endexamplecode
+    \pi p  A pointer to a list of strings.
+*/
+void colr_free_str_list(char** ps) {
+    if (!ps) return;
+    // Free the individual items, until NULL is hit.
+    for (size_t i = 0; ps[i]; i++) free(ps[i]);
+    // Free the pointer list.
+    free(ps);
+}
 
 /*! Center-justifies a \string, ignoring escape codes when measuring the width.
 
@@ -1137,54 +1167,109 @@ size_t colr_str_char_count(const char* s, const char c) {
     return total;
 }
 
-/*! Like strncopy, but ensures null-termination.
+/*! Return the number of escape-codes in a \string.
 
-    \details
-    If src is NULL, or dest is NULL, NULL is returned.
+    \pi s   A string to count the escape-codes for.\n
+            \mustnull
+    \return The number of escape-codes, or `0` if \p s is `NULL`, or
+            doesn't contain any escape-codes.
 
-    \details
-    If src does not contain a null-terminator, _this function
-    will truncate at `length` characters_.
+    \examplecodefor{colr_str_code_len,.c}
+    #include "colr.h"
 
-    \details
-    A null-terminator is always appended to dest.
-
-    \pi dest   Memory allocated for new string.
-               _Must have room for `strlen(src)`._
-    \pi src    Source string to copy.
-    \pi length Maximum characters to copy.
-               <em>This does not include the null-terminator</em>.
-
-    \returns On success, a pointer to dest is returned.
-
-    \examplecodefor{colr_str_copy,.c}
-    char* s = "testing";
-    size_t length = strlen(s);
-    char* dest = malloc(length + 1);
-
-    // Copy the entire string:
-    colr_str_copy(dest, s, length);
-    assert(strcmp(dest, "testing") == 0);
-    printf("Copied: %s\n", dest);
-
-    // Copy only 4 bytes:
-    colr_str_copy(dest, s, 4);
-    assert(strcmp(dest, "test") == 0);
-    printf("Truncated: %s\n", dest);
-    free(dest);
+    int main(void) {
+        char* s = Colr_str("Testing this out.", fore(RED), back(WHITE));
+        if (!s) return 1;
+        size_t code_cnt = colr_str_code_cnt(s);
+        assert(code_cnt == 3); // The reset code is also appended.
+        printf("Found codes: %zu\n", code_cnt);
+        free(s);
+    }
     \endexamplecode
 */
-char* colr_str_copy(char* dest, const char* src, size_t length) {
-    if (!(src && dest)) {
-        return NULL;
+size_t colr_str_code_cnt(const char* s) {
+    if (!s) return 0;
+    if (s[0] == '\0') return 0;
+    // Length of code, minus the 'm'.
+    size_t code_max = CODE_RGB_LEN - 2;
+    size_t total = 0;
+    size_t i = 0;
+    while (s[i]) {
+        // Skip past non code stuff, if any.
+        while (s[i] && s[i] != '\x1b') i++;
+        if (s[i] == '\0') break;
+        // Have code.
+        size_t current_code = 0;
+        // Grab the rest of the code chars.
+        while (s[i] && !colr_char_is_code_end(s[i++])) {
+            if (current_code < code_max) {
+                current_code++;
+            } else {
+                // Overflowed the code buffer because the code is probably
+                // malformed. Just ignore this one.
+                current_code = 0;
+            }
+        };
+        if (current_code) {
+            // Have a complete code.
+            total += 1;
+            // Reset current code.
+            current_code = 0;
+        }
     }
-    size_t pos = 0;
-    while (pos < length && src[pos]) {
-        dest[pos] = src[pos];
-        pos++;
+    return total;
+}
+/*! Return the number of bytes that make up all the escape-codes in a \string.
+
+    \pi s   A string to count the code-chars for.\n
+            \mustnull
+    \return The number of escape-code characters, or `0` if \p s is `NULL`, or
+            doesn't contain any escape-codes.
+
+    \examplecodefor{colr_str_code_len,.c}
+    #include "colr.h"
+
+    int main(void) {
+        char* s = Colr_str("Testing this out.", fore(RED), back(WHITE));
+        if (!s) return 1;
+        size_t code_len = colr_str_code_len(s);
+        assert(code_len == 14); // The reset code is also appended.
+        printf("Found code chars: %zu\n", code_len);
+        free(s);
     }
-    dest[pos] = '\0';
-    return dest;
+    \endexamplecode
+*/
+size_t colr_str_code_len(const char* s) {
+    if (!s) return 0;
+    if (s[0] == '\0') return 0;
+    // Length of code, minus the 'm'.
+    size_t code_max = CODE_RGB_LEN - 2;
+    size_t total = 0;
+    size_t i = 0;
+    while (s[i]) {
+        // Skip past non code stuff, if any.
+        while (s[i] && s[i] != '\x1b') i++;
+        if (s[i] == '\0') break;
+        // Have code.
+        size_t current_code = 0;
+        // Grab the rest of the code chars.
+        while (s[i] && !colr_char_is_code_end(s[i++])) {
+            if (current_code < code_max) {
+                current_code++;
+            } else {
+                // Overflowed the code buffer because the code is probably
+                // malformed. Just ignore this one.
+                current_code = 0;
+            }
+        };
+        if (current_code) {
+            // Have a complete code, don't forget the last 'm'.
+            total += current_code + 1;
+            // Reset current code.
+            current_code = 0;
+        }
+    }
+    return total;
 }
 
 /*! Determine if one \string ends with another.
@@ -1208,6 +1293,89 @@ bool colr_str_ends_with(const char* str, const char* suf) {
         return false;
     }
     return (strncmp(str + (strlength - suflength), suf, suflength) == 0);
+}
+
+/*! Get a list of escape-codes from a \string.
+
+    \details
+    This function copies the escape-code strings, and the pointers to the heap,
+    if any escape-codes are found in the string.
+
+    \pi s
+    \return An allocated list of \string pointers, where the last element is `NULL`.
+            \mustfree
+
+    \examplecodefor{colr_str_get_codes,.c}
+    #include "colr.h"
+
+    int main(void) {
+        char* s = Colr_str("Testing this out.", fore(RED), back(WHITE));
+        if (!s) return 1;
+        char** code_list = colr_str_get_codes(s);
+        free(s);
+        if (!code_list) {
+            printferr("No code found? Impossible!\n");
+            return 1;
+        }
+        // Iterate over the code list.
+        for (size_t i = 0; code_list[i]; i++) {
+            char* code_repr = colr_repr(code_list[i]);
+            printf("Found code: %s\n", code_repr);
+            free(code_repr);
+        }
+        // Free the strings, and the list of pointers.
+        colr_free_ptr_list(code_list);
+    }
+    \endexamplecode
+*/
+char** colr_str_get_codes(const char* s) {
+    if (!s) return NULL;
+    if (s[0] == '\0') return NULL;
+    size_t code_cnt = colr_str_code_cnt(s);
+    if (!code_cnt) return NULL;
+    // Allocate memory for some string pointers.
+    char** code_list = calloc(code_cnt + 1, sizeof(char*));
+    if (!code_list) return NULL;
+    char** list_start = code_list;
+    size_t i = 0;
+    char current_code[CODE_RGB_LEN] = {0};
+    // Length of code, minus the 'm'.
+    size_t code_max = CODE_RGB_LEN - 2;
+    while (s[i]) {
+        // Skip past non code stuff, if any.
+        while (s[i] && s[i] != '\x1b') i++;
+        if (s[i] == '\0') break;
+        // Have code, copy the start char.
+        size_t pos = 0;
+        current_code[pos] = s[i++];
+        pos++;
+        // Grab the rest of the code chars.
+        while (s[i] && !colr_char_is_code_end(s[i])) {
+            if (pos < code_max) {
+                current_code[pos++] = s[i];
+            } else {
+                // Overflowed the code buffer because the code is probably
+                // malformed. Just ignore this one.
+                current_code[0] = '\0';
+            }
+            i++;
+        };
+        if (current_code[0]) {
+            // Have a complete code.
+            current_code[pos++] = 'm';
+            current_code[pos] = '\0';
+            // Make a copy of it and add it to the list of pointers.
+            char* code_copy = strndup(current_code, pos);
+            if (!code_copy) return NULL;
+            *code_list = code_copy;
+            code_list++;
+            // Reset current code.
+            current_code[0] = '\0';
+        }
+    }
+    // Set the last item to NULL, even if it's the first item.
+    *code_list = NULL;
+    return list_start;
 }
 
 /*! Determines if a \string has ANSI escape codes in it.

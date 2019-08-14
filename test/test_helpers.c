@@ -24,7 +24,7 @@ subdesc(colr_append_reset) {
         for_each(tests, i) {
             size_t expected_len = strlen(tests[i].expected);
             char s[expected_len + 1];
-            colr_str_copy(s, tests[i].input, strlen(tests[i].input));
+            strncpy(s, tests[i].input, strlen(tests[i].input));
             colr_append_reset(s);
             char* input_repr = colr_str_repr(tests[i].input);
             char* input_msg = NULL;
@@ -372,26 +372,6 @@ subdesc(colr_str_char_count) {
         for_each(tests, i) {
             asserteq(colr_str_char_count(tests[i].input, tests[i].c), tests[i].expected);
         }
-    }
-}
-// colr_str_copy
-subdesc(colr_str_copy) {
-    it("copies strings") {
-        char* destp = NULL;
-        char* sp = NULL;
-        assert(colr_str_copy(destp, sp, 1) == NULL);
-        char s[] = "testing";
-        size_t length = strlen(s);
-        assert(colr_str_copy(destp, s, 4) == NULL);
-        char* dest = calloc(length + 1, sizeof(char));
-        assert(colr_str_copy(dest, NULL, 4) == NULL);
-        colr_str_copy(dest, "", 1);
-        assert_str_empty(dest);
-        colr_str_copy(dest, s, 4);
-        assert_str_eq(dest, "test", "Failed to copy 4 bytes from string.");
-        colr_str_copy(dest, s, length);
-        assert_str_eq(dest, s, "Failed to copy the entire string.");
-        free(dest);
     }
 }
 // colr_str_ends_with

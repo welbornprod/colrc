@@ -47,7 +47,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.2.1'
+VERSION = '0.2.2'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -1070,6 +1070,7 @@ class Snippet(object):
     @staticmethod
     def is_main_sig(line):
         """ Returns True if the `line` looks like a main() signature. """
+        line = line.lstrip()
         return (
             line.startswith('int main') or
             line.startswith('void main') or
@@ -1106,7 +1107,9 @@ class Snippet(object):
             If colr.h is already included, no duplicate include is added.
         """
         line_table = set(line.strip() for line in code.splitlines())
-        includes = ('colr.h', 'dbug.h')
+        # dbug.h must come first, so we don't redefine dbug() with colr.h,
+        # because it thinks it isn't defined.
+        includes = ('dbug.h', 'colr.h')
         lines = []
         for includename in includes:
             includedef = f'#include "{includename}"'
@@ -1150,6 +1153,7 @@ class Snippet(object):
         else:
             debug('Adding semi-colon to code.', align=True)
             code = f'{code};'
+
         if indent:
             spaces = ' ' * indent
             code = '\n'.join(f'{spaces}{s}' for s in code.splitlines())
