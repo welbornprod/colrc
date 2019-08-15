@@ -320,7 +320,7 @@
 
     \sa fore back colr Colr
 */
-#define basic(x) ((enum BasicValue_t)(x))
+#define basic(x) ((BasicValue)(x))
 
 /*! \def bool_colr_enum
     Returns the "truthiness" of the enums used in ColrC
@@ -1132,11 +1132,11 @@
     BasicValue when they are passed to _Generic-based macros.
     \endinternal
 */
-typedef enum BasicValue_t {
+typedef enum BasicValue {
     BASIC_INVALID = COLOR_INVALID,
     BASIC_NONE = -1,
-    // The actual escape code value for fore colors is BasicValue + 30.
-    // The actual escape code value for back colors is BasicValue + 40.
+    // The actual escape code value for fore colors is BasicValue + 30 == (30-39).
+    // The actual escape code value for back colors is BasicValue + 40 == (40-49).
     BLACK = 0,
     RED = 1,
     GREEN = 2,
@@ -1148,8 +1148,8 @@ typedef enum BasicValue_t {
     UNUSED = 8,
     RESET = 9,
     // The following colors are basic "bright" colors.
-    // The actual escape code value for fore colors is BasicValue + 80.
-    // The actual escape code value for back colors is BasicValue + 90.
+    // The actual escape code value for fore colors is BasicValue + 80 == (90-97).
+    // The actual escape code value for back colors is BasicValue + 90 == (100-107).
     LIGHTBLACK = 10,
     LIGHTRED = 11,
     LIGHTGREEN = 12,
@@ -1215,7 +1215,7 @@ typedef unsigned char ExtendedValue;
 #define EXTENDED_INVALID COLOR_INVALID
 
 //! Container for RGB values.
-typedef struct RGB_t {
+typedef struct RGB {
     /*! \internal
         The order matters. {1, 2, 3} should mean {r, g, b}.
         \endinternal
@@ -1229,7 +1229,7 @@ typedef struct RGB_t {
 } RGB;
 
 //! Style values.
-typedef enum StyleValue_t {
+typedef enum StyleValue {
     STYLE_INVALID = COLOR_INVALID,
     STYLE_NONE = -1,
     RESET_ALL = 0,
@@ -1247,28 +1247,28 @@ typedef enum StyleValue_t {
     OVERLINE = 53, // Supported in Konsole.
 } StyleValue;
 //! Maximum value allowed for a StyleValue.
-#define STYLE_MAX_VALUE ((enum StyleValue_t)OVERLINE)
+#define STYLE_MAX_VALUE ((StyleValue)OVERLINE)
 //! Minimum value allowed for a StyleValue.
-#define STYLE_MIN_VALUE ((enum StyleValue_t)STYLE_INVALID)
+#define STYLE_MIN_VALUE ((StyleValue)STYLE_INVALID)
 
 #ifndef DOXYGEN_SKIP
-#define STYLE_INVALID ((enum StyleValue_t)STYLE_INVALID)
-#define STYLE_NONE ((enum StyleValue_t)STYLE_NONE)
-#define RESET_ALL ((enum StyleValue_t)RESET_ALL)
-#define BRIGHT ((enum StyleValue_t)BRIGHT)
-#define DIM ((enum StyleValue_t)DIM)
-#define ITALIC ((enum StyleValue_t)ITALIC)
-#define UNDERLINE ((enum StyleValue_t)UNDERLINE)
-#define FLASH ((enum StyleValue_t)FLASH)
-#define HIGHLIGHT ((enum StyleValue_t)HIGHLIGHT)
-#define NORMAL ((enum StyleValue_t)NORMAL)
-#define FRAME ((enum StyleValue_t)FRAME)
-#define ENCIRCLE ((enum StyleValue_t)ENCIRCLE)
-#define OVERLINE ((enum StyleValue_t)OVERLINE)
+#define STYLE_INVALID ((StyleValue)STYLE_INVALID)
+#define STYLE_NONE ((StyleValue)STYLE_NONE)
+#define RESET_ALL ((StyleValue)RESET_ALL)
+#define BRIGHT ((StyleValue)BRIGHT)
+#define DIM ((StyleValue)DIM)
+#define ITALIC ((StyleValue)ITALIC)
+#define UNDERLINE ((StyleValue)UNDERLINE)
+#define FLASH ((StyleValue)FLASH)
+#define HIGHLIGHT ((StyleValue)HIGHLIGHT)
+#define NORMAL ((StyleValue)NORMAL)
+#define FRAME ((StyleValue)FRAME)
+#define ENCIRCLE ((StyleValue)ENCIRCLE)
+#define OVERLINE ((StyleValue)OVERLINE)
 #endif // DOXYGEN_SKIP
 
 //! Argument types (fore, back, style).
-typedef enum ArgType_t {
+typedef enum ArgType {
     ARGTYPE_NONE = -1,
     FORE = 0,
     BACK = 1,
@@ -1276,7 +1276,7 @@ typedef enum ArgType_t {
 } ArgType;
 
 //! Justification style for ColorTexts.
-typedef enum ColorJustifyMethod_t {
+typedef enum ColorJustifyMethod {
     JUST_NONE = -1,
     JUST_LEFT = 0,
     JUST_RIGHT = 1,
@@ -1284,7 +1284,7 @@ typedef enum ColorJustifyMethod_t {
 } ColorJustifyMethod;
 
 //! Color/Style code types. Used with ColorType_from_str() and ColorValue.
-typedef enum ColorType_t {
+typedef enum ColorType {
     TYPE_NONE = -6,
     TYPE_INVALID_EXTENDED_RANGE = -5,
     TYPE_INVALID_RGB_RANGE = -4,
@@ -1301,7 +1301,7 @@ typedef enum ColorType_t {
     \details
     This is used for the `basic_names` array in colr.c.
 */
-typedef struct BasicInfo_s {
+typedef struct BasicInfo {
     char* name;
     BasicValue value;
 } BasicInfo;
@@ -1310,7 +1310,7 @@ typedef struct BasicInfo_s {
     \details
     This is used for the `basic_names` array in colr.c.
 */
-typedef struct ExtendedInfo_s {
+typedef struct ExtendedInfo {
     char* name;
     ExtendedValue value;
 } ExtendedInfo;
@@ -1319,7 +1319,7 @@ typedef struct ExtendedInfo_s {
     \details
     This is used for the `style_names` array in colr.c.
 */
-typedef struct StyleInfo_s {
+typedef struct StyleInfo {
     char* name;
     StyleValue value;
 } StyleInfo;
@@ -1330,7 +1330,7 @@ static_assert(
 );
 
 //! Holds a string justification method, width, and padding character for ColorTexts.
-typedef struct ColorJustify_s {
+typedef struct ColorJustify {
     //! A marker used to inspect void pointers and determine if they are ColorJustifys.
     unsigned int marker;
     //! The justification method, can be JUST_NONE.
@@ -1342,7 +1342,7 @@ typedef struct ColorJustify_s {
 } ColorJustify;
 
 //! Breaks down Colr struct markers, such as COLORARG_MARKER, into individual bytes.
-typedef union ColorStructMarker_u {
+typedef union ColorStructMarker {
     //! The actual unsigned int marker value.
     unsigned int marker;
     //! Individual bytes that make up the marker.
@@ -1362,7 +1362,7 @@ typedef union ColorStructMarker_u {
     This is internal. It's used to make the final interface easier to use.
     You probably shouldn't be using it.
 */
-typedef struct ColorValue_s {
+typedef struct ColorValue {
     ColorType type;
     BasicValue basic;
     ExtendedValue ext;
@@ -1377,7 +1377,7 @@ typedef struct ColorValue_s {
     \details
     This is used in the colr_name_data array.
 */
-typedef struct ColorNameData_s {
+typedef struct ColorNameData {
     //! The known name of the color.
     char* name;
     //! ExtendedValue (256-colors) for the color.
@@ -1387,7 +1387,7 @@ typedef struct ColorNameData_s {
 } ColorNameData;
 
 //! Holds an ArgType, and a ColorValue.
-typedef struct ColorArg_s {
+typedef struct ColorArg {
     //! A marker used to inspect void pointers and determine if they are ColorArgs.
     unsigned int marker;
     //! Fore, back, style, invalid.
@@ -1397,7 +1397,7 @@ typedef struct ColorArg_s {
 } ColorArg;
 
 //! Holds a string of text, and optional fore, back, and style ColorArgs.
-typedef struct ColorText_s {
+typedef struct ColorText {
     //! A marker used to inspect void pointers and determine if they are ColorTexts.
     unsigned int marker;
     //! Text to colorize.
@@ -1414,7 +1414,7 @@ typedef struct ColorText_s {
 } ColorText;
 
 //! Holds a terminal size, usually retrieved with colr_term_size().
-typedef struct TermSize_s {
+typedef struct TermSize {
     unsigned short rows;
     unsigned short columns;
 } TermSize;
@@ -1663,6 +1663,7 @@ char* ColorValue_to_str(ArgType type, ColorValue cval);
     \endinternal
 */
 bool BasicValue_eq(BasicValue a, BasicValue b);
+BasicValue BasicValue_from_esc(const char* s);
 BasicValue BasicValue_from_str(const char* arg);
 int BasicValue_to_ansi(ArgType type, BasicValue bval);
 char* BasicValue_repr(BasicValue bval);

@@ -1059,6 +1059,8 @@ char* colr_empty_str(void) {
     Each individual string will be released, and finally the allocated memory
     for the list of pointers will be released.
 
+    \pi ps A pointer to a list of strings.
+
     \examplecodefor{colr_free_str_list,.c}
     #include "colr.h"
     int main(void) {
@@ -1074,7 +1076,6 @@ char* colr_empty_str(void) {
         colr_free_str_list(code_list);
     }
     \endexamplecode
-    \pi p  A pointer to a list of strings.
 */
 void colr_free_str_list(char** ps) {
     if (!ps) return;
@@ -4128,6 +4129,32 @@ char* ColorValue_to_str(ArgType type, ColorValue cval) {
 */
 bool BasicValue_eq(BasicValue a, BasicValue b) {
     return ((BasicValue)a == (BasicValue)b);
+}
+
+/*! Convert an escape-code \string to an actual BasicValue enum value.
+
+    \pi s   Escape-code string.\n
+            \mustnull
+    \return BasicValue value on success,
+            or BASIC_INVALID on error (or if \p s is `NULL`).
+
+    \sa BasicValue
+*/
+BasicValue BasicValue_from_esc(const char* s) {
+    if (!s) return BASIC_INVALID;
+    short unsigned int escnum;
+    if (sscanf(s, "\x1b[%hum", &escnum) != 1) {
+        return BASIC_INVALID;
+    }
+    // Outside the range of a basic escape code?
+    if ((escnum < 30) || (escnum > 107)) return BASIC_INVALID;
+    else if ((escnum > 49) && (escnum < 90)) return BASIC_INVALID;
+    // Within range, do some checks and subtract to get a BasicValue.
+    if (escnum < 40) return basic(escnum - 30);
+    else if (escnum < 50) return basic(escnum - 40);
+    else if (escnum < 100) return basic(escnum - 80);
+    // escnum < 108
+    return basic(escnum - 90);
 }
 
 /*! Convert named argument to an actual BasicValue enum value.
