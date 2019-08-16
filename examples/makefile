@@ -21,6 +21,7 @@ example_objects=$(example_source:.c=.o)
 binobjects=$(example_objects) colr.o
 objects:=$(source:.c=.o)
 binaries=$(basename $(notdir $(example_objects)))
+make_help_fmt_cmd=python3 ../tools/make_help_fmter.py
 
 .PHONY: all
 all: $(binaries)
@@ -49,7 +50,7 @@ $(example_objects): $(example_source) $(example_headers)
 		: # printf "\nNot compiling $$cfile ($? changed).\n"; \
 	fi;
 
-.PHONY: clang, clangrelease
+.PHONY: clang
 clang: CC=clang
 clang: CFLAGS+=-Wno-unknown-warning-option -Wliblto
 clang: all
@@ -66,6 +67,6 @@ run:
 .PHONY: help, targets
 help targets:
 	-@printf "Make targets available:\n\
-	all       : Compile all examples.\n\
-	clean     : Delete previous build files.\n\
-	";
+    all       : Compile all examples.\n\
+    clean     : Delete previous build files.\n\
+" | $(make_help_fmt_cmd);

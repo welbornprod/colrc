@@ -8,12 +8,14 @@ appversion="0.0.1"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 appdir="${apppath%/*}"
+
 colrdir="$(readlink -f "${appdir}/..")"
 examplesdir="${colrdir}/examples"
 testdir=$appdir # May change.
 toolsdir="${colrdir}/tools"
 colrexe="${colrdir}/colrc"
 testexe="${appdir}/test_colrc"
+declare -a is_build_cmd=("bash" "$toolsdir/is_build.sh")
 
 declare -a binaries=($(find "$appdir" -maxdepth 1 -executable -type f -name "test_*" ! -name "*.*"))
 ((${#binaries[@]})) || {
@@ -138,6 +140,33 @@ function make_in {
     popd
 }
 
+function run_colrc_modes {
+    local colrc_cmd run_mode=$1
+    declare -a colrc_cmd=("$colrexe")
+    [[ "$run_mode" == "memcheck"* ]] && colrc_cmd=(
+        "$toolsdir/valgrind_run.sh"
+        "-e" "$colrexe"
+    )
+    [[ "$run_mode" == "memcheck-quiet" ]] && colrc_cmd+=("--quiet")
+    colrc_cmd+=("--")
+
+    "${colrc_cmd[@]}" "Testing colr in sanitize mode." red white underline || \
+        fail "Failed on basic colorization."
+    "${colrc_cmd[@]}" "Testing colr in sanitize mode." white rainbow || \
+        fail "Failed on back rainbow."
+    "${colrc_cmd[@]}" "Testing colr in sanitize mode." rainbow black || \
+        fail "Failed on fore rainbow."
+    "${colrc_cmd[@]}" --basic || \
+        fail "Failed on basic colors example."
+    "${colrc_cmd[@]}" --256 || \
+        fail "Failed on 256-colors example."
+    "${colrc_cmd[@]}" --names || \
+        fail "Failed on known names example."
+    "${colrc_cmd[@]}" --rainbow || \
+        fail "Failed on rainbow colors example."
+    "${colrc_cmd[@]}" --rgb || \
+        fail "Failed on rgb colors example."
+}
 
 function run_examples {
     # Clean all of the examples in ../examples, rebuild them, and run them.
@@ -170,13 +199,20 @@ function run_everything {
     make_in "$colrdir" clean debug
 
     echo_status "Trying to run memcheck on (debug)" "$colrexe"
-    COLR_ARGS="TEST red white underline" make_in "$colrdir" "$memcheck_target"
+    run_colrc_modes "memcheck-quiet"
 
     echo_status "Trying to build (debug)" "$testexe"
     make_in "$testdir" clean debug
 
     echo_status "Trying to run memcheck on (debug)" "$testexe"
     make_in "$testdir" "$memcheck_target"
+
+    echo_status "Trying to build (sanitize)" "$colrexe"
+    make_in "$colrdir" clean sanitize
+    run_colrc_modes "normal"
+
+    echo_status "Trying to build (sanitize)" "$testexe"
+    make_in "$testdir" clean sanitize testquiet
 
     echo_status "Running examples..."
     run_examples "${example_args[@]}"
@@ -191,7 +227,7 @@ function run_everything {
     make_in "$colrdir" clean release
 
     echo_status "Trying to run memcheck on (release)" "$colrexe"
-    COLR_ARGS="TEST red white underline" make_in "$colrdir" "$memcheck_target"
+    run_colrc_modes "memcheck-quiet"
 
     echo_status "Trying to build (release)" "$testexe"
     make_in "$testdir" clean release
@@ -230,12 +266,9 @@ function run_everything {
         rebuild_tests="release"
     fi
 
-    rebuild_colr="release"
-    rebuild_tests="release"
-    is_debug_exe "$colrexe" && rebuild_colr="debug"
-    is_debug_exe "$testexe" && rebuild_tests="debug"
-    binmode="${colrexe##*/}:$rebuild_colr, ${testexe##*/}:$rebuild_tests"
-    printf "\n%sSuccess%s, the binaries are: %s\n" "$GREEN" "$NC" "$binmode" 1>&2
+    printf "\n%sSuccess%s, the binaries are:\n" "$GREEN" "$NC" 1>&2
+    "${is_build_cmd[@]}" "$colrexe"
+    "${is_build_cmd[@]}" "$testexe"
 }
 
 function run_source_examples {

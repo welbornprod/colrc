@@ -16,6 +16,7 @@ int main(void) {
         All of the Colr, fore, back, and style resources were free'd by `colr`.
         You are responsible for the text and the resulting colorized string.
     */
+    if (!colorized) return 1;
     printf("%s", colorized);
     free(colorized);
 
@@ -30,6 +31,21 @@ int main(void) {
         "----",
         Colr_rjust("This is on the right.", 38, fore(ext_rgb(255, 53, 125)))
     );
+    if (!colorized) return 1;
     printf("%s\n", just);
     free(just);
+
+    /*
+        If you don't need several Colr() calls, there is a shortcut for safely
+        creating colorized text using Colr_str().
+    */
+    char* fast = Colr_str(
+        "Hello from ColrC.",
+        fore("#2500FF"),
+        back(ext_hex("#353535")),
+        style(UNDERLINE)
+    );
+    if (!fast) return 1;
+    printf("%s\n", fast);
+    free(fast);
 }

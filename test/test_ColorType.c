@@ -29,11 +29,13 @@ subdesc(ColorType_from_str) {
             {"xlightblue", TYPE_EXTENDED},
             {"1", TYPE_EXTENDED},
             {"255", TYPE_EXTENDED},
-            {"-1", TYPE_INVALID_EXTENDED_RANGE},
+            {"-1", TYPE_INVALID_EXT_RANGE},
             {"--1", TYPE_INVALID},
-            {"256", TYPE_INVALID_EXTENDED_RANGE},
+            {"256", TYPE_INVALID_EXT_RANGE},
             {"234,234,234", TYPE_RGB},
             {"355,255,255", TYPE_INVALID_RGB_RANGE},
+            {"underline", TYPE_STYLE},
+            {"bright", TYPE_STYLE},
         };
         for_each(tests, i) {
             const char* arg = tests[i].arg;
@@ -46,6 +48,29 @@ subdesc(ColorType_from_str) {
         for_len(basic_names_len, i) {
             char* name = basic_names[i].name;
             assert_ColorType_name_equal(name, (ColorType)TYPE_BASIC);
+        }
+    }
+    it("honors the style_names mapping") {
+        // Test all style names, in case of some weird regression.
+        char* known_basic[] = {"none", "normal", "reset"};
+        for_len(style_names_len, i) {
+            bool known_duplicate = false;
+            for_each(known_basic, j) {
+                if (colr_str_eq(style_names[i].name, known_basic[j])) {
+                    // This is a known thing.
+                    // "none"/"reset", and others are also a BasicValue names,
+                    // and ColorType_from_str honors them first.
+                    // TODO: This may be re-worked so that the style comes first,
+                    //       but then the "honors basic_names" tests would fail too.
+                    known_duplicate = true;
+                    break;
+                }
+
+            }
+            if (known_duplicate) continue;
+
+            char* name = style_names[i].name;
+            assert_ColorType_name_equal(name, (ColorType)TYPE_STYLE);
         }
     }
 }
@@ -108,7 +133,7 @@ subdesc(ColorType_repr) {
             {TYPE_STYLE, "TYPE_STYLE"},
             {TYPE_INVALID, "TYPE_INVALID"},
             {TYPE_INVALID_STYLE, "TYPE_INVALID_STYLE"},
-            {TYPE_INVALID_EXTENDED_RANGE, "TYPE_INVALID_EXTENDED_RANGE"},
+            {TYPE_INVALID_EXT_RANGE, "TYPE_INVALID_EXT_RANGE"},
             {TYPE_INVALID_RGB_RANGE, "TYPE_INVALID_RGB_RANGE"},
         };
         for_each(tests, i) {

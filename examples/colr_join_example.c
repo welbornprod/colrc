@@ -14,7 +14,7 @@ int main(void) {
         Colr("This one is bright.", style(BRIGHT)),
         "Another plain one, why not?"
     );
-
+    if (!colorized) return 1;
     // Prints each colorized piece of text on it's own line:
     printf("%s\n", colorized);
     free(colorized);
@@ -29,6 +29,7 @@ int main(void) {
         Colr(" that ", fore(RED)),
         "the other."
     );
+    if (!final) return 1;
     // Prints each piece, joined by a colorized " <--> ".
     printf("%s\n", final);
     free(final);
@@ -46,10 +47,14 @@ int main(void) {
         NULL
     };
     char* s = colr_join_array(joiner, words);
+    if (!s) {
+        // Couldn't allocate memory for the final string.
+        for (size_t i = 0; words[i]; i++) ColorText_free(words[i]);
+        return 1;
+    }
     printf("%s\n", s);
     free(s);
 
     // Don't forget to free your ColorTexts/ColorArgs.
-    size_t i = 0;
-    while (words[i]) ColorText_free(words[i++]);
+    for (size_t i = 0; words[i]; i++) ColorText_free(words[i]);
 }

@@ -9,14 +9,6 @@
 */
 #include "colr_tool.h"
 
-#define return_on_null(x) \
-    do { \
-        if (!(x)) { \
-            printferr("Failed to allocate memory for arguments!\n"); \
-            return EXIT_FAILURE; \
-        } \
-    } while (0)
-
 
 int main(int argc, char* argv[]) {
     // Needed for str_to_wide(), and wide_to_str(), and the rainbow() funcs.
@@ -31,6 +23,8 @@ int main(int argc, char* argv[]) {
     if (opts.strip_codes) {
         return strip_codes(&opts);
     }
+    // TODO: if (opts.auto_disable and isatty(fileno(stdout))) printf(opts.text);
+    // TODO: if (opts.use_stderr) out_stream = stderr;
 
     ColorText* ctext = NULL;
     // Rainbowize the text arg.
@@ -46,7 +40,11 @@ int main(int argc, char* argv[]) {
             opts.style
         );
     }
-    return_error_if_null(ctext, "Failed to allocate for ColorText!\n");
+    // Both types of ColorText allocation may have failed.
+    if (!ctext) {
+        ColrToolOptions_free_text(opts);
+        return_error("Failed to allocate for ColorText!\n");
+    }
 
     ctext->just = opts.just;
     // dbug_repr("Using", *ctext);
@@ -64,13 +62,26 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
     printf("%s", text);
-    if (!str_ends_with(text, "\n" CODE_RESET_ALL)) printf("\n");
+    if (!colr_str_ends_with(text, "\n" CODE_RESET_ALL)) printf("\n");
 
     free(text);
-    if (opts.free_text) free(opts.text);
+    ColrToolOptions_free_text(opts);
     return EXIT_SUCCESS;
 }
 
+void ColrToolOptions_free_text(ColrToolOptions opts) {
+    if (opts.text && opts.free_text) {
+        free(opts.text);
+        opts.text = NULL;
+        // This function will not try to double-free the text.
+        opts.free_text = false;
+    }
+}
+
+/*! Create a ColrToolOptions with all of the default values set.
+
+    \return An initialized ColrToolOptions, with defaults set.
+*/
 ColrToolOptions ColrToolOptions_new(void) {
     return (ColrToolOptions){
         .text=NULL,
@@ -90,6 +101,15 @@ ColrToolOptions ColrToolOptions_new(void) {
     };
 }
 
+/*! Create a string representation for ColrToolOptions.
+
+    \details
+    This is used in debugging arg parsing.
+
+    \pi opts The ColrToolOptions to get the representation for.
+    \return  An allocated string with the result, or `NULL` if allocation failed.\n
+             \mustfree
+*/
 char* ColrToolOptions_repr(ColrToolOptions opts) {
     char* text_repr = opts.text ? colr_repr(opts.text) : NULL;
     char* fore_repr = opts.fore ? colr_repr(*(opts.fore)) : NULL;
@@ -236,29 +256,29 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
 
         switch (c) {
             case 0:
-                if (colr_streq(long_options[option_index].name, "basic")) {
+                if (colr_str_eq(long_options[option_index].name, "basic")) {
                     return print_basic(false);
-                } else if (colr_streq(long_options[option_index].name, "256")) {
+                } else if (colr_str_eq(long_options[option_index].name, "256")) {
                     return print_256(false);
-                } else if (colr_streq(long_options[option_index].name, "names")) {
+                } else if (colr_str_eq(long_options[option_index].name, "names")) {
                     return print_names(false);
-                } else if (colr_streq(long_options[option_index].name, "rainbow")) {
+                } else if (colr_str_eq(long_options[option_index].name, "rainbow")) {
                     return print_rainbow(false);
-                } else if (colr_streq(long_options[option_index].name, "rgb")) {
+                } else if (colr_str_eq(long_options[option_index].name, "rgb")) {
                     return print_rgb(false, false);
-                } else if (colr_streq(long_options[option_index].name, "rgbterm")) {
+                } else if (colr_str_eq(long_options[option_index].name, "rgbterm")) {
                     return print_rgb(false, true);
-                } else if (colr_streq(long_options[option_index].name, "basicbg")) {
+                } else if (colr_str_eq(long_options[option_index].name, "basicbg")) {
                     return print_basic(true);
-                } else if (colr_streq(long_options[option_index].name, "256bg")) {
+                } else if (colr_str_eq(long_options[option_index].name, "256bg")) {
                     return print_256(true);
-                } else if (colr_streq(long_options[option_index].name, "namesrgb")) {
+                } else if (colr_str_eq(long_options[option_index].name, "namesrgb")) {
                     return print_names(true);
-                } else if (colr_streq(long_options[option_index].name, "rainbowbg")) {
+                } else if (colr_str_eq(long_options[option_index].name, "rainbowbg")) {
                     return print_rainbow(true);
-                } else if (colr_streq(long_options[option_index].name, "rgbbg")) {
+                } else if (colr_str_eq(long_options[option_index].name, "rgbbg")) {
                     return print_rgb(true, false);
-                } else if (colr_streq(long_options[option_index].name, "rgbtermbg")) {
+                } else if (colr_str_eq(long_options[option_index].name, "rgbtermbg")) {
                     return print_rgb(true, true);
                 } else {
                     printferr(
@@ -270,7 +290,7 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
                 break;
             case 'b':
                 if (colr_str_either(optarg, "rainbow", "rainbowterm")) {
-                    opts->rainbow_term = colr_streq(optarg, "rainbowterm");
+                    opts->rainbow_term = colr_str_eq(optarg, "rainbowterm");
                     opts->rainbow_back = true;
                     opts->back = ColorArg_to_ptr(ColorArg_empty());
                 } else  {
@@ -291,7 +311,7 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
                 opts->just.width = argval_just;
                 break;
             case 'F':
-                if (colr_streq(optarg, "-")) {
+                if (colr_str_eq(optarg, "-")) {
                     // Another way to read stdin data, with --file -.
                     opts->text = "-";
                 } else {
@@ -304,7 +324,7 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
                 break;
             case 'f':
                 if (colr_str_either(optarg, "rainbow", "rainbowterm")) {
-                    opts->rainbow_term = colr_streq(optarg, "rainbowterm");
+                    opts->rainbow_term = colr_str_eq(optarg, "rainbowterm");
                     opts->rainbow_fore = true;
                     opts->fore = ColorArg_to_ptr(ColorArg_empty());
                 } else  {
@@ -391,9 +411,9 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
                 break;
             }
         } else if (!opts->fore) {
-            if (colr_streq(argv[optind], "rainbow")) {
+            if (colr_str_eq(argv[optind], "rainbow")) {
                 opts->rainbow_fore = true;
-            } else if (colr_streq(argv[optind], "rainbowterm")) {
+            } else if (colr_str_eq(argv[optind], "rainbowterm")) {
                 opts->rainbow_fore = true;
                 opts->rainbow_term = true;
             } else {
@@ -402,9 +422,9 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
             }
             optind++;
         } else if (!opts->back) {
-            if (colr_streq(argv[optind], "rainbow")) {
+            if (colr_str_eq(argv[optind], "rainbow")) {
                 opts->rainbow_back = true;
-            } else if (colr_streq(argv[optind], "rainbowterm")) {
+            } else if (colr_str_eq(argv[optind], "rainbowterm")) {
                 opts->rainbow_back = true;
                 opts->rainbow_term = true;
             } else {
@@ -428,7 +448,7 @@ int parse_args(int argc, char** argv, ColrToolOptions* opts) {
 
 
     // Fill text with stdin if a marker argument was used.
-    if (colr_streq(opts->text, "-")) {
+    if (colr_str_eq(opts->text, "-")) {
         // Read from stdin.
         opts->text = read_stdin_arg();
         opts->free_text = true;
@@ -495,7 +515,7 @@ bool parse_int_arg(const char* s, int* value) {
 */
 bool parse_size_arg(const char* s, size_t* value) {
     if (!s || s[0] == '\0') return false;
-    return sscanf(s, "%lu", value) == 1;
+    return sscanf(s, "%zu", value) == 1;
 }
 
 /*! Print the 256 color range using either colrfgx or colorbgx.
@@ -551,7 +571,7 @@ int print_basic(bool do_back) {
         if (colr_str_either(name, "black", "lightblack")) {
             puts("");
         }
-        BasicValue otherval = str_ends_with(name, "black") ? WHITE : BLACK;
+        BasicValue otherval = colr_str_ends_with(name, "black") ? WHITE : BLACK;
         asprintf_or_return(1, &namefmt, "%-14s", name);
         if (do_back) {
             text = colr(back(val), fore(otherval), namefmt);
@@ -802,11 +822,15 @@ ColorText* rainbowize(ColrToolOptions* opts) {
             (opts->rainbow_fore ? rainbow_fg : rainbow_bg)
     );
     char* rainbowized = func(opts->text, opts->rainbow_freq, opts->rainbow_offset);
+    if (!rainbowized) return NULL;
     // Text was allocated from stdin input, it's safe to free.
     if (opts->free_text) {
         free(opts->text);
+        // Don't use or free the text again.
         opts->text = NULL;
+        opts->free_text = false;
     }
+
     opts->free_colr_text = true;
     // Some or all of the fore/back/style args are "empty" (not null).
     // They will not be used if they are empty, but they will be free'd.
@@ -882,7 +906,7 @@ int strip_codes(ColrToolOptions* opts) {
         printferr("\nText was empty!\n");
         return 1;
     }
-    char* stripped = str_strip_codes(opts->text);
+    char* stripped = colr_str_strip_codes(opts->text);
     if (!stripped) {
         printferr("\nFailed to create stripped text!\n");
         return 1;

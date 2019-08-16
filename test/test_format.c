@@ -13,7 +13,7 @@ describe(formatters) {
             size_t bglen = strlen(codeonly);
             assert_range(bglen, CODE_LEN_MIN - 1, CODE_LEN - 1, "Invalid length for basic code");
             // Codes get cut off if there is not enough space for them.
-            assert(str_ends_with(codeonly, "m"));
+            assert(colr_str_ends_with(codeonly, "m"));
         }
     }
 
@@ -24,7 +24,7 @@ describe(formatters) {
             size_t bgx_len = strlen(codeonly);
             assert_range(bgx_len, CODEX_LEN_MIN - 1, CODEX_LEN -1, "Invalid length for ext code");
             // Codes get cut off if there is not enough space for them.
-            assert(str_ends_with(codeonly, "m"));
+            assert(colr_str_ends_with(codeonly, "m"));
         }
     }
 
@@ -43,7 +43,7 @@ describe(formatters) {
                 "Invalid length for rgb code"
             );
             // Codes get cut off if there is not enough space for them.
-            assert(str_ends_with(codeonly, "m"));
+            assert(colr_str_ends_with(codeonly, "m"));
         }
     }
 
@@ -60,7 +60,7 @@ describe(formatters) {
                 "Invalid length for RGB code"
             );
             // Codes get cut off if there is not enough space for them.
-            assert(str_ends_with(codeonly, "m"));
+            assert(colr_str_ends_with(codeonly, "m"));
         }
     }
 
@@ -77,7 +77,7 @@ describe(formatters) {
                 "Invalid length for RGB term code"
             );
             // Codes get cut off if there is not enough space for them.
-            assert(str_ends_with(codeonly, "m"));
+            assert(colr_str_ends_with(codeonly, "m"));
         }
     }
 
@@ -93,7 +93,7 @@ describe(formatters) {
                 "Invalid length for basic code"
             );
             // Codes get cut off if there is not enough space for them.
-            assert(str_ends_with(codeonly, "m"));
+            assert(colr_str_ends_with(codeonly, "m"));
         }
     }
 
@@ -109,7 +109,7 @@ describe(formatters) {
                 "Invalid length for ext code"
             );
             // Codes get cut off if there is not enough space for them.
-            assert(str_ends_with(codeonly, "m"));
+            assert(colr_str_ends_with(codeonly, "m"));
         }
     }
 
@@ -128,7 +128,7 @@ describe(formatters) {
                 "Invalid length for rgb code"
             );
             // Codes get cut off if there is not enough space for them.
-            assert(str_ends_with(codeonly, "m"));
+            assert(colr_str_ends_with(codeonly, "m"));
         }
     }
 
@@ -145,7 +145,7 @@ describe(formatters) {
                 "Invalid length for RGB code"
             );
             // Codes get cut off if there is not enough space for them.
-            assert(str_ends_with(codeonly, "m"));
+            assert(colr_str_ends_with(codeonly, "m"));
         }
     }
 
@@ -162,7 +162,7 @@ describe(formatters) {
                 "Invalid length for RGB term code"
             );
             // Codes get cut off if there is not enough space for them.
-            assert(str_ends_with(codeonly, "m"));
+            assert(colr_str_ends_with(codeonly, "m"));
         }
     }
 

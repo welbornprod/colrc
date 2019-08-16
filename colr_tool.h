@@ -20,6 +20,8 @@
 #include <getopt.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+// colr.h does not include dbug.h, but it needs to be included first.
+// colr.h will define dbug() as a no-op if it gets included before dbug.h.
 #include "dbug.h"
 // colr.h already includes many headers that are used in the colr tool.
 #include "colr.h"
@@ -109,6 +111,7 @@ typedef struct ColrToolOptions_s {
     bool strip_codes;
 } ColrToolOptions;
 
+void ColrToolOptions_free_text(ColrToolOptions opts);
 ColrToolOptions ColrToolOptions_new(void);
 char* ColrToolOptions_repr(ColrToolOptions opts);
 

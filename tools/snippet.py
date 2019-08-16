@@ -21,16 +21,21 @@ import stat
 import sys
 import tempfile
 
-from colr import (
-    Colr as C,
-    auto_disable as colr_auto_disable,
-    docopt,
-)
-from easysettings import load_json_settings
-from printdebug import DebugColrPrinter
-from pygments import highlight
-from pygments.lexers import get_lexer_by_name
-from pygments.formatters import Terminal256Formatter
+try:
+    from colr import (
+        Colr as C,
+        auto_disable as colr_auto_disable,
+        docopt,
+    )
+    from easysettings import load_json_settings
+    from printdebug import DebugColrPrinter
+    from pygments import highlight
+    from pygments.lexers import get_lexer_by_name
+    from pygments.formatters import Terminal256Formatter
+except ImportError as ex:
+    print(f'\nMissing third-party library: {ex.name}', file=sys.stderr)
+    print('It is installable with `pip`.', file=sys.stderr)
+    sys.exit(1)
 
 debugprinter = DebugColrPrinter()
 debugprinter.enable(('-D' in sys.argv) or ('--debug' in sys.argv))
@@ -42,8 +47,8 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.2.0'
-VERSIONSTR = '{} v. {}'.format(NAME, VERSION)
+VERSION = '0.2.3'
+VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
 
@@ -98,6 +103,14 @@ USAGE_MACROS = '\n'.join(
     for name in sorted(MACROS)
 )
 
+SANITIZE_ARGS = (
+    '-fno-omit-frame-pointer',
+    '-fstack-protector-strong',
+    '-fsanitize=address',
+    '-fsanitize=leak',
+    '-fsanitize=undefined',
+)
+
 USAGESTR = f"""{VERSIONSTR}
     Usage:
         {SCRIPT} -h | -v
@@ -105,10 +118,10 @@ USAGESTR = f"""{VERSIONSTR}
         {SCRIPT} [-D] (-L | -N) [PATTERN]
         {SCRIPT} [-D] [-n] [-q] [-w] -V
         {SCRIPT} [-D] [-n] [-q] [-m | -r exe] -b
-        {SCRIPT} [-D] [-n] [-q] [-m | -r exe] -x [PATTERN] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-m | -r exe] [CODE] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-m | -r exe] [-f file...] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-m | -r exe] [-w] (-e [CODE] | -l) [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-m | -r exe | -s] -x [PATTERN] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-m | -r exe | -s] [CODE] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-m | -r exe | -s] [-f file...] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-m | -r exe | -s] [-w] (-e [CODE] | -l) [-- ARGS...]
         {SCRIPT} [-D] -E [CODE] [-- ARGS...]
         {SCRIPT} [-D] -E [-f file...] [-- ARGS...]
         {SCRIPT} [-D] -E [-w] (-e [CODE] | -l) [-- ARGS...]
@@ -122,8 +135,8 @@ USAGESTR = f"""{VERSIONSTR}
                                When used with -e, the editor is started with
                                this as it's content.
                                Default: stdin
-        PATTERN              : Only run examples with a leading comment that
-                               matches this text/regex pattern.
+        PATTERN              : Only use examples with a leading comment
+                               that matches this text/regex pattern.
         -b,--lastbinary      : Re-run the last binary that was compiled.
         -c,--clean           : Clean {TMPDIR} files, even though they will be
                                cleaned when the OS reboots.
@@ -145,6 +158,7 @@ USAGESTR = f"""{VERSIONSTR}
         -q,--quiet           : Don't print any status messages.
         -r exe,--run exe     : Run a program on the compiled binary, like
                                `gdb` or `kdbg`.
+        -s,--sanitize        : Use -fsanitize compiler arguments.
         -V,--viewlast        : View the last snippet that was compiled.
         -v,--version         : Show version.
         -w,--wrapped         : Use the "wrapped" version, which is the resulting
@@ -153,7 +167,7 @@ USAGESTR = f"""{VERSIONSTR}
 
     Predefined Macros:
 {USAGE_MACROS}
-"""
+"""  # noqa (ignore long lines)
 
 
 def main(argd):
@@ -161,7 +175,8 @@ def main(argd):
     global status
     if argd['--quiet']:
         status = noop
-
+    if argd['--sanitize']:
+        argd['ARGS'].extend(SANITIZE_ARGS)
     if argd['--clean']:
         return clean_tmp()
     elif argd['--listexamples'] or argd['--listnames']:
@@ -1065,6 +1080,7 @@ class Snippet(object):
     @staticmethod
     def is_main_sig(line):
         """ Returns True if the `line` looks like a main() signature. """
+        line = line.lstrip()
         return (
             line.startswith('int main') or
             line.startswith('void main') or
@@ -1101,7 +1117,9 @@ class Snippet(object):
             If colr.h is already included, no duplicate include is added.
         """
         line_table = set(line.strip() for line in code.splitlines())
-        includes = ('colr.h', 'dbug.h')
+        # dbug.h must come first, so we don't redefine dbug() with colr.h,
+        # because it thinks it isn't defined.
+        includes = ('dbug.h', 'colr.h')
         lines = []
         for includename in includes:
             includedef = f'#include "{includename}"'
@@ -1145,6 +1163,7 @@ class Snippet(object):
         else:
             debug('Adding semi-colon to code.', align=True)
             code = f'{code};'
+
         if indent:
             spaces = ' ' * indent
             code = '\n'.join(f'{spaces}{s}' for s in code.splitlines())

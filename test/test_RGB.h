@@ -22,11 +22,11 @@
     do { \
         int _arf_ret = func(s, __VA_ARGS__); \
         if (_arf_ret != expectedret) { \
-            char* _arf_str_repr = colr_repr(s); \
-            defer(free(_arf_str_repr)); \
+            char* _arf_colr_str_repr = colr_repr(s); \
+            defer(free(_arf_colr_str_repr)); \
             fail( \
                 "Unexpected return value from: " #func "(%s, ..) == %d (not %d)\n", \
-                _arf_str_repr, \
+                _arf_colr_str_repr, \
                 _arf_ret, \
                 expectedret \
             ); \
@@ -37,10 +37,10 @@
     do { \
         int _arfr_ret = func(s, __VA_ARGS__); \
         if ((_arfr_ret != expecteda) && (_arfr_ret != expectedb)) { \
-            char* _arfr_str_repr = colr_repr(s); \
+            char* _arfr_colr_str_repr = colr_repr(s); \
             fail( \
                 "Unexpected return value from: " #func "(%s, ..) == %d (not one of: %d, %d)\n", \
-                _arfr_str_repr, \
+                _arfr_colr_str_repr, \
                 _arfr_ret, \
                 expecteda, \
                 expectedb \

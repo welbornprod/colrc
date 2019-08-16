@@ -3,10 +3,21 @@
 # Uses lcov to generate an html report for a previously compiled binary.
 # -Christopher Welborn 06-29-2019
 appname="Colr Coverage Generator"
-appversion="0.0.1"
+appversion="0.0.2"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 # appdir="${apppath%/*}"
+declare -A script_deps=(
+    ["lcov"]="lcov"
+    ["genhtml"]="lcov"
+)
+for script_dep in "${!script_deps[@]}"; do
+    hash "$script_dep" &>/dev/null || {
+        printf "\nMissing \`%s\` command.\n" "$script_dep" 1>&2
+        printf "Install the \`%s\` package with your package manager.\n" "${script_deps[$script_dep]}" 1>&2
+        exit 1
+    }
+done
 
 shopt -s nullglob
 
@@ -81,7 +92,7 @@ function print_usage {
 function view_html {
     local index_file="${html_dir}/index.html"
     [[ -e "$index_file" ]] || fail "HTML index file doesn't exist: $index_file"
-    google-chrome "$index_file" &>/dev/null
+    xdg-open "$index_file" &>/dev/null
 }
 
 function view_summary {

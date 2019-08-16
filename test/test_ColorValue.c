@@ -2,8 +2,7 @@
 
     -Christopher Welborn 08-01-2019
 */
-
-#include "test_ColrC.h"
+#include "test_ColorValue.h"
 
 describe(ColorValue) {
 subdesc(ColorValue_empty) {
@@ -22,6 +21,23 @@ subdesc(ColorValue_from_str) {
         assert(ColorValue_has_RGB(rgbval, rgb(255, 255, 255)));
         ColorValue style = ColorValue_from_str("underline");
         assert(ColorValue_has_StyleValue(style, UNDERLINE));
+    }
+    it("detects invalid types") {
+        struct {
+            char* s;
+            ColorType type;
+        } tests[] = {
+            {NULL, TYPE_INVALID},
+            {"", TYPE_INVALID},
+            {"none", TYPE_BASIC},
+            {"32", TYPE_EXTENDED},
+            {"32;64;86", TYPE_RGB},
+            {"3009", TYPE_INVALID_EXT_RANGE},
+            {"355;355;355", TYPE_INVALID_RGB_RANGE},
+        };
+        for_each(tests, i) {
+            assert_colorval_from_str_eq_type(tests[i].s, tests[i].type);
+        }
     }
 }
 subdesc(ColorValue_from_value) {
@@ -45,6 +61,8 @@ subdesc(ColorValue_from_value) {
         cval = ColorValue_from_value(TYPE_RGB, &rgbval);
         assert(ColorValue_has_RGB(cval, rgbval));
 
+        // TODO: coverage for StyleValue outside of STYLE_MIN/MAX_VALUE
+        // TODO: coverage for TYPE_NONE (the fallback return).
     }
 }
 subdesc(ColorValue_has_BasicValue) {

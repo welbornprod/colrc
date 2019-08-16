@@ -125,6 +125,10 @@ a {
 	text-decoration: none;
 }
 
+.contents a {
+    font-weight: bold;
+}
+
 .contents a:visited {
 	color: #3D3D3D;
 }
@@ -883,7 +887,7 @@ div.directory {
     background-position: 0px -4px;
     background-repeat: repeat-y;
     vertical-align:top;
-    display: inline-block;
+    display: none; /* inline-block; */
 }
 
 table.directory {
@@ -1170,7 +1174,7 @@ dl.section dd {
 
 #projectlogo {
 	text-align: center;
-	/* vertical-align: bottom; */
+	vertical-align: middle;
 	border-collapse: separate;
 }
 
