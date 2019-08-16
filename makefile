@@ -83,9 +83,10 @@ else \
 fi;
 endef
 
-.PHONY: all, coverage, debug, lib, libdebug, librelease, release, release2, sanitize
+.PHONY: all
 all: debug
 
+.PHONY: coverage
 coverage: clean
 coverage: cleancoverage
 coverage: CFLAGS+=-O0 -DDEBUG
@@ -95,31 +96,38 @@ coverage: $(binary)
 coverage:
 	@./tools/gen_coverage_html.sh "$(realpath $(binary))" "$(realpath $(cov_dir))" $(COLR_ARGS)
 
+.PHONY: debug
 debug: tags
 debug: CFLAGS+=-g3 -DDEBUG
 debug: $(binary)
 
+.PHONY: lib
 lib: cleancolrobjects
 lib: CFLAGS+=-fpic
 lib: colr.o
 lib:
 	$(CC) -shared -o libcolr.so colr.o
 
+.PHONY: libdebug
 libdebug: CFLAGS+=-g3 -DDEBUG
 libdebug: lib
 
+.PHONY: librelease
 librelease: CFLAGS+=-O3 -DNDEBUG
 librelease: lib
 
+.PHONY: release
 release: CFLAGS+=-O3 -DNDEBUG
 release: $(binary)
 
+.PHONY: release2
 release2: CFLAGS+=-O2 -DNDEBUG
 release2: $(binary)
 
 # Build the tests with all of the -fsanitize options. This will make the
 # executable slower and bigger, but helps to catch things that valgrind doesn't.
 # This should never be used as a release build.
+.PHONY: sanitize
 sanitize: CFLAGS+=-g3 -DDEBUG $(FFLAGS)
 sanitize: LIBS+=-lasan
 sanitize: $(binary)
@@ -174,11 +182,12 @@ tags: $(source) $(headers)
 	@printf "Building ctags...\n    "
 	ctags $(source) $(headers)
 
-.PHONY: clang, clangrelease
+.PHONY: clang
 clang: CC=clang
 clang: CFLAGS+=-Wno-unknown-warning-option -Wliblto
 clang: debug
 
+.PHONY: clangrelease
 clangrelease: CC=clang
 clangrelease: CFLAGS+=-Wno-unknown-warning-option -Wliblto
 clangrelease: release
@@ -186,6 +195,10 @@ clangrelease: release
 .PHONY: clean
 clean:
 	@./tools/clean.sh "$(binary)"
+
+.PHONY: cleanquiet
+cleanquiet:
+	@./tools/clean.sh --quiet "$(binary)"
 
 .PHONY: cleancolrobjects
 cleancolrobjects:
@@ -195,26 +208,30 @@ cleancolrobjects:
 cleandebug: clean
 cleandebug: debug
 
-.PHONY: cleandocs, cleanhtml, cleanlatex, cleanexamples, cleanpdf
+.PHONY: cleandocs
 cleandocs: cleanhtml
 cleandocs: cleanlatex
 cleandocs: cleanpdf
 
+PHONY: cleanhtml
 cleanhtml:
 	@./tools/clean.sh -d "$(docs_dir)" "$(docs_dir)/html" "$(docs_dir)/man"
 
+PHONY: cleanlatex
 cleanlatex:
 	@./tools/clean.sh -m "Latex" $(doxy_latex_files)
 
+PHONY: cleanexamples
 cleanexamples:
 	@$(MAKE) clean && \
 		cd examples && \
 			$(MAKE) --no-print-directory clean
 
+PHONY: cleanpdf
 cleanpdf:
 	@./tools/clean.sh -m "PDF" $(docs_pdf) $(latex_files)
 
-.PHONY: cleancoverage, coveragesummary, coverageview
+.PHONY: cleancoverage
 cleancoverage:
 	@shopt -s nullglob; \
 	declare -a covfiles=($(cov_dir)/*.gc{da,no} $(cov_dir)/*.info $(cov_dir)/html); \
@@ -231,30 +248,35 @@ cleancoverage:
 		printf "Coverage files already clean.\n"; \
 	fi;
 
+.PHONY: coveragesummary
 coveragesummary:
 	@./tools/gen_coverage_html.sh "$(binary)" "$(cov_dir)" --summary
 
+.PHONY: coverageview
 coverageview:
 	@./tools/gen_coverage_html.sh "$(binary)" "$(cov_dir)" --view
 
-.PHONY: cppcheck, cppcheckreport, cppcheckreportall, cppcheckview, cppcheckviewall
-
+.PHONY: cppcheck
 cppcheck:
 	@$(cppcheck_cmd)
 
+.PHONY: cppcheckreport
 cppcheckreport:
 	@$(cppcheck_cmd) -r
 
+.PHONY: cppcheckreportall
 cppcheckreportall:
 	@$(cppcheck_cmd) -r && $(cppcheck_cmd) -t -r
 
+.PHONY: cppcheckview
 cppcheckview:
 	@$(cppcheck_cmd) --view
 
+.PHONY: cppcheckviewall
 cppcheckviewall:
 	@$(cppcheck_cmd) --view && $(cppcheck_cmd) -t --view
 
-.PHONY: docscj, docshtml, docslatex, docspdf, docsreadme, docsrebuild
+.PHONY: docscj
 docscj:
 	@if [[ -n "$(docs_cj_dir)" ]] && [[ -d "$(docs_cj_dir)" ]]; then \
 		printf "\nCopying docs for cjwelborn.github.io.\n"; \
@@ -267,22 +289,28 @@ docscj:
 		fi; \
 	fi;
 
+.PHONY: docshtml
 docshtml: $(docs_main_file)
 
+.PHONY: docslatex
 docslatex: $(latex_idx)
 
+.PHONY: docspdf
 docspdf: $(docs_pdf)
 
+.PHONY: docsreadme
 docsreadme: $(docs_github_readme)
 
+.PHONY: docsrebuild
 docsrebuild: cleandocs
 docsrebuild: docs
 
-.PHONY: docsview, docsviewpdf
+.PHONY: docsview
 docsview: viewing_file=$(docs_main_file)
 docsview:
 	@$(view_file)
 
+.PHONY: docsviewpdf
 docsviewpdf: viewing_file=$(docs_pdf)
 docsviewpdf:
 	@$(view_file)
@@ -291,7 +319,7 @@ docsviewpdf:
 examples: $(examples_source)
 	@cd examples && $(MAKE) --no-print-directory $(COLR_ARGS)
 
-.PHONY: memcheck, memcheckquiet
+.PHONY: memcheck
 memcheck: debug
 memcheck:
 	@if $(is_build_cmd) "sanitize" || ! $(is_build_cmd) "debug"; then \
@@ -300,6 +328,7 @@ memcheck:
 	fi;
 	@$(valgrind_cmd) -- $(COLR_ARGS)
 
+.PHONY: memcheckquiet
 memcheckquiet: debug
 memcheckquiet:
 	@if $(is_build_cmd) "sanitize" || ! $(is_build_cmd) "debug"; then \
@@ -394,71 +423,91 @@ help targets:
     memcheck          : Run \`valgrind --tool=memcheck\` on the executable.\n\
 " | $(make_help_fmt_cmd);
 
-.PHONY: cleantest, test
+.PHONY: cleantest
 cleantest:
 	-@$(MAKE) --no-print-directory clean debug && { \
 		cd test && \
 			TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory cleantest; \
 	};
 
+.PHONY: test
 test:
 	-@$(MAKE) --no-print-directory debug && { \
 		cd test && \
 			TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory test; \
 	};
 
-.PHONY: testcppcheckreport, testcoverage, testcoverageview
+.PHONY: testcppcheckreport
 testcppcheckreport:
 	@cd test && $(MAKE) cppcheckreport;
 
+.PHONY: testcoverage
 testcoverage:
 	@cd test && \
 		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory clean coverage;
 
 # This is the same as `testview`.
+.PHONY: testcoverageview
 testcoverageview:
 	@cd test && \
 		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory coverageview;
 
-.PHONY: testeverything, testfast, testfull, testgdb, testkdbg
+.PHONY: testeverything
 testeverything:
 	@cd test && \
 		$(MAKE) --no-print-directory testeverything;
 
+.PHONY: testfast
 testfast:
 	@cd test && \
 		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory testfast;
 
+.PHONY: testfastquiet
+testfastquiet:
+	@cd test && \
+		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory testfastquiet;
+
+.PHONY: testfull
 testfull:
 	@cd test && \
 		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory testfull;
 
+.PHONY: testfullquiet
+testfullquiet:
+	@cd test && \
+		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory testfullquiet;
+
+.PHONY: testgdb
 testgdb:
 	@$(MAKE) --no-print-directory debug && { \
 		cd test && \
 			TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory debug testgdb; \
 		};
 
+.PHONY: testkdbg
 testkdbg:
 	@$(MAKE) --no-print-directory debug && { \
 		cd test && \
 			TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory debug testkdbg; \
 		};
 
-.PHONY: testmemcheck, testquiet, testsummary, testview
+.PHONY: testmemcheck
 testmemcheck:
 	@cd test && \
 		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory debug memcheck;
 
+.PHONY: testquiet
 testquiet:
 	@$(MAKE) --no-print-directory debug && { \
 		cd test && \
 		TEST_ARGS=$(TEST_ARGS) $(MAKE) --no-print-directory debug testquiet; \
 	};
 
+.PHONY: testsummary
 testsummary:
 	@cd test && $(MAKE) --no-print-directory coveragesummary;
 
+.PHONY: testview
 testview:
 	@cd test && $(MAKE) --no-print-directory coverageview;
 

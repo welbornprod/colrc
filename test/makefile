@@ -32,9 +32,10 @@ test_objects=$(test_source:.c=.o)
 objects:=$(source:.c=.o)
 binobjects:=$(notdir $(objects))
 
-.PHONY: all, coverage, debug, debugnotags, release, sanitize
+.PHONY: all
 all: sanitize
 
+.PHONY: coverage
 coverage: clean
 coverage: cleancoverage
 coverage: CFLAGS+=-O0 -DDEBUG
@@ -44,10 +45,12 @@ coverage: $(binary)
 coverage:
 	@$(cov_cmd) "$(realpath $(binary))" "$(realpath $(cov_dir))"
 
+.PHONY: debug
 debug: tags
 debug: CFLAGS+=-g3 -DDEBUG
 debug: $(binary)
 
+.PHONY: release
 release: CFLAGS+=-O3 -DNDEBUG
 release: $(binary)
 
@@ -55,6 +58,7 @@ release: $(binary)
 # executable slower and bigger, but helps to catch things that valgrind doesn't.
 # Valgrind cannot be used with this build, so the `memcheck` target will
 # rebuild in `debug` mode if needed.
+.PHONY: sanitize
 sanitize: CFLAGS+=-g3 -DDEBUG $(FFLAGS)
 sanitize: LIBS+=-lasan
 sanitize: $(binary)
@@ -77,16 +81,20 @@ tags: $(source) $(headers)
 	@printf "Building ctags...\n    ";
 	ctags $(source) $(headers);
 
-.PHONY: clang, clangrelease
+.PHONY: clang
 clang: CC=clang
 clang: CFLAGS+=-Wno-unknown-warning-option -Wliblto
 clang: debug
 
 .PHONY: clean
 clean:
-	-@bash ../tools/clean.sh "$(binary)"
+	@bash ../tools/clean.sh "$(binary)"
 
-.PHONY: cleancoverage, coveragesummary, coverageview
+.PHONY: cleanquiet
+cleanquiet:
+	@bash ../tools/clean.sh --quiet "$(binary)"
+
+.PHONY: cleancoverage
 cleancoverage:
 	@shopt -s nullglob; \
 	declare -a covfiles=($(cov_dir)/*.gc{da,no} $(cov_dir)/*.info $(cov_dir)/html); \
@@ -103,25 +111,27 @@ cleancoverage:
 		printf "Coverage files already clean.\n"; \
 	fi;
 
+.PHONY: coveragesummary
 coveragesummary:
 	@$(cov_cmd) "$(binary)" "$(cov_dir)" --summary
 
+.PHONY: coverageview
 coverageview:
 	@$(cov_cmd) "$(binary)" "$(cov_dir)" --view
 
-.PHONY: cppcheck, cppcheckreport, cppcheckview
-
+.PHONY: cppcheck
 cppcheck:
 	@$(cppcheck_cmd)
 
+.PHONY: cppcheckreport
 cppcheckreport:
 	@$(cppcheck_cmd) -r
 
+.PHONY: cppcheckview
 cppcheckview:
 	@$(cppcheck_cmd) --view
 
-.PHONY: memcheck, memcheckquiet
-
+.PHONY: memcheck
 memcheck: debug
 memcheck:
 	@if $(is_build_cmd) "sanitize" -o "coverage" || ! $(is_build_cmd) "debug"; then \
@@ -130,13 +140,14 @@ memcheck:
 	fi;
 	@$(valgrind_cmd) -- $(TEST_ARGS)
 
+.PHONY: memcheckquiet
 memcheckquiet: debug
 memcheckquiet:
 	@if $(is_build_cmd) "sanitize" -o "coverage" || ! $(is_build_cmd) "debug"; then \
 		printf "\nRebuilding in debug non-sanitized/coverage mode for memcheck.\n"; \
 		$(MAKE) clean debug; \
 	fi;
-	@$(valgrind_cmd) -q -- $(TEST_ARGS)
+	@$(valgrind_cmd) -q -- --quiet $(TEST_ARGS)
 
 .PHONY: strip
 strip:
@@ -180,36 +191,54 @@ help targets:
     testquiet       : Make \`sanitize\` (if needed), then run the tests with --quiet.\n\
 " | $(make_help_fmt_cmd);
 
-.PHONY: cleantest, testeverything, testfast, testfull, testgdb, testkdbg, testquiet, test
+.PHONY: cleantest
 cleantest: clean
 cleantest: test
 
+.PHONY: test
 test: sanitize
 test:
 	@./run_tests.sh $(TEST_ARGS)
 
+.PHONY: testeverything
 testeverything:
 	@./run_tests.sh --all --quiet
 
+.PHONY: testfast
 testfast: clean
 testfast: debug
 testfast:
 	@./run_tests.sh $(TEST_ARGS)
 
+.PHONY: testfastquiet
+testfastquiet: cleanquiet
+testfastquiet: debug
+testfastquiet:
+	./run_tests.sh --quiet $(TEST_ARGS)
+
+.PHONY: testfull
 testfull: testfast memcheck
 testfull:
 	@$(MAKE) clean sanitize test
 
+.PHONY: testfullquiet
+testfullquiet: testfastquiet memcheckquiet
+testfullquiet:
+	@$(MAKE) cleanquiet sanitize testquiet
+
+.PHONY: testgdb
 testgdb: sanitize
 testgdb:
 	@./run_tests.sh -e gdb $(TEST_ARGS)
 
+.PHONY: testkdbg
 testkdbg: sanitize
 testkdbg:
 	@./run_tests.sh -e kdbg $(TEST_ARGS)
 
+.PHONY: testquiet
 testquiet: sanitize
 testquiet:
-	@./run_tests.sh $(TEST_ARGS) --quiet
+	@./run_tests.sh --quiet $(TEST_ARGS)
 
 

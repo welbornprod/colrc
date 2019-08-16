@@ -50,7 +50,7 @@ $(example_objects): $(example_source) $(example_headers)
 		: # printf "\nNot compiling $$cfile ($? changed).\n"; \
 	fi;
 
-.PHONY: clang, clangrelease
+.PHONY: clang
 clang: CC=clang
 clang: CFLAGS+=-Wno-unknown-warning-option -Wliblto
 clang: all
