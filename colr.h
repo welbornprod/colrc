@@ -337,6 +337,22 @@
 */
 #define basic(x) ((BasicValue)(x))
 
+/*! \def basic_is_invalid
+    Determines whether a BasicValue is invalid.
+
+    \pi x   A BasicValue to check.
+    \return `true` if the value is considered invalid, otherwise `false`.
+*/
+#define basic_is_invalid(x) ((x == BASIC_INVALID) || (x == BASIC_INVALID_RANGE))
+
+/*! \def basic_is_valid
+    Determines whether a BasicValue is valid.
+
+    \pi x   A BasicValue to check.
+    \return `true` if the value is considered valid, otherwise `false`.
+*/
+#define basic_is_valid(x) ((x != BASIC_INVALID) && (x != BASIC_INVALID_RANGE))
+
 /*! \def bool_colr_enum
     Returns the "truthiness" of the enums used in ColrC
     (BasicValue, ExtendedValue, StyleValue, ColorType, ArgType).
@@ -907,6 +923,22 @@
 */
 #define ext_hex_or(s, default_value) ExtendedValue_from_hex_default(s, default_value)
 
+/*! \def ext_is_invalid
+    Determines whether an integer is an invalid ExtendedValue.
+
+    \pi x   A number to check.
+    \return `true` if the value is considered invalid, otherwise `false`.
+*/
+#define ext_is_invalid(x) ((x < 0) || (x > 255))
+
+/*! \def ext_is_valid
+    Determines whether an integer is a valid ExtendedValue.
+
+    \pi x   A number to check.
+    \return `true` if the value is considered valid, otherwise `false`.
+*/
+#define ext_is_valid(x) ((x > -1) && (x < 256))
+
 /*! \def ext_rgb
     Creates the closest matching ExtendedValue from an RGB value.
 
@@ -1091,6 +1123,22 @@
         char* : ColorArg_from_str, \
         StyleValue: ColorArg_from_StyleValue \
     )(STYLE, x)
+
+/*! \def style_is_invalid
+    Determines whether a StyleValue is invalid.
+
+    \pi x   A StyleValue to check.
+    \return `true` if the value is considered invalid, otherwise `false`.
+*/
+#define style_is_invalid(x) ((x == STYLE_INVALID) || (x == STYLE_INVALID_RANGE))
+
+/*! \def style_is_valid
+    Determines whether a StyleValue is valid.
+
+    \pi x   A StyleValue to check.
+    \return `true` if the value is considered valid, otherwise `false`.
+*/
+#define style_is_valid(x) ((x == STYLE_INVALID) || (x == STYLE_INVALID_RANGE))
 
 /*! \def style_str
     Retrieve just the escape code string for a style.
@@ -1596,7 +1644,8 @@ void ColorArg_free(ColorArg* p);
 ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value);
 ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value);
 ColorArg ColorArg_from_RGB(ArgType type, RGB value);
-ColorArg ColorArg_from_str(ArgType type, char* colorname);
+ColorArg ColorArg_from_esc(const char* s);
+ColorArg ColorArg_from_str(ArgType type, const char* colorname);
 ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value);
 ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void* p);
 bool ColorArg_is_empty(ColorArg carg);
@@ -1654,7 +1703,8 @@ char* ColorType_repr(ColorType type);
 */
 ColorValue ColorValue_empty(void);
 bool ColorValue_eq(ColorValue a, ColorValue b);
-ColorValue ColorValue_from_str(char* s);
+ColorValue ColorValue_from_esc(const char* s);
+ColorValue ColorValue_from_str(const char* s);
 ColorValue ColorValue_from_value(ColorType type, void* p);
 bool ColorValue_has_BasicValue(ColorValue cval, BasicValue bval);
 bool ColorValue_has_ExtendedValue(ColorValue cval, ExtendedValue eval);

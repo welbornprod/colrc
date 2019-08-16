@@ -2894,6 +2894,40 @@ ColorArg ColorArg_from_RGB(ArgType type, RGB value) {
     };
 }
 
+ColorArg ColorArg_from_esc(const char* s) {
+    ColorValue cval = ColorValue_from_esc(s);
+    if (ColorValue_is_invalid(cval)) {
+        return (ColorArg){
+            .marker=COLORARG_MARKER,
+            .type=ARGTYPE_NONE,
+            .value=cval
+        };
+    }
+    // The value is good, I hate that the fore/back info was lost.
+    if (cval.type == TYPE_STYLE) {
+        return (ColorArg){
+            .marker=COLORARG_MARKER,
+            .type=STYLE,
+            .value=cval
+        };
+    }
+    // So, I'll parse out the fore/back information.
+    // Fore colors start with: "\x1b[3", back colors with: "\x1b[4".
+    if (colr_str_starts_with(s, "\x1b[3")) {
+        return (ColorArg) {
+            .marker=COLORARG_MARKER,
+            .type=FORE,
+            .value=cval
+        };
+    }
+    // Back color.
+    return (ColorArg){
+        .marker=COLORARG_MARKER,
+        .type=BACK,
+        .value=cval
+    };
+}
+
 /*! Build a ColorArg (fore, back, or style value) from a known color name/style.
 
     \details
@@ -2907,7 +2941,7 @@ ColorArg ColorArg_from_RGB(ArgType type, RGB value) {
 
     \sa ColorArg
 */
-ColorArg ColorArg_from_str(ArgType type, char* colorname) {
+ColorArg ColorArg_from_str(ArgType type, const char* colorname) {
     ColorValue cval = ColorValue_from_str(colorname);
     return (ColorArg){
         .marker=COLORARG_MARKER,
@@ -3643,18 +3677,18 @@ ColorType ColorType_from_str(const char* arg) {
     if (!arg) return TYPE_INVALID;
     if (arg[0] == '\0') return TYPE_INVALID;
     // Try basic colors.
-    if (BasicValue_from_str(arg) != BASIC_INVALID) {
+    if (basic_is_valid(BasicValue_from_str(arg))) {
         return TYPE_BASIC;
     }
     // Extended colors.
     int x_ret = ExtendedValue_from_str(arg);
     if (x_ret == COLOR_INVALID_RANGE) {
         return TYPE_INVALID_EXT_RANGE;
-    } else if (x_ret != COLOR_INVALID) {
+    } else if (ext_is_valid(x_ret)) {
         return TYPE_EXTENDED;
     }
     // Try styles.
-    if (StyleValue_from_str(arg) != STYLE_INVALID) {
+    if (style_is_valid(StyleValue_from_str(arg))) {
         return TYPE_STYLE;
     }
     // Try rgb.
@@ -3774,25 +3808,72 @@ bool ColorValue_eq(ColorValue a, ColorValue b) {
     );
 }
 
+/*! Convert an escape-code \string into a ColorValue.
+
+    \pi s    An escape-code string to parse.\n
+             \mustnull
+    \return  A ColorValue (with no fore/back information, only the color type and value).
+    \retval  For invalid strings, the `.type` member can be one of:
+        - TYPE_INVALID
+        - TYPE_INVALID_EXT_RANGE
+        - TYPE_INVALID_RGB_RANGE
+
+    \sa ColorValue ColorArg_from_esc
+*/
+ColorValue ColorValue_from_esc(const char* s) {
+    if (!s || s[0] == '\0') return ColorValue_from_value(TYPE_INVALID, NULL);
+    // Basic color name?
+    int b_ret = BasicValue_from_esc(s);
+    if (basic_is_valid(b_ret)) {
+        BasicValue bval = (BasicValue)b_ret;
+        return ColorValue_from_value(TYPE_BASIC, &bval);
+    }
+    // Extended colors, or known extended name?
+    int x_ret = ExtendedValue_from_esc(s);
+    if (x_ret == COLOR_INVALID_RANGE) {
+        return ColorValue_from_value(TYPE_INVALID_EXT_RANGE, NULL);
+    } else if (ext_is_valid(x_ret)) {
+        // Need to cast back into a real ExtendedValue now that I know it's
+        // not invalid. Also, ColorValue_from_value expects a pointer, to
+        // help with it's "dynamic" uses.
+        ExtendedValue xval = ext(x_ret);
+        return ColorValue_from_value(TYPE_EXTENDED, &xval);
+    }
+    // Style name?
+    int s_ret = StyleValue_from_esc(s);
+    if (style_is_valid(s_ret)) {
+        StyleValue sval = (StyleValue)s_ret;
+        return ColorValue_from_value(TYPE_STYLE, &sval);
+    }
+    // RGB string, or known name?
+    RGB rgb;
+    int rgb_ret = RGB_from_esc(s, &rgb);
+    if (rgb_ret == COLOR_INVALID_RANGE) {
+        return ColorValue_from_value(TYPE_INVALID_RGB_RANGE, NULL);
+    } else if (rgb_ret != TYPE_INVALID) {
+        return ColorValue_from_value(TYPE_RGB, &rgb);
+    }
+    return ColorValue_from_value(TYPE_INVALID, NULL);
+}
+
 /*! Create a ColorValue from a known color name, or RGB \string.
 
     \pi s    A string to parse the color name from (can be an RGB string).
     \return  A ColorValue (with no fore/back information, only the color type and value).
 
+    \retval  For invalid strings, the `.type` member can be one of:
+        - TYPE_INVALID
+        - TYPE_INVALID_EXT_RANGE
+        - TYPE_INVALID_RGB_RANGE
+
     \sa ColorValue
 */
-ColorValue ColorValue_from_str(char* s) {
+ColorValue ColorValue_from_str(const char* s) {
     if (!s || s[0] == '\0') return ColorValue_from_value(TYPE_INVALID, NULL);
-
-    // // Get the actual type, even if it's invalid.
-    // ColorType type = ColorType_from_str(s);
-    // if (ColorType_is_invalid(type)) {
-    //     return ColorValue_from_value(type, NULL);
-    // }
 
     // Basic color name?
     int b_ret = BasicValue_from_str(s);
-    if (b_ret != BASIC_INVALID) {
+    if (basic_is_valid(b_ret)) {
         BasicValue bval = (BasicValue)b_ret;
         return ColorValue_from_value(TYPE_BASIC, &bval);
     }
@@ -3800,7 +3881,7 @@ ColorValue ColorValue_from_str(char* s) {
     int x_ret = ExtendedValue_from_str(s);
     if (x_ret == COLOR_INVALID_RANGE) {
         return ColorValue_from_value(TYPE_INVALID_EXT_RANGE, NULL);
-    } else if (x_ret != COLOR_INVALID) {
+    } else if (ext_is_valid(x_ret)) {
         // Need to cast back into a real ExtendedValue now that I know it's
         // not invalid. Also, ColorValue_from_value expects a pointer, to
         // help with it's "dynamic" uses.
@@ -3809,12 +3890,12 @@ ColorValue ColorValue_from_str(char* s) {
     }
     // Style name?
     int s_ret = StyleValue_from_str(s);
-    if (s_ret != STYLE_INVALID) {
+    if (style_is_valid(s_ret)) {
         StyleValue sval = (StyleValue)s_ret;
         return ColorValue_from_value(TYPE_STYLE, &sval);
     }
-    RGB rgb;
     // RGB string, or known name?
+    RGB rgb;
     int rgb_ret = RGB_from_str(s, &rgb);
     if (rgb_ret == COLOR_INVALID_RANGE) {
         return ColorValue_from_value(TYPE_INVALID_RGB_RANGE, NULL);
@@ -4689,7 +4770,7 @@ RGB RGB_from_hex_default(const char* hexstr, RGB default_value) {
     \examplecodefor{RGB_from_str,.c}
     RGB rgbval;
     int ret = RGB_from_str("123,0,234", &rgbval);
-    if (ret != COLOR_INVALID) {
+    if (ret == 0) {
         char* s = colr(Colr("Test", fore(rgbval)));
         printf("%s\n", s);
         free(s);
