@@ -97,6 +97,71 @@ subdesc(ColorArg_from_RGB) {
         }
     }
 }
+subdesc(ColorArg_from_esc) {
+    it("creates ColorArgs from basic esc-codes") {
+        for_len(basic_names_len, i) {
+            BasicValue bval = basic_names[i].value;
+            char codes[CODE_LEN];
+            format_fg(codes, bval);
+            ColorArg carg = ColorArg_from_esc(codes);
+            assert_is_valid(carg);
+            assert_colr_eq_repr(carg.type, FORE, codes);
+            assert_colr_eq_repr(carg.value.basic, bval, codes);
+
+            format_bg(codes, bval);
+            carg = ColorArg_from_esc(codes);
+            assert_is_valid(carg);
+            assert_colr_eq_repr(carg.type, BACK, codes);
+            assert_colr_eq_repr(carg.value.basic, bval, codes);
+
+        }
+    }
+    it("creates ColorArgs from ext esc-codes") {
+        for (unsigned short i = 0; i < 256; i++) {
+            ExtendedValue eval = i;
+            char codes[CODEX_LEN];
+            format_fgx(codes, eval);
+            ColorArg carg = ColorArg_from_esc(codes);
+            assert_is_valid(carg);
+            assert_colr_eq_repr(carg.type, FORE, codes);
+            assert_colr_eq_repr(carg.value.ext, eval, codes);
+
+            format_bgx(codes, eval);
+            carg = ColorArg_from_esc(codes);
+            assert_is_valid(carg);
+            assert_colr_eq_repr(carg.type, BACK, codes);
+            assert_colr_eq_repr(carg.value.ext, eval, codes);
+        }
+    }
+    it("creates ColorArgs from style esc-codes") {
+        for_len(style_names_len, i) {
+            StyleValue sval = style_names[i].value;
+            char codes[STYLE_LEN];
+            format_style(codes, sval);
+            ColorArg carg = ColorArg_from_esc(codes);
+            assert_is_valid(carg);
+            assert_colr_eq_repr(carg.type, STYLE, codes);
+            assert_colr_eq_repr(carg.value.style, sval, codes);
+        }
+    }
+    it("creates ColorArgs from RGB esc-codes") {
+        for_len(colr_name_data_len, i) {
+            RGB expected = colr_name_data[i].rgb;
+            char codes[CODE_RGB_LEN];
+            format_fg_RGB(codes, expected);
+            ColorArg carg = ColorArg_from_esc(codes);
+            assert_is_valid(carg);
+            assert_colr_eq_repr(carg.type, FORE, codes);
+            assert_colr_eq_repr(carg.value.rgb, expected, codes);
+
+            format_bg_RGB(codes, expected);
+            carg = ColorArg_from_esc(codes);
+            assert_is_valid(carg);
+            assert_colr_eq_repr(carg.type, BACK, codes);
+            assert_colr_eq_repr(carg.value.rgb, expected, codes);
+        }
+    }
+}
 subdesc(ColorArg_from_str) {
     it("creates args from names") {
         struct {

@@ -19,6 +19,7 @@
 #pragma GCC diagnostic warning "-Wunused-macros"
 #pragma clang diagnostic push
 #pragma clang diagnostic warning "-Wunused-macros"
+#pragma clang diagnostic ignored "-Wvariadic-macros"
 
 #include "../colr.h"
 
@@ -72,7 +73,24 @@
                 _a_CT_h_a_clrtext_repr, \
                 _a_CT_h_a_clrarg_repr \
             ); \
+            free(_a_CT_h_a_clrtext_repr); \
+            free(_a_CT_h_a_clrarg_repr); \
         }\
+    } while (0)
+
+#define assert_ColorValue_has(cval, val) \
+    do { \
+        if (!ColorValue_has(cval, val)) { \
+            char* _a_CT_h_a_clrval_repr = colr_repr(cval); \
+            char* _a_CT_h_a_val_repr = colr_repr(val); \
+            fail( \
+                "ColorValue does not contain value:\n     (" #cval ") %s\n  -> (" #val ") %s", \
+                _a_CT_h_a_clrval_repr, \
+                _a_CT_h_a_val_repr \
+            ); \
+            free(_a_CT_h_a_clrval_repr); \
+            free(_a_CT_h_a_val_repr); \
+        } \
     } while (0)
 
 #define assert_colr_eq(a, b) \
@@ -97,6 +115,107 @@
         }\
     } while (0)
 
+/*! \def assert_colr_eq_repr
+    Like assert_colr_eq(), but adds an extra argument to print the repr() for.
+
+    \pi a       First value to compare.
+    \pi b       Second value to compare.
+    \pi colrobj Any object compatible with colr_repr(), to get the repr for.
+*/
+#define assert_colr_eq_repr(a, b, colrobj) \
+    do { \
+        if (!colr_eq(a, b)) { \
+            char* _a_c_eq_a = colr_repr(a); \
+            char* _a_c_eq_b = colr_repr(b); \
+            char* _a_c_eq_repr = colr_repr(colrobj); \
+            fail( \
+                "Not equal: (" #a ") %s != (" #b ") %s\n    Extra Repr: %s", \
+                _a_c_eq_a, \
+                _a_c_eq_b, \
+                _a_c_eq_repr \
+            ); \
+            free(_a_c_eq_a); \
+            free(_a_c_eq_b); \
+            free(_a_c_eq_repr); \
+        }\
+    } while (0)
+
+/*! \def assert_colr_neq_repr
+    Like assert_colr_neq(), but adds an extra argument to print the repr() for.
+
+    \pi a       First value to compare.
+    \pi b       Second value to compare.
+    \pi colrobj Any object compatible with colr_repr(), to get the repr for.
+*/
+#define assert_colr_neq_repr(a, b, colrobj) \
+    do { \
+        if (colr_eq(a, b)) { \
+            char* _a_c_neq_a = colr_repr(a); \
+            char* _a_c_neq_b = colr_repr(b); \
+            char* _a_c_neq_repr = colr_repr(colrobj); \
+            fail( \
+                "Equal: (" #a ") %s == (" #b ") %s\n    Extra Repr: %s", \
+                _a_c_neq_a, \
+                _a_c_neq_b, \
+                _a_c_neq_repr \
+            ); \
+            free(_a_c_neq_a); \
+            free(_a_c_neq_b); \
+            free(_a_c_neq_repr); \
+        }\
+    } while (0)
+// Assert two ExtendedValues are equal, with a better message on failure.
+#define assert_ext_eq(a, b, msg) \
+    do { \
+        if (a != b) { \
+            char* _a_e_e_eval_repr_a = ExtendedValue_repr(a); \
+            char* _a_e_e_eval_repr_b = ExtendedValue_repr(b); \
+            fail("%s: %s != %s", msg, _a_e_e_eval_repr_a, _a_e_e_eval_repr_b); \
+            free(_a_e_e_eval_repr_a); \
+            free(_a_e_e_eval_repr_b); \
+        } \
+    } while (0)
+
+// Assert two ExtendedValues are not equal, with a better message on failure.
+#define assert_ext_neq(a, b, msg) \
+    do { \
+        if (a == b) { \
+            char* _a_e_ne_eval_repr_a = ExtendedValue_repr(a); \
+            char* _a_e_ne_eval_repr_b = ExtendedValue_repr(b); \
+            fail("%s: %s == %s", msg, _a_e_ne_eval_repr_a, _a_e_ne_eval_repr_b); \
+            free(_a_e_ne_eval_repr_a); \
+            free(_a_e_ne_eval_repr_b); \
+        } \
+    } while (0)
+
+#define assert_from_esc_eq(s, val) \
+    assert_colr_eq( \
+        _Generic( \
+            (val), \
+            BasicValue: BasicValue_from_esc, \
+            ColorArg: ColorArg_from_esc, \
+            ColorValue: ColorValue_from_esc, \
+            ExtendedValue: ExtendedValue_from_esc, \
+            RGB: RGB_from_esc, \
+            StyleValue: StyleValue_from_esc \
+        )(s), \
+        val \
+    )
+
+#define assert_from_esc_neq(s, val) \
+    assert_colr_neq( \
+        _Generic( \
+            (val), \
+            BasicValue: BasicValue_from_esc, \
+            ColorArg: ColorArg_from_esc, \
+            ColorValue: ColorValue_from_esc, \
+            ExtendedValue: ExtendedValue_from_esc, \
+            RGB: RGB_from_esc, \
+            StyleValue: StyleValue_from_esc \
+        )(s), \
+        val \
+    )
+
 #define assert_from_str_eq(s, val) \
     assert_colr_eq( \
         _Generic( \
@@ -112,7 +231,7 @@
         val \
     )
 
-#define assert_from_str_neq(s, val, msg) \
+#define assert_from_str_neq(s, val) \
     assert_colr_neq( \
         _Generic( \
             (val), \
@@ -182,6 +301,17 @@
         if (a == b) { \
             fail("Numbers are equal: (" #a ") " fmt " == (" #b ") " fmt, a, b); \
         }\
+    } while (0)
+
+#define assert_RGB_eq(a, b) \
+    do { \
+        if (!RGB_eq(a, b)) { \
+            char* _are_a = colr_repr(a); \
+            char* _are_b = colr_repr(b); \
+            fail("RGB values are not equal: %s != %s\n", _are_a, _are_b); \
+            free(_are_a); \
+            free(_are_b); \
+        } \
     } while (0)
 
 #define assert_range(x, xmin, xmax, msg) \
@@ -416,6 +546,7 @@
     \return Either the string, "NULL", or "\"\"".
 */
 #define test_str_repr(s) (s ? ((s[0] == '\0') ? "\"\"" : s) : "NULL")
+
 
 char* int_repr(int x);
 char* long_repr(long x);

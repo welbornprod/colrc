@@ -31,38 +31,4 @@
         free(_a_e_f_s_ne_msg); \
     } while (0)
 
-// Assert two ExtendedValues are equal, with a better message on failure.
-#define assert_ext_eq(a, b, msg) \
-    do { \
-        char* _a_e_e_msg = NULL; \
-        char* _a_e_e_eval_repr_a = ExtendedValue_repr(a); \
-        char* _a_e_e_eval_repr_b = ExtendedValue_repr(b); \
-        if_not_asprintf(&_a_e_e_msg, "%s: %s != %s", msg, _a_e_e_eval_repr_a, _a_e_e_eval_repr_b) { \
-            fail("Allocation failed for failure message!"); \
-        }\
-        free(_a_e_e_eval_repr_a); \
-        free(_a_e_e_eval_repr_b); \
-        if (a != b) { \
-            fail("%s", _a_e_e_msg); \
-        } \
-        free(_a_e_e_msg); \
-    } while (0)
-
-// Assert two ExtendedValues are not equal, with a better message on failure.
-#define assert_ext_neq(a, b, msg) \
-    do { \
-        char* _a_e_ne_msg = NULL; \
-        char* _a_e_ne_eval_repr_a = ExtendedValue_repr(a); \
-        char* _a_e_ne_eval_repr_b = ExtendedValue_repr(b); \
-        if_not_asprintf(&_a_e_ne_msg, "%s: %s == %s", msg, _a_e_ne_eval_repr_a, _a_e_ne_eval_repr_b) { \
-            fail("Allocation failed for failure message!"); \
-        }\
-        free(_a_e_ne_eval_repr_a); \
-        free(_a_e_ne_eval_repr_b); \
-        if (a == b) { \
-            fail("%s", _a_e_ne_msg); \
-        } \
-        free(_a_e_ne_msg); \
-    } while (0)
-
 #endif // TEST_EXTENDEDVALUE_H

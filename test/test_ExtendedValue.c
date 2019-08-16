@@ -12,9 +12,17 @@ subdesc(ExtendedValue_from_esc) {
         for (unsigned short eval = 0; eval < 256; eval++) {
             char codes[CODEX_LEN];
             format_fgx(codes, eval);
-            assert_int_eq(ExtendedValue_from_esc(codes), eval);
+            assert_ext_eq(
+                ExtendedValue_from_esc(codes),
+                eval,
+                "Failed to recognize fore code."
+            );
             format_bgx(codes, eval);
-            assert_int_eq(ExtendedValue_from_esc(codes), eval);
+            assert_ext_eq(
+                ExtendedValue_from_esc(codes),
+                eval,
+                "Failed to recognize back code."
+            );
         }
     }
 }
