@@ -3,7 +3,7 @@
 # Run valgrind cachegrind, callgrind, or memcheck on this project.
 # -Christopher Welborn 06-09-2019
 appname="Valgrind Runner"
-appversion="0.0.2"
+appversion="0.0.3"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 # appdir="${apppath%/*}"
@@ -81,14 +81,18 @@ do_quiet=0
 for arg; do
     case "$arg" in
         "--")
+            ((in_exe_args)) && {
+                exeargs+=("$arg")
+                continue
+            }
             in_exe_args=1
             ;;
         "-e" | "--exe")
-            if ((in_exe_args)); then
+            ((in_exe_args)) && {
                 exeargs+=("$arg")
-            else
-                in_binary_arg=1
-            fi
+                continue
+            }
+            in_binary_arg=1
             ;;
         "-h" | "--help")
             ((in_exe_args)) && {
@@ -99,6 +103,10 @@ for arg; do
             exit 0
             ;;
         "-q" | "--quiet")
+            ((in_exe_args)) && {
+                exeargs+=("$arg")
+                continue
+            }
             do_quiet=1
             ;;
         "-V" | "--version")
