@@ -1480,6 +1480,7 @@ size_t colr_str_char_count(const char*s, const char c);
 char* colr_str_center(const char* s, const char padchar, int width);
 size_t colr_str_code_cnt(const char* s);
 size_t colr_str_code_len(const char* s);
+char* colr_str_copy(char* dest, const char* src, size_t length);
 bool colr_str_ends_with(const char* s, const char* suffix);
 char** colr_str_get_codes(const char* s);
 bool colr_str_has_codes(const char* s);

@@ -1273,6 +1273,60 @@ size_t colr_str_code_len(const char* s) {
     return total;
 }
 
+/*! Copies a \string like strncpy, but ensures null-termination.
+
+    \details
+    If \p src is `NULL`, or \p dest is `NULL`, `NULL` is returned.
+
+    \details
+    If \p src does not contain a null-terminator, _this function
+    will truncate at `length` characters_.
+
+    \details
+    If \p src is an empty string, then `dest[0]` will be `'\0'` (an empty string).
+
+    \details
+    A null-terminator is always appended to \p dest.
+
+    \pi dest   Memory allocated for new string.
+               <em>Must have room for `strlen(src) + 1` or `length + 1`</em>.
+    \pi src    Source string to copy.
+    \pi length Maximum characters to copy.
+               <em>This does not include the null-terminator</em>.
+
+    \returns On success, a pointer to dest is returned.
+
+    \examplecodefor{colr_str_copy,.c}
+    char* s = "testing";
+    size_t length = strlen(s);
+    char* dest = malloc(length + 1);
+
+    // Copy the entire string:
+    colr_str_copy(dest, s, length);
+    assert(strcmp(dest, "testing") == 0);
+    printf("Copied: %s\n", dest);
+
+    // Copy only 4 bytes:
+    colr_str_copy(dest, s, 4);
+    assert(strcmp(dest, "test") == 0);
+    printf("Truncated: %s\n", dest);
+    free(dest);
+    \endexamplecode
+*/
+char* colr_str_copy(char* dest, const char* src, size_t length) {
+    if (!(src && dest)) {
+        return NULL;
+    }
+    size_t pos = 0;
+    while (pos < length && src[pos]) {
+        dest[pos] = src[pos];
+        pos++;
+    }
+    // This will make `dest` and empty string if `src` was an empty string.
+    dest[pos] = '\0';
+    return dest;
+}
+
 /*! Determine if one \string ends with another.
 
     \details

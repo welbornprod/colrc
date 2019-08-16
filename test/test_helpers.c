@@ -24,7 +24,7 @@ subdesc(colr_append_reset) {
         for_each(tests, i) {
             size_t expected_len = strlen(tests[i].expected);
             char s[expected_len + 1];
-            strncpy(s, tests[i].input, strlen(tests[i].input));
+            colr_str_copy(s, tests[i].input, strlen(tests[i].input));
             colr_append_reset(s);
             char* input_repr = colr_str_repr(tests[i].input);
             char* input_msg = NULL;
