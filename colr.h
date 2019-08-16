@@ -186,8 +186,23 @@
 */
 #define COLOR_INVALID (-2)
 //! Possible error return value for RGB_from_str().
-#define COLOR_INVALID_RANGE (-1)
-
+#define COLOR_INVALID_RANGE (-3)
+/*! Alias for COLOR_INVALID.
+    \details
+    All color values share an _INVALID member with the same value, so:
+    \code
+    COLOR_INVALID == BASIC_INVALID == EXT_INVALID == STYLE_INVALID
+    \endcode
+*/
+#define EXT_INVALID COLOR_INVALID
+/*! Possible error return value for ExtendedValue_from_str() or ExtendedValue_from_esc().
+    \details
+    This is just an alias for COLOR_INVALID_RANGE.
+    \code
+    COLOR_INVALID_RANGE == BASIC_INVALID_RANGE == EXT_INVALID_RANGE == STYLE_INVALID_RANGE
+    \endcode
+*/
+#define EXT_INVALID_RANGE COLOR_INVALID_RANGE
 
 /*! \def alloc_basic
     Allocate enough for a basic code.
@@ -1133,6 +1148,7 @@
     \endinternal
 */
 typedef enum BasicValue {
+    BASIC_INVALID_RANGE = COLOR_INVALID_RANGE,
     BASIC_INVALID = COLOR_INVALID,
     BASIC_NONE = -1,
     // The actual escape code value for fore colors is BasicValue + 30 == (30-39).
@@ -1205,14 +1221,6 @@ typedef enum BasicValue {
 
 //! Convenience `typedef` for clarity when dealing with extended (256) colors.
 typedef unsigned char ExtendedValue;
-/*! Alias for COLOR_INVALID.
-    \details
-    All color values share an _INVALID member with the same value, so:
-    \code
-    COLOR_INVALID == BASIC_INVALID == EXTENDED_INVALID == STYLE_INVALID
-    \endcode
-*/
-#define EXTENDED_INVALID COLOR_INVALID
 
 //! Container for RGB values.
 typedef struct RGB {
@@ -1230,6 +1238,7 @@ typedef struct RGB {
 
 //! Style values.
 typedef enum StyleValue {
+    STYLE_INVALID_RANGE = COLOR_INVALID_RANGE,
     STYLE_INVALID = COLOR_INVALID,
     STYLE_NONE = -1,
     RESET_ALL = 0,
@@ -1246,12 +1255,14 @@ typedef enum StyleValue {
     ENCIRCLE = 52,
     OVERLINE = 53, // Supported in Konsole.
 } StyleValue;
+
 //! Maximum value allowed for a StyleValue.
 #define STYLE_MAX_VALUE ((StyleValue)OVERLINE)
 //! Minimum value allowed for a StyleValue.
-#define STYLE_MIN_VALUE ((StyleValue)STYLE_INVALID)
+#define STYLE_MIN_VALUE ((StyleValue)STYLE_INVALID_RANGE)
 
 #ifndef DOXYGEN_SKIP
+#define STYLE_INVALID_RANGE ((StyleValue)STYLE_INVALID_RANGE)
 #define STYLE_INVALID ((StyleValue)STYLE_INVALID)
 #define STYLE_NONE ((StyleValue)STYLE_NONE)
 #define RESET_ALL ((StyleValue)RESET_ALL)
@@ -1286,9 +1297,9 @@ typedef enum ColorJustifyMethod {
 //! Color/Style code types. Used with ColorType_from_str() and ColorValue.
 typedef enum ColorType {
     TYPE_NONE = -6,
-    TYPE_INVALID_EXTENDED_RANGE = -5,
+    TYPE_INVALID_STYLE = -5,
     TYPE_INVALID_RGB_RANGE = -4,
-    TYPE_INVALID_STYLE = -3,
+    TYPE_INVALID_EXT_RANGE = COLOR_INVALID_RANGE,
     TYPE_INVALID = COLOR_INVALID,
     TYPE_BASIC = 0,
     TYPE_EXTENDED = 1,
@@ -1673,6 +1684,7 @@ char* BasicValue_repr(BasicValue bval);
     \endinternal
 */
 bool ExtendedValue_eq(ExtendedValue a, ExtendedValue b);
+int ExtendedValue_from_esc(const char* s);
 int ExtendedValue_from_hex(const char* hexstr);
 ExtendedValue ExtendedValue_from_hex_default(const char* hexstr, ExtendedValue default_value);
 ExtendedValue ExtendedValue_from_RGB(RGB rgb);
@@ -1685,6 +1697,7 @@ char* ExtendedValue_to_str(ExtendedValue eval);
     \endinternal
 */
 bool StyleValue_eq(StyleValue a, StyleValue b);
+StyleValue StyleValue_from_esc(const char* s);
 StyleValue StyleValue_from_str(const char* arg);
 char* StyleValue_repr(StyleValue sval);
 
@@ -1714,8 +1727,8 @@ static_assert(
     (
         ((int)COLOR_INVALID == (int)TYPE_INVALID) &&
         ((int)TYPE_INVALID == (int)BASIC_INVALID) &&
-        ((int)BASIC_INVALID == (int)EXTENDED_INVALID) &&
-        ((int)EXTENDED_INVALID == (int)STYLE_INVALID)
+        ((int)BASIC_INVALID == (int)EXT_INVALID) &&
+        ((int)EXT_INVALID == (int)STYLE_INVALID)
     ),
     "Return/enum values for all color/style values should match."
 );

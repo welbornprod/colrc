@@ -29,9 +29,9 @@ subdesc(ColorType_from_str) {
             {"xlightblue", TYPE_EXTENDED},
             {"1", TYPE_EXTENDED},
             {"255", TYPE_EXTENDED},
-            {"-1", TYPE_INVALID_EXTENDED_RANGE},
+            {"-1", TYPE_INVALID_EXT_RANGE},
             {"--1", TYPE_INVALID},
-            {"256", TYPE_INVALID_EXTENDED_RANGE},
+            {"256", TYPE_INVALID_EXT_RANGE},
             {"234,234,234", TYPE_RGB},
             {"355,255,255", TYPE_INVALID_RGB_RANGE},
             {"underline", TYPE_STYLE},
@@ -133,7 +133,7 @@ subdesc(ColorType_repr) {
             {TYPE_STYLE, "TYPE_STYLE"},
             {TYPE_INVALID, "TYPE_INVALID"},
             {TYPE_INVALID_STYLE, "TYPE_INVALID_STYLE"},
-            {TYPE_INVALID_EXTENDED_RANGE, "TYPE_INVALID_EXTENDED_RANGE"},
+            {TYPE_INVALID_EXT_RANGE, "TYPE_INVALID_EXT_RANGE"},
             {TYPE_INVALID_RGB_RANGE, "TYPE_INVALID_RGB_RANGE"},
         };
         for_each(tests, i) {

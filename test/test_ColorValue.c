@@ -32,7 +32,7 @@ subdesc(ColorValue_from_str) {
             {"none", TYPE_BASIC},
             {"32", TYPE_EXTENDED},
             {"32;64;86", TYPE_RGB},
-            {"3009", TYPE_INVALID_EXTENDED_RANGE},
+            {"3009", TYPE_INVALID_EXT_RANGE},
             {"355;355;355", TYPE_INVALID_RGB_RANGE},
         };
         for_each(tests, i) {

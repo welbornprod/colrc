@@ -127,6 +127,9 @@
         val \
     )
 
+#define assert_int_eq(a, b) assert_num_eq_fmt("%d", a, b)
+#define assert_int_neq(a, b) assert_num_neq_fmt("%d", a, b)
+
 #define assert_is_invalid(colrobj) \
     do { \
         if (!colr_is_invalid(colrobj)) { \
@@ -165,6 +168,20 @@
         if (!x) { \
             fail("Not supposed to be NULL: " #x); \
         } \
+    } while (0)
+
+#define assert_num_eq_fmt(fmt, a, b) \
+    do { \
+        if (a != b) { \
+            fail("Numbers not equal: (" #a ") " fmt " != (" #b ") " fmt, a, b); \
+        }\
+    } while (0)
+
+#define assert_num_neq_fmt(fmt, a, b) \
+    do { \
+        if (a == b) { \
+            fail("Numbers are equal: (" #a ") " fmt " == (" #b ") " fmt, a, b); \
+        }\
     } while (0)
 
 #define assert_range(x, xmin, xmax, msg) \

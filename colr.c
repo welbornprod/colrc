@@ -64,9 +64,9 @@ const size_t extended_names_len = sizeof(extended_names) / sizeof(extended_names
 const StyleInfo style_names[] = {
     {"none", RESET_ALL},
     {"reset", RESET_ALL},
+    {"resetall", RESET_ALL},
     {"reset-all", RESET_ALL},
     {"reset_all", RESET_ALL},
-    {"reset all", RESET_ALL},
     {"bold", BRIGHT},
     {"bright", BRIGHT},
     {"dim", DIM},
@@ -2977,7 +2977,7 @@ ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value) {
             the value that was passed. For invalid types the `.value.type` member may
             be set to one of:
         - TYPE_INVALID
-        - TYPE_INVALID_EXTENDED_RANGE
+        - TYPE_INVALID_EXT_RANGE
         - TYPE_INVALID_RGB_RANGE
 
     \sa ColorArg
@@ -3638,7 +3638,7 @@ bool ColorType_eq(ColorType a, ColorType b) {
 
     \retval ColorType value on success.
     \retval TYPE_INVALID for invalid color names/strings.
-    \retval TYPE_INVALID_EXTENDED_RANGE for ExtendedValues outside of 0-255.
+    \retval TYPE_INVALID_EXT_RANGE for ExtendedValues outside of 0-255.
     \retval TYPE_INVALID_RGB_RANGE for rgb values outside of 0-255.
 
     \examplecodefor{ColorType_from_str,.c}
@@ -3675,7 +3675,7 @@ ColorType ColorType_from_str(const char* arg) {
     // Extended colors.
     int x_ret = ExtendedValue_from_str(arg);
     if (x_ret == COLOR_INVALID_RANGE) {
-        return TYPE_INVALID_EXTENDED_RANGE;
+        return TYPE_INVALID_EXT_RANGE;
     } else if (x_ret != COLOR_INVALID) {
         return TYPE_EXTENDED;
     }
@@ -3749,8 +3749,8 @@ char* ColorType_repr(ColorType type) {
         case TYPE_INVALID_STYLE:
             asprintf_or_return(NULL, &typestr, "TYPE_INVALID_STYLE");
             break;
-        case TYPE_INVALID_EXTENDED_RANGE:
-            asprintf_or_return(NULL, &typestr, "TYPE_INVALID_EXTENDED_RANGE");
+        case TYPE_INVALID_EXT_RANGE:
+            asprintf_or_return(NULL, &typestr, "TYPE_INVALID_EXT_RANGE");
             break;
         case TYPE_INVALID_RGB_RANGE:
             asprintf_or_return(NULL, &typestr, "TYPE_INVALID_RGB_RANGE");
@@ -3825,7 +3825,7 @@ ColorValue ColorValue_from_str(char* s) {
     // Extended colors, or known extended name?
     int x_ret = ExtendedValue_from_str(s);
     if (x_ret == COLOR_INVALID_RANGE) {
-        return ColorValue_from_value(TYPE_INVALID_EXTENDED_RANGE, NULL);
+        return ColorValue_from_value(TYPE_INVALID_EXT_RANGE, NULL);
     } else if (x_ret != COLOR_INVALID) {
         // Need to cast back into a real ExtendedValue now that I know it's
         // not invalid. Also, ColorValue_from_value expects a pointer, to
@@ -3860,7 +3860,7 @@ ColorValue ColorValue_from_str(char* s) {
             the value that was passed. For invalid types the `.type` member may
             be set to one of:
         - TYPE_INVALID
-        - TYPE_INVALID_EXTENDED_RANGE
+        - TYPE_INVALID_EXT_RANGE
         - TYPE_INVALID_RGB_RANGE
 
     \sa ColorValue
@@ -3868,7 +3868,7 @@ ColorValue ColorValue_from_str(char* s) {
 ColorValue ColorValue_from_value(ColorType type, void *p) {
     if (
         type == TYPE_INVALID ||
-        type == TYPE_INVALID_EXTENDED_RANGE ||
+        type == TYPE_INVALID_EXT_RANGE ||
         type == TYPE_INVALID_RGB_RANGE
         ) {
         return (ColorValue){.type=type};
@@ -4190,19 +4190,20 @@ bool BasicValue_eq(BasicValue a, BasicValue b) {
     \pi s   Escape-code string.\n
             \mustnull
     \return BasicValue value on success,
-            or BASIC_INVALID on error (or if \p s is `NULL`).
+    \retval BASIC_INVALID on error (or if \p s is `NULL`).
+    \retval BASIC_INVALID_RANGE if the code number was outside of the range `0-255`.
 
     \sa BasicValue
 */
 BasicValue BasicValue_from_esc(const char* s) {
     if (!s) return BASIC_INVALID;
-    short unsigned int escnum;
+    unsigned short escnum;
     if (sscanf(s, "\x1b[%hum", &escnum) != 1) {
         return BASIC_INVALID;
     }
     // Outside the range of a basic escape code?
-    if ((escnum < 30) || (escnum > 107)) return BASIC_INVALID;
-    else if ((escnum > 49) && (escnum < 90)) return BASIC_INVALID;
+    if ((escnum < 30) || (escnum > 107)) return BASIC_INVALID_RANGE;
+    else if ((escnum > 49) && (escnum < 90)) return BASIC_INVALID_RANGE;
     // Within range, do some checks and subtract to get a BasicValue.
     if (escnum < 40) return basic(escnum - 30);
     else if (escnum < 50) return basic(escnum - 40);
@@ -4348,6 +4349,27 @@ bool ExtendedValue_eq(ExtendedValue a, ExtendedValue b) {
     return ((ExtendedValue)a == (ExtendedValue)b);
 }
 
+/*! Convert an escape-code \string to an ExtendedValue.
+
+    \pi s   Escape-code string.\n
+            \mustnull
+    \return An integer in the range `0-255` on success.
+    \retval EXT_INVALID on error (or if \p s is `NULL`).
+    \retval EXT_INVALID_RANGE if the code number was outside of the range `0-255`.
+
+    \sa ExtendedValue
+*/
+int ExtendedValue_from_esc(const char* s) {
+    if (!s) return EXT_INVALID;
+    short escnum;
+    if (sscanf(s, "\x1b[38;5;%hdm", &escnum) != 1) {
+        if (sscanf(s, "\x1b[48;5;%hdm", &escnum) != 1) return EXT_INVALID;
+    }
+    // Outside the range of an extended escape code?
+    if ((escnum < 0) || (escnum > 255)) return EXT_INVALID_RANGE;
+    return escnum;
+}
+
 /*! Create an ExtendedValue from a hex \string.
 
     \details
@@ -4430,16 +4452,17 @@ ExtendedValue ExtendedValue_from_RGB(RGB rgb) {
     \pi arg Color name to find the ExtendedValue for.
 
     \return A value between 0 and 255 on success.
-    \retval COLOR_INVALID on error or bad values.
+    \retval EXT_INVALID on error or bad values.
+    \retval EXT_INVALID_RANGE if the number was outside of the range `0-255`.
 
     \sa ExtendedValue
 */
 int ExtendedValue_from_str(const char* arg) {
-    if (!arg) return COLOR_INVALID;
-    if (arg[0] == '\0') return COLOR_INVALID;
+    if (!arg) return EXT_INVALID;
+    if (arg[0] == '\0') return EXT_INVALID;
 
     char* arglower = colr_str_to_lower(arg);
-    if (!arglower) return COLOR_INVALID;
+    if (!arglower) return EXT_INVALID;
     // Check the simple extended names.
     for (size_t i = 0; i < extended_names_len; i++) {
         if (!strcmp(arglower, extended_names[i].name)) {
@@ -4469,11 +4492,11 @@ int ExtendedValue_from_str(const char* arg) {
         if ((arg[0] == '-') && (strlen(arg) > 1) && colr_str_is_digits(arg + 1)) {
             free(arglower);
             // Negative number given.
-            return COLOR_INVALID_RANGE;
+            return EXT_INVALID_RANGE;
         }
         // Not a number at all.
         free(arglower);
-        return COLOR_INVALID;
+        return EXT_INVALID;
     }
 
     // Regular number, hopefully 0-255, but I'll check that in a second.
@@ -4481,17 +4504,17 @@ int ExtendedValue_from_str(const char* arg) {
     if (length > 3) {
         // Definitely not 0-255.
         free(arglower);
-        return COLOR_INVALID_RANGE;
+        return EXT_INVALID_RANGE;
     }
-    short int usernum;
+    short usernum;
     if (sscanf(arg, "%hd", &usernum) != 1) {
         // Zero, or more than one number provided.
         free(arglower);
-        return COLOR_INVALID;
+        return EXT_INVALID;
     }
     if (usernum < 0 || usernum > 255) {
         free(arglower);
-        return COLOR_INVALID_RANGE;
+        return EXT_INVALID_RANGE;
     }
     // A valid number, 0-255.
     free(arglower);
@@ -4809,6 +4832,31 @@ char* RGB_repr(RGB rgb) {
 */
 bool StyleValue_eq(StyleValue a, StyleValue b) {
     return ((StyleValue)a == (StyleValue)b);
+}
+
+/*! Convert an escape-code \string to an actual StyleValue enum value.
+
+    \pi s   Escape-code string.\n
+            \mustnull
+    \return StyleValue value on success,
+    \retval STYLE_INVALID on error (or if \p s is `NULL`).
+    \retval STYLE_INVALID_RANGE if the code number was outside of the range `0-255`.
+
+    \sa StyleValue
+*/
+StyleValue StyleValue_from_esc(const char* s) {
+    if (!s) return STYLE_INVALID;
+    unsigned short escnum;
+    if (sscanf(s, "\x1b[%hum", &escnum) != 1) {
+        return STYLE_INVALID;
+    }
+    // Outside the range of a ColrC style escape code?
+    if ((escnum > 9) && (escnum < 22)) return STYLE_INVALID_RANGE;
+    else if ((escnum > 22) && (escnum < 51)) return STYLE_INVALID_RANGE;
+    else if ((escnum > STYLE_MAX_VALUE)) return STYLE_INVALID_RANGE;
+
+    // Within range.
+    return (StyleValue)escnum;
 }
 
 /*! Convert a named argument to actual StyleValue enum value.
