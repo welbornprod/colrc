@@ -12,16 +12,14 @@ subdesc(BasicValue_from_esc) {
             BasicValue bval = basic_names[i].value;
             char codes[CODE_LEN];
             format_fg(codes, bval);
-            asserteq(
+            assert_colr_eq(
                 BasicValue_from_esc(codes),
-                bval,
-                "Failed to recognize basic fore code."
+                bval
             );
             format_bg(codes, bval);
-            asserteq(
+            assert_colr_eq(
                 BasicValue_from_esc(codes),
-                bval,
-                "Failed to recognize basic back code."
+                bval
             );
         }
     }

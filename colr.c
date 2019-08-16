@@ -901,7 +901,7 @@ bool colr_char_is_code_end(const char c) {
     \pi c   Value to create the representation for.
     \return An allocated string.\n
             \mustfree
-            \maybenullreturn
+            \maybenullalloc
 */
 char* colr_char_repr(char c) {
     char* repr;
@@ -1044,7 +1044,7 @@ bool colr_check_marker(unsigned int marker, void* p) {
 
     \return Pointer to an allocated string consisting of '\0'.
             \mustfree
-            \maybenullreturn
+            \maybenullalloc
 */
 char* colr_empty_str(void) {
     char* s = malloc(sizeof(char));
@@ -1095,7 +1095,7 @@ void colr_free_str_list(char** ps) {
 
     \return     An allocated string with the result.\n
                 \mustfree
-                \maybenullreturn
+                \maybenullalloc
 
     \sa colr_str_ljust colr_str_rjust colr_term_size
 */
@@ -1560,7 +1560,7 @@ void colr_str_lower(char* s) {
 
     \return     An allocated string with the result, or `NULL` if \p s is `NULL`.\n
                 \mustfree
-                \maybenullreturn
+                \maybenullalloc
 
     \sa colr_str_center colr_str_rjust colr_term_size
 */
@@ -1614,7 +1614,7 @@ char* colr_str_ljust(const char* s, const char padchar, int width) {
     \return   An allocated string with the result.
               May return NULL if  \p s or \p chars is NULL.
               \mustfree
-              \maybenullreturn
+              \maybenullalloc
 */
 char* colr_str_lstrip_chars(const char* s, const char* chars) {
     if (!(s && chars)) return NULL;
@@ -1698,7 +1698,7 @@ size_t colr_str_noncode_len(const char* s) {
     \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                \p target is `NULL`/empty.\n
                \mustfree
-               \maybenullreturn
+               \maybenullalloc
 */
 char* colr_str_replace(char *s, const char *target, const char *repl) {
     if (!(s && target)) return NULL;
@@ -1754,7 +1754,7 @@ char* colr_str_replace(char *s, const char *target, const char *repl) {
     \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                \p target is `NULL`/empty.\n
                \mustfree
-               \maybenullreturn
+               \maybenullalloc
 */
 char* colr_str_replace_ColorArg(char* s, const char* target, const ColorArg* repl) {
     if (!(s && target)) return NULL;
@@ -1775,7 +1775,7 @@ char* colr_str_replace_ColorArg(char* s, const char* target, const ColorArg* rep
     \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                \p target is `NULL`/empty.\n
                \mustfree
-               \maybenullreturn
+               \maybenullalloc
 */
 char* colr_str_replace_ColorText(char* s, const char* target, const ColorText* repl) {
     if (!(s && target)) return NULL;
@@ -1800,7 +1800,7 @@ char* colr_str_replace_ColorText(char* s, const char* target, const ColorText* r
     \pi     s The string to represent.
     \return An allocated string with the representation.\n
             \mustfree
-            \maybenullreturn
+            \maybenullalloc
 
     \sa colr_char_should_escape colr_char_escape_char
 
@@ -1864,7 +1864,7 @@ char* colr_str_repr(const char* s) {
 
     \return     An allocated string with the result, or `NULL` if \p s is `NULL`.\n
                 \mustfree
-                \maybenullreturn
+                \maybenullalloc
 
     \sa colr_str_center colr_str_ljust colr_term_size
 */
@@ -1943,7 +1943,7 @@ bool colr_str_starts_with(const char* s, const char* prefix) {
             \mustnullin
     \return An allocated string with the result.\n
             \mustfree
-            \maybenullreturn
+            \maybenullalloc
 
     \sa colr_str_noncode_len
 */
@@ -1973,7 +1973,7 @@ char* colr_str_strip_codes(const char* s) {
             \mustnull
     \return The allocated string, or `NULL` if \p s is `NULL`.\n
             \mustfree
-            \maybenullreturn
+            \maybenullalloc
 */
 char* colr_str_to_lower(const char* s) {
     if (!s) return NULL;
@@ -2216,7 +2216,7 @@ void format_style(char* out, StyleValue style) {
             strings. This allows easy part-colored messages, so there's no
             need to use CODE_RESET_ALL directly.\n
             \mustfree
-            \maybenullreturn
+            \maybenullalloc
 */
 char* _colr(void *p, ...) {
     // Argument list must have ColorArg/ColorText with NULL members at the end.
@@ -2397,7 +2397,7 @@ size_t _colr_size(void *p, va_list args) {
                 CODE_RESET_ALL is appended to all ColorText arguments.
                 This allows easy part-colored messages.\n
                 \mustfree
-                \maybenullreturn
+                \maybenullalloc
 */
 char* _colr_join(void *joinerp, ...) {
     // Argument list must have ColorArg/ColorText with NULL members at the end.
@@ -2522,7 +2522,7 @@ size_t _colr_join_size(void *joinerp, va_list args) {
                 The array must have `NULL` as the last item.
     \return     An allocated string with the result.\n
                 \mustfree
-                \maybenullreturn
+                \maybenullalloc
 
     \examplecodefor{colr_join_array,.c}
     char* joiner = " [and] ";
@@ -2557,7 +2557,7 @@ char* colr_join_array(void* joinerp, void* ps) {
     \pi count   The total number of items in the array.
     \return     An allocated string with the result.\n
                 \mustfree
-                \maybenullreturn
+                \maybenullalloc
 
     \examplecodefor{colr_join_arrayn,.c}
     char* joiner = " [and] ";
@@ -2643,7 +2643,7 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
     \pi count   Total number of items in the array.
     \return     An allocated string with the result.\n
                 \mustfree
-                \maybenullreturn
+                \maybenullalloc
 
     \sa colr colr_join colr_join_array
 */
@@ -2722,12 +2722,26 @@ size_t _colr_ptr_length(void* p) {
     }
     return length;
 }
+
+/*! Compares two ArgTypes.
+
+    \details
+    This is used to implement colr_eq().
+
+    \pi a   The first ArgType to compare.
+    \pi b   The second ArgType to compare.
+    \return `true` if they are equal, otherwise `false`.
+*/
+bool ArgType_eq(ArgType a, ArgType b) {
+    return (a == b);
+}
+
 /*! Creates a \string representation of a ArgType.
 
     \pi type An ArgType to get the type from.
     \return  A pointer to an allocated string.\n
              \mustfree
-             \maybenullreturn
+             \maybenullalloc
 
     \sa ArgType
 */
@@ -2755,7 +2769,7 @@ char* ArgType_repr(ArgType type) {
     \pi type An ArgType to get the type from.
     \return  A pointer to an allocated string.\n
              \mustfree
-             \maybenullreturn
+             \maybenullalloc
 
     \sa ArgType
 */
@@ -2810,6 +2824,78 @@ bool ColorArg_eq(ColorArg a, ColorArg b) {
     return (a.type == b.type) && ColorValue_eq(a.value, b.value);
 }
 
+/*! Create a \string representation of a ColorArg with a stylized type/name
+    using escape codes built from the ColorArg's values.
+
+    \pi carg A ColorArg to get an example string for.
+    \return  An allocated string with the result.\n
+             \mustfree
+             \maybenullalloc
+
+    \examplecodefor{ColorArg_example,.c}
+    #include "colr.h"
+    int main(void) {
+        ColorArg args[] = {
+            fore_arg(rgb(75, 25, 155)),
+            fore_arg(ext_hex("#ff00bb")),
+            back_arg(RED),
+            style_arg(UNDERLINE),
+            fore_arg("NOT_VALID"),
+            back_arg("NOT_VALID"),
+            style_arg("NOT_VALID")
+        };
+        size_t arg_len = sizeof(args) / sizeof(args[0]);
+        for (size_t i = 0; i < arg_len; i++) {
+            char* example = ColorArg_example(args[i]);
+            if (!example) return 1;
+            printf("%s\n", example);
+            free(example);
+        }
+    }
+    \endexamplecode
+*/
+char* ColorArg_example(ColorArg carg) {
+    char* argtype_name = ArgType_to_str(carg.type);
+    if (!argtype_name) return NULL;
+    char* val_example = ColorValue_example(carg.value);
+    if (!val_example) {
+        free(argtype_name);
+        return NULL;
+    }
+    // Always use fore-codes for example colors.
+    if (carg.type == BACK) carg.type = FORE;
+    char* codes = ColorArg_to_str(carg);
+    if (!codes) {
+        free(argtype_name);
+        free(val_example);
+        return NULL;
+    }
+    char* code_repr = NULL;
+    if (ColorArg_is_valid(carg)) {
+        code_repr = colr_str_repr(codes);
+        if (!code_repr) {
+            free(argtype_name);
+            free(val_example);
+            free(codes);
+            return NULL;
+        }
+    }
+    char* example;
+    asprintf_or_return(
+        NULL,
+        &example,
+        "%7s:%s●" CODE_RESET_ALL " %-25s %s", // ⬔ ◨
+        argtype_name,
+        codes,
+        val_example,
+        (code_repr ? code_repr : "-")
+    );
+    free(argtype_name);
+    free(val_example);
+    free(codes);
+    if (code_repr) free(code_repr);
+    return example;
+}
 /*! Free allocated memory for a ColorArg.
 
     \details
@@ -2894,6 +2980,21 @@ ColorArg ColorArg_from_RGB(ArgType type, RGB value) {
     };
 }
 
+/*! Parse an escape-code \string into a ColorArg.
+
+    \details
+    For malformed escape-codes the `.type` member will be `ARGTYPE_NONE`,
+    and the `.value.type` member will be set to `TYPE_INVALID`.
+    This means that `ColorArg_is_invalid(carg) == true`.
+
+    \pi s   The escape code to parse. It must not have extra characters.
+    \return An initialized ColorArg, possibly invalid.
+
+    \sa ColorArg
+    \sa colr_str_get_codes
+    \sa ColorValue_from_esc BasicValue_from_esc ExtendedValue_from_esc
+    \sa StyleValue_from_esc RGB_from_esc
+*/
 ColorArg ColorArg_from_esc(const char* s) {
     ColorValue cval = ColorValue_from_esc(s);
     if (ColorValue_is_invalid(cval)) {
@@ -2912,14 +3013,16 @@ ColorArg ColorArg_from_esc(const char* s) {
         };
     }
     // So, I'll parse out the fore/back information.
-    // Fore colors start with: "\x1b[3", back colors with: "\x1b[4".
-    if (colr_str_starts_with(s, "\x1b[3")) {
-        return (ColorArg) {
+    // Fore colors start with: "\x1b[3" or "\x1b[9".
+    // Back colors with: "\x1b[4" or "\x1b[1".
+    if ((s[2] == '3') || (s[2] == '9')) {
+        return (ColorArg){
             .marker=COLORARG_MARKER,
             .type=FORE,
             .value=cval
         };
     }
+    assert((s[2] == '4') || (s[2] == '1'));
     // Back color.
     return (ColorArg){
         .marker=COLORARG_MARKER,
@@ -3111,7 +3214,7 @@ char* ColorArg_repr(ColorArg carg) {
     \pi carg ColorArg to copy/allocate for.
     \return  Pointer to a heap-allocated ColorArg.\n
              \mustfree
-             \maybenullreturn
+             \maybenullalloc
 
     \sa ColorArg
 */
@@ -3555,7 +3658,7 @@ void ColorText_set_values(ColorText* ctext, char* text, ...) {
     \pi ctext ColorText to copy/allocate for.
     \return   Pointer to a heap-allocated ColorText.\n
               \mustfree
-              \maybenullreturn
+              \maybenullalloc
 
     \sa ColorText
 */
@@ -3573,7 +3676,7 @@ ColorText* ColorText_to_ptr(ColorText ctext) {
     \pi ctext ColorText to stringify.
     \return   An allocated string with text/escape-codes.\n
               \mustfree
-              \maybenullreturn
+              \maybenullalloc
 
     \sa ColorText
 */
@@ -3631,7 +3734,7 @@ char* ColorText_to_str(ColorText ctext) {
     \return `true` if they are equal, otherwise `false`.
 */
 bool ColorType_eq(ColorType a, ColorType b) {
-    return ((ColorType)a == (ColorType)b);
+    return (a == b);
 }
 
 /*! Determine which type of color value is desired by name.
@@ -3677,18 +3780,18 @@ ColorType ColorType_from_str(const char* arg) {
     if (!arg) return TYPE_INVALID;
     if (arg[0] == '\0') return TYPE_INVALID;
     // Try basic colors.
-    if (basic_is_valid(BasicValue_from_str(arg))) {
+    if (BasicValue_is_valid(BasicValue_from_str(arg))) {
         return TYPE_BASIC;
     }
     // Extended colors.
     int x_ret = ExtendedValue_from_str(arg);
     if (x_ret == COLOR_INVALID_RANGE) {
         return TYPE_INVALID_EXT_RANGE;
-    } else if (ext_is_valid(x_ret)) {
+    } else if (ExtendedValue_is_valid(x_ret)) {
         return TYPE_EXTENDED;
     }
     // Try styles.
-    if (style_is_valid(StyleValue_from_str(arg))) {
+    if (StyleValue_is_valid(StyleValue_from_str(arg))) {
         return TYPE_STYLE;
     }
     // Try rgb.
@@ -3729,7 +3832,7 @@ bool ColorType_is_valid(ColorType type) {
     \pi type A ColorType to get the type from.
     \return  A pointer to an allocated string.
              \mustfree
-             \maybenullreturn
+             \maybenullalloc
 
     \sa ColorType
 */
@@ -3767,6 +3870,47 @@ char* ColorType_repr(ColorType type) {
     return typestr;
 }
 
+/*! Create a human-friendly \string representation for a ColorType.
+
+    \pi type A ColorType to get the name for.
+    \return  An allocated string with the result.\n
+             \mustfree
+             \maybenullalloc
+*/
+char* ColorType_to_str(ColorType type) {
+    char* typestr;
+    switch (type) {
+        case TYPE_NONE:
+            asprintf_or_return(NULL, &typestr, "none");
+            break;
+        case TYPE_BASIC:
+            asprintf_or_return(NULL, &typestr, "basic");
+            break;
+        case TYPE_EXTENDED:
+            asprintf_or_return(NULL, &typestr, "ext");
+            break;
+        case TYPE_RGB:
+            asprintf_or_return(NULL, &typestr, "rgb");
+            break;
+        case TYPE_STYLE:
+            asprintf_or_return(NULL, &typestr, "style");
+            break;
+        case TYPE_INVALID:
+            asprintf_or_return(NULL, &typestr, "invalid");
+            break;
+        case TYPE_INVALID_STYLE:
+            asprintf_or_return(NULL, &typestr, "invalid style");
+            break;
+        case TYPE_INVALID_EXT_RANGE:
+            asprintf_or_return(NULL, &typestr, "invalid ext");
+            break;
+        case TYPE_INVALID_RGB_RANGE:
+            asprintf_or_return(NULL, &typestr, "invalid rgb");
+            break;
+    }
+    return typestr;
+
+}
 /*! Create an "empty" ColorValue.
 
     \details
@@ -3808,6 +3952,48 @@ bool ColorValue_eq(ColorValue a, ColorValue b) {
     );
 }
 
+/*! Create a \string representation of a ColorValue with a human-friendly
+    type/name.
+
+    \pi cval A ColorValue to get an example string for.
+    \return  An allocated string with the result.\n
+             \mustfree
+             \maybenullalloc
+*/
+char* ColorValue_example(ColorValue cval) {
+    char* valstr;
+    char* typestr = ColorType_to_str(cval.type);
+    if (!typestr) return NULL;
+    switch (cval.type) {
+        case TYPE_RGB:
+            valstr = RGB_to_str(cval.rgb);
+            break;
+        case TYPE_BASIC:
+            valstr = BasicValue_to_str(cval.basic);
+            break;
+        case TYPE_EXTENDED:
+            valstr = ExtendedValue_to_str(cval.ext);
+            break;
+        case TYPE_STYLE:
+            valstr = StyleValue_to_str(cval.style);
+            break;
+        default:
+            asprintf_or_return(NULL, &valstr, "-");
+    }
+    if (!valstr) return NULL;
+    char* example;
+    asprintf_or_return(
+        NULL,
+        &example,
+        "%13s %-12s",
+        typestr,
+        valstr
+    );
+    free(typestr);
+    free(valstr);
+    return example;
+}
+
 /*! Convert an escape-code \string into a ColorValue.
 
     \pi s    An escape-code string to parse.\n
@@ -3822,36 +4008,36 @@ bool ColorValue_eq(ColorValue a, ColorValue b) {
 */
 ColorValue ColorValue_from_esc(const char* s) {
     if (!s || s[0] == '\0') return ColorValue_from_value(TYPE_INVALID, NULL);
-    // Basic color name?
-    int b_ret = BasicValue_from_esc(s);
-    if (basic_is_valid(b_ret)) {
-        BasicValue bval = (BasicValue)b_ret;
-        return ColorValue_from_value(TYPE_BASIC, &bval);
+    // RGB?
+    RGB rgb;
+    int rgb_ret = RGB_from_esc(s, &rgb);
+    if (rgb_ret == COLOR_INVALID_RANGE) {
+        return ColorValue_from_value(TYPE_INVALID_RGB_RANGE, NULL);
+    } else if (rgb_ret != COLOR_INVALID) {
+        return ColorValue_from_value(TYPE_RGB, &rgb);
     }
-    // Extended colors, or known extended name?
+    // Extended colors?
     int x_ret = ExtendedValue_from_esc(s);
     if (x_ret == COLOR_INVALID_RANGE) {
         return ColorValue_from_value(TYPE_INVALID_EXT_RANGE, NULL);
-    } else if (ext_is_valid(x_ret)) {
+    } else if (ExtendedValue_is_valid(x_ret)) {
         // Need to cast back into a real ExtendedValue now that I know it's
         // not invalid. Also, ColorValue_from_value expects a pointer, to
         // help with it's "dynamic" uses.
         ExtendedValue xval = ext(x_ret);
         return ColorValue_from_value(TYPE_EXTENDED, &xval);
     }
-    // Style name?
+    // Basic?
+    int b_ret = BasicValue_from_esc(s);
+    if (BasicValue_is_valid(b_ret)) {
+        BasicValue bval = (BasicValue)b_ret;
+        return ColorValue_from_value(TYPE_BASIC, &bval);
+    }
+    // Style?
     int s_ret = StyleValue_from_esc(s);
-    if (style_is_valid(s_ret)) {
+    if (StyleValue_is_valid(s_ret)) {
         StyleValue sval = (StyleValue)s_ret;
         return ColorValue_from_value(TYPE_STYLE, &sval);
-    }
-    // RGB string, or known name?
-    RGB rgb;
-    int rgb_ret = RGB_from_esc(s, &rgb);
-    if (rgb_ret == COLOR_INVALID_RANGE) {
-        return ColorValue_from_value(TYPE_INVALID_RGB_RANGE, NULL);
-    } else if (rgb_ret != TYPE_INVALID) {
-        return ColorValue_from_value(TYPE_RGB, &rgb);
     }
     return ColorValue_from_value(TYPE_INVALID, NULL);
 }
@@ -3873,7 +4059,7 @@ ColorValue ColorValue_from_str(const char* s) {
 
     // Basic color name?
     int b_ret = BasicValue_from_str(s);
-    if (basic_is_valid(b_ret)) {
+    if (BasicValue_is_valid(b_ret)) {
         BasicValue bval = (BasicValue)b_ret;
         return ColorValue_from_value(TYPE_BASIC, &bval);
     }
@@ -3881,7 +4067,7 @@ ColorValue ColorValue_from_str(const char* s) {
     int x_ret = ExtendedValue_from_str(s);
     if (x_ret == COLOR_INVALID_RANGE) {
         return ColorValue_from_value(TYPE_INVALID_EXT_RANGE, NULL);
-    } else if (ext_is_valid(x_ret)) {
+    } else if (ExtendedValue_is_valid(x_ret)) {
         // Need to cast back into a real ExtendedValue now that I know it's
         // not invalid. Also, ColorValue_from_value expects a pointer, to
         // help with it's "dynamic" uses.
@@ -3890,7 +4076,7 @@ ColorValue ColorValue_from_str(const char* s) {
     }
     // Style name?
     int s_ret = StyleValue_from_str(s);
-    if (style_is_valid(s_ret)) {
+    if (StyleValue_is_valid(s_ret)) {
         StyleValue sval = (StyleValue)s_ret;
         return ColorValue_from_value(TYPE_STYLE, &sval);
     }
@@ -4120,7 +4306,7 @@ size_t ColorValue_length(ArgType type, ColorValue cval) {
     \pi cval    A ColorValue to get the type and value from.
     \return     A pointer to an allocated string.\n
                 \mustfree
-                \maybenullreturn
+                \maybenullalloc
 
     \sa ColorValue
 */
@@ -4147,7 +4333,7 @@ char* ColorValue_repr(ColorValue cval) {
     \return  An allocated string with the appropriate escape code.
              For invalid values, an empty string is returned.\n
              \mustfree
-             \maybenullreturn
+             \maybenullalloc
 
     \sa ColorValue
 */
@@ -4237,7 +4423,7 @@ char* ColorValue_to_str(ArgType type, ColorValue cval) {
     \return `true` if they are equal, otherwise `false`.
 */
 bool BasicValue_eq(BasicValue a, BasicValue b) {
-    return ((BasicValue)a == (BasicValue)b);
+    return (a == b);
 }
 
 /*! Convert an escape-code \string to an actual BasicValue enum value.
@@ -4290,12 +4476,30 @@ BasicValue BasicValue_from_str(const char* arg) {
     return BASIC_INVALID;
 }
 
+/*! Determines whether a BasicValue is invalid.
+
+    \pi x   A BasicValue to check.
+    \return `true` if the value is considered invalid, otherwise `false`.
+*/
+bool BasicValue_is_invalid(BasicValue x) {
+    return ((x == BASIC_INVALID) || (x == BASIC_INVALID_RANGE));
+}
+
+/*! Determines whether a BasicValue is valid.
+
+    \pi x   A BasicValue to check.
+    \return `true` if the value is considered valid, otherwise `false`.
+*/
+bool BasicValue_is_valid(BasicValue x) {
+    return ((x != BASIC_INVALID) && (x != BASIC_INVALID_RANGE));
+}
+
 /*! Creates a \string representation of a BasicValue.
 
     \pi bval A BasicValue to get the value from.
     \return  A pointer to an allocated string.\n
              \mustfree
-             \maybenullreturn
+             \maybenullalloc
 
     \sa BasicValue
 */
@@ -4391,6 +4595,25 @@ int BasicValue_to_ansi(ArgType type, BasicValue bval) {
     return use_value + (type == BACK ? 90 : 80);
 }
 
+/*! Create a human-friendly \string representation for a BasicValue.
+
+    \pi bval BasicValue to get the name for.
+    \return  An allocated string with the result.\n
+             \mustfree
+             \maybenullalloc
+*/
+char* BasicValue_to_str(BasicValue bval) {
+    char* name;
+    for (size_t i = 0; i < basic_names_len; i++) {
+        if (bval == basic_names[i].value) {
+            asprintf_or_return(NULL, &name, "%s", basic_names[i].name);
+            return name;
+        }
+    }
+    asprintf_or_return(NULL, &name, "unknown");
+    return name;
+}
+
 /*! Compares two ExtendedValues.
 
     \details
@@ -4401,7 +4624,7 @@ int BasicValue_to_ansi(ArgType type, BasicValue bval) {
     \return `true` if they are equal, otherwise `false`.
 */
 bool ExtendedValue_eq(ExtendedValue a, ExtendedValue b) {
-    return ((ExtendedValue)a == (ExtendedValue)b);
+    return (a == b);
 }
 
 /*! Convert an escape-code \string to an ExtendedValue.
@@ -4581,7 +4804,7 @@ int ExtendedValue_from_str(const char* arg) {
     \pi eval    A ExtendedValue to get the value from.
     \return     A pointer to an allocated string.\n
                 \mustfree
-                \maybenullreturn
+                \maybenullalloc
 
     \sa ExtendedValue
 */
@@ -4600,13 +4823,31 @@ char* ExtendedValue_repr(int eval) {
     return repr;
 }
 
+/*! Determines whether an integer is an invalid ExtendedValue.
+
+    \pi x   A number to check.
+    \return `true` if the value is considered invalid, otherwise `false`.
+*/
+bool ExtendedValue_is_invalid(int x) {
+    return ((x < 0) || (x > 255));
+}
+
+/*! Determines whether an integer is a valid ExtendedValue.
+
+    \pi x   A number to check.
+    \return `true` if the value is considered valid, otherwise `false`.
+*/
+bool ExtendedValue_is_valid(int x) {
+    return ((x > -1) && (x < 256));
+}
+
 /*! Creates a \string from an ExtendedValue's actual value, suitable for use
     with ExtendedValue_from_str().
 
     \pi eval    A ExtendedValue to get the value from.
     \return     A pointer to an allocated string\n
                 \mustfree
-                \maybenullreturn
+                \maybenullalloc
 
     \sa ExtendedValue
 */
@@ -4827,7 +5068,7 @@ int RGB_from_str(const char* arg, RGB* rgb) {
     \pi rgb RGB value to convert.
     \return An allocated string.\n
             \mustfree
-            \maybenullreturn
+            \maybenullalloc
 
     \sa RGB
 */
@@ -4842,7 +5083,7 @@ char* RGB_to_hex(RGB rgb) {
     \pi rgb RGB value to convert.
     \return An allocated string in the form `"red;green;blue"`.\n
             \mustfree
-            \maybenullreturn
+            \maybenullalloc
 */
 char* RGB_to_str(RGB rgb) {
     char* s;
@@ -4920,7 +5161,7 @@ char* RGB_repr(RGB rgb) {
     \return `true` if they are equal, otherwise `false`.
 */
 bool StyleValue_eq(StyleValue a, StyleValue b) {
-    return ((StyleValue)a == (StyleValue)b);
+    return (a == b);
 }
 
 /*! Convert an escape-code \string to an actual StyleValue enum value.
@@ -4971,12 +5212,49 @@ StyleValue StyleValue_from_str(const char* arg) {
     return STYLE_INVALID;
 }
 
+/*! Determines whether a StyleValue is invalid.
+
+    \pi x   A StyleValue to check.
+    \return `true` if the value is considered invalid, otherwise `false`.
+*/
+bool StyleValue_is_invalid(StyleValue x) {
+    return ((x == STYLE_INVALID) || (x == STYLE_INVALID_RANGE));
+}
+
+/*! Determines whether a StyleValue is valid.
+
+    \pi x   A StyleValue to check.
+    \return `true` if the value is considered valid, otherwise `false`.
+*/
+bool StyleValue_is_valid(StyleValue x) {
+    return ((x != STYLE_INVALID) && (x != STYLE_INVALID_RANGE));
+}
+
+/*! Create a human-friendly \string representation for a StyleValue.
+
+    \pi sval StyleValue to get the name for.
+    \return  An allocated string with the result.\n
+             \mustfree
+             \maybenullalloc
+*/
+char* StyleValue_to_str(StyleValue sval) {
+    char* name;
+    for (size_t i = 0; i < style_names_len; i++) {
+        if (sval == style_names[i].value) {
+            asprintf_or_return(NULL, &name, "%s", style_names[i].name);
+            return name;
+        }
+    }
+    asprintf_or_return(NULL, &name, "unknown");
+    return name;
+}
+
 /*! Creates a \string representation of a StyleValue.
 
     \pi sval    A StyleValue to get the value from.
     \return     A pointer to an allocated string.\n
                 \mustfree
-                \maybenullreturn
+                \maybenullalloc
 
     \sa StyleValue
 */
@@ -5038,7 +5316,7 @@ char* StyleValue_repr(StyleValue sval) {
     \pi ts  TermSize to get the representation for.
     \return An allocated string with the result.\n
             \mustfree
-            \maybenullreturn
+            \maybenullalloc
 */
 char* TermSize_repr(TermSize ts) {
     char* repr;
@@ -5069,7 +5347,7 @@ char* TermSize_repr(TermSize ts) {
     \pi offset Starting offset in the rainbow.
     \return    The allocated/formatted string on success.\n
                \mustfree
-               \maybenullreturn
+               \maybenullalloc
 */
 char* rainbow_bg(const char* s, double freq, size_t offset) {
     return _rainbow(format_bg_RGB, s, freq, offset);
@@ -5093,7 +5371,7 @@ char* rainbow_bg(const char* s, double freq, size_t offset) {
     \pi offset Starting offset in the rainbow.
     \return    The allocated/formatted string on success.\n
                \mustfree
-               \maybenullreturn
+               \maybenullalloc
 */
 char* rainbow_bg_term(const char* s, double freq, size_t offset) {
     return _rainbow(format_bg_RGB_term, s, freq, offset);
@@ -5116,7 +5394,7 @@ char* rainbow_bg_term(const char* s, double freq, size_t offset) {
     \pi offset Starting offset in the rainbow.
     \return    The allocated/formatted string on success.\n
                \mustfree
-               \maybenullreturn
+               \maybenullalloc
 */
 char* rainbow_fg(const char* s, double freq, size_t offset) {
     return _rainbow(format_fg_RGB, s, freq, offset);
@@ -5140,7 +5418,7 @@ char* rainbow_fg(const char* s, double freq, size_t offset) {
     \pi offset Starting offset in the rainbow.
     \return    The allocated/formatted string on success.\n
                \mustfree
-               \maybenullreturn
+               \maybenullalloc
 */
 char* rainbow_fg_term(const char* s, double freq, size_t offset) {
     return _rainbow(format_fg_RGB_term, s, freq, offset);
@@ -5158,7 +5436,7 @@ char* rainbow_fg_term(const char* s, double freq, size_t offset) {
 
     \return    An allocated \string with the result.\n
                \mustfree
-               \maybenullreturn
+               \maybenullalloc
 */
 char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
     if (!s) {

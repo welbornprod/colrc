@@ -11,6 +11,64 @@ subdesc(ColorValue_empty) {
         assert(ColorValue_is_empty(empty));
     }
 }
+subdesc(ColorValue_from_esc) {
+    it("creates ColorValues from basic esc-codes") {
+        for_len(basic_names_len, i) {
+            BasicValue bval = basic_names[i].value;
+            char codes[CODE_LEN];
+            format_fg(codes, bval);
+            ColorValue cval = ColorValue_from_esc(codes);
+            assert_is_valid(cval);
+            assert_ColorValue_has(cval, bval);
+
+            format_bg(codes, bval);
+            cval = ColorValue_from_esc(codes);
+            assert_is_valid(cval);
+            assert_ColorValue_has(cval, bval);
+        }
+    }
+    it("creates ColorValues from ext esc-codes") {
+        for (unsigned short i = 0; i < 256; i++) {
+            ExtendedValue eval = i;
+            char codes[CODEX_LEN];
+            format_fgx(codes, eval);
+            ColorValue cval = ColorValue_from_esc(codes);
+            assert_is_valid(cval);
+            assert_ColorValue_has(cval, eval);
+
+            format_bgx(codes, eval);
+            cval = ColorValue_from_esc(codes);
+            assert_is_valid(cval);
+            assert_ColorValue_has(cval, eval);
+        }
+    }
+    it("creates ColorValues from style esc-codes") {
+        for_len(style_names_len, i) {
+            StyleValue sval = style_names[i].value;
+            char codes[STYLE_LEN];
+            format_style(codes, sval);
+            ColorValue cval = ColorValue_from_esc(codes);
+            assert_is_valid(cval);
+            assert_ColorValue_has(cval, sval);
+        }
+    }
+    it("creates ColorValues from RGB esc-codes") {
+        for_len(colr_name_data_len, i) {
+            RGB expected = colr_name_data[i].rgb;
+            char codes[CODE_RGB_LEN];
+            format_fg_RGB(codes, expected);
+            ColorValue cval = ColorValue_from_esc(codes);
+            assert_is_valid(cval);
+            assert_ColorValue_has(cval, expected);
+
+            format_bg_RGB(codes, expected);
+            cval = ColorValue_from_esc(codes);
+            assert_is_valid(cval);
+            assert_ColorValue_has(cval, expected);
+        }
+    }
+}
+
 subdesc(ColorValue_from_str) {
     it("creates ColorValues from color names") {
         ColorValue basic = ColorValue_from_str("white");

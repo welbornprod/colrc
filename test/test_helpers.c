@@ -374,6 +374,26 @@ subdesc(colr_str_char_count) {
         }
     }
 }
+// colr_str_copy
+subdesc(colr_str_copy) {
+    it("copies strings") {
+        char* destp = NULL;
+        char* sp = NULL;
+        assert(colr_str_copy(destp, sp, 1) == NULL);
+        char s[] = "testing";
+        size_t length = strlen(s);
+        assert(colr_str_copy(destp, s, 4) == NULL);
+        char* dest = calloc(length + 1, sizeof(char));
+        assert(colr_str_copy(dest, NULL, 4) == NULL);
+        colr_str_copy(dest, "", 1);
+        assert_str_empty(dest);
+        colr_str_copy(dest, s, 4);
+        assert_str_eq(dest, "test", "Failed to copy 4 bytes from string.");
+        colr_str_copy(dest, s, length);
+        assert_str_eq(dest, s, "Failed to copy the entire string.");
+        free(dest);
+    }
+}
 // colr_str_ends_with
 subdesc(colr_str_ends_with) {
     it("detects string endings") {

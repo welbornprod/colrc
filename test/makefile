@@ -7,6 +7,7 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
        -Wimplicit-fallthrough -Wlogical-not-parentheses \
        -Wmissing-include-dirs -Wnull-dereference -Wpedantic -Wshadow \
        -Wstrict-prototypes -Wunused \
+       -Wno-variadic-macros \
        -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 \
        -D_GNU_SOURCE \
        -std=gnu11

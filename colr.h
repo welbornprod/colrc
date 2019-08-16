@@ -337,21 +337,6 @@
 */
 #define basic(x) ((BasicValue)(x))
 
-/*! \def basic_is_invalid
-    Determines whether a BasicValue is invalid.
-
-    \pi x   A BasicValue to check.
-    \return `true` if the value is considered invalid, otherwise `false`.
-*/
-#define basic_is_invalid(x) ((x == BASIC_INVALID) || (x == BASIC_INVALID_RANGE))
-
-/*! \def basic_is_valid
-    Determines whether a BasicValue is valid.
-
-    \pi x   A BasicValue to check.
-    \return `true` if the value is considered valid, otherwise `false`.
-*/
-#define basic_is_valid(x) ((x != BASIC_INVALID) && (x != BASIC_INVALID_RANGE))
 
 /*! \def bool_colr_enum
     Returns the "truthiness" of the enums used in ColrC
@@ -479,6 +464,30 @@
         RGB: ColorValue_from_value(TYPE_RGB, &x) \
     )
 
+/*! Call the current ColorValue_has_\<type\> function for the given value.
+
+    \details
+    Given the correct type of value, this will check to see if a ColorValue
+    has the correct `.type` set for the value, and the values match.
+
+    \pi cval The ColorValue to check.
+    \pi val  A BasicValue, ExtendedValue, StyleValue, or RGB value.
+    \return  `true` if the ColorValue has the correct `.type` and it's value
+             matches `val`, otherwise `false`.
+
+    \sa ColorValue
+    \sa ColorValue_has_BasicValue ColorValue_has_ExtendedValue
+    \sa ColorValue_has_StyleValue ColorValue_has_RGB
+*/
+#define ColorValue_has(cval, val) \
+    _Generic( \
+        (val), \
+        BasicValue: ColorValue_has_BasicValue, \
+        ExtendedValue: ColorValue_has_ExtendedValue, \
+        StyleValue: ColorValue_has_StyleValue, \
+        RGB: ColorValue_has_RGB \
+    )(cval, val)
+
 /*! \def Colr
     Returns a heap-allocated ColorText struct that can be used by itself,
     or with the colr() macro.
@@ -509,7 +518,7 @@
 
     \return An allocated string with the result.\n
             \mustfree
-            \maybenullreturn
+            \maybenullalloc
 */
 #define Colr_str(text, ...) colr(Colr(text, __VA_ARGS__))
 
@@ -594,6 +603,7 @@
 #define colr_eq(a, b) \
     _Generic( \
         (a), \
+        ArgType: ArgType_eq, \
         BasicValue: BasicValue_eq, \
         ColorArg: ColorArg_eq, \
         ColorJustify: ColorJustify_eq, \
@@ -603,6 +613,25 @@
         RGB: RGB_eq, \
         StyleValue: StyleValue_eq \
     )(a, b)
+
+/*! \def colr_example
+    Calls the \<type\>_example functions for the supported types.
+
+    \details
+    This is used to create a human-friendly representation for ColorArgs or
+    ColorValues.
+
+    \pi x   A supported type to get an example string for.
+    \return An allocated string with the result.\n
+            \mustfree
+            \maybenullalloc
+*/
+#define colr_example(x) \
+    _Generic( \
+        (x), \
+        ColorArg: ColorArg_example, \
+        ColorValue: ColorValue_example \
+    )(x)
 
 /*! \def colr_free
     Calls the \<type\>_free functions for the supported types.
@@ -643,6 +672,9 @@
 #define colr_is_invalid(x) \
     _Generic( \
         (x), \
+        BasicValue: BasicValue_is_invalid, \
+        ExtendedValue: ExtendedValue_is_invalid, \
+        StyleValue: StyleValue_is_invalid, \
         ColorArg: ColorArg_is_invalid, \
         ColorType: ColorType_is_invalid, \
         ColorValue: ColorValue_is_invalid \
@@ -656,6 +688,9 @@
 #define colr_is_valid(x) \
     _Generic( \
         (x), \
+        BasicValue: BasicValue_is_valid, \
+        ExtendedValue: ExtendedValue_is_valid, \
+        StyleValue: StyleValue_is_valid, \
         ColorArg: ColorArg_is_valid, \
         ColorType: ColorType_is_valid, \
         ColorValue: ColorValue_is_valid \
@@ -838,10 +873,13 @@
     _Generic( \
         (x), \
         ArgType: ArgType_to_str, \
+        BasicValue: BasicValue_to_str, \
         ColorArg: ColorArg_to_str, \
         ColorText: ColorText_to_str, \
+        ColorType: ColorType_to_str, \
         ColorValue: ColorValue_to_str, \
         ExtendedValue: ExtendedValue_to_str, \
+        StyleValue: StyleValue_to_str, \
         RGB: RGB_to_str \
     )(x)
 
@@ -922,22 +960,6 @@
     \sa ext ext_hex hex hex_or
 */
 #define ext_hex_or(s, default_value) ExtendedValue_from_hex_default(s, default_value)
-
-/*! \def ext_is_invalid
-    Determines whether an integer is an invalid ExtendedValue.
-
-    \pi x   A number to check.
-    \return `true` if the value is considered invalid, otherwise `false`.
-*/
-#define ext_is_invalid(x) ((x < 0) || (x > 255))
-
-/*! \def ext_is_valid
-    Determines whether an integer is a valid ExtendedValue.
-
-    \pi x   A number to check.
-    \return `true` if the value is considered valid, otherwise `false`.
-*/
-#define ext_is_valid(x) ((x > -1) && (x < 256))
 
 /*! \def ext_rgb
     Creates the closest matching ExtendedValue from an RGB value.
@@ -1124,22 +1146,6 @@
         StyleValue: ColorArg_from_StyleValue \
     )(STYLE, x)
 
-/*! \def style_is_invalid
-    Determines whether a StyleValue is invalid.
-
-    \pi x   A StyleValue to check.
-    \return `true` if the value is considered invalid, otherwise `false`.
-*/
-#define style_is_invalid(x) ((x == STYLE_INVALID) || (x == STYLE_INVALID_RANGE))
-
-/*! \def style_is_valid
-    Determines whether a StyleValue is valid.
-
-    \pi x   A StyleValue to check.
-    \return `true` if the value is considered valid, otherwise `false`.
-*/
-#define style_is_valid(x) ((x == STYLE_INVALID) || (x == STYLE_INVALID_RANGE))
-
 /*! \def style_str
     Retrieve just the escape code string for a style.
 
@@ -1225,6 +1231,8 @@ typedef enum BasicValue {
 } BasicValue;
 
 #ifndef DOXYGEN_SKIP
+// This makes enum values more friendly to _Generic, by explicitly casting
+// from `int` to the enum type.
 #define BASIC_INVALID basic(BASIC_INVALID)
 #define BASIC_NONE basic(BASIC_NONE)
 #define BLACK basic(BLACK)
@@ -1310,6 +1318,8 @@ typedef enum StyleValue {
 #define STYLE_MIN_VALUE ((StyleValue)STYLE_INVALID_RANGE)
 
 #ifndef DOXYGEN_SKIP
+// This makes enum values more friendly to _Generic, by explicitly casting
+// from `int` to the enum type.
 #define STYLE_INVALID_RANGE ((StyleValue)STYLE_INVALID_RANGE)
 #define STYLE_INVALID ((StyleValue)STYLE_INVALID)
 #define STYLE_NONE ((StyleValue)STYLE_NONE)
@@ -1334,6 +1344,14 @@ typedef enum ArgType {
     STYLE = 2,
 } ArgType;
 
+#ifndef DOXYGEN_SKIP
+// This makes enum values more friendly to _Generic, by explicitly casting
+// from `int` to the enum type.
+#define ARGTYPE_NONE ((ArgType)ARGTYPE_NONE)
+#define FORE ((ArgType)FORE)
+#define BACK ((ArgType)BACK)
+#define STYLE ((ArgType)STYLE)
+#endif
 //! Justification style for ColorTexts.
 typedef enum ColorJustifyMethod {
     JUST_NONE = -1,
@@ -1342,6 +1360,14 @@ typedef enum ColorJustifyMethod {
     JUST_CENTER = 2,
 } ColorJustifyMethod;
 
+#ifndef DOXYGEN_SKIP
+// This makes enum values more friendly to _Generic, by explicitly casting
+// from `int` to the enum type.
+#define JUST_NONE ((ColorJustifyMethod)JUST_NONE)
+#define JUST_LEFT ((ColorJustifyMethod)JUST_LEFT)
+#define JUST_RIGHT ((ColorJustifyMethod)JUST_RIGHT)
+#define JUST_CENTER ((ColorJustifyMethod)JUST_CENTER)
+#endif
 //! Color/Style code types. Used with ColorType_from_str() and ColorValue.
 typedef enum ColorType {
     TYPE_NONE = -6,
@@ -1354,6 +1380,20 @@ typedef enum ColorType {
     TYPE_RGB = 2,
     TYPE_STYLE = 3,
 } ColorType;
+
+#ifndef DOXYGEN_SKIP
+// This makes enum values more friendly to _Generic, by explicitly casting
+// from `int` to the enum type.
+#define TYPE_NONE ((ColorType)TYPE_NONE)
+#define TYPE_INVALID_STYLE ((ColorType)TYPE_INVALID_STYLE)
+#define TYPE_INVALID_RGB_RANGE ((ColorType)TYPE_INVALID_RGB_RANGE)
+#define TYPE_INVALID_EXT_RANGE ((ColorType)TYPE_INVALID_EXT_RANGE)
+#define TYPE_INVALID ((ColorType)TYPE_INVALID)
+#define TYPE_BASIC ((ColorType)TYPE_BASIC)
+#define TYPE_EXTENDED ((ColorType)TYPE_EXTENDED)
+#define TYPE_RGB ((ColorType)TYPE_RGB)
+#define TYPE_STYLE ((ColorType)TYPE_STYLE)
+#endif
 
 /*! Holds a known color name and it's `BasicValue`.
 
@@ -1631,6 +1671,7 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count);
     ArgType functions that only deal with argument types (fore, back, style).
     \endinternal
 */
+bool ArgType_eq(ArgType a, ArgType b);
 char* ArgType_repr(ArgType type);
 char* ArgType_to_str(ArgType type);
 
@@ -1640,6 +1681,7 @@ char* ArgType_to_str(ArgType type);
 */
 ColorArg ColorArg_empty(void);
 bool ColorArg_eq(ColorArg a, ColorArg b);
+char* ColorArg_example(ColorArg carg);
 void ColorArg_free(ColorArg* p);
 ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value);
 ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value);
@@ -1696,6 +1738,7 @@ ColorType ColorType_from_str(const char* arg);
 bool ColorType_is_invalid(ColorType type);
 bool ColorType_is_valid(ColorType type);
 char* ColorType_repr(ColorType type);
+char* ColorType_to_str(ColorType type);
 
 /*! \internal
     ColorValue functions that deal with a specific color value (basic, ext, rgb).
@@ -1703,6 +1746,7 @@ char* ColorType_repr(ColorType type);
 */
 ColorValue ColorValue_empty(void);
 bool ColorValue_eq(ColorValue a, ColorValue b);
+char* ColorValue_example(ColorValue cval);
 ColorValue ColorValue_from_esc(const char* s);
 ColorValue ColorValue_from_str(const char* s);
 ColorValue ColorValue_from_value(ColorType type, void* p);
@@ -1725,7 +1769,10 @@ char* ColorValue_to_str(ArgType type, ColorValue cval);
 bool BasicValue_eq(BasicValue a, BasicValue b);
 BasicValue BasicValue_from_esc(const char* s);
 BasicValue BasicValue_from_str(const char* arg);
+bool BasicValue_is_valid(BasicValue bval);
+bool BasicValue_is_invalid(BasicValue bval);
 int BasicValue_to_ansi(ArgType type, BasicValue bval);
+char* BasicValue_to_str(BasicValue bval);
 char* BasicValue_repr(BasicValue bval);
 /*! \internal
     ExtendedValue functions.
@@ -1737,6 +1784,8 @@ int ExtendedValue_from_hex(const char* hexstr);
 ExtendedValue ExtendedValue_from_hex_default(const char* hexstr, ExtendedValue default_value);
 ExtendedValue ExtendedValue_from_RGB(RGB rgb);
 int ExtendedValue_from_str(const char* arg);
+bool ExtendedValue_is_invalid(int eval);
+bool ExtendedValue_is_valid(int eval);
 char* ExtendedValue_repr(int eval);
 char* ExtendedValue_to_str(ExtendedValue eval);
 
@@ -1747,8 +1796,10 @@ char* ExtendedValue_to_str(ExtendedValue eval);
 bool StyleValue_eq(StyleValue a, StyleValue b);
 StyleValue StyleValue_from_esc(const char* s);
 StyleValue StyleValue_from_str(const char* arg);
+bool StyleValue_is_invalid(StyleValue sval);
+bool StyleValue_is_valid(StyleValue sval);
 char* StyleValue_repr(StyleValue sval);
-
+char* StyleValue_to_str(StyleValue sval);
 /*! \internal
     rgb/RGB functions.
     \endinternal
