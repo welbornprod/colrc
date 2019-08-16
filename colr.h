@@ -1517,12 +1517,10 @@ struct winsize colr_win_size(void);
 struct winsize colr_win_size_env(void);
 void format_bgx(char* out, unsigned char num);
 void format_bg(char* out, BasicValue value);
-void format_bg_rgb(char* out, unsigned char red, unsigned char green, unsigned char blue);
 void format_bg_RGB(char* out, RGB rgb);
 void format_bg_RGB_term(char* out, RGB rgb);
 void format_fgx(char* out, unsigned char num);
 void format_fg(char* out, BasicValue value);
-void format_fg_rgb(char* out, unsigned char red, unsigned char green, unsigned char blue);
 void format_fg_RGB(char* out, RGB rgb);
 void format_fg_RGB_term(char* out, RGB rgb);
 void format_style(char* out, StyleValue style);
@@ -1706,7 +1704,8 @@ char* StyleValue_repr(StyleValue sval);
     \endinternal
 */
 bool RGB_eq(RGB a, RGB b);
-int RGB_from_hex(const char* hexstr, RGB *rgb);
+int RGB_from_esc(const char* s, RGB* rgb);
+int RGB_from_hex(const char* hexstr, RGB* rgb);
 RGB RGB_from_hex_default(const char* hexstr, RGB default_value);
 int RGB_from_str(const char* arg, RGB* rgb);
 char* RGB_to_hex(RGB rgb);

@@ -97,6 +97,31 @@
         }\
     } while (0)
 
+// Assert two ExtendedValues are equal, with a better message on failure.
+#define assert_ext_eq(a, b, msg) \
+    do { \
+        if (a != b) { \
+            char* _a_e_e_eval_repr_a = ExtendedValue_repr(a); \
+            char* _a_e_e_eval_repr_b = ExtendedValue_repr(b); \
+            fail("%s: %s != %s", msg, _a_e_e_eval_repr_a, _a_e_e_eval_repr_b); \
+            free(_a_e_e_eval_repr_a); \
+            free(_a_e_e_eval_repr_b); \
+        } \
+    } while (0)
+
+// Assert two ExtendedValues are not equal, with a better message on failure.
+#define assert_ext_neq(a, b, msg) \
+    do { \
+        if (a == b) { \
+            char* _a_e_ne_eval_repr_a = ExtendedValue_repr(a); \
+            char* _a_e_ne_eval_repr_b = ExtendedValue_repr(b); \
+            fail("%s: %s == %s", msg, _a_e_ne_eval_repr_a, _a_e_ne_eval_repr_b); \
+            free(_a_e_ne_eval_repr_a); \
+            free(_a_e_ne_eval_repr_b); \
+        } \
+    } while (0)
+
+
 #define assert_from_str_eq(s, val) \
     assert_colr_eq( \
         _Generic( \
@@ -182,6 +207,17 @@
         if (a == b) { \
             fail("Numbers are equal: (" #a ") " fmt " == (" #b ") " fmt, a, b); \
         }\
+    } while (0)
+
+#define assert_RGB_eq(a, b) \
+    do { \
+        if (!RGB_eq(a, b)) { \
+            char* _are_a = colr_repr(a); \
+            char* _are_b = colr_repr(b); \
+            fail("RGB values are not equal: %s != %s\n", _are_a, _are_b); \
+            free(_are_a); \
+            free(_are_b); \
+        } \
     } while (0)
 
 #define assert_range(x, xmin, xmax, msg) \

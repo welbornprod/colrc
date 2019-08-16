@@ -7,17 +7,6 @@
 #define TEST_RGB_H
 #include "test_ColrC.h"
 
-#define assert_RGB_eq(a, b) \
-    do { \
-        if (!RGB_eq(a, b)) { \
-            char* _are_a = colr_repr(a); \
-            char* _are_b = colr_repr(b); \
-            defer(free(_are_a)); \
-            defer(free(_are_b)); \
-            fail("RGB values are not equal: %s != %s\n", _are_a, _are_b); \
-        } \
-    } while (0)
-
 #define assert_rgb_from(s, func, expectedret, ...) \
     do { \
         int _arf_ret = func(s, __VA_ARGS__); \

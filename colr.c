@@ -2117,19 +2117,6 @@ void format_bgx(char* out, unsigned char num) {
     snprintf(out, CODEX_LEN, "\x1b[48;5;%dm", num);
 }
 
-/*! Create an escape code for a true color (rgb) background color.
-
-    \po out   Memory allocated for the escape code string.
-              _Must have enough room for `CODE_RGB_LEN`._
-    \pi redval   Value for red.
-    \pi greenval Value for green.
-    \pi blueval  Value for blue.
-*/
-void format_bg_rgb(char* out, unsigned char redval, unsigned char greenval, unsigned char blueval) {
-    if (!out) return;
-    format_bg_RGB(out, rgb(redval, greenval, blueval));
-}
-
 /*! Create an escape code for a true color (rgb) background color
     using values from an RGB struct.
 
@@ -2172,19 +2159,6 @@ void format_fg(char* out, BasicValue value) {
 void format_fgx(char* out, unsigned char num) {
     if (!out) return;
     snprintf(out, CODEX_LEN, "\x1b[38;5;%dm", num);
-}
-
-/*! Create an escape code for a true color (rgb) fore color.
-
-    \po out      Memory allocated for the escape code string.
-                 _Must have enough room for `CODE_RGB_LEN`._
-    \pi redval   Value for red.
-    \pi greenval Value for green.
-    \pi blueval  Value for blue.
-*/
-void format_fg_rgb(char* out, unsigned char redval, unsigned char greenval, unsigned char blueval) {
-    if (!out) return;
-    format_fg_RGB(out, rgb(redval, greenval, blueval));
 }
 
 /*! Create an escape code for a true color (rgb) fore color using an
@@ -3944,14 +3918,14 @@ bool ColorValue_has_StyleValue(ColorValue cval, StyleValue sval) {
 /*! Checks to see if a ColorValue has a RGB value set.
 
     \pi cval   ColorValue to check.
-    \pi rgbval RGB value to look for.
+    \pi rgb    RGB value to look for.
 
     \return    `true` if the ColorValue has the exact RGB value set.
 
     \sa ColorValue
 */
-bool ColorValue_has_RGB(ColorValue cval, RGB rgbval) {
-    return (cval.type == TYPE_RGB) && RGB_eq(cval.rgb, rgbval);
+bool ColorValue_has_RGB(ColorValue cval, RGB rgb) {
+    return (cval.type == TYPE_RGB) && RGB_eq(cval.rgb, rgb);
 }
 
 /*! Checks to see if a ColorValue is an empty placeholder.
@@ -4189,7 +4163,7 @@ bool BasicValue_eq(BasicValue a, BasicValue b) {
 
     \pi s   Escape-code string.\n
             \mustnull
-    \return BasicValue value on success,
+    \retval BasicValue value on success.
     \retval BASIC_INVALID on error (or if \p s is `NULL`).
     \retval BASIC_INVALID_RANGE if the code number was outside of the range `0-255`.
 
@@ -4353,7 +4327,7 @@ bool ExtendedValue_eq(ExtendedValue a, ExtendedValue b) {
 
     \pi s   Escape-code string.\n
             \mustnull
-    \return An integer in the range `0-255` on success.
+    \retval An integer in the range `0-255` on success.
     \retval EXT_INVALID on error (or if \p s is `NULL`).
     \retval EXT_INVALID_RANGE if the code number was outside of the range `0-255`.
 
@@ -4577,6 +4551,40 @@ bool RGB_eq(RGB a, RGB b) {
     );
 }
 
+/*! Convert an escape-code \string to an actual RGB value.
+
+    \pi s      Escape-code string.\n
+               \mustnull
+    \po rgb    Pointer to an RGB struct to fill in the values for.
+
+    \retval    `0` on success, with \p rgb filled with values.
+    \retval    COLOR_INVALID on error (or if \p s is `NULL`).
+    \retval    COLOR_INVALID_RANGE if any code numbers were outside of the range `0-255`.
+
+    \sa RGB
+*/
+int RGB_from_esc(const char* s, RGB* rgb) {
+    if (!s) return COLOR_INVALID;
+    short rednum;
+    short greennum;
+    short bluenum;
+    if (sscanf(s, "\x1b[38;2;%hd;%hd;%hdm", &rednum, &greennum, &bluenum) != 3) {
+        if (sscanf(s, "\x1b[48;2;%hd;%hd;%hdm", &rednum, &greennum, &bluenum) != 3) {
+            return COLOR_INVALID;
+        }
+    }
+    // Outside the range of a basic escape code?
+    if ((rednum < 0) || (rednum > 255)) return COLOR_INVALID_RANGE;
+    if ((greennum < 0) || (greennum > 255)) return COLOR_INVALID_RANGE;
+    if ((bluenum < 0) || (bluenum > 255)) return COLOR_INVALID_RANGE;
+
+    // Within range.
+    rgb->red = rednum;
+    rgb->green = greennum;
+    rgb->blue = bluenum;
+    return 0;
+}
+
 /*! Convert a hex color into an RGB value.
     \details
     The format for hex strings can be one of:
@@ -4585,14 +4593,14 @@ bool RGB_eq(RGB a, RGB b) {
 
     \pi hexstr String to check for hex values.
                \mustnullin
-    \po rgbval Pointer to an RGB struct to fill in the values for.
+    \po rgb    Pointer to an RGB struct to fill in the values for.
 
-    \retval    0 on success, with \p rgbval filled with the values.
+    \retval    0 on success, with \p rgb filled with the values.
     \retval    COLOR_INVALID for non-hex strings.
 
     \sa RGB
 */
-int RGB_from_hex(const char* hexstr, RGB *rgbval) {
+int RGB_from_hex(const char* hexstr, RGB* rgb) {
     if (!hexstr) return COLOR_INVALID;
     size_t length = strnlen(hexstr, 7);
     if ((length < 3) || (length > 7)) return COLOR_INVALID;
@@ -4625,9 +4633,9 @@ int RGB_from_hex(const char* hexstr, RGB *rgbval) {
             return COLOR_INVALID;
     }
 
-    rgbval->red = redval;
-    rgbval->green = greenval;
-    rgbval->blue = blueval;
+    rgb->red = redval;
+    rgb->green = greenval;
+    rgb->blue = blueval;
     return 0;
 }
 
@@ -4672,9 +4680,9 @@ RGB RGB_from_hex_default(const char* hexstr, RGB default_value) {
 
     \pi arg    String to check for RGB values.
                \mustnullin
-    \po rgbval Pointer to an RGB struct to fill in the values for.
+    \po rgb    Pointer to an RGB struct to fill in the values for.
 
-    \retval 0 on success, with \p rgbval filled with the values.
+    \retval 0 on success, with \p rgb filled with the values.
     \retval COLOR_INVALID for non-rgb strings.
     \retval COLOR_INVALID_RANGE for rgb values outside of 0-255.
 
@@ -4690,7 +4698,7 @@ RGB RGB_from_hex_default(const char* hexstr, RGB default_value) {
 
     \sa RGB
 */
-int RGB_from_str(const char* arg, RGB *rgbval) {
+int RGB_from_str(const char* arg, RGB* rgb) {
     if (!arg) return COLOR_INVALID;
     const char* formats[] = {
         "%ld,%ld,%ld",
@@ -4708,16 +4716,16 @@ int RGB_from_str(const char* arg, RGB *rgbval) {
             if (usergreen < 0 || usergreen > 255) return COLOR_INVALID_RANGE;
             if (userblue < 0 || userblue > 255) return COLOR_INVALID_RANGE;
             // Valid ranges, set values for out parameters.
-            rgbval->red = (unsigned char)userred;
-            rgbval->green = (unsigned char)usergreen;
-            rgbval->blue = (unsigned char)userblue;
+            rgb->red = (unsigned char)userred;
+            rgb->green = (unsigned char)usergreen;
+            rgb->blue = (unsigned char)userblue;
             return 0;
         }
         i++;
     }
 
     // Try hex strings.
-    if (arg[0] == '#') return RGB_from_hex(arg, rgbval);
+    if (arg[0] == '#') return RGB_from_hex(arg, rgb);
 
     // Try known names.
     char* arglower = colr_str_to_lower(arg);
@@ -4725,7 +4733,7 @@ int RGB_from_str(const char* arg, RGB *rgbval) {
     for (size_t j = 0; j < colr_name_data_len; j++) {
         if (colr_str_eq(arglower, colr_name_data[j].name)) {
             free(arglower);
-            *rgbval = colr_name_data[j].rgb;
+            *rgb = colr_name_data[j].rgb;
             return 0;
         }
     }
@@ -4838,7 +4846,7 @@ bool StyleValue_eq(StyleValue a, StyleValue b) {
 
     \pi s   Escape-code string.\n
             \mustnull
-    \return StyleValue value on success,
+    \retval StyleValue value on success.
     \retval STYLE_INVALID on error (or if \p s is `NULL`).
     \retval STYLE_INVALID_RANGE if the code number was outside of the range `0-255`.
 
