@@ -129,18 +129,19 @@ subdesc(ColorText_length) {
                 slength + CODE_LEN + CODE_RESET_LEN
             },
             {
-                // The RESET_ALL style means no extra CODE_RESET_ALL is appended.
+                // The RESET_ALL style comes before "test", so it is appended
+                // again.
                 ColorText_from_values("test", &stylearg, _ColrLastArg),
-                slength + STYLE_LEN
+                slength + STYLE_LEN + CODE_RESET_LEN
             },
             {
                 ColorText_from_values("test", &forearg, &backarg, _ColrLastArg),
                 slength + (CODE_LEN * 2) + CODE_RESET_LEN
             },
             {
-                // Again, the RESET_ALL causes no extra CODE_RESET_ALL.
+                // Again, the RESET_ALL comes before "test", so it is appended.
                 ColorText_from_values("test", &forearg, &backarg, &stylearg, _ColrLastArg),
-                slength + (CODE_LEN * 2) + STYLE_LEN
+                slength + (CODE_LEN * 2) + STYLE_LEN + CODE_RESET_LEN
             },
         };
         for_each(tests, i) {

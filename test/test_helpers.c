@@ -374,6 +374,71 @@ subdesc(colr_str_char_count) {
         }
     }
 }
+// colr_str_code_cnt
+subdesc(colr_str_code_cnt) {
+    it("counts escape codes") {
+        ColorArg forearg = fore_arg(WHITE);
+        ColorArg backarg = back_arg(RED);
+        ColorArg stylearg = style_arg(RESET_ALL);
+
+        struct {
+            ColorText ctext;
+            size_t expected;
+        } tests[] = {
+            {ColorText_from_values("Test", _ColrLastArg), 0},
+            {ColorText_from_values("Test", &forearg, _ColrLastArg), 2},
+            {ColorText_from_values("Test", &forearg, &backarg, _ColrLastArg), 3},
+            {ColorText_from_values("Test", &forearg, &backarg, &stylearg, _ColrLastArg), 4},
+        };
+        for_each(tests, i) {
+            char* s = ColorText_to_str(tests[i].ctext);
+            assert_size_eq_repr(colr_str_code_cnt(s), tests[i].expected, s);
+            free(s);
+        }
+        asserteq(colr_str_code_cnt(NULL), 0);
+        asserteq(colr_str_code_cnt(""), 0);
+    }
+}
+// colr_str_code_len
+subdesc(colr_str_code_len) {
+    it("counts escape code chars") {
+        struct {
+            char* s;
+            size_t expected;
+        } tests[] = {
+            {NULL, 0},
+            {"", 0},
+            {"apple", 0},
+            {"\x1b[0m", 4},
+            {"test\x1b[0m", 4},
+            {"\x1b[0mtest", 4},
+            {"test\x1b[0mtest", 4},
+            {FORE_CODE_BASIC, FORE_CODE_BASIC_LEN},
+            {FORE_CODE_EXT, FORE_CODE_EXT_LEN},
+            {FORE_CODE_RGB, FORE_CODE_RGB_LEN},
+            {STYLE_CODE_UL, STYLE_CODE_UL_LEN},
+            {"test" FORE_CODE_BASIC, FORE_CODE_BASIC_LEN},
+            {"test" FORE_CODE_EXT, FORE_CODE_EXT_LEN},
+            {"test" FORE_CODE_RGB, FORE_CODE_RGB_LEN},
+            {"test" STYLE_CODE_UL, STYLE_CODE_UL_LEN},
+            {FORE_CODE_BASIC "test", FORE_CODE_BASIC_LEN},
+            {FORE_CODE_EXT "test", FORE_CODE_EXT_LEN},
+            {FORE_CODE_RGB "test", FORE_CODE_RGB_LEN},
+            {STYLE_CODE_UL "test", STYLE_CODE_UL_LEN},
+            {"test" FORE_CODE_BASIC "test", FORE_CODE_BASIC_LEN},
+            {"test" FORE_CODE_EXT "test", FORE_CODE_EXT_LEN},
+            {"test" FORE_CODE_RGB "test", FORE_CODE_RGB_LEN},
+            {"test" STYLE_CODE_UL "test", STYLE_CODE_UL_LEN},
+        };
+        for_each(tests, i) {
+            assert_size_eq_repr(
+                colr_str_code_len(tests[i].s),
+                tests[i].expected,
+                tests[i].s
+            );
+        }
+    }
+}
 // colr_str_copy
 subdesc(colr_str_copy) {
     it("copies strings") {
@@ -397,52 +462,39 @@ subdesc(colr_str_copy) {
 // colr_str_ends_with
 subdesc(colr_str_ends_with) {
     it("detects string endings") {
-        // Common uses.
-        assert(
-            colr_str_ends_with("lightblue", "blue"),
-            "Known suffix was not detected."
-        );
-        assert(
-            colr_str_ends_with("xred", "red"),
-            "Known suffix was not detected."
-        );
-        assert(
-            colr_str_ends_with("yellow", "low"),
-            "Known suffix was not detected."
-        );
-        assert(
-            colr_str_ends_with("!@#$^&*", "&*"),
-            "Known suffix was not detected."
-        );
-        assert(
-            colr_str_ends_with("    test    ", "    "),
-            "Known suffix was not detected."
-        );
-        // Should not trigger a match.
-        assert(
-            !colr_str_ends_with("test", "a"),
-            "Bad suffix was falsey detected."
-        );
-        assert(
-            !colr_str_ends_with(" test ", "test"),
-            "Bad suffix was falsey detected."
-        );
-        assert(
-            !colr_str_ends_with("t", "apple"),
-            "Bad suffix was falsey detected."
-        );
-        assert(
-            !colr_str_ends_with(NULL, "a"),
-            "Null argument did not return false."
-        );
-        assert(
-            !colr_str_ends_with("test", NULL),
-            "Null argument did not return false."
-        );
-        assert(
-            !colr_str_ends_with(NULL, NULL),
-            "Null arguments did not return false."
-        );
+        struct {
+            char* s;
+            char* suffix;
+            bool expected;
+        } tests[] = {
+            // Common uses.
+            {"lightblue", "blue", true},
+            {"xred", "red", true},
+            {"yellow", "low", true},
+            {"!@#$^&*", "&*", true},
+            {"    test    ", "    ", true},
+            {"test\x1b[0m", "\x1b[0m", true},
+            // Should not trigger a match.
+            {NULL, "a", false},
+            {"test", NULL, false},
+            {NULL, NULL, false},
+            {"test", "a", false},
+            {" test ", "test", false},
+            {"t", "apple", false},
+            {"\x1b[0mtest", "\x1b[0m", false},
+        };
+        for_each(tests, i) {
+            asserteq(
+                colr_str_ends_with(
+                    tests[i].s,
+                    tests[i].suffix
+                ),
+                tests[i].expected
+            );
+        }
+
+
+
     }
 }
 // colr_str_has_codes

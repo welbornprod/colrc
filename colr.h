@@ -1557,7 +1557,6 @@ static const struct _ColrLastArg_s _ColrLastArgValue = {
 static const struct _ColrLastArg_s* const _ColrLastArg = &_ColrLastArgValue;
 #endif // DOXYGEN_SKIP
 
-
 /*! \file colr.h
     Common macros and definitions are found here in colr.h,
     however the functions are documented in colr.c.
@@ -1572,7 +1571,6 @@ bool colr_char_should_escape(const char c);
 
 bool colr_check_marker(unsigned int marker, void* p);
 char* colr_empty_str(void);
-void colr_str_free_list(char** ps);
 bool colr_supports_rgb(void);
 
 size_t colr_str_char_count(const char*s, const char c);
@@ -1581,12 +1579,14 @@ size_t colr_str_code_cnt(const char* s);
 size_t colr_str_code_len(const char* s);
 char* colr_str_copy(char* dest, const char* src, size_t length);
 bool colr_str_ends_with(const char* s, const char* suffix);
-char** colr_str_get_codes(const char* s);
+char** colr_str_get_codes(const char* s, bool unique);
 bool colr_str_has_codes(const char* s);
-unsigned long colr_str_hash(char *s);
+unsigned long colr_str_hash(const char *s);
 bool colr_str_is_all(const char* s, const char c);
 bool colr_str_is_codes(const char* s);
 bool colr_str_is_digits(const char* s);
+bool colr_str_list_contains(char** lst, const char* s);
+void colr_str_list_free(char** ps);
 char* colr_str_ljust(const char* s, const char padchar, int width);
 void colr_str_lower(char* s);
 char* colr_str_lstrip_chars(const char* s, const char* chars);
@@ -1699,9 +1699,8 @@ size_t ColorArg_length(ColorArg carg);
 char* ColorArg_repr(ColorArg carg);
 ColorArg* ColorArg_to_ptr(ColorArg carg);
 char* ColorArg_to_str(ColorArg carg);
-void ColorArgs_free_list(ColorArg** ps);
-ColorArg** ColorArgs_from_str(const char* s);
-ColorArg** ColorArgs_from_str_u(const char* s);
+ColorArg** ColorArgs_from_str(const char* s, bool unique);
+void ColorArgs_list_free(ColorArg** ps);
 
 /*! \internal
     ColorJustify functions that deal with colr/string justification.

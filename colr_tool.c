@@ -267,12 +267,8 @@ int list_codes(ColrToolOptions* opts) {
         printferr("\nText was empty!\n");
         return EXIT_FAILURE;
     }
-    ColorArg** carg_list = NULL;
-    if (opts->list_unique_codes) {
-        carg_list = ColorArgs_from_str_u(opts->text);
-    } else {
-        carg_list = ColorArgs_from_str(opts->text);
-    }
+    ColorArg** carg_list = ColorArgs_from_str(opts->text, opts->list_unique_codes);
+
     if (!carg_list) {
         printferr("\nNo codes found.\n");
         return EXIT_FAILURE;
@@ -285,7 +281,7 @@ int list_codes(ColrToolOptions* opts) {
         free(carg_example);
     }
     // Free the ColorArgs, and the list of pointers.
-    ColorArgs_free_list(carg_list);
+    ColorArgs_list_free(carg_list);
     return EXIT_SUCCESS;
 }
 
