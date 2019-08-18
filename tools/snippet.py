@@ -24,6 +24,7 @@ import tempfile
 try:
     from colr import (
         Colr as C,
+        Preset as ColrPreset,
         auto_disable as colr_auto_disable,
         docopt,
     )
@@ -168,6 +169,13 @@ USAGESTR = f"""{VERSIONSTR}
     Predefined Macros:
 {USAGE_MACROS}
 """  # noqa (ignore long lines)
+
+CErr = ColrPreset(fore='red')
+CFile = ColrPreset(fore='blue', style='bright')
+CName = ColrPreset(fore='blue')
+CInfo = ColrPreset(fore='cyan')
+CNum = ColrPreset(fore='blue', style='bright')
+CNumInfo = ColrPreset(fore='cyan', style='bright')
 
 
 def main(argd):
@@ -445,12 +453,38 @@ def format_leader(code):
         name = firsttrim.replace('Example code for ', '')
         desc = firsttrim.replace(name, '').strip()
         fmted = C(' ').join(
-            C(desc, 'blue'),
+            CName(desc),
             C(name, 'blue', style='bright'),
         )
     else:
-        fmted = C(firsttrim, 'blue')
+        fmted = CName(firsttrim)
     return fmted
+
+
+def get_example_snippets(pat=None):
+    snippetinfo = {'all': {'total': 0, 'skipped': 0}}
+    for filepath, snippets in find_src_examples().items():
+        filetotal = 0
+        fileskipped = 0
+        usesnippets = []
+        for snippet in snippets:
+            filetotal += 1
+            if (pat is not None) and (pat.search(snippet.name) is None):
+                debug(f'Skipping snippet for pattern: {snippet.name}')
+                fileskipped += 1
+                continue
+            usesnippets.append(snippet)
+        if not usesnippets:
+            debug(f'All snippets skipped for: {CFile(filepath)}')
+            continue
+        snippetinfo[filepath] = {
+            'total': filetotal,
+            'skipped': fileskipped,
+            'snippets': usesnippets,
+        }
+        snippetinfo['all']['total'] += filetotal
+        snippetinfo['all']['skipped'] += fileskipped
+    return snippetinfo
 
 
 def get_gcc_cmd(
@@ -555,26 +589,23 @@ def list_examples(name_pat=None, names_only=False):
                 printed_file = True
                 print(C(f'\n{filepath}', 'cyan', style='underline')(':'))
             if names_only:
-                print(C(f'    {snippet.name}', 'blue'))
+                print(CName(f'    {snippet.name}'))
             else:
                 print(C(snippet))
 
     if (name_pat is not None) and (skipped == length):
         print(C(': ').join(
-            C('No snippets matching', 'red'),
-            C(name_pat.pattern, 'blue')
+            CErr('No snippets matching'),
+            CName(name_pat.pattern)
         ))
         return 1
-    lenfmt = C(length, 'yellow', style='bright')
     found = length - skipped
-    foundfmt = C(found, 'blue', style='bright')
     plural = 'snippet' if found == 1 else 'snippets'
-    msg = f'Found {foundfmt} {plural}.'
+    msg = f'Found {CNum(found)} {plural}.'
     if found != length:
-        msg = f'{msg} Total: {lenfmt}'
+        msg = f'{msg} Total: {CNumInfo(length)}'
     if skipped:
-        skipfmt = C(skipped, 'blue', style='bright')
-        msg = f'{msg}, Skipped: {skipfmt}'
+        msg = f'{msg}, Skipped: {CNum(skipped)}'
     print(f'\n{msg}')
     return 0 if length else 1
 
@@ -591,8 +622,8 @@ def no_output_str(filepath, src_file=None):
         srcpath = f'{filepath}.c'
     msg = C('\n').join(
         C(': ').join(
-            C('   Source', 'cyan'),
-            C(f'{srcpath}', 'blue'),
+            CInfo('   Source'),
+            CName(f'{srcpath}'),
         ),
         C(' ').join(
             C('no output from', 'dimgrey'),
@@ -690,29 +721,29 @@ def run_compiled_exe(
     if show_name:
         namefmt = C(filepath, 'blue', style='bright')
         if exe:
-            namefmt = C(' ').join(C(exe, 'blue'), namefmt)
+            namefmt = C(' ').join(CName(exe), namefmt)
         elif memcheck:
             fmtpcs = [
                 C('valgrind', 'magenta'),
                 C('=').join(
-                    C('--tool', 'blue'),
+                    CName('--tool'),
                     C('memcheck', 'lightblue', style='bright')
                 ),
                 C('=').join(
-                    C('--show-leak-kinds', 'blue'),
+                    C('--show-leakName-kinds'),
                     C('all', 'lightblue', style='bright')
                 ),
                 C('=').join(
-                    C('--track-origins', 'blue'),
+                    C('--trackName-origins'),
                     C('yes', 'lightblue', style='bright')
                 ),
                 C('=').join(
-                    C('--error-exitcode', 'blue'),
+                    C('--errorName-exitcode'),
                     C('1', 'lightblue', style='bright')
                 ),
             ]
             if quiet:
-                fmtpcs.append(C('--quiet', 'blue'))
+                fmtpcs.append(C('-Name-quiet'))
             fmtpcs.append(namefmt)
             namefmt = C(' ').join(fmtpcs)
         status(C(': ').join(
@@ -771,39 +802,32 @@ def run_examples(
     success = 0
     skipped = 0
     total = 0
-    for filepath, snippets in find_src_examples().items():
-        usesnippets = []
-        for snippet in snippets:
-            total += 1
-            if (pat is not None) and (pat.search(snippet.name) is None):
-                debug(f'Skipping snippet for pattern: {snippet.name}')
-                skipped += 1
-                continue
-            usesnippets.append(snippet)
-        filefmt = C(filepath, 'blue', style='bright')
-        if not usesnippets:
-            debug(f'All snippets skipped for: {filefmt}')
+    for filepath, snippetinfo in get_example_snippets(pat=pat).items():
+        if filepath == 'all':
+            total = snippetinfo['total']
+            skipped = snippetinfo['skipped']
             continue
-        allsnipscnt = len(snippets)
-        snipscnt = len(usesnippets)
-        if snipscnt != allsnipscnt:
+
+        if snippetinfo['skipped']:
+            # Some were skipped.
             count = C('/').join(
-                C(snipscnt, 'cyan', style='bright'),
-                C(allsnipscnt, 'blue', style='bright')
+                CNumInfo(snippetinfo['skipped']),
+                CNum(snippetinfo['total'])
             )
         else:
-            count = C(allsnipscnt, 'blue', style='bright')
+            count = CNum(snippetinfo['total'])
         plural = 'snippet' if count == 1 else 'snippets'
-        status(f'\nCompiling {count} {plural} for: {filefmt}')
+        status(f'\nCompiling {count} {plural} for: {CFile(filepath)}')
         errs += run_snippets(
-            usesnippets,
+            snippetinfo['snippets'],
             exe=exe,
             show_name=show_name,
             compiler_args=compiler_args,
             memcheck=memcheck,
             quiet=quiet,
         )
-        success += (snipscnt - errs)
+        snipscnt = snippetinfo['total'] - snippetinfo['skipped']
+        success += snipscnt - errs
 
     status(C(' ').join(
         C(': ').join(
@@ -906,6 +930,17 @@ def try_repat(s):
     return p
 
 
+def view_examples(pat=None, show_name=False, quiet=False):
+    errs = 0
+    for filepath, snippetinfo in get_example_snippets(pat=pat):
+        errs += view_snippets(
+            snippetinfo['snippets'],
+            show_name=show_name,
+            quiet=quiet
+        )
+    return errs
+
+
 def view_snippet(filepath=None, text=None, show_name=False, quiet=False):
     if not (filepath or text):
         raise ViewError('no snippet info to view.')
@@ -917,7 +952,11 @@ def view_snippet(filepath=None, text=None, show_name=False, quiet=False):
             raise ViewError(f'snippet is gone: {filepath}')
         except EnvironmentError as ex:
             raise ViewError(f'can\'t read snippet file: {filepath}\n{ex}')
-    snippet = Snippet(text, name=filepath if filepath else 'last-snippet')
+    if isinstance(text, Snippet):
+        # Snippet was passed in.
+        snippet = text
+    else:
+        snippet = Snippet(text, name=filepath if filepath else 'last-snippet')
     snippet.indent = 0
     snippet.quiet_mode = quiet
     if quiet:
@@ -930,12 +969,19 @@ def view_snippet(filepath=None, text=None, show_name=False, quiet=False):
             C(
                 config.get(
                     'last_binary',
-                    C('none', 'red').join('<', '>')
+                    CErr('none').join('<', '>')
                 ),
                 'blue'
             )
         ))
     return 0
+
+
+def view_snippets(snippets, show_name=False, quiet=False):
+    return sum(
+        view_snippet(text=s, show_name=show_name, quiet=quiet)
+        for s in snippets
+    )
 
 
 class CompileError(ValueError):
@@ -987,7 +1033,7 @@ class Snippet(object):
         if self.name.startswith('//'):
             self.name = str(format_leader(self.name))
         else:
-            self.name = str(C(self.name, 'blue'))
+            self.name = str(CName(self.name))
         # Set when code is written to a temp file:
         self.src_file = None
 

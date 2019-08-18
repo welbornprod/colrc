@@ -108,15 +108,23 @@ typedef struct ColrToolOptions_s {
     double rainbow_freq;
     size_t rainbow_offset;
     // Non-colorizing options.
+    bool auto_disable;
+    bool list_codes;
+    bool list_unique_codes;
     bool strip_codes;
 } ColrToolOptions;
 
-void ColrToolOptions_free_text(ColrToolOptions opts);
+typedef int (*colr_tool_cmd)(ColrToolOptions* opts);
+
+void ColrToolOptions_free_args(ColrToolOptions* opts);
+void ColrToolOptions_free_text(ColrToolOptions* opts);
 ColrToolOptions ColrToolOptions_new(void);
 char* ColrToolOptions_repr(ColrToolOptions opts);
+bool ColrToolOptions_set_text(ColrToolOptions* opts);
 
 bool dir_exists(const char* dirpath);
 bool file_exists(const char* filepath);
+int list_codes(ColrToolOptions* opts);
 int parse_args(int argc, char** argv, ColrToolOptions* opts);
 bool parse_double_arg(const char* s, double* value);
 bool parse_int_arg(const char* s, int* value);
@@ -125,6 +133,7 @@ int print_256(bool do_back);
 int print_basic(bool do_back);
 void print_name(size_t index, bool do_rgb);
 int print_names(bool do_rgb);
+int print_plain(ColrToolOptions* opts);
 int print_rainbow(bool do_back);
 int print_rgb(bool do_back, bool term_rgb);
 void print_unrecognized_arg(const char* userarg);
@@ -135,6 +144,7 @@ ColorText* rainbowize(ColrToolOptions* opts);
 char* read_file(FILE* fp);
 char* read_file_arg(const char* filepath);
 char* read_stdin_arg(void);
+int run_colr_cmd(colr_tool_cmd func, ColrToolOptions* opts);
 int strip_codes(ColrToolOptions* opts);
 bool validate_color_arg(ColorArg carg, const char* name);
 #endif // COLR_TOOL_H
