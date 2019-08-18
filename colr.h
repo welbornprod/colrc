@@ -464,8 +464,6 @@
         RGB: ColorValue_from_value(TYPE_RGB, &x) \
     )
 
-#define ColorText(...) ColorText_from_values(__VA_ARGS__, _ColrLastArg)
-
 /*! Call the current ColorValue_has_\<type\> function for the given value.
 
     \details

@@ -1613,7 +1613,7 @@ bool colr_str_list_contains(char** lst, const char* s) {
         char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
         if (!s) return 1;
         // Call something that creates a list of strings on the heap.
-        char** code_list = colr_str_get_codes(s);
+        char** code_list = colr_str_get_codes(s, false);
         free(s);
         if (!code_list) return 1;
         // ... do something with the list of strings.
