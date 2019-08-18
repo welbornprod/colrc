@@ -86,6 +86,7 @@ EXCLUDE                = test \
 EXCLUDE_PATTERNS       = *.py
 EXAMPLE_PATH           = examples
 EXAMPLE_PATTERNS       = *.c
+EXAMPLE_RECURSIVE      = YES
 IMAGE_PATH             =
 REFERENCED_BY_RELATION = YES
 # Html settings --------------------------------------------------------------

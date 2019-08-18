@@ -9,15 +9,6 @@ Some features from Colr.py will never be found in ColrC. Colr depends on
 method chaining to implement a lot of features. I'd like to at least be able
 to match the colr-tool features, which I think is possible.
 
-[ ] --listcodes, list escape codes found in text.
-        The `colr_str_get_codes` function was added for this, just need a
-        `ColorArg_from_code` function to do the reverse of `ColorArg_to_str`.
-        It will set the arg type, color type, and color value from the escape-code
-        string. This means BasicValue needs it's `*_from_str` function to operate
-        on single digit numbers, which may cause problems because right now all
-        numbers are considered ExtendedValues with the `*_from_str` functions.
-        Maybe do a `BasicValue_from_code`, `ExtendedValue_from_code`, etc. and
-        just use those.
 [ ] --translate, show terminal, hex, and rgb values for any color given.
         Most of the translation functions are done, as far as converting from
         one color value to another. I need the front-end, displaying the

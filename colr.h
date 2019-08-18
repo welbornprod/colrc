@@ -754,9 +754,11 @@
 */
 #define colr_max(a, b) (a > b ? a : b)
 
-/*! Create a string from a colr() call, print it (without a newline), and free it.
+/*! \def colr_print
+    Create a string from a colr() call, print it (without a newline), and free it.
 
     \p ... Arguments for colr().
+
 */
 #define colr_print(...) \
     do { \
@@ -766,9 +768,12 @@
         free(_c_p_s); \
     } while (0)
 
-/*! Create a string from a colr() call, print it (with a newline), and free it.
+/*! \def colr_puts
+    Create a string from a colr() call, print it (with a newline), and free it.
 
     \p ... Arguments for colr().
+
+    \example simple_example.c
 */
 #define colr_puts(...) \
     do { \
