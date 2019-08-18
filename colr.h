@@ -464,6 +464,8 @@
         RGB: ColorValue_from_value(TYPE_RGB, &x) \
     )
 
+#define ColorText(...) ColorText_from_values(__VA_ARGS__, _ColrLastArg)
+
 /*! Call the current ColorValue_has_\<type\> function for the given value.
 
     \details
@@ -753,6 +755,30 @@
     \return `a` if `a > b`, otherwise `b`.
 */
 #define colr_max(a, b) (a > b ? a : b)
+
+/*! Create a string from a colr() call, print it (without a newline), and free it.
+
+    \p ... Arguments for colr().
+*/
+#define colr_print(...) \
+    do { \
+        char* _c_p_s = colr(__VA_ARGS__); \
+        if (!_c_p_s) break; \
+        printf("%s", _c_p_s); \
+        free(_c_p_s); \
+    } while (0)
+
+/*! Create a string from a colr() call, print it (with a newline), and free it.
+
+    \p ... Arguments for colr().
+*/
+#define colr_puts(...) \
+    do { \
+        char* _c_p_s = colr(__VA_ARGS__); \
+        if (!_c_p_s) break; \
+        puts(_c_p_s); \
+        free(_c_p_s); \
+    } while (0)
 
 /*! \def colr_replace
     Replace a substring in \p s with another string, ColorArg string, or
@@ -1652,6 +1678,7 @@ size_t _colr_ptr_length(void* p);
 */
 char* _colr(void* p, ...);
 size_t _colr_size(void* p, va_list args);
+
 /*! \internal
     The multi-type variadiac function behind the colr_join() macro.
     \endinternal
@@ -1667,7 +1694,6 @@ size_t _colr_join_array_length(void* ps);
 size_t _colr_join_arrayn_size(void* joinerp, void* ps, size_t count);
 char* colr_join_array(void* joinerp, void* ps);
 char* colr_join_arrayn(void* joinerp, void* ps, size_t count);
-
 /*! \internal
     ArgType functions that only deal with argument types (fore, back, style).
     \endinternal
