@@ -83,7 +83,23 @@ function print_build {
     [[ -n "$buildstr" ]] || buildstr="$(current_build "$exepath")"
     { [[ -n "$exepath" ]] && [[ -n "$buildstr" ]]; } || fail "No exepath/buildstr given to print_build()!"
     local exename="${exepath##*/}"
-    printf "%s%s%s: %s%s%s" "$BLUE" "$exename" "$NC" "$yellow" "$buildstr" "$NC"
+    ((no_colr)) && {
+        # Plain:
+        if ((do_binary)); then
+            printf "%s: %s" "$exename" "$buildstr"
+        else
+            printf "%s" "$buildstr"
+        fi
+        [[ -n "$msg" ]] && printf " - %b" "$msg"
+        printf "\n"
+        return 0
+    }
+    # Colorized:
+    if ((do_binary)); then
+        printf "%s%s%s: %s%s%s" "$BLUE" "$exename" "$NC" "$yellow" "$buildstr" "$NC"
+    else
+        printf "%s%s%s" "$yellow" "$buildstr" "$NC"
+    fi
     [[ -n "$msg" ]] && {
         printf " - %s%b%s" "$RED" "$msg" "$NC"
     }
@@ -102,7 +118,7 @@ function print_usage {
 
     Usage:
         $appscript [-h | -v]
-        $appscript [-o] [-s] FILE [BUILD...]
+        $appscript [-b] [-n] [-o] [-s] FILE [BUILD...]
 
     Options:
         BUILD         : One or more build names to check against the executable.
@@ -110,7 +126,9 @@ function print_usage {
         FILE          : Executable to check.
                         If no args are given, the first executable in the
                         CWD is used.
+        -b,--build    : Only show the build string, not the binary name.
         -h,--help     : Show this message.
+        -n,--nocolor  : Don't use colors.
         -o,--or       : Match against any of the build names.
         -s,--status   : Print status messages when checking, otherwise this
                         script is silent.
@@ -125,13 +143,22 @@ function print_usage {
 
 declare -a nonflags
 do_or=0
+do_binary=1
 do_status=0
+no_colr=0
+[[ -t 1 ]] || no_colr=1
 
 for arg; do
     case "$arg" in
+        "-b" | "--build")
+            do_binary=0
+            ;;
         "-h" | "--help")
             print_usage ""
             exit 0
+            ;;
+        "-n" | "--nocolor")
+            no_colr=1
             ;;
         "-o" | "--or")
             do_or=1

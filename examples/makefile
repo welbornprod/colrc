@@ -59,6 +59,10 @@ clang: all
 clean:
 	-@../tools/clean.sh - $(binaries) $(example_objects) colr.o
 
+.PHONY: cleanquiet
+cleanquiet:
+	-@../tools/clean.sh --quiet - $(binaries) $(example_objects) colr.o
+
 .PHONY: run
 run: all
 run:

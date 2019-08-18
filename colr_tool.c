@@ -17,8 +17,10 @@ int main(int argc, char* argv[]) {
     int parse_ret = parse_args(argc, argv, &opts);
     // print_opts_repr(opts);
     // Any non-negative return means we should stop right here.
-    if (parse_ret >= 0) return parse_ret;
-
+    if (parse_ret >= 0) {
+        ColrToolOptions_cleanup(&opts);
+        return parse_ret;
+    }
     // Non-colorizing/formatting options.
     if (opts.list_codes) {
         return run_colr_cmd(list_codes, &opts);
@@ -72,14 +74,35 @@ int main(int argc, char* argv[]) {
     return EXIT_SUCCESS;
 }
 
+/*! Free the ColorArgs and text used by colr-tool, if needed, and set them
+    to `NULL`.
+
+    \details
+    This is used for clean-up before an early return (failures).
+    \po opts ColrToolOptions to get the ColorArgs/text/options from.
+*/
+void ColrToolOptions_cleanup(ColrToolOptions* opts) {
+    ColrToolOptions_free_args(opts);
+    ColrToolOptions_free_text(opts);
+}
+
 /*! Free the ColorArgs used by colr-tool, if needed, and set them to `NULL`.
 
     \po opts ColrToolOptions to get the ColorArgs/options from.
 */
 void ColrToolOptions_free_args(ColrToolOptions* opts) {
-    if (opts->fore) free(opts->fore);
-    if (opts->back) free(opts->back);
-    if (opts->style) free(opts->style);
+    if (opts->fore) {
+        free(opts->fore);
+        opts->fore = NULL;
+    }
+    if (opts->back) {
+        free(opts->back);
+        opts->back = NULL;
+    }
+    if (opts->style) {
+        free(opts->style);
+        opts->style = NULL;
+    }
 }
 
 /*! Free the text used by colr-tool, if needed, and set it to `NULL`.
@@ -1038,6 +1061,7 @@ int strip_codes(ColrToolOptions* opts) {
         return EXIT_FAILURE;
     } else if (stripped[0] == '\0') {
         // Empty string was given.
+        free(stripped);
         printf("\n");
         return EXIT_SUCCESS;
     }
@@ -1048,6 +1072,7 @@ int strip_codes(ColrToolOptions* opts) {
         // Add a newline, for prettier output.
         printf("%s\n", stripped);
     }
+    free(stripped);
     return EXIT_SUCCESS;
 }
 

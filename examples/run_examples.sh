@@ -15,6 +15,14 @@ function echo_err {
     echo -e "$@" 1>&2
 }
 
+function echo_status {
+    ((do_quiet)) && return 0
+    # shellcheck disable=SC2059
+    # ...I know shellcheck, it's forbidden to pass variables to printf's
+    #    format string. But here I am, doing it to create a wrapper.
+    printf "$@"
+}
+
 function fail {
     # Print a message to stderr and exit with an error status code.
     echo_err "$@"
@@ -70,7 +78,7 @@ function print_usage {
     Usage:
         $appscript -h | -v
         $appscript [-a | -s] [-m] [-q] [PATTERN...]
-        $appscript [-a | -s] [-r exe] [PATTERN...] [-- ARGS...]
+        $appscript [-a | -s] [-q] [-r exe] [PATTERN...] [-- ARGS...]
 
     Options:
         ARGS              : Arguments for the executable mentioned with --run.
@@ -78,7 +86,8 @@ function print_usage {
         -a,--all          : Run all examples, including the source code examples.
         -h,--help         : Show this message.
         -m,--memcheck     : Run through \`valgrind --tool=memcheck\`.
-        -q,--quiet        : Run valgrind in quiet mode.
+        -q,--quiet        : Run in quiet mode. Valgrind will also run in quiet
+                            mode if --memcheck is used.
         -r exe,--run exe  : Use example binary as an argument for another executable,
                             like \`gdb\` or \`kdbg\`.
         -s,--source       : Use examples found in the source code.
@@ -97,10 +106,10 @@ function run_exe {
     [[ -n "$exename" ]] || fail "No executable given to \`run_exe\`!"
     [[ -x "$exename" ]] || fail "Not an executable: $exename"
     if ((${#wrapper_cmd[@]})); then
-        printf "\nRunning %s %s...\n" "${wrapper_cmd[*]}" "$exename"
+        echo_status "\nRunning %s %s...\n" "${wrapper_cmd[*]}" "$exename"
         "${wrapper_cmd[@]}" "$exename"
     else
-        printf "\nRunning %s...\n" "$exename"
+        echo_status "\nRunning %s...\n" "$exename"
         "$exename"
     fi
 }
@@ -221,7 +230,11 @@ for binaryname in "${binaries[@]}"; do
         run_it=1
     fi
     ((run_it)) && {
-        run_exe "$binaryname"  "$wrapper" "${exe_args[@]}" || let errs+=1
+        if ((do_quiet)); then
+            run_exe "$binaryname"  "$wrapper" "${exe_args[@]}" 1>/dev/null || let errs+=1
+        else
+            run_exe "$binaryname"  "$wrapper" "${exe_args[@]}" || let errs+=1
+        fi
         let count+=1
     }
 done
@@ -233,12 +246,12 @@ done
 if ((count)); then
     plural="examples"
     ((count == 1)) && plural="example"
-    printf "\nRan %s %s" "$count" "$plural"
+    echo_status "\nRan %s %s" "$count" "$plural"
     if ((${#patterns[@]})); then
-        printf " matching: %s\n" "${matched_patterns[*]}"
-        ((${#unmatched_patterns[@]})) && printf "No matches for: %s\n" "${unmatched_patterns[*]}"
+        echo_status " matching: %s\n" "${matched_patterns[*]}"
+        ((${#unmatched_patterns[@]})) && echo_status "No matches for: %s\n" "${unmatched_patterns[*]}"
     else
-        printf "\n"
+        echo_status "\n"
     fi
 else
     if ((${#patterns[@]})); then

@@ -116,6 +116,7 @@ typedef struct ColrToolOptions_s {
 
 typedef int (*colr_tool_cmd)(ColrToolOptions* opts);
 
+void ColrToolOptions_cleanup(ColrToolOptions* opts);
 void ColrToolOptions_free_args(ColrToolOptions* opts);
 void ColrToolOptions_free_text(ColrToolOptions* opts);
 ColrToolOptions ColrToolOptions_new(void);
