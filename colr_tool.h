@@ -142,10 +142,11 @@ typedef struct ColrOpts_s {
     size_t rainbow_offset;
     // Non-colorizing options.
     bool auto_disable;
+    bool is_disabled;
+    FILE* out_stream;
     bool list_codes;
     bool list_unique_codes;
     bool strip_codes;
-    FILE* out_stream;
 } ColrOpts;
 
 typedef int (*colr_tool_cmd)(ColrOpts* opts);
@@ -155,6 +156,7 @@ void ColrOpts_free_args(ColrOpts* opts);
 void ColrOpts_free_text(ColrOpts* opts);
 ColrOpts ColrOpts_new(void);
 char* ColrOpts_repr(ColrOpts opts);
+bool ColrOpts_set_disabled(ColrOpts* opts);
 bool ColrOpts_set_text(ColrOpts* opts);
 
 bool dir_exists(const char* dirpath);

@@ -14,7 +14,6 @@ to match the colr-tool features, which I think is possible.
         one color value to another. I need the front-end, displaying the
         transformations. Not sure what to do about BasicValues yet.
 [ ] --spread, for rainbow spread (same rgb code for several chars).
-[ ] --err, print to stderr instead of stdout. An easy one.
 [ ] --auto-disable, check for `isatty(fileno(stdout))`, and disable colors.
         The disabling part is weird, because I'm trying to stay away from global
         variables in ColrC. However, colr-tool can use a global variable, and may

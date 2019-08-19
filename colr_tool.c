@@ -26,10 +26,10 @@ int main(int argc, char* argv[]) {
         return run_colr_cmd(list_codes, &opts);
     } else if (opts.strip_codes) {
         return run_colr_cmd(strip_codes, &opts);
-    } else if (opts.auto_disable && !isatty(fileno(opts.out_stream))) {
+    } else if (opts.is_disabled) {
+        // No need to colorize anything, colors were disabled. We are `cat` now.
         return run_colr_cmd(print_plain, &opts);
     }
-    // TODO: if (opts.use_stderr) out_stream = stderr;
 
     ColorText* ctext = NULL;
     // Rainbowize the text arg.
@@ -140,6 +140,7 @@ ColrOpts ColrOpts_new(void) {
         .rainbow_freq=0.1,
         .rainbow_offset=3,
         .auto_disable=false,
+        .is_disabled=false,
         .list_codes=false,
         .list_unique_codes=false,
         .strip_codes=false,
@@ -182,6 +183,7 @@ char* ColrOpts_repr(ColrOpts opts) {
     .rainbow_freq=%lf,\n\
     .rainbow_offset=%lu,\n\
     .auto_disable=%s,\n\
+    .is_disabled=%s,\n\
     .list_codes=%s,\n\
     .list_unique_codes=%s,\n\
     .strip_codes=%s,\n\
@@ -201,6 +203,7 @@ char* ColrOpts_repr(ColrOpts opts) {
         opts.rainbow_freq,
         opts.rainbow_offset,
         bool_str(opts.auto_disable),
+        bool_str(opts.is_disabled),
         bool_str(opts.list_codes),
         bool_str(opts.list_unique_codes),
         bool_str(opts.strip_codes),
@@ -213,6 +216,19 @@ char* ColrOpts_repr(ColrOpts opts) {
     free(file_repr);
     free(just_repr);
     return repr;
+}
+
+/*! Set `.is_disabled` if `.auto_disable` is set and `.out_stream` is not a tty.
+
+    \pi opts ColrOpts to get the settings\FILE from.
+    \return  The value of `opts.is_disabled` after setting it.
+*/
+bool ColrOpts_set_disabled(ColrOpts* opts) {
+    opts->is_disabled = (
+        opts->auto_disable &&
+        !isatty(fileno(opts->out_stream))
+    );
+    return opts->is_disabled;
 }
 
 /*! Get or set the text to work with, based on options.
@@ -303,7 +319,10 @@ int list_codes(ColrOpts* opts) {
     }
     // Iterate over the ColorArg list.
     for (size_t i = 0; carg_list[i]; i++) {
-        char* carg_example = ColorArg_example(*(carg_list[i]));
+        char* carg_example = ColorArg_example(
+            *(carg_list[i]),
+            !opts->is_disabled
+        );
         if (!carg_example) continue;
         fprintf(opts->out_stream, "%s\n", carg_example);
         free(carg_example);
@@ -375,7 +394,7 @@ int parse_args(int argc, char** argv, ColrOpts* opts) {
         c = getopt_long(
             argc,
             argv,
-            ":ehuvxzb:c:F:f:l:o:q:r:s:",
+            ":aehuvxzb:c:F:f:l:o:q:r:s:",
             long_options,
             &option_index
         );
@@ -594,6 +613,7 @@ int parse_args(int argc, char** argv, ColrOpts* opts) {
         printferr("\nNo text to work with!\n");
         return EXIT_FAILURE;
     }
+    ColrOpts_set_disabled(opts);
     return -1;
 }
 
@@ -647,6 +667,7 @@ bool parse_size_arg(const char* s, size_t* value) {
     The function choice is passed as an argument.
 */
 int print_256(ColrOpts* opts, bool do_back) {
+    ColrOpts_set_disabled(opts);
     char num[4];
     ColorArg* carg;
     char* text;
@@ -688,6 +709,7 @@ int print_256(ColrOpts* opts, bool do_back) {
 /*! Print basic color names and escape codes.
 */
 int print_basic(ColrOpts* opts, bool do_back) {
+    ColrOpts_set_disabled(opts);
     for (size_t i = 0; i < basic_names_len; i++) {
         char* namefmt = NULL;
         char* text = NULL;
@@ -754,6 +776,7 @@ void print_name(ColrOpts* opts, size_t index, bool do_rgb) {
 /*! Demo of the known-name database.
 */
 int print_names(ColrOpts* opts, bool do_rgb) {
+    ColrOpts_set_disabled(opts);
     size_t third_length = colr_name_data_len / 3;
     size_t printed = 0;
     for (size_t i = 0; i < third_length; i++) {
@@ -781,6 +804,7 @@ int print_names(ColrOpts* opts, bool do_rgb) {
 /*! Demo the rainbow method.
 */
 int print_rainbow(ColrOpts* opts, bool do_back) {
+    ColrOpts_set_disabled(opts);
     char text[] = "This is a demo of the rainbow function.";
     char* rainbowtxt;
     if (do_back) {
@@ -803,6 +827,7 @@ int print_rainbow(ColrOpts* opts, bool do_back) {
     The function choice is passed as an argument.
 */
 int print_rgb(ColrOpts* opts, bool do_back, bool term_rgb) {
+    ColrOpts_set_disabled(opts);
     char* num;
     char* text;
     int count = 0;

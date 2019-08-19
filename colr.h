@@ -1711,7 +1711,7 @@ char* ArgType_to_str(ArgType type);
 */
 ColorArg ColorArg_empty(void);
 bool ColorArg_eq(ColorArg a, ColorArg b);
-char* ColorArg_example(ColorArg carg);
+char* ColorArg_example(ColorArg carg, bool colorized);
 void ColorArg_free(ColorArg* p);
 ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value);
 ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value);

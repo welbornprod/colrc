@@ -2930,10 +2930,12 @@ bool ColorArg_eq(ColorArg a, ColorArg b) {
 /*! Create a \string representation of a ColorArg with a stylized type/name
     using escape codes built from the ColorArg's values.
 
-    \pi carg A ColorArg to get an example string for.
-    \return  An allocated string with the result.\n
-             \mustfree
-             \maybenullalloc
+    \pi carg      A ColorArg to get an example string for.
+    \pi colorized Whether to include a colorized example.
+                  If set to `false`, there will be no escape-codes in the string.
+    \return       An allocated string with the result.\n
+                  \mustfree
+                  \maybenullalloc
 
     \sa ColorArg
 
@@ -2951,7 +2953,7 @@ bool ColorArg_eq(ColorArg a, ColorArg b) {
         };
         size_t arg_len = sizeof(args) / sizeof(args[0]);
         for (size_t i = 0; i < arg_len; i++) {
-            char* example = ColorArg_example(args[i]);
+            char* example = ColorArg_example(args[i], true);
             if (!example) return 1;
             printf("%s\n", example);
             free(example);
@@ -2959,7 +2961,7 @@ bool ColorArg_eq(ColorArg a, ColorArg b) {
     }
     \endexamplecode
 */
-char* ColorArg_example(ColorArg carg) {
+char* ColorArg_example(ColorArg carg, bool colorized) {
     char* argtype_name = ArgType_to_str(carg.type);
     if (!argtype_name) return NULL;
     char* val_example = ColorValue_example(carg.value);
@@ -2975,6 +2977,7 @@ char* ColorArg_example(ColorArg carg) {
         free(val_example);
         return NULL;
     }
+
     char* code_repr = NULL;
     if (ColorArg_is_valid(carg)) {
         code_repr = colr_str_repr(codes);
@@ -2985,19 +2988,30 @@ char* ColorArg_example(ColorArg carg) {
             return NULL;
         }
     }
-    char* example;
-    asprintf_or_return(
-        NULL,
-        &example,
-        "%7s:%s●" CODE_RESET_ALL " %-25s %s", // ⬔ ◨
-        argtype_name,
-        codes,
-        val_example,
-        (code_repr ? code_repr : "-")
-    );
+    char* example = NULL;
+    if (colorized) {
+        asprintf_or_return(
+            NULL,
+            &example,
+            "%7s:%s●" CODE_RESET_ALL " %s%s", // ⬔ ◨
+            argtype_name,
+            codes,
+            val_example,
+            (code_repr ? code_repr : "-")
+        );
+    } else {
+        asprintf_or_return(
+            NULL,
+            &example,
+            "%7s:  %s%s",
+            argtype_name,
+            val_example,
+            (code_repr ? code_repr : "-")
+        );
+    }
     free(argtype_name);
     free(val_example);
-    free(codes);
+    if (codes) free(codes);
     if (code_repr) free(code_repr);
     return example;
 }
@@ -3420,7 +3434,7 @@ void ColorArgs_list_free(ColorArg** ps) {
         }
         // Iterate over the ColorArg list.
         for (size_t i = 0; carg_list[i]; i++) {
-            char* carg_example = ColorArg_example(*(carg_list[i]));
+            char* carg_example = ColorArg_example(*(carg_list[i]), true);
             if (!carg_example) continue;
             printf("%s\n", carg_example);
             free(carg_example);
