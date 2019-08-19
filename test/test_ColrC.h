@@ -188,6 +188,20 @@
         } \
     } while (0)
 
+#define assert_fmt_op(a, op, b, fmt, msg) \
+    do { \
+        if (!(a op b)) { \
+            fail("%s: (" #a ") " fmt " " #op " (" #b ") " fmt, msg, a, b); \
+        }\
+    } while (0)
+
+#define assert_fmt_op_func(a, op, b, fmt, func, msg) \
+    do { \
+        if (!(a op b)) { \
+            fail("%s: " #func "(" #a ") " fmt " " #op " " #func "(" #b ") " fmt, msg, a, b); \
+        }\
+    } while (0)
+
 #define assert_from_esc_eq(s, val) \
     assert_colr_eq( \
         _Generic( \
@@ -246,8 +260,34 @@
         val \
     )
 
-#define assert_int_eq(a, b) assert_num_eq_fmt("%d", a, b)
-#define assert_int_neq(a, b) assert_num_neq_fmt("%d", a, b)
+#define assert_hash_eq(a, b) assert_fmt_op(a, ==, b, COLR_HASH_FMT, "Hashes are not equal")
+#define assert_hash_eq_func(a, b, func) assert_fmt_op_func(a, ==, b, COLR_HASH_FMT, func, "Hashes are not equal")
+#define assert_hash_str_eq(a, b) assert_hash_str_op(a, ==, b, "Hashes are not equal")
+#define assert_hash_str_neq(a, b) assert_hash_str_op(a, !=, b, "Hashes are equal")
+#define assert_hash_str_op_func(a, op, b, func, msg) \
+    do { \
+        colr_hash _a_h_s_e_a = func(a); \
+        colr_hash _a_h_s_e_b = func(b); \
+        if (!(_a_h_s_e_a op _a_h_s_e_b)) { \
+            char* _a_h_s_e_repr_a = colr_repr(a); \
+            char* _a_h_s_e_repr_b = colr_repr(b); \
+            fail( \
+                "%s: " #func "(%s) " #op " " #func "(%s)", \
+                msg, \
+                _a_h_s_e_repr_a, \
+                _a_h_s_e_repr_b \
+            ); \
+            free(_a_h_s_e_repr_a); \
+            free(_a_h_s_e_repr_b); \
+        } \
+    } while (0)
+#define assert_hash_str_op(a, op, b, msg) assert_hash_str_op_func(a, op, b, colr_str_hash, msg)
+
+#define assert_hash_neq(a, b) assert_fmt_op(a, !=, b, COLR_HASH_FMT, "Hashes are equal")
+#define assert_hash_neq_func(a, b, func) assert_fmt_op_func(a, !=, b, COLR_HASH_FMT, func, "Hashes are equal")
+
+#define assert_int_eq(a, b) assert_fmt_op(a, ==, b, "%d", "Integers are not equal")
+#define assert_int_neq(a, b) assert_fmt_op(a, ==, b, "%d", "Integers are equal")
 
 #define assert_is_invalid(colrobj) \
     do { \
@@ -275,6 +315,13 @@
 
 #define array_length(array) (sizeof(array) / sizeof(array[0]))
 
+/*! Make sure a value is `NULL`.
+    \details
+    This actually checks boolean logic.
+    It may be switched to `== NULL`.
+
+    \pi x The value to check.
+*/
 #define assert_null(x) \
     do { \
         if (x) { \
@@ -282,25 +329,18 @@
         } \
     } while (0)
 
+/*! Make sure a value is not `NULL`.
+    \details
+    This actually checks boolean logic.
+    It may be switched to `!= NULL`.
+
+    \pi x The value to check.
+*/
 #define assert_not_null(x) \
     do { \
         if (!x) { \
             fail("Not supposed to be NULL: " #x); \
         } \
-    } while (0)
-
-#define assert_num_eq_fmt(fmt, a, b) \
-    do { \
-        if (a != b) { \
-            fail("Numbers not equal: (" #a ") " fmt " != (" #b ") " fmt, a, b); \
-        }\
-    } while (0)
-
-#define assert_num_neq_fmt(fmt, a, b) \
-    do { \
-        if (a == b) { \
-            fail("Numbers are equal: (" #a ") " fmt " == (" #b ") " fmt, a, b); \
-        }\
     } while (0)
 
 #define assert_RGB_eq(a, b) \
@@ -354,6 +394,13 @@
     do { \
         if (!(a op b)) { \
             fail("%s: (" #a ") %zu " #op " (" #b ") %zu", msg, a, b); \
+        }\
+    } while (0)
+
+#define assert_size_op_func(a, op, b, func, msg) \
+    do { \
+        if (!(a op b)) { \
+            fail("%s: " #func "(" #a ") %zu " #op " " #func "(" #b ") %zu", msg, a, b); \
         }\
     } while (0)
 
@@ -465,6 +512,35 @@
         } \
     } while (0)
 
+#define assert_str_list_contains(lst, s) \
+    do { \
+        if (!colr_str_list_contains(lst, s)) { \
+            char* _a_s_l_c_repr = colr_repr(s); \
+            char* _a_s_l_l_repr = colr_str_list_repr(lst); \
+            fail( \
+                #lst " does not contain: %s\n    List: %s", \
+                _a_s_l_c_repr, \
+                _a_s_l_l_repr \
+            ); \
+            free(_a_s_l_c_repr); \
+            free(_a_s_l_l_repr); \
+        }\
+    } while (0)
+
+#define assert_str_list_not_contains(lst, s) \
+    do { \
+        if (colr_str_list_contains(lst, s)) { \
+            char* _a_s_l_c_repr = colr_repr(s); \
+            char* _a_s_l_l_repr = colr_str_list_repr(lst); \
+            fail( \
+                #lst " contains: %s\n    List: %s", \
+                _a_s_l_c_repr, \
+                _a_s_l_l_repr \
+            ); \
+            free(_a_s_l_c_repr); \
+            free(_a_s_l_l_repr); \
+        }\
+    } while (0)
 
 #define assert_str_not_empty(s) \
     do { \
@@ -474,6 +550,23 @@
         } \
     } while (0)
 
+#define assert_str_list_size_eq_repr(a, b, lst) \
+    assert_str_list_size_op_repr(a, ==, b, lst, "List sizes are not equal")
+
+#define assert_str_list_size_op_repr(a, op, b, lst, msg) \
+    do { \
+        if (!(a op b)) { \
+            char* _a_s_op_r_repr = colr_str_list_repr(lst); \
+            fail( \
+                "%s: (" #a ") %zu " #op " (" #b ") %zu\n      Repr: %s", \
+                msg, \
+                (size_t) a, \
+                (size_t) b, \
+                _a_s_op_r_repr \
+            ); \
+            free(_a_s_op_r_repr); \
+        }\
+    } while (0)
 
 #define in_range(x, xmin, xmax) ((bool)((x >= xmin) && (x <= xmax)))
 
@@ -517,6 +610,27 @@
 #define for_not_null(array_name, x) \
     for (volatile size_t x = 0; array_name[x]; x++)
 
+/*! Use stack strings to allocate and fill a list of string pointers.
+
+    \pi dsl_lstname The name of the variable to use (`char**`).
+    \pi ...         Strings to use.
+*/
+#define str_list_fill(dsl_lstname, ...) \
+    do { \
+        char* _d_s_l_stack[] = { __VA_ARGS__, NULL }; \
+        size_t _d_s_l_len = array_length(_d_s_l_stack); \
+        dsl_lstname = calloc(_d_s_l_len, sizeof(char*)); \
+        assert(dsl_lstname != NULL); \
+        for (size_t i = 0; _d_s_l_stack[i]; i++) { \
+            if (_d_s_l_stack[i][0] == '\0') { \
+                dsl_lstname[i] = colr_empty_str(); \
+            } else { \
+                dsl_lstname[i] = strdup(_d_s_l_stack[i]); \
+            } \
+        } \
+        dsl_lstname[_d_s_l_len - 1] = NULL; \
+    } while (0)
+
 /*! \def test_repr
     Calls the correct \<type\>_repr method using `_Generic`.
 
@@ -529,6 +643,7 @@
         (x), \
         char: colr_char_repr, \
         char*: colr_str_repr, \
+        char**: colr_str_list_repr, \
         int: int_repr, \
         unsigned int: uint_repr, \
         long: long_repr, \
@@ -547,7 +662,8 @@
 */
 #define test_str_repr(s) (s ? ((s[0] == '\0') ? "\"\"" : s) : "NULL")
 
-
+size_t colr_str_list_len(char** lst);
+char* colr_str_list_repr(char** lst);
 char* int_repr(int x);
 char* long_repr(long x);
 char* long_long_repr(long long x);

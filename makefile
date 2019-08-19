@@ -143,6 +143,7 @@ $(binary): $(objects)
 # Build all docs (html and pdf) if needed.
 docs: $(docs_main_file)
 docs: $(docs_pdf)
+docs: $(docs_github_readme)
 
 # Build the github-friendly README.
 $(docs_github_readme): $(docs_index_md)

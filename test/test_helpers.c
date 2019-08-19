@@ -397,6 +397,12 @@ subdesc(colr_str_code_cnt) {
         }
         asserteq(colr_str_code_cnt(NULL), 0);
         asserteq(colr_str_code_cnt(""), 0);
+        // Overflow the current_code buffer.
+        // 1 extra char.
+        asserteq(colr_str_code_cnt("\x1b[38;2;255;255;2550m"), 0);
+        // Many extra chars.
+        char* waytoolong = "\x1b[38;2;255;255;2550101010101010101010101010101m";
+        asserteq(colr_str_code_cnt(waytoolong), 0);
     }
 }
 // colr_str_code_len
@@ -437,6 +443,13 @@ subdesc(colr_str_code_len) {
                 tests[i].s
             );
         }
+        // Overflow the current_code buffer.
+        // 1 extra char.
+        asserteq(colr_str_code_len("\x1b[38;2;255;255;2550m"), 0);
+        // Many extra chars.
+        char* waytoolong = "\x1b[38;2;255;255;2550101010101010101010101010101m";
+        asserteq(colr_str_code_len(waytoolong), 0);
+
     }
 }
 // colr_str_copy
@@ -497,6 +510,82 @@ subdesc(colr_str_ends_with) {
 
     }
 }
+// colr_str_get_codes
+subdesc(colr_str_get_codes) {
+    it("builds escape-code lists") {
+        assert_null(colr_str_get_codes(NULL, false));
+        assert_null(colr_str_get_codes(NULL, true));
+        assert_null(colr_str_get_codes("", false));
+        assert_null(colr_str_get_codes("", true));
+        assert_null(colr_str_get_codes("No codes in here.", false));
+        assert_null(colr_str_get_codes("No codes in here.", true));
+        // Cause an overflow that will be skipped.
+        // These don't even touch the busy path. colr_str_code_cnt() causes
+        // an early return because it doesn't accept overflow either.
+        assert_null(colr_str_get_codes("\x1b[38;2;255;255;2550m", false));
+        assert_null(colr_str_get_codes("\x1b[38;2;255;255;2550m", true));
+        // Need at least one good code to trigger the overflow handler.
+        char* waytoolong = "\x1b[0m\x1b[38;2;255;255;2550101010101010101010101010101m";
+        char** code_list = colr_str_get_codes(waytoolong, false);
+        assert_not_null(code_list);
+        assert_str_list_size_eq_repr(
+            colr_str_list_len(code_list),
+            (size_t)1,
+            code_list
+        );
+        colr_str_list_free(code_list);
+
+        char** code_list_unique = colr_str_get_codes(waytoolong, true);
+        assert_not_null(code_list_unique);
+        assert_str_list_size_eq_repr(
+            colr_str_list_len(code_list_unique),
+            (size_t)1,
+            code_list_unique
+        );
+        colr_str_list_free(code_list_unique);
+
+        char* s = colr(
+            fore(RED),
+            back(WHITE),
+            style(BRIGHT),
+            fore(ext(255)),
+            fore(RED),
+            back(WHITE),
+            style(BRIGHT),
+            fore(ext(255))
+        );
+        code_list = colr_str_get_codes(s, false);
+        code_list_unique = colr_str_get_codes(s, true);;
+        free(s);
+        assert_not_null(code_list);
+        // A reset code is appended when calling colr() with ColorArgs.
+        // So it's +1 for whatever items you see.
+        assert_str_list_size_eq_repr(
+            colr_str_list_len(code_list),
+            (size_t)9,
+            code_list
+        );
+        assert_str_list_contains(code_list, "\x1b[31m");
+        assert_str_list_contains(code_list, "\x1b[47m");
+        assert_str_list_contains(code_list, "\x1b[1m");
+        assert_str_list_contains(code_list, "\x1b[38;5;255m");
+        colr_str_list_free(code_list);
+
+        assert_not_null(code_list_unique);
+        // A reset code is appended when calling colr() with ColorArgs.
+        // So it's +1 for whatever *unique* items you see.
+       assert_str_list_size_eq_repr(
+            colr_str_list_len(code_list_unique),
+            (size_t)5,
+            code_list_unique
+        );
+        assert_str_list_contains(code_list_unique, "\x1b[31m");
+        assert_str_list_contains(code_list_unique, "\x1b[47m");
+        assert_str_list_contains(code_list_unique, "\x1b[1m");
+        assert_str_list_contains(code_list_unique, "\x1b[38;5;255m");
+        colr_str_list_free(code_list_unique);
+    }
+}
 // colr_str_has_codes
 subdesc(colr_str_has_codes) {
     it("should detect escape codes") {
@@ -524,6 +613,49 @@ subdesc(colr_str_has_codes) {
             char* s = colr("This prefix.", args[i], "This suffix.");
             assert(colr_str_has_codes(s));
             free(s);
+        }
+    }
+}
+// colr_str_hash
+subdesc(colr_str_hash) {
+    it("computes simple string hashes") {
+        colr_hash zero = 0;
+        colr_hash empty = 5381;
+        assert_hash_eq(colr_str_hash(NULL), zero);
+        assert_hash_eq(colr_str_hash(""), empty);
+        assert(colr_str_hash("test"));
+    }
+    it("does not collide for basic color names") {
+        for_len(basic_names_len, i) {
+            char* namea = basic_names[i].name;
+            for_len(basic_names_len, j) {
+                char* nameb = basic_names[j].name;
+                if (colr_str_eq(namea, nameb)) continue;
+                // Names are different, they should not be equal.
+                assert_hash_str_neq(namea, nameb);
+            }
+        }
+    }
+    it("does not collide for style names") {
+        for_len(style_names_len, i) {
+            char* namea = style_names[i].name;
+            for_len(style_names_len, j) {
+                char* nameb = style_names[j].name;
+                if (colr_str_eq(namea, nameb)) continue;
+                // Names are different, they should not be equal.
+                assert_hash_str_neq(namea, nameb);
+            }
+        }
+    }
+    it("does not collide for known color names") {
+        for_len(colr_name_data_len, i) {
+            char* namea = colr_name_data[i].name;
+            for_len(colr_name_data_len, j) {
+                char* nameb = colr_name_data[j].name;
+                if (colr_str_eq(namea, nameb)) continue;
+                // Names are different, they should not be equal.
+                assert_hash_str_neq(namea, nameb);
+            }
         }
     }
 }
@@ -597,6 +729,55 @@ subdesc(colr_str_is_digits) {
         for_each(tests, i) {
             asserteq(colr_str_is_digits(tests[i].s), tests[i].expected);
         }
+    }
+}
+// colr_str_list_contains
+subdesc(colr_str_list_contains) {
+    it("detects str list elements") {
+        char** lst = NULL;
+        str_list_fill(
+            lst,
+            "test",
+            "this",
+            "out"
+        );
+        asserteq(colr_str_list_contains(lst, NULL), false);
+        asserteq(colr_str_list_contains(lst, ""), false);
+        assert(colr_str_list_contains(lst, "test"));
+        assert(colr_str_list_contains(lst, "this"));
+        assert(colr_str_list_contains(lst, "out"));
+        colr_str_list_free(lst);
+
+        str_list_fill(
+            lst,
+            ""
+        );
+        assert(colr_str_list_contains(lst, ""));
+        colr_str_list_free(lst);
+
+        str_list_fill(
+            lst,
+            "test",
+            "",
+            "this"
+        );
+        assert(colr_str_list_contains(lst, "this"));
+        assert(colr_str_list_contains(lst, ""));
+        colr_str_list_free(lst);
+    }
+}
+// colr_str_list_free
+subdesc(colr_str_list_free) {
+    it("frees string lists") {
+        // The real test is when is sent through valgrind.
+        char** lst = NULL;
+        str_list_fill(
+            lst,
+            "test",
+            "this",
+            "out"
+        );
+        colr_str_list_free(lst);
     }
 }
 // colr_str_ljust

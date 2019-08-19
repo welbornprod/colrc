@@ -9,7 +9,7 @@ when it comes to the escape codes needed to colorize text. You are responsible
 for the text strings themselves (the words you want to colorize).
 
 ## Including
-You must include colr.h and link colr.c in with your
+You must include colr.h and compile colr.c along with your
 program.
 ```c
 #include "colr.h"

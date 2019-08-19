@@ -1161,7 +1161,7 @@ size_t colr_str_char_count(const char* s, const char c) {
 size_t colr_str_code_cnt(const char* s) {
     if (!s) return 0;
     if (s[0] == '\0') return 0;
-    // Length of code, minus the 'm'.
+    // Length of code, minus the 'm' and '\0'.
     size_t code_max = CODE_RGB_LEN - 2;
     size_t total = 0;
     size_t i = 0;
@@ -1172,20 +1172,18 @@ size_t colr_str_code_cnt(const char* s) {
         // Have code.
         size_t current_code = 0;
         // Grab the rest of the code chars.
-        while (s[i] && !colr_char_is_code_end(s[i++])) {
-            if (current_code < code_max) {
-                current_code++;
-            } else {
-                // Overflowed the code buffer because the code is probably
-                // malformed. Just ignore this one.
+        while (s[i] && !colr_char_is_code_end(s[i])) {
+            i++;
+            current_code++;
+            if (current_code > code_max) {
+                // Overflow. Ignore this crazy code.
                 current_code = 0;
+                break;
             }
-        };
-        if (current_code) {
+        }
+        if (current_code && (current_code <= code_max)) {
             // Have a complete code.
             total += 1;
-            // Reset current code.
-            current_code = 0;
         }
     }
     return total;
@@ -1213,7 +1211,7 @@ size_t colr_str_code_cnt(const char* s) {
 size_t colr_str_code_len(const char* s) {
     if (!s) return 0;
     if (s[0] == '\0') return 0;
-    // Length of code, minus the 'm'.
+    // Length of code, minus the 'm' and '\0'.
     size_t code_max = CODE_RGB_LEN - 2;
     size_t total = 0;
     size_t i = 0;
@@ -1224,20 +1222,18 @@ size_t colr_str_code_len(const char* s) {
         // Have code.
         size_t current_code = 0;
         // Grab the rest of the code chars.
-        while (s[i] && !colr_char_is_code_end(s[i++])) {
-            if (current_code < code_max) {
-                current_code++;
-            } else {
-                // Overflowed the code buffer because the code is probably
-                // malformed. Just ignore this one.
+        while (s[i] && !colr_char_is_code_end(s[i])) {
+            i++;
+            current_code++;
+            if (current_code > code_max) {
+                // Overflow. Ignore this crazy code.
                 current_code = 0;
+                break;
             }
-        };
-        if (current_code) {
+        }
+        if (current_code && (current_code <= code_max)) {
             // Have a complete code, don't forget the last 'm'.
             total += current_code + 1;
-            // Reset current code.
-            current_code = 0;
         }
     }
     return total;
@@ -1470,7 +1466,9 @@ bool colr_str_has_codes(const char* s) {
     [here](https://softwareengineering.stackexchange.com/a/145633).
 
     \pi s   The string to hash.
-    \return An `unsigned long` value with the hash.
+    \return A \colr_hash value with the hash.
+    \retval 0 if \p s is `NULL`.
+    \retval 5381 if \p s is an empty string.
 
     \examplecodefor{colr_str_hash,.c}
     char* strings[] = {
@@ -1484,14 +1482,16 @@ bool colr_str_has_codes(const char* s) {
     };
     size_t strings_len = sizeof(strings) / sizeof(strings[0]);
     for (size_t i = 0; i < strings_len; i++) {
-        unsigned long hashval = colr_str_hash(strings[i]);
+        colr_hash hashval = colr_str_hash(strings[i]);
         printf("%8s: hash=%lu\n", strings[i], hashval);
     }
     \endexamplecode
 */
 
-unsigned long colr_str_hash(const char *s) {
-    unsigned long hash = 5381;
+colr_hash colr_str_hash(const char *s) {
+    if (!s) return 0;
+    // This is also the default value for empty strings.
+    colr_hash hash = 5381;
     int c;
 
     while ((c = *s++)) {
@@ -1589,10 +1589,10 @@ bool colr_str_is_digits(const char* s) {
 */
 bool colr_str_list_contains(char** lst, const char* s) {
     if (!(lst && s)) return false;
-    unsigned long strhash = colr_str_hash(s);
+    colr_hash strhash = colr_str_hash(s);
     size_t i = 0;
     while (lst[i]) {
-        unsigned long hash = colr_str_hash(lst[i]);
+        colr_hash hash = colr_str_hash(lst[i]);
         i++;
         if (hash == strhash) return true;
     }
