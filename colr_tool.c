@@ -756,22 +756,29 @@ int print_plain(ColrOpts* opts) {
 */
 void print_name(ColrOpts* opts, size_t index, bool do_rgb) {
     if (index >= colr_name_data_len) return;
-    char* name = colr_name_data[index].name;
-    int bval = BasicValue_from_str(name);
-    // Use RGB if requested, use BasicValue if the name is also a BasicValue
-    // name, otherwise use the ExtendedValue.
-    // This matches the behavior of fore(name) and back(name), without doing
-    // all of the lookups.
+    ColorNameData item = colr_name_data[index];
+    char* name = item.name;
+    char* numblock = NULL;
+    if_not_asprintf(&numblock, "   %03d   ", item.ext) {
+        return;
+    }
+
+    RGB foreval = RGB_inverted(RGB_monochrome(item.rgb));
+    ExtendedValue forevalext = foreval.red > 128 ? XWHITE : XBLACK;
+    // Use RGB if requested.
     char* block = colr(
         Colr(
-            "         ",
+            numblock,
             do_rgb ?
-                back(colr_name_data[index].rgb) :
-                bval == BASIC_INVALID ?
-                    back(ext(colr_name_data[index].ext)) :
-                    back(basic(bval))
+                fore(foreval) :
+                fore(forevalext),
+            do_rgb ?
+                back(item.rgb) :
+                back(ext(item.ext)),
+                style(BRIGHT)
             )
     );
+    free(numblock);
     fprintf(opts->out_stream, "%21s: %s", name, block);
     free(block);
 }
@@ -799,7 +806,7 @@ int print_names(ColrOpts* opts, bool do_rgb) {
     if (printed != colr_name_data_len) {
         // Should never happen unless colr_name_data is updated.
         printferr("\nSome names are missing from this print-out.\n");
-        return 1;
+        return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
 }

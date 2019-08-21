@@ -4976,7 +4976,7 @@ ExtendedValue ExtendedValue_from_RGB(RGB rgb) {
             return ext(i);
         }
     }
-    // Should never happen.
+    // This can happen when coming from RGB_inverted, RGB_monochrome, etc.
     return ext(0);
 }
 
@@ -5121,6 +5121,20 @@ char* ExtendedValue_to_str(ExtendedValue eval) {
     char* repr;
     asprintf_or_return(NULL, &repr, "%d", eval);
     return repr;
+}
+
+/*! Return the average for an RGB value.
+
+    \details
+    This is also it's "grayscale" value.
+
+    \pi rgb The RGB value to get the average for.
+    \return A value between `0-255`.
+
+    \sa RGB
+*/
+unsigned char RGB_average(RGB rgb) {
+    return (rgb.red + rgb.green + rgb.blue) / 3;
 }
 
 /*! Compare two RGB structs.
@@ -5327,6 +5341,49 @@ int RGB_from_str(const char* arg, RGB* rgb) {
     }
     free(arglower);
     return COLOR_INVALID;
+}
+
+/*! Return a grayscale version of an RGB value.
+
+    \pi rgb The RGB value to convert.
+    \return A grayscale RGB value.
+
+    \sa RGB
+*/
+RGB RGB_grayscale(RGB rgb) {
+    short avg = RGB_average(rgb);
+    // Don't want to return rgb(0, 0, 0) (the "reset" rgb value).
+    if (!avg) avg = 1;
+    return rgb(avg, avg, avg);
+}
+
+/*! Make a copy of an RGB value, with the colors "inverted" (like highlighting
+    text in the terminal).
+
+    \pi rgb The RGB value to invert.
+    \return An "inverted" RGB value.
+
+    \sa RGB
+*/
+RGB RGB_inverted(RGB rgb) {
+    // RGB uses unsigned char, so wrap-around is expected.
+    unsigned char r = 255 - rgb.red;
+    unsigned char g = 255 - rgb.green;
+    unsigned char b = 255 - rgb.blue;
+    // Don't want to return rgb(0, 0, 0) (which is "reset")
+    return rgb(r ? r : 1, g ? g : 1, b ? b : 1);
+}
+
+/*! Convert an RGB value into either black or white, depending on it's average
+    grayscale value.
+
+    \pi rgb The RGB value to convert.
+    \return Either `rgb(1, 1, 1)` or `rgb(255, 255, 255)`.
+*/
+RGB RGB_monochrome(RGB rgb) {
+    unsigned char avg = (rgb.red + rgb.green + rgb.blue) / 3;
+    // rgb(0, 0, 0) is the "reset" rgb code.
+    return avg > 128 ? rgb(255, 255, 255) : rgb(1, 1, 1);
 }
 
 /*! Converts an RGB value into a hex \string.
