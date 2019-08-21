@@ -680,14 +680,16 @@ int print_256(ColrOpts* opts, bool do_back) {
             if ((i == 7) || (i == 15)) fprintf(opts->out_stream, "\n");
             free(text);
         } else {
+            // Print the number as is.
             text = colr(carg, num);
             fprintf(opts->out_stream, "%s ", text);
             free(text);
+            // Print the other 5 in the group.
             int j = i;
             for (int k=0; k < 5; k++) {
                 j = j + 36;
                 snprintf(num, 4, "%03d", j);
-                carg = do_back ? back(ext(i)) : fore(ext(i));
+                carg = do_back ? back(ext(j)) : fore(ext(j));
                 text = colr(carg, num);
                 fprintf(opts->out_stream, "%s ", text);
                 free(text);
@@ -695,6 +697,7 @@ int print_256(ColrOpts* opts, bool do_back) {
             fprintf(opts->out_stream, "\n");
         }
     }
+    // Print the grayscale numbers.
     for (int i = 232; i < 256; i++) {
         snprintf(num, 4, "%03d", i);
         carg = do_back ? back(ext(i)) : fore(ext(i));

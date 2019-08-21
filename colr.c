@@ -4067,6 +4067,9 @@ char* ColorType_repr(ColorType type) {
         case TYPE_STYLE:
             asprintf_or_return(NULL, &typestr, "TYPE_STYLE");
             break;
+        case TYPE_ALL:
+            asprintf_or_return(NULL, &typestr, "TYPE_ALL");
+            break;
         case TYPE_INVALID:
             asprintf_or_return(NULL, &typestr, "TYPE_INVALID");
             break;
@@ -4107,6 +4110,9 @@ char* ColorType_to_str(ColorType type) {
             break;
         case TYPE_STYLE:
             asprintf_or_return(NULL, &typestr, "style");
+            break;
+        case TYPE_ALL:
+            asprintf_or_return(NULL, &typestr, "all");
             break;
         case TYPE_INVALID:
             asprintf_or_return(NULL, &typestr, "invalid");
@@ -4176,6 +4182,11 @@ bool ColorValue_eq(ColorValue a, ColorValue b) {
 char* ColorValue_example(ColorValue cval) {
     char* valstr;
     char* typestr = ColorType_to_str(cval.type);
+    // These are only used for TYPE_ALL.
+    char* rgbstr = NULL;
+    char* bstr = NULL;
+    char* estr = NULL;
+
     if (!typestr) return NULL;
     switch (cval.type) {
         case TYPE_RGB:
@@ -4189,6 +4200,22 @@ char* ColorValue_example(ColorValue cval) {
             break;
         case TYPE_STYLE:
             valstr = StyleValue_to_str(cval.style);
+            break;
+        case TYPE_ALL:
+            rgbstr = RGB_to_str(cval.rgb);
+            bstr = BasicValue_to_str(cval.basic);
+            estr = ExtendedValue_to_str(cval.ext);
+            asprintf_or_return(
+                NULL,
+                &valstr,
+                "basic: %-12s ext: %-3s: rgb: %-11s",
+                bstr ? bstr : "?",
+                estr ? estr : "?",
+                rgbstr ? rgbstr : "?"
+            );
+            if (rgbstr) free(rgbstr);
+            if (bstr) free(bstr);
+            if (estr) free(estr);
             break;
         default:
             asprintf_or_return(NULL, &valstr, "-");
@@ -4526,6 +4553,11 @@ size_t ColorValue_length(ArgType type, ColorValue cval) {
     \sa ColorValue
 */
 char* ColorValue_repr(ColorValue cval) {
+    // These are only used for TYPE_ALL.
+    char* allrepr = NULL;
+    char* brepr = NULL;
+    char* erepr = NULL;
+    char* rgbrepr = NULL;
     switch (cval.type) {
         case TYPE_RGB:
             return RGB_repr(cval.rgb);
@@ -4535,6 +4567,22 @@ char* ColorValue_repr(ColorValue cval) {
             return ExtendedValue_repr(cval.ext);
         case TYPE_STYLE:
             return StyleValue_repr(cval.style);
+        case TYPE_ALL:
+            rgbrepr = RGB_repr(cval.rgb);
+            brepr = BasicValue_repr(cval.basic);
+            erepr = ExtendedValue_repr(cval.ext);
+            asprintf_or_return(
+                NULL,
+                &allrepr,
+                "%s, %s, %s",
+                brepr ? brepr : "NULL",
+                erepr ? erepr : "NULL",
+                rgbrepr ? rgbrepr : "NULL"
+            );
+            if (rgbrepr) free(rgbrepr);
+            if (brepr) free(brepr);
+            if (erepr) free(erepr);
+            return allrepr;
         default:
             return ColorType_repr(cval.type);
     }
