@@ -1422,8 +1422,6 @@ typedef enum ColorType {
     TYPE_EXTENDED = 1,
     TYPE_RGB = 2,
     TYPE_STYLE = 3,
-    // This is for color translations.
-    TYPE_ALL = 4,
 } ColorType;
 
 #ifndef DOXYGEN_SKIP
@@ -1438,7 +1436,6 @@ typedef enum ColorType {
 #define TYPE_EXTENDED ((ColorType)TYPE_EXTENDED)
 #define TYPE_RGB ((ColorType)TYPE_RGB)
 #define TYPE_STYLE ((ColorType)TYPE_STYLE)
-#define TYPE_ALL ((ColorType)TYPE_ALL)
 #endif
 
 /*! Holds a known color name and it's `BasicValue`.
@@ -1860,6 +1857,7 @@ char* StyleValue_to_str(StyleValue sval);
 */
 unsigned char RGB_average(RGB rgb);
 bool RGB_eq(RGB a, RGB b);
+RGB RGB_from_ExtendedValue(ExtendedValue eval);
 int RGB_from_esc(const char* s, RGB* rgb);
 int RGB_from_hex(const char* hexstr, RGB* rgb);
 RGB RGB_from_hex_default(const char* hexstr, RGB default_value);

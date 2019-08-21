@@ -372,6 +372,10 @@ const RGB ext2rgb_map[] = {
 };
 
 //! Length of ext2rgb_map  (should always be 256).
+static_assert(
+    (sizeof(ext2rgb_map) / sizeof(ext2rgb_map[0])) == 256,
+    "ExtendedValue->RGB map is not 1:1, should only contain indexes 0-255!"
+);
 const size_t ext2rgb_map_len = sizeof(ext2rgb_map) / sizeof(ext2rgb_map[0]);
 
 //! An array that holds a known color name, it's ExtendedValue, and it's RGB value.
@@ -393,7 +397,7 @@ const ColorNameData colr_name_data[] = {
     {"bisque2", 223, {255, 215, 175}},
     {"bisque3", 181, {215, 175, 175}},
     {"bisque4", 101, {135, 135, 95}},
-    {"black", 16, {0, 0, 0}},
+    {"black", 16, {1, 1, 1}},
     {"blanchedalmond", 230, {255, 255, 215}},
     {"blue", 4, {0, 0, 255}},
     {"blue2", 20, {0, 0, 215}},
@@ -537,6 +541,7 @@ const ColorNameData colr_name_data[] = {
     {"lemonchiffon2", 223, {255, 215, 175}},
     {"lemonchiffon3", 187, {215, 215, 175}},
     {"lemonchiffon4", 101, {135, 135, 95}},
+    {"lightblack", 243, {128, 128, 128}},
     {"lightblue", 12, {175, 215, 215}},
     {"lightblue2", 159, {175, 255, 255}},
     {"lightblue3", 153, {175, 215, 255}},
@@ -3168,6 +3173,15 @@ ColorArg ColorArg_from_esc(const char* s) {
 */
 ColorArg ColorArg_from_str(ArgType type, const char* colorname) {
     ColorValue cval = ColorValue_from_str(colorname);
+    if ((type == STYLE) && (cval.type != TYPE_STYLE)) {
+        // Bad style string.
+        cval.type = TYPE_INVALID_STYLE;
+        return (ColorArg){
+            .marker=COLORARG_MARKER,
+            .type=STYLE,
+            .value=cval,
+        };
+    }
     return (ColorArg){
         .marker=COLORARG_MARKER,
         .type=type,
@@ -4070,9 +4084,6 @@ char* ColorType_repr(ColorType type) {
         case TYPE_STYLE:
             asprintf_or_return(NULL, &typestr, "TYPE_STYLE");
             break;
-        case TYPE_ALL:
-            asprintf_or_return(NULL, &typestr, "TYPE_ALL");
-            break;
         case TYPE_INVALID:
             asprintf_or_return(NULL, &typestr, "TYPE_INVALID");
             break;
@@ -4113,9 +4124,6 @@ char* ColorType_to_str(ColorType type) {
             break;
         case TYPE_STYLE:
             asprintf_or_return(NULL, &typestr, "style");
-            break;
-        case TYPE_ALL:
-            asprintf_or_return(NULL, &typestr, "all");
             break;
         case TYPE_INVALID:
             asprintf_or_return(NULL, &typestr, "invalid");
@@ -4185,10 +4193,6 @@ bool ColorValue_eq(ColorValue a, ColorValue b) {
 char* ColorValue_example(ColorValue cval) {
     char* valstr;
     char* typestr = ColorType_to_str(cval.type);
-    // These are only used for TYPE_ALL.
-    char* rgbstr = NULL;
-    char* bstr = NULL;
-    char* estr = NULL;
 
     if (!typestr) return NULL;
     switch (cval.type) {
@@ -4203,22 +4207,6 @@ char* ColorValue_example(ColorValue cval) {
             break;
         case TYPE_STYLE:
             valstr = StyleValue_to_str(cval.style);
-            break;
-        case TYPE_ALL:
-            rgbstr = RGB_to_str(cval.rgb);
-            bstr = BasicValue_to_str(cval.basic);
-            estr = ExtendedValue_to_str(cval.ext);
-            asprintf_or_return(
-                NULL,
-                &valstr,
-                "basic: %-12s ext: %-3s: rgb: %-11s",
-                bstr ? bstr : "?",
-                estr ? estr : "?",
-                rgbstr ? rgbstr : "?"
-            );
-            if (rgbstr) free(rgbstr);
-            if (bstr) free(bstr);
-            if (estr) free(estr);
             break;
         default:
             asprintf_or_return(NULL, &valstr, "-");
@@ -4556,11 +4544,6 @@ size_t ColorValue_length(ArgType type, ColorValue cval) {
     \sa ColorValue
 */
 char* ColorValue_repr(ColorValue cval) {
-    // These are only used for TYPE_ALL.
-    char* allrepr = NULL;
-    char* brepr = NULL;
-    char* erepr = NULL;
-    char* rgbrepr = NULL;
     switch (cval.type) {
         case TYPE_RGB:
             return RGB_repr(cval.rgb);
@@ -4570,22 +4553,6 @@ char* ColorValue_repr(ColorValue cval) {
             return ExtendedValue_repr(cval.ext);
         case TYPE_STYLE:
             return StyleValue_repr(cval.style);
-        case TYPE_ALL:
-            rgbrepr = RGB_repr(cval.rgb);
-            brepr = BasicValue_repr(cval.basic);
-            erepr = ExtendedValue_repr(cval.ext);
-            asprintf_or_return(
-                NULL,
-                &allrepr,
-                "%s, %s, %s",
-                brepr ? brepr : "NULL",
-                erepr ? erepr : "NULL",
-                rgbrepr ? rgbrepr : "NULL"
-            );
-            if (rgbrepr) free(rgbrepr);
-            if (brepr) free(brepr);
-            if (erepr) free(erepr);
-            return allrepr;
         default:
             return ColorType_repr(cval.type);
     }
@@ -5151,6 +5118,77 @@ bool RGB_eq(RGB a, RGB b) {
         (a.green == b.green) &&
         (a.blue == b.blue)
     );
+}
+
+/*! Return an RGB value from a known BasicValue.
+
+    \details
+    Terminals use different values to render basic 3/4-bit escape-codes.
+    The values returned from this function match the names found in
+    `colr_name_data[]`.
+
+    \pi bval A BasicValue to get the RGB value for.
+    \return  An RGB value that matches the BasicValue's color.
+*/
+RGB RGB_from_BasicValue(BasicValue bval) {
+    switch (bval) {
+    case BASIC_INVALID_RANGE:
+        /* fall-through */
+    case BASIC_INVALID:
+        /* fall-through */
+    case BASIC_NONE:
+        return rgb(0, 0, 0);
+    case BLACK:
+        return rgb(1, 1, 1);
+    case RED:
+        return rgb(255, 0, 0);
+    case GREEN:
+        return rgb(0, 255, 0);
+    case YELLOW:
+        return rgb(255, 255, 0);
+    case BLUE:
+        return rgb(0, 0, 255);
+    case MAGENTA:
+        return rgb(255, 0, 255);
+    case CYAN:
+        return rgb(0, 255, 255);
+    case WHITE:
+        return rgb(255, 255, 255);
+    case UNUSED:
+        /* fall-through */
+    case RESET:
+        return rgb(0, 0, 0);
+    case LIGHTBLACK:
+        return rgb(128, 128, 128);
+    case LIGHTRED:
+        return rgb(255, 85, 85);
+    case LIGHTGREEN:
+        return rgb(135, 255, 135);
+    case LIGHTYELLOW:
+        return rgb(255, 255, 215);
+    case LIGHTBLUE:
+        return rgb(175, 215, 215);
+    case LIGHTMAGENTA:
+        return rgb(255, 85, 255);
+    case LIGHTCYAN:
+        return rgb(215, 255, 255);
+    case LIGHTWHITE:
+        return rgb(255, 255, 255);
+    }
+    // Shouldn't happen.
+    return rgb(0,0, 0);
+}
+
+/*! Return an RGB value from a known ExtendedValue.
+
+    \details
+    This is just a type/bounds-checked alias for `ext2rgb_map[eval]`.
+
+    \pi eval An ExtendedValue to get the RGB value for.
+    \return  An RGB value from `ext2rgb_map[]`.
+*/
+RGB RGB_from_ExtendedValue(ExtendedValue eval) {
+    return ext2rgb_map[eval];
 }
 
 /*! Convert an escape-code \string to an actual RGB value.

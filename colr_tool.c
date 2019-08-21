@@ -1126,16 +1126,14 @@ int strip_codes(ColrOpts* opts) {
 bool validate_color_arg(ColorArg carg, const char* name) {
     if (!name) {
         #if defined(DEBUG) && defined(dbug)
-        char* argtype = ArgType_to_str(carg.type);
-        dbug("No %s arg given.\n", argtype);
-        free(argtype);
+            char* argtype = ArgType_to_str(carg.type);
+            dbug("No %s arg given.\n", argtype);
+            free(argtype);
         #endif
-        return true;
+        return false;
     }
     char* errmsg;
-    char argtype[6] = "fore";
-    if (carg.type == BACK) sprintf(argtype, "%s", "back");
-
+    char* argtype = ArgType_to_str(carg.type);
     switch (carg.value.type) {
         case TYPE_INVALID_RGB_RANGE:
             asprintf_or_return(
@@ -1145,6 +1143,7 @@ bool validate_color_arg(ColorArg carg, const char* name) {
                 argtype,
                 name
             );
+            free(argtype);
             break;
         case TYPE_INVALID_EXT_RANGE:
             asprintf_or_return(
@@ -1154,15 +1153,18 @@ bool validate_color_arg(ColorArg carg, const char* name) {
                 argtype,
                 name
             );
+            free(argtype);
             break;
         case TYPE_INVALID:
             asprintf_or_return(
                 false,
                 &errmsg,
-                "Invalid %s color name: %s",
+                "Invalid %s %sname: %s",
                 argtype,
+                (carg.type == BACK) || (carg.type == FORE) ? "color " : "",
                 name
             );
+            free(argtype);
             break;
         case TYPE_INVALID_STYLE:
             asprintf_or_return(
