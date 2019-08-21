@@ -754,6 +754,35 @@
 */
 #define colr_max(a, b) (a > b ? a : b)
 
+/*! \def colr_print
+    Create a string from a colr() call, print it (without a newline), and free it.
+
+    \p ... Arguments for colr().
+
+*/
+#define colr_print(...) \
+    do { \
+        char* _c_p_s = colr(__VA_ARGS__); \
+        if (!_c_p_s) break; \
+        printf("%s", _c_p_s); \
+        free(_c_p_s); \
+    } while (0)
+
+/*! \def colr_puts
+    Create a string from a colr() call, print it (with a newline), and free it.
+
+    \p ... Arguments for colr().
+
+    \example simple_example.c
+*/
+#define colr_puts(...) \
+    do { \
+        char* _c_p_s = colr(__VA_ARGS__); \
+        if (!_c_p_s) break; \
+        puts(_c_p_s); \
+        free(_c_p_s); \
+    } while (0)
+
 /*! \def colr_replace
     Replace a substring in \p s with another string, ColorArg string, or
     ColorText string.
@@ -1542,6 +1571,11 @@ extern const ColorNameData colr_name_data[];
 //! Length of colr_name_data.
 extern const size_t colr_name_data_len;
 
+//! Type returned from colr_str_hash.
+typedef unsigned long colr_hash;
+//! Format for `colr_hash` in printf-like functions.
+#define COLR_HASH_FMT "%lu"
+
 //! A specific ColorArg-like struct that marks the end of variadic argument lists.
 struct _ColrLastArg_s {
     unsigned int marker;
@@ -1557,7 +1591,6 @@ static const struct _ColrLastArg_s _ColrLastArgValue = {
 static const struct _ColrLastArg_s* const _ColrLastArg = &_ColrLastArgValue;
 #endif // DOXYGEN_SKIP
 
-
 /*! \file colr.h
     Common macros and definitions are found here in colr.h,
     however the functions are documented in colr.c.
@@ -1572,7 +1605,6 @@ bool colr_char_should_escape(const char c);
 
 bool colr_check_marker(unsigned int marker, void* p);
 char* colr_empty_str(void);
-void colr_free_str_list(char** ps);
 bool colr_supports_rgb(void);
 
 size_t colr_str_char_count(const char*s, const char c);
@@ -1581,11 +1613,14 @@ size_t colr_str_code_cnt(const char* s);
 size_t colr_str_code_len(const char* s);
 char* colr_str_copy(char* dest, const char* src, size_t length);
 bool colr_str_ends_with(const char* s, const char* suffix);
-char** colr_str_get_codes(const char* s);
+char** colr_str_get_codes(const char* s, bool unique);
 bool colr_str_has_codes(const char* s);
+colr_hash colr_str_hash(const char *s);
 bool colr_str_is_all(const char* s, const char c);
 bool colr_str_is_codes(const char* s);
 bool colr_str_is_digits(const char* s);
+bool colr_str_list_contains(char** lst, const char* s);
+void colr_str_list_free(char** ps);
 char* colr_str_ljust(const char* s, const char padchar, int width);
 void colr_str_lower(char* s);
 char* colr_str_lstrip_chars(const char* s, const char* chars);
@@ -1651,6 +1686,7 @@ size_t _colr_ptr_length(void* p);
 */
 char* _colr(void* p, ...);
 size_t _colr_size(void* p, va_list args);
+
 /*! \internal
     The multi-type variadiac function behind the colr_join() macro.
     \endinternal
@@ -1666,7 +1702,6 @@ size_t _colr_join_array_length(void* ps);
 size_t _colr_join_arrayn_size(void* joinerp, void* ps, size_t count);
 char* colr_join_array(void* joinerp, void* ps);
 char* colr_join_arrayn(void* joinerp, void* ps, size_t count);
-
 /*! \internal
     ArgType functions that only deal with argument types (fore, back, style).
     \endinternal
@@ -1681,7 +1716,7 @@ char* ArgType_to_str(ArgType type);
 */
 ColorArg ColorArg_empty(void);
 bool ColorArg_eq(ColorArg a, ColorArg b);
-char* ColorArg_example(ColorArg carg);
+char* ColorArg_example(ColorArg carg, bool colorized);
 void ColorArg_free(ColorArg* p);
 ColorArg ColorArg_from_BasicValue(ArgType type, BasicValue value);
 ColorArg ColorArg_from_ExtendedValue(ArgType type, ExtendedValue value);
@@ -1698,6 +1733,8 @@ size_t ColorArg_length(ColorArg carg);
 char* ColorArg_repr(ColorArg carg);
 ColorArg* ColorArg_to_ptr(ColorArg carg);
 char* ColorArg_to_str(ColorArg carg);
+ColorArg** ColorArgs_from_str(const char* s, bool unique);
+void ColorArgs_list_free(ColorArg** ps);
 
 /*! \internal
     ColorJustify functions that deal with colr/string justification.

@@ -9,6 +9,67 @@
 */
 #include "test_ColrC.h"
 
+/*! Return the length of a string list (`char**`), minus the `NULL` element.
+
+    \pi lst The string list to check.
+    \return The number of non-null items.
+*/
+size_t colr_str_list_len(char** lst) {
+    if (!lst) return 0;
+    size_t i = 0;
+    while (lst[i]) i++;
+    return i;
+}
+
+/*! Creates a string representation for a list of string pointers.
+
+    \pi lst The string list to create the representation for (`char**`).
+    \return An allocate string, or `NULL` if \p lst is `NULL`, or the allocation
+            fails.
+*/
+char* colr_str_list_repr(char** lst) {
+    char* repr = NULL;
+    if (!lst) {
+        asprintf_or_return(NULL, &repr, "NULL");
+        return repr;
+    }
+    if (!lst[0]) {
+        asprintf_or_return(NULL, &repr, "{NULL}");
+        return repr;
+    }
+    // Get count.
+    size_t count = 0;
+    for (size_t i = 0; lst[i]; i++) {
+        count++;
+    }
+    // Get length, and string reprs.
+    char* strings[count];
+    size_t length = 0;
+    for (size_t i = 0; lst[i]; i++) {
+        char* srepr = colr_repr(lst[i]);
+        length += srepr ? strlen(srepr) : 4;
+        strings[i] = srepr;
+    }
+    // Account for last NULL item.
+    length += 4;
+    // Account for commas/spaces, and the NULL item.
+    length += (count + 1) * 2;
+    // Account for wrappers.
+    length += 2;
+    repr = calloc(length + 1, sizeof(char));
+    char* repr_start = repr;
+    repr[0] = '{';
+    repr++;
+    for (size_t i = 0; i < count; i++) {
+        sprintf(repr, "%s", strings[i]);
+        repr += strlen(strings[i]);
+        sprintf(repr, ", ");
+        repr += 2;
+    }
+    sprintf(repr, "NULL}");
+    return repr_start;
+}
+
 /*! Creates a string representation for an int.
 
     \pi x Value to create the representation for.

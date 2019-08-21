@@ -9,7 +9,7 @@ when it comes to the escape codes needed to colorize text. You are responsible
 for the text strings themselves (the words you want to colorize).
 
 ## Including
-You must include colr.h and link colr.c in with your
+You must include colr.h and compile colr.c along with your
 program.
 ```c
 #include "colr.h"
@@ -53,25 +53,10 @@ colr.c | Where ColrC is implemented. This must be compiled/linked with your prog
 ## Example Usage
 
 You use colr(), colr_join(), and Colr(), along with fore(), back(), and style()
-to build colorized strings.
+to build colorized strings. There are some print-related functions, for quick
+building/printing of colorized strings (colr_puts() and colr_print()).
 
-\includesrc{examples/Colr_example.c}
-
-If you find yourself typing the same thing over and over to join by a common
-element, just use colr_join():
-
-\includesrc{examples/colr_join_example.c}
-
-If you prefer to manually insert the escape codes in an arbitrary order,
-you can use fore(), back(), and style() directly inside a colr() call:
-
-\includesrc{examples/manual_example.c}
-
-
-Finally, if you are going to be making your own Colrs outside of the macros,
-you're going to need to know how to `free()` them:
-
-\includesrc{examples/Colr_manual_example.c}
+\includesrc{examples/simple_example.c}
 
 \anchor example-files
 ### Example Files

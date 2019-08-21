@@ -2,6 +2,7 @@
 
 ## Features
 [ ] Allow "rainbow" as an official color name for `ColorText`.
+[ ] Examples for the "helper" functions, like stripping codes.
 
 ## Missing Features From Colr.py
 
@@ -9,35 +10,38 @@ Some features from Colr.py will never be found in ColrC. Colr depends on
 method chaining to implement a lot of features. I'd like to at least be able
 to match the colr-tool features, which I think is possible.
 
-[ ] --listcodes, list escape codes found in text.
-        The `colr_str_get_codes` function was added for this, just need a
-        `ColorArg_from_code` function to do the reverse of `ColorArg_to_str`.
-        It will set the arg type, color type, and color value from the escape-code
-        string. This means BasicValue needs it's `*_from_str` function to operate
-        on single digit numbers, which may cause problems because right now all
-        numbers are considered ExtendedValues with the `*_from_str` functions.
-        Maybe do a `BasicValue_from_code`, `ExtendedValue_from_code`, etc. and
-        just use those.
 [ ] --translate, show terminal, hex, and rgb values for any color given.
         Most of the translation functions are done, as far as converting from
         one color value to another. I need the front-end, displaying the
         transformations. Not sure what to do about BasicValues yet.
 [ ] --spread, for rainbow spread (same rgb code for several chars).
-[ ] --err, print to stderr instead of stdout. An easy one.
-[ ] --auto-disable, check for `isatty(fileno(stdout))`, and disable colors.
-        The disabling part is weird, because I'm trying to stay away from global
-        variables in ColrC. However, colr-tool can use a global variable, and may
-        not even need one to implement this. It just turns itself into a basic
-        `cat`/`echo` program (`cat` without a text arg, `echo` with the text arg).
 
 ## Tests
-[ ] Tests for `colr_str_code_cnt`, `colr_str_code_len`, and `colr_str_get_codes`.
-[ ] Tests for `rainbow*` functions.
-[ ] Tests for ExtendedValue (not fully covered).
-[ ] Tests for StyleValue (not fully covered).
-[ ] Tests for `ColorText_from_values` with empty ColorArg values.
-[ ] Tests for ColorText with justification (with ColorJustify member set).
-    [ ] Tests for `ColorText_length` with justification.
-    [ ] Tests for `ColorText_set_just`.
-    [ ] Tests for `ColorText_to_str` with justification.
-[ ] Tests for RGB (more tests, covering all functions)
+[ ] Should have almost %100 coverage.
+    It will never be %100 percent though, unless I figure out a way to mock
+    an `ioctl()` call for the `colr_win_size` stuff.
+    [ ] Tests for `ColorArgs_from_str`.
+    [ ] Tests for `ColorType_to_str`.
+    [ ] Tests for '*_example' functions.
+    [ ] Tests for `rainbow*` functions.
+    [ ] Tests for `BasicValue`
+        [ ] Tests for `BasicValue_from_esc` with invalid escape-codes.
+        [ ] Tests for `BasicValue_is_invalid`.
+        [ ] Coverage for `BasicValue_repr`.
+        [ ] Tests for `BasicValue_to_str`.
+    [ ] Tests for ExtendedValue (not fully covered).
+        [ ] Coverage for `ExtendedValue_repr`.
+        [ ] Tests for `ExtendedValue_from_hex_default`.
+        [ ] Tests for `ExtendedValue_is_invalid`.
+        [ ] Tests for `ExtendedValue_to_str`.
+    [ ] Tests for StyleValue (not fully covered).
+    [ ] Tests for ColorText with justification (with ColorJustify member set).
+        [ ] Tests for `ColorText_length` with justification.
+        [ ] Tests for `ColorText_set_just`.
+        [ ] Tests for `ColorText_to_str` with justification.
+    [ ] Tests for RGB (more tests, covering all functions)
+        [ ] Tests for `RGB_from_hex_default`.
+        [ ] Tests for `RGB_to_hex`.
+        [ ] Tests for `RGB_to_str`.
+        [ ] Tests for `RGB_repr`.
+    [ ] Tests for `TermSize_repr`.

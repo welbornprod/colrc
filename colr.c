@@ -62,8 +62,10 @@ const size_t extended_names_len = sizeof(extended_names) / sizeof(extended_names
 
 //! A list of StyleInfo items, used with StyleName_from_str().
 const StyleInfo style_names[] = {
-    {"none", RESET_ALL},
+    // Using "reset" as the default style name for all RESET_ALL aliases.
+    // Whichever name is first in the list is the "default" for that style.
     {"reset", RESET_ALL},
+    {"none", RESET_ALL},
     {"resetall", RESET_ALL},
     {"reset-all", RESET_ALL},
     {"reset_all", RESET_ALL},
@@ -1053,38 +1055,6 @@ char* colr_empty_str(void) {
     return s;
 }
 
-/*! Free an allocated list of strings, including the list itself.
-
-    \details
-    Each individual string will be released, and finally the allocated memory
-    for the list of pointers will be released.
-
-    \pi ps A pointer to a list of strings.
-
-    \examplecodefor{colr_free_str_list,.c}
-    #include "colr.h"
-    int main(void) {
-        char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
-        if (!s) return 1;
-        // Call something that creates a list of strings on the heap.
-        char** code_list = colr_str_get_codes(s);
-        free(s);
-        if (!code_list) return 1;
-        // ... do something with the list of strings.
-
-        // And then free it:
-        colr_free_str_list(code_list);
-    }
-    \endexamplecode
-*/
-void colr_free_str_list(char** ps) {
-    if (!ps) return;
-    // Free the individual items, until NULL is hit.
-    for (size_t i = 0; ps[i]; i++) free(ps[i]);
-    // Free the pointer list.
-    free(ps);
-}
-
 /*! Center-justifies a \string, ignoring escape codes when measuring the width.
 
     \pi s       The string to justify.\n
@@ -1191,7 +1161,7 @@ size_t colr_str_char_count(const char* s, const char c) {
 size_t colr_str_code_cnt(const char* s) {
     if (!s) return 0;
     if (s[0] == '\0') return 0;
-    // Length of code, minus the 'm'.
+    // Length of code, minus the 'm' and '\0'.
     size_t code_max = CODE_RGB_LEN - 2;
     size_t total = 0;
     size_t i = 0;
@@ -1202,20 +1172,18 @@ size_t colr_str_code_cnt(const char* s) {
         // Have code.
         size_t current_code = 0;
         // Grab the rest of the code chars.
-        while (s[i] && !colr_char_is_code_end(s[i++])) {
-            if (current_code < code_max) {
-                current_code++;
-            } else {
-                // Overflowed the code buffer because the code is probably
-                // malformed. Just ignore this one.
+        while (s[i] && !colr_char_is_code_end(s[i])) {
+            i++;
+            current_code++;
+            if (current_code > code_max) {
+                // Overflow. Ignore this crazy code.
                 current_code = 0;
+                break;
             }
-        };
-        if (current_code) {
+        }
+        if (current_code && (current_code <= code_max)) {
             // Have a complete code.
             total += 1;
-            // Reset current code.
-            current_code = 0;
         }
     }
     return total;
@@ -1243,7 +1211,7 @@ size_t colr_str_code_cnt(const char* s) {
 size_t colr_str_code_len(const char* s) {
     if (!s) return 0;
     if (s[0] == '\0') return 0;
-    // Length of code, minus the 'm'.
+    // Length of code, minus the 'm' and '\0'.
     size_t code_max = CODE_RGB_LEN - 2;
     size_t total = 0;
     size_t i = 0;
@@ -1254,20 +1222,18 @@ size_t colr_str_code_len(const char* s) {
         // Have code.
         size_t current_code = 0;
         // Grab the rest of the code chars.
-        while (s[i] && !colr_char_is_code_end(s[i++])) {
-            if (current_code < code_max) {
-                current_code++;
-            } else {
-                // Overflowed the code buffer because the code is probably
-                // malformed. Just ignore this one.
+        while (s[i] && !colr_char_is_code_end(s[i])) {
+            i++;
+            current_code++;
+            if (current_code > code_max) {
+                // Overflow. Ignore this crazy code.
                 current_code = 0;
+                break;
             }
-        };
-        if (current_code) {
+        }
+        if (current_code && (current_code <= code_max)) {
             // Have a complete code, don't forget the last 'm'.
             total += current_code + 1;
-            // Reset current code.
-            current_code = 0;
         }
     }
     return total;
@@ -1356,17 +1322,30 @@ bool colr_str_ends_with(const char* str, const char* suf) {
     This function copies the escape-code strings, and the pointers to the heap,
     if any escape-codes are found in the string.
 
-    \pi s
-    \return An allocated list of \string pointers, where the last element is `NULL`.
-            \mustfree
+    \details
+    colr_str_list_free() can be used to easily `free()` the result of this function.
+
+    \pi s      A string to get the escape-codes from.\n
+               \mustnull
+    \pi unique Whether to only include _unique_ escape codes.
+    \return    An allocated list of \string pointers, where the last element is `NULL`.
+               \mustfree
+    \retval    If \p s is `NULL`, or empty, or there are otherwise no escape-codes
+               found in the string, or allocation fails for the strings/list, then
+               `NULL` is returned.
+    \retval    On success, there will be at least two pointers behind the return
+               value. The last pointer is always `NULL`.
 
     \examplecodefor{colr_str_get_codes,.c}
     #include "colr.h"
 
     int main(void) {
-        char* s = Colr_str("Testing this out.", fore(RED), back(WHITE));
+        char* s = colr(
+            Colr("Testing this out.", fore(RED), back(WHITE)),
+            Colr("Again.", fore(RED), style(UNDERLINE))
+        );
         if (!s) return 1;
-        char** code_list = colr_str_get_codes(s);
+        char** code_list = colr_str_get_codes(s, false);
         free(s);
         if (!code_list) {
             printferr("No code found? Impossible!\n");
@@ -1379,19 +1358,21 @@ bool colr_str_ends_with(const char* str, const char* suf) {
             free(code_repr);
         }
         // Free the strings, and the list of pointers.
-        colr_free_ptr_list(code_list);
+        colr_str_list_free(code_list);
     }
     \endexamplecode
 */
-char** colr_str_get_codes(const char* s) {
+char** colr_str_get_codes(const char* s, bool unique) {
     if (!s) return NULL;
     if (s[0] == '\0') return NULL;
+    // They may all be unique, so leave room just in case.
     size_t code_cnt = colr_str_code_cnt(s);
     if (!code_cnt) return NULL;
     // Allocate memory for some string pointers.
     char** code_list = calloc(code_cnt + 1, sizeof(char*));
     if (!code_list) return NULL;
     char** list_start = code_list;
+    size_t list_pos = 0;
     size_t i = 0;
     char current_code[CODE_RGB_LEN] = {0};
     // Length of code, minus the 'm'.
@@ -1422,14 +1403,25 @@ char** colr_str_get_codes(const char* s) {
             // Make a copy of it and add it to the list of pointers.
             char* code_copy = strndup(current_code, pos);
             if (!code_copy) return NULL;
-            *code_list = code_copy;
-            code_list++;
+            if (unique) {
+                // Mark this position as NULL, until we know that it will be added.
+                // The NULL marker will be overwritten for the next code, or
+                // will symbolize the end of the list.
+                code_list[list_pos] = NULL;
+                if (colr_str_list_contains(code_list, code_copy)) {
+                    // Skip it.
+                    free(code_copy);
+                    current_code[0] = '\0';
+                    continue;
+                }
+            }
+            code_list[list_pos++] = code_copy;
             // Reset current code.
             current_code[0] = '\0';
         }
     }
     // Set the last item to NULL, even if it's the first item.
-    *code_list = NULL;
+    code_list[list_pos] = NULL;
     return list_start;
 }
 
@@ -1462,6 +1454,51 @@ bool colr_str_has_codes(const char* s) {
         i++;
     }
     return false;
+}
+
+/*! Hash a string using [djb2](http://www.cse.yorku.ca/~oz/hash.html).
+
+    \details
+    This is only used for simple, short, \string hashing.
+
+    \details
+    There are some notes about collision rates for this function
+    [here](https://softwareengineering.stackexchange.com/a/145633).
+
+    \pi s   The string to hash.
+    \return A \colr_hash value with the hash.
+    \retval 0 if \p s is `NULL`.
+    \retval 5381 if \p s is an empty string.
+
+    \examplecodefor{colr_str_hash,.c}
+    char* strings[] = {
+        "fore",
+        "back",
+        "style",
+        "invalid",
+        "red",
+        "\x1b[4m",
+        "\x1b[0m"
+    };
+    size_t strings_len = sizeof(strings) / sizeof(strings[0]);
+    for (size_t i = 0; i < strings_len; i++) {
+        colr_hash hashval = colr_str_hash(strings[i]);
+        printf("%8s: hash=%lu\n", strings[i], hashval);
+    }
+    \endexamplecode
+*/
+
+colr_hash colr_str_hash(const char *s) {
+    if (!s) return 0;
+    // This is also the default value for empty strings.
+    colr_hash hash = 5381;
+    int c;
+
+    while ((c = *s++)) {
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+    }
+
+    return hash;
 }
 
 /*! Determines whether a \string consists of only one character, possibly repeated.
@@ -1526,6 +1563,72 @@ bool colr_str_is_digits(const char* s) {
         i++;
     }
     return true;
+}
+
+/*! Determine if a \string is in a list of strings (`char**`, where the last
+    element is `NULL`).
+
+    \pi lst  The string list to look in.
+    \pi s    The string to look for.
+    \return  `true` if the string is found, otherwise `false`.
+    \retval  `false` if \p lst is `NULL` or \p s is `NULL`.
+
+    \examplecodefor{colr_str_list_contains,.c}
+    char* strlist[] = {
+        "this",
+        "that",
+        NULL
+    };
+    if (colr_str_list_contains(strlist, "that")) {
+        printf("List contained \"that\".\n");
+    }
+    if (!colr_str_list_contains(strlist, "NONEXISTENT")) {
+        printf("List did not contain \"NONEXISTENT\".\n");
+    }
+    \endexamplecode
+*/
+bool colr_str_list_contains(char** lst, const char* s) {
+    if (!(lst && s)) return false;
+    colr_hash strhash = colr_str_hash(s);
+    size_t i = 0;
+    while (lst[i]) {
+        colr_hash hash = colr_str_hash(lst[i]);
+        i++;
+        if (hash == strhash) return true;
+    }
+    return false;
+}
+
+/*! Free an allocated list of strings, including the list itself.
+
+    \details
+    Each individual string will be released, and finally the allocated memory
+    for the list of pointers will be released.
+
+    \pi ps A pointer to a list of strings.
+
+    \examplecodefor{colr_str_list_free,.c}
+    #include "colr.h"
+    int main(void) {
+        char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
+        if (!s) return 1;
+        // Call something that creates a list of strings on the heap.
+        char** code_list = colr_str_get_codes(s, false);
+        free(s);
+        if (!code_list) return 1;
+        // ... do something with the list of strings.
+
+        // And then free it:
+        colr_str_list_free(code_list);
+    }
+    \endexamplecode
+*/
+void colr_str_list_free(char** ps) {
+    if (!ps) return;
+    // Free the individual items, until NULL is hit.
+    for (size_t i = 0; ps[i]; i++) free(ps[i]);
+    // Free the pointer list.
+    free(ps);
 }
 
 /*! Converts a \string into lower case in place.
@@ -2827,10 +2930,14 @@ bool ColorArg_eq(ColorArg a, ColorArg b) {
 /*! Create a \string representation of a ColorArg with a stylized type/name
     using escape codes built from the ColorArg's values.
 
-    \pi carg A ColorArg to get an example string for.
-    \return  An allocated string with the result.\n
-             \mustfree
-             \maybenullalloc
+    \pi carg      A ColorArg to get an example string for.
+    \pi colorized Whether to include a colorized example.
+                  If set to `false`, there will be no escape-codes in the string.
+    \return       An allocated string with the result.\n
+                  \mustfree
+                  \maybenullalloc
+
+    \sa ColorArg
 
     \examplecodefor{ColorArg_example,.c}
     #include "colr.h"
@@ -2846,7 +2953,7 @@ bool ColorArg_eq(ColorArg a, ColorArg b) {
         };
         size_t arg_len = sizeof(args) / sizeof(args[0]);
         for (size_t i = 0; i < arg_len; i++) {
-            char* example = ColorArg_example(args[i]);
+            char* example = ColorArg_example(args[i], true);
             if (!example) return 1;
             printf("%s\n", example);
             free(example);
@@ -2854,7 +2961,7 @@ bool ColorArg_eq(ColorArg a, ColorArg b) {
     }
     \endexamplecode
 */
-char* ColorArg_example(ColorArg carg) {
+char* ColorArg_example(ColorArg carg, bool colorized) {
     char* argtype_name = ArgType_to_str(carg.type);
     if (!argtype_name) return NULL;
     char* val_example = ColorValue_example(carg.value);
@@ -2870,6 +2977,7 @@ char* ColorArg_example(ColorArg carg) {
         free(val_example);
         return NULL;
     }
+
     char* code_repr = NULL;
     if (ColorArg_is_valid(carg)) {
         code_repr = colr_str_repr(codes);
@@ -2880,19 +2988,30 @@ char* ColorArg_example(ColorArg carg) {
             return NULL;
         }
     }
-    char* example;
-    asprintf_or_return(
-        NULL,
-        &example,
-        "%7s:%s●" CODE_RESET_ALL " %-25s %s", // ⬔ ◨
-        argtype_name,
-        codes,
-        val_example,
-        (code_repr ? code_repr : "-")
-    );
+    char* example = NULL;
+    if (colorized) {
+        asprintf_or_return(
+            NULL,
+            &example,
+            "%7s:%s●" CODE_RESET_ALL " %s%s", // ⬔ ◨
+            argtype_name,
+            codes,
+            val_example,
+            (code_repr ? code_repr : "-")
+        );
+    } else {
+        asprintf_or_return(
+            NULL,
+            &example,
+            "%7s:  %s%s",
+            argtype_name,
+            val_example,
+            (code_repr ? code_repr : "-")
+        );
+    }
     free(argtype_name);
     free(val_example);
-    free(codes);
+    if (codes) free(codes);
     if (code_repr) free(code_repr);
     return example;
 }
@@ -3248,6 +3367,102 @@ char* ColorArg_to_str(ColorArg carg) {
     return ColorValue_to_str(carg.type, carg.value);
 }
 
+/*! Free an allocated list of ColorArgs, including the list itself.
+
+    \details
+    Each individual ColorArg will be released, and finally the allocated memory
+    for the list of pointers will be released.
+
+    \pi ps A pointer to a list of ColorArgs, where `NULL` is the last item.
+
+    \examplecodefor{ColorArgs_list_free,.c}
+    #include "colr.h"
+    int main(void) {
+        char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
+        if (!s) return 1;
+        // Call something that creates a list of strings on the heap.
+        ColorArg** carg_list = ColorArgs_from_str(s);
+        free(s);
+        if (!carg_list) return 1;
+        // ... do something with the list of strings.
+
+        // And then free it:
+        ColorArgs_list_free(carg_list);
+    }
+    \endexamplecode
+*/
+void ColorArgs_list_free(ColorArg** ps) {
+    if (!ps) return;
+    // Free the individual items, until NULL is hit.
+    for (size_t i = 0; ps[i]; i++) {
+        free(ps[i]);
+    }
+    // Free the pointer list.
+    free(ps);
+}
+
+/*! Create a list of ColorArgs from escape-codes found in a \string.
+
+    \details
+    This uses ColorArg_from_esc() and colr_str_get_codes() to build a heap-allocated
+    list of heap-allocated ColorArgs.
+
+    \pi s      A string to get the escape-codes from.\n
+               \mustnull
+    \pi unique Whether to only include _unique_ ColorArgs.
+    \return    An allocated list of ColorArg pointers, where the last element is `NULL`.
+               \mustfree
+    \retval    If \p s is `NULL`, or empty, or there are otherwise no escape-codes
+               found in the string, then `NULL` is returned.
+    \retval    On success, there will be at least two pointers behind the return
+               value. The last pointer is always `NULL`.
+
+    \examplecodefor{ColorArgs_from_str,.c}
+    #include "colr.h"
+
+    int main(void) {
+        char* s = colr(
+            Colr("Testing this out.", fore(RED), back(WHITE)),
+            Colr("Again.", fore(RED), style(UNDERLINE))
+        );
+        if (!s) return 1;
+        ColorArg** carg_list = ColorArgs_from_str(s, false);
+        free(s);
+        if (!carg_list) {
+            printferr("No code found? Impossible!\n");
+            return 1;
+        }
+        // Iterate over the ColorArg list.
+        for (size_t i = 0; carg_list[i]; i++) {
+            char* carg_example = ColorArg_example(*(carg_list[i]), true);
+            if (!carg_example) continue;
+            printf("%s\n", carg_example);
+            free(carg_example);
+        }
+        // Free the ColorArgs, and the list of pointers.
+        ColorArgs_list_free(carg_list);
+    }
+    \endexamplecode
+*/
+ColorArg** ColorArgs_from_str(const char* s, bool unique) {
+    // It's okay to pass a NULL pointer to colr_str_get_codes().
+    char** codes = colr_str_get_codes(s, unique);
+    // There may not be any escape-codes in the string, or allocation failed.
+    if (!codes) return NULL;
+    // Count ColorArgs needed.
+    size_t count = 0;
+    while (codes[count++]);
+    // There will be a NULL element added to this list, just like the code list.
+    ColorArg** cargs = malloc(sizeof(ColorArg*) * count);
+    count--;
+    for (size_t i = 0; i < count; i++) {
+        cargs[i] = ColorArg_to_ptr(ColorArg_from_esc(codes[i]));
+    }
+    colr_str_list_free(codes);
+    cargs[count] = NULL;
+    return cargs;
+}
+
 /*! Creates an "empty" ColorJustify, with JUST_NONE set.
 
     \return An initialized ColorJustify, with no justification method set.
@@ -3538,8 +3753,6 @@ size_t ColorText_length(ColorText ctext) {
     if (ctext.fore) length+=ColorArg_length(*(ctext.fore));
     if (ctext.back) length+=ColorArg_length(*(ctext.back));
     if (ctext.style) length+=ColorArg_length(*(ctext.style));
-    // If ctext.style == RESET_ALL is the only thing set, this will not
-    // append the CODE_RESET_ALL (because ctext.style == CODE_RESET_ALL == 0).
     if (ctext.style || ctext.fore || ctext.back) length += CODE_RESET_LEN;
     if (!ColorJustify_is_empty(ctext.just)) {
         // Justification will be used, calculate that in.
@@ -4207,6 +4420,8 @@ bool ColorValue_is_empty(ColorValue cval) {
         (cval.basic == basic(0)) &&
         (cval.ext == ext(0)) &&
         RGB_eq(cval.rgb, rgb(0, 0, 0)) &&
+        // Everything will be set to 0 if TYPE_STYLE and RESET_ALL.
+        (cval.type != TYPE_STYLE) &&
         (cval.style == RESET_ALL)
     );
 }
