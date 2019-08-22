@@ -147,6 +147,7 @@ typedef struct ColrOpts_s {
     bool list_codes;
     bool list_unique_codes;
     bool strip_codes;
+    bool translate_code;
 } ColrOpts;
 
 typedef int (*colr_tool_cmd)(ColrOpts* opts);
@@ -182,6 +183,7 @@ char* read_file_arg(const char* filepath);
 char* read_stdin_arg(void);
 int run_colr_cmd(colr_tool_cmd func, ColrOpts* opts);
 int strip_codes(ColrOpts* opts);
+int translate_code(ColrOpts* opts);
 bool validate_color_arg(ColorArg carg, const char* name);
 #endif // COLR_TOOL_H
 #endif // DOXYGEN_SKIP

@@ -10,10 +10,6 @@ Some features from Colr.py will never be found in ColrC. Colr depends on
 method chaining to implement a lot of features. I'd like to at least be able
 to match the colr-tool features, which I think is possible.
 
-[ ] --translate, show terminal, hex, and rgb values for any color given.
-        Most of the translation functions are done, as far as converting from
-        one color value to another. I need the front-end, displaying the
-        transformations. Not sure what to do about BasicValues yet.
 [ ] --spread, for rainbow spread (same rgb code for several chars).
 
 ## Tests

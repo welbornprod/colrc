@@ -38,7 +38,7 @@
 #endif
 
 //! Current version for ColrC.
-#define COLR_VERSION "0.3.0"
+#define COLR_VERSION "0.3.1"
 
 #ifndef DOXYGEN_SKIP
 /*! \def IS_C11
@@ -991,20 +991,33 @@
 #define ext_hex_or(s, default_value) ExtendedValue_from_hex_default(s, default_value)
 
 /*! \def ext_rgb
-    Creates the closest matching ExtendedValue from an RGB value.
+    Creates the closest matching ExtendedValue from separate red, green, and
+    blue values.
 
     \details
-    This is short-hand for ExtendedValue_from_RGB().
+    This is short-hand for `ExtendedValue_from_RGB((RGB){r, g, b})`.
 
     \pi r   The red value.
     \pi g   The green value.
     \pi b   The blue value.
-
     \return An ExtendedValue that closely matches the RGB value.
 
     \sa ExtendedValue_from_RGB RGB_to_term_RGB
 */
 #define ext_rgb(r, g, b) ExtendedValue_from_RGB((RGB){.red=r, .green=g, .blue=b})
+
+/*! \def ext_RGB
+    Creates the closest matching ExtendedValue from an RGB value.
+
+    \details
+    This is short-hand for `ExtendedValue_from_RGB(rgbval)`.
+
+    \pi rgbval The RGB value to use.
+    \return    An ExtendedValue that closely matches the RGB value.
+
+    \sa ExtendedValue_from_RGB RGB_to_term_RGB
+*/
+#define ext_RGB(rgbval) ExtendedValue_from_RGB(rgbval)
 
 /*! \def fore
     Create a fore color suitable for use with the colr() and Colr() macros.
@@ -1286,7 +1299,7 @@ typedef enum BasicValue {
     Convenience 256 color names.
     \endinternal
 */
-#define XBLACK ((ExtendedValue)0)
+#define XRESET ((ExtendedValue)0)
 #define XRED ((ExtendedValue)1)
 #define XGREEN ((ExtendedValue)2)
 #define XYELLOW ((ExtendedValue)3)
@@ -1302,6 +1315,7 @@ typedef enum BasicValue {
 #define XLIGHTMAGENTA ((ExtendedValue)13)
 #define XLIGHTCYAN ((ExtendedValue)14)
 #define XLIGHTWHITE ((ExtendedValue)15)
+#define XBLACK ((ExtendedValue)16)
 #endif // DOXYGEN_SKIP
 
 //! Convenience `typedef` for clarity when dealing with extended (256) colors.
@@ -1816,6 +1830,7 @@ char* BasicValue_repr(BasicValue bval);
     \endinternal
 */
 bool ExtendedValue_eq(ExtendedValue a, ExtendedValue b);
+int ExtendedValue_from_BasicValue(BasicValue bval);
 int ExtendedValue_from_esc(const char* s);
 int ExtendedValue_from_hex(const char* hexstr);
 ExtendedValue ExtendedValue_from_hex_default(const char* hexstr, ExtendedValue default_value);
@@ -1841,11 +1856,17 @@ char* StyleValue_to_str(StyleValue sval);
     rgb/RGB functions.
     \endinternal
 */
+unsigned char RGB_average(RGB rgb);
 bool RGB_eq(RGB a, RGB b);
+RGB RGB_from_BasicValue(BasicValue bval);
+RGB RGB_from_ExtendedValue(ExtendedValue eval);
 int RGB_from_esc(const char* s, RGB* rgb);
 int RGB_from_hex(const char* hexstr, RGB* rgb);
 RGB RGB_from_hex_default(const char* hexstr, RGB default_value);
 int RGB_from_str(const char* arg, RGB* rgb);
+RGB RGB_grayscale(RGB rgb);
+RGB RGB_inverted(RGB rgb);
+RGB RGB_monochrome(RGB rgb);
 char* RGB_to_hex(RGB rgb);
 char* RGB_to_str(RGB rgb);
 RGB RGB_to_term_RGB(RGB rgb);

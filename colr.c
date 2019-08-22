@@ -10,25 +10,25 @@
 
 //! A list of BasicInfo items, used with BasicValue_from_str().
 const BasicInfo basic_names[] = {
-    {"none", RESET},
     {"reset", RESET},
+    {"none", RESET},
     {"black", BLACK},
     {"blue", BLUE},
     {"cyan", CYAN},
     {"green", GREEN},
     {"magenta", MAGENTA},
-    {"normal", WHITE},
     {"red", RED},
     {"white", WHITE},
+    {"normal", WHITE},
     {"yellow", YELLOW},
     {"lightblack", LIGHTBLACK},
     {"lightblue", LIGHTBLUE},
     {"lightcyan", LIGHTCYAN},
     {"lightgreen", LIGHTGREEN},
     {"lightmagenta", LIGHTMAGENTA},
-    {"lightnormal", LIGHTWHITE},
     {"lightred", LIGHTRED},
     {"lightwhite", LIGHTWHITE},
+    {"lightnormal", LIGHTWHITE},
     {"lightyellow", LIGHTYELLOW},
 };
 
@@ -44,8 +44,8 @@ const ExtendedInfo extended_names[] = {
     {"xblue", XBLUE},
     {"xmagenta", XMAGENTA},
     {"xcyan", XCYAN},
-    {"xnormal", XWHITE},
     {"xwhite", XWHITE},
+    {"xnormal", XWHITE},
     {"xlightred", XLIGHTRED},
     {"xlightgreen", XLIGHTGREEN},
     {"xlightyellow", XLIGHTYELLOW},
@@ -53,8 +53,8 @@ const ExtendedInfo extended_names[] = {
     {"xlightblue", XLIGHTBLUE},
     {"xlightmagenta", XLIGHTMAGENTA},
     {"xlightwhite", XLIGHTWHITE},
-    {"xlightcyan", XLIGHTCYAN},
     {"xlightnormal", XLIGHTWHITE},
+    {"xlightcyan", XLIGHTCYAN},
 };
 
 //! Length of extended_names.
@@ -121,12 +121,12 @@ const RGB ext2rgb_map[] = {
     {192, 192, 192},
     // "Bright" versions of the original 8 colors (8-15).
     {128, 128, 128},
-    {255, 0, 0},
-    {0, 255, 0},
-    {255, 255, 0},
-    {0, 0, 255},
-    {255, 0, 255},
-    {0, 255, 255},
+    {255, 85, 85},
+    {135, 255, 135},
+    {255, 255, 215},
+    {175, 215, 215},
+    {255, 85, 255},
+    {215, 255, 255},
     {255, 255, 255},
     // Strictly ascending.
     {0, 0, 0},
@@ -320,7 +320,7 @@ const RGB ext2rgb_map[] = {
     {255, 95, 135},
     {255, 95, 175},
     {255, 95, 215},
-    {255, 95, 255},
+    {255, 95, 255}, // Another lightmagenta
     {255, 135, 0},
     {255, 135, 95},
     {255, 135, 135},
@@ -372,6 +372,10 @@ const RGB ext2rgb_map[] = {
 };
 
 //! Length of ext2rgb_map  (should always be 256).
+static_assert(
+    (sizeof(ext2rgb_map) / sizeof(ext2rgb_map[0])) == 256,
+    "ExtendedValue->RGB map is not 1:1, should only contain indexes 0-255!"
+);
 const size_t ext2rgb_map_len = sizeof(ext2rgb_map) / sizeof(ext2rgb_map[0]);
 
 //! An array that holds a known color name, it's ExtendedValue, and it's RGB value.
@@ -393,9 +397,9 @@ const ColorNameData colr_name_data[] = {
     {"bisque2", 223, {255, 215, 175}},
     {"bisque3", 181, {215, 175, 175}},
     {"bisque4", 101, {135, 135, 95}},
-    {"black", 16, {0, 0, 0}},
+    {"black", 16, {1, 1, 1}},
     {"blanchedalmond", 230, {255, 255, 215}},
-    {"blue", 21, {0, 0, 255}},
+    {"blue", 4, {0, 0, 255}},
     {"blue2", 20, {0, 0, 215}},
     {"blue3", 18, {0, 0, 135}},
     {"blueviolet", 92, {135, 0, 215}},
@@ -429,7 +433,7 @@ const ColorNameData colr_name_data[] = {
     {"cornsilk2", 224, {255, 215, 215}},
     {"cornsilk3", 187, {215, 215, 175}},
     {"cornsilk4", 102, {135, 135, 135}},
-    {"cyan", 51, {0, 255, 255}},
+    {"cyan", 6, {0, 255, 255}},
     {"cyan2", 44, {0, 215, 215}},
     {"cyan3", 30, {0, 135, 135}},
     {"darkblue", 18, {0, 0, 135}},
@@ -500,7 +504,7 @@ const ColorNameData colr_name_data[] = {
     {"gray37", 59, {95, 95, 95}},
     {"gray50", 102, {135, 135, 135}},
     {"gray59", 102, {135, 135, 135}},
-    {"green", 46, {0, 255, 0}},
+    {"green", 2, {0, 255, 0}},
     {"green2", 40, {0, 215, 0}},
     {"green3", 28, {0, 135, 0}},
     {"greenyellow", 154, {175, 255, 0}},
@@ -537,13 +541,14 @@ const ColorNameData colr_name_data[] = {
     {"lemonchiffon2", 223, {255, 215, 175}},
     {"lemonchiffon3", 187, {215, 215, 175}},
     {"lemonchiffon4", 101, {135, 135, 95}},
-    {"lightblue", 152, {175, 215, 215}},
+    {"lightblack", 243, {128, 128, 128}},
+    {"lightblue", 12, {175, 215, 215}},
     {"lightblue2", 159, {175, 255, 255}},
     {"lightblue3", 153, {175, 215, 255}},
     {"lightblue4", 110, {135, 175, 215}},
     {"lightblue5", 66, {95, 135, 135}},
     {"lightcoral", 210, {255, 135, 135}},
-    {"lightcyan", 195, {215, 255, 255}},
+    {"lightcyan", 14, {215, 255, 255}},
     {"lightcyan3", 152, {175, 215, 215}},
     {"lightcyan4", 102, {135, 135, 135}},
     {"lightgoldenrod", 222, {255, 215, 135}},
@@ -552,11 +557,13 @@ const ColorNameData colr_name_data[] = {
     {"lightgoldenrod4", 101, {135, 135, 95}},
     {"lightgoldenrodyellow", 230, {255, 255, 215}},
     {"lightgray", 188, {215, 215, 215}},
-    {"lightgreen", 120, {135, 255, 135}},
+    {"lightgreen", 10, {135, 255, 135}},
     {"lightgrey", 188, {215, 215, 215}},
+    {"lightmagenta", 13, {255, 85, 255}},
     {"lightpink", 217, {255, 175, 175}},
     {"lightpink2", 174, {215, 135, 135}},
     {"lightpink3", 95, {135, 95, 95}},
+    {"lightred", 9, {255, 85, 85}},
     {"lightsalmon", 216, {255, 175, 135}},
     {"lightsalmon2", 209, {255, 135, 95}},
     {"lightsalmon3", 173, {215, 135, 95}},
@@ -573,13 +580,14 @@ const ColorNameData colr_name_data[] = {
     {"lightsteelblue3", 153, {175, 215, 255}},
     {"lightsteelblue4", 146, {175, 175, 215}},
     {"lightsteelblue5", 66, {95, 135, 135}},
-    {"lightyellow", 230, {255, 255, 215}},
+    {"lightyellow", 11, {255, 255, 215}},
     {"lightyellow2", 230, {255, 255, 215}},
     {"lightyellow3", 187, {215, 215, 175}},
     {"lightyellow4", 102, {135, 135, 135}},
+    {"lightwhite", 15, {255, 255, 255}},
     {"limegreen", 77, {95, 215, 95}},
     {"linen", 230, {255, 255, 215}},
-    {"magenta", 201, {255, 0, 255}},
+    {"magenta", 5, {255, 0, 255}},
     {"magenta2", 164, {215, 0, 215}},
     {"magenta3", 90, {135, 0, 135}},
     {"maroon", 131, {175, 95, 95}},
@@ -661,7 +669,7 @@ const ColorNameData colr_name_data[] = {
     {"purple3", 93, {135, 0, 255}},
     {"purple4", 92, {135, 0, 215}},
     {"purple5", 54, {95, 0, 135}},
-    {"red", 9, {255, 0, 0}},
+    {"red", 1, {255, 0, 0}},
     {"red2", 160, {215, 0, 0}},
     {"red3", 88, {135, 0, 0}},
     {"rosybrown", 138, {175, 135, 135}},
@@ -745,9 +753,9 @@ const ColorNameData colr_name_data[] = {
     {"wheat2", 223, {255, 215, 175}},
     {"wheat3", 180, {215, 175, 135}},
     {"wheat4", 101, {135, 135, 95}},
-    {"white", 231, {255, 255, 255}},
-    {"whitesmoke", 231, {255, 255, 255}},
-    {"yellow", 11, {255, 255, 0}},
+    {"white", 7, {255, 255, 255}},
+    {"whitesmoke", 231, {224, 255, 255}},
+    {"yellow", 3, {255, 255, 0}},
     {"yellow2", 184, {215, 215, 0}},
     {"yellow3", 100, {135, 135, 0}},
     {"yellowgreen", 113, {135, 215, 95}}
@@ -3165,6 +3173,15 @@ ColorArg ColorArg_from_esc(const char* s) {
 */
 ColorArg ColorArg_from_str(ArgType type, const char* colorname) {
     ColorValue cval = ColorValue_from_str(colorname);
+    if ((type == STYLE) && (cval.type != TYPE_STYLE)) {
+        // Bad style string.
+        cval.type = TYPE_INVALID_STYLE;
+        return (ColorArg){
+            .marker=COLORARG_MARKER,
+            .type=STYLE,
+            .value=cval,
+        };
+    }
     return (ColorArg){
         .marker=COLORARG_MARKER,
         .type=type,
@@ -4176,6 +4193,7 @@ bool ColorValue_eq(ColorValue a, ColorValue b) {
 char* ColorValue_example(ColorValue cval) {
     char* valstr;
     char* typestr = ColorType_to_str(cval.type);
+
     if (!typestr) return NULL;
     switch (cval.type) {
         case TYPE_RGB:
@@ -4842,6 +4860,22 @@ bool ExtendedValue_eq(ExtendedValue a, ExtendedValue b) {
     return (a == b);
 }
 
+/*! Convert a BasicValue into an ExtendedValue.
+
+    \details
+    BASIC_INVALID, and other invalid BasicValues will return EXT_INVALID.
+
+    \pi bval BasicValue to convert.
+    \return  An ExtendedValue `0-15` on success, otherwise EXT_INVALID.
+*/
+int ExtendedValue_from_BasicValue(BasicValue bval) {
+    if (BasicValue_is_invalid(bval)) return EXT_INVALID;
+    if (bval < 8) return ext(bval);
+    if ((bval == UNUSED) || (bval == RESET)) return ext(0);
+    if (bval < 18) return ext(bval - 2);
+    return ext(0);
+}
+
 /*! Convert an escape-code \string to an ExtendedValue.
 
     \pi s   Escape-code string.\n
@@ -4919,13 +4953,21 @@ ExtendedValue ExtendedValue_from_hex_default(const char* hexstr, ExtendedValue d
     \sa ExtendedValue
 */
 ExtendedValue ExtendedValue_from_RGB(RGB rgb) {
+    // Try known names.
+    for (size_t i = 0; i < colr_name_data_len; i++) {
+        ColorNameData item = colr_name_data[i];
+        if (RGB_eq(item.rgb, rgb)) {
+            return item.ext;
+        }
+    }
+    // Try the closest matching.
     RGB closestrgb = RGB_to_term_RGB(rgb);
     for (size_t i = 0; i < ext2rgb_map_len; i++) {
         if (RGB_eq(closestrgb, ext2rgb_map[i])) {
             return ext(i);
         }
     }
-    // Should never happen.
+    // This can happen when coming from RGB_inverted, RGB_monochrome, etc.
     return ext(0);
 }
 
@@ -5072,6 +5114,20 @@ char* ExtendedValue_to_str(ExtendedValue eval) {
     return repr;
 }
 
+/*! Return the average for an RGB value.
+
+    \details
+    This is also it's "grayscale" value.
+
+    \pi rgb The RGB value to get the average for.
+    \return A value between `0-255`.
+
+    \sa RGB
+*/
+unsigned char RGB_average(RGB rgb) {
+    return (rgb.red + rgb.green + rgb.blue) / 3;
+}
+
 /*! Compare two RGB structs.
 
     \pi a First RGB value to check.
@@ -5086,6 +5142,77 @@ bool RGB_eq(RGB a, RGB b) {
         (a.green == b.green) &&
         (a.blue == b.blue)
     );
+}
+
+/*! Return an RGB value from a known BasicValue.
+
+    \details
+    Terminals use different values to render basic 3/4-bit escape-codes.
+    The values returned from this function match the names found in
+    `colr_name_data[]`.
+
+    \pi bval A BasicValue to get the RGB value for.
+    \return  An RGB value that matches the BasicValue's color.
+*/
+RGB RGB_from_BasicValue(BasicValue bval) {
+    switch (bval) {
+    case BASIC_INVALID_RANGE:
+        /* fall-through */
+    case BASIC_INVALID:
+        /* fall-through */
+    case BASIC_NONE:
+        return rgb(0, 0, 0);
+    case BLACK:
+        return rgb(1, 1, 1);
+    case RED:
+        return rgb(255, 0, 0);
+    case GREEN:
+        return rgb(0, 255, 0);
+    case YELLOW:
+        return rgb(255, 255, 0);
+    case BLUE:
+        return rgb(0, 0, 255);
+    case MAGENTA:
+        return rgb(255, 0, 255);
+    case CYAN:
+        return rgb(0, 255, 255);
+    case WHITE:
+        return rgb(255, 255, 255);
+    case UNUSED:
+        /* fall-through */
+    case RESET:
+        return rgb(0, 0, 0);
+    case LIGHTBLACK:
+        return rgb(128, 128, 128);
+    case LIGHTRED:
+        return rgb(255, 85, 85);
+    case LIGHTGREEN:
+        return rgb(135, 255, 135);
+    case LIGHTYELLOW:
+        return rgb(255, 255, 215);
+    case LIGHTBLUE:
+        return rgb(175, 215, 215);
+    case LIGHTMAGENTA:
+        return rgb(255, 85, 255);
+    case LIGHTCYAN:
+        return rgb(215, 255, 255);
+    case LIGHTWHITE:
+        return rgb(255, 255, 255);
+    }
+    // Shouldn't happen.
+    return rgb(0,0, 0);
+}
+
+/*! Return an RGB value from a known ExtendedValue.
+
+    \details
+    This is just a type/bounds-checked alias for `ext2rgb_map[eval]`.
+
+    \pi eval An ExtendedValue to get the RGB value for.
+    \return  An RGB value from `ext2rgb_map[]`.
+*/
+RGB RGB_from_ExtendedValue(ExtendedValue eval) {
+    return ext2rgb_map[eval];
 }
 
 /*! Convert an escape-code \string to an actual RGB value.
@@ -5278,6 +5405,49 @@ int RGB_from_str(const char* arg, RGB* rgb) {
     return COLOR_INVALID;
 }
 
+/*! Return a grayscale version of an RGB value.
+
+    \pi rgb The RGB value to convert.
+    \return A grayscale RGB value.
+
+    \sa RGB
+*/
+RGB RGB_grayscale(RGB rgb) {
+    short avg = RGB_average(rgb);
+    // Don't want to return rgb(0, 0, 0) (the "reset" rgb value).
+    if (!avg) avg = 1;
+    return rgb(avg, avg, avg);
+}
+
+/*! Make a copy of an RGB value, with the colors "inverted" (like highlighting
+    text in the terminal).
+
+    \pi rgb The RGB value to invert.
+    \return An "inverted" RGB value.
+
+    \sa RGB
+*/
+RGB RGB_inverted(RGB rgb) {
+    // RGB uses unsigned char, so wrap-around is expected.
+    unsigned char r = 255 - rgb.red;
+    unsigned char g = 255 - rgb.green;
+    unsigned char b = 255 - rgb.blue;
+    // Don't want to return rgb(0, 0, 0) (which is "reset")
+    return rgb(r ? r : 1, g ? g : 1, b ? b : 1);
+}
+
+/*! Convert an RGB value into either black or white, depending on it's average
+    grayscale value.
+
+    \pi rgb The RGB value to convert.
+    \return Either `rgb(1, 1, 1)` or `rgb(255, 255, 255)`.
+*/
+RGB RGB_monochrome(RGB rgb) {
+    unsigned char avg = (rgb.red + rgb.green + rgb.blue) / 3;
+    // rgb(0, 0, 0) is the "reset" rgb code.
+    return avg > 128 ? rgb(255, 255, 255) : rgb(1, 1, 1);
+}
+
 /*! Converts an RGB value into a hex \string.
 
     \pi rgb RGB value to convert.
@@ -5339,7 +5509,7 @@ RGB RGB_to_term_RGB(RGB rgb) {
             }
         }
     }
-    // Convert back into nearest hex value.
+    // Convert back into nearest rgb value.
     return (RGB){.red=res[0], .blue=res[1], .green=res[2]};
 }
 

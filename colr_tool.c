@@ -26,6 +26,8 @@ int main(int argc, char* argv[]) {
         return run_colr_cmd(list_codes, &opts);
     } else if (opts.strip_codes) {
         return run_colr_cmd(strip_codes, &opts);
+    } else if (opts.translate_code) {
+        return run_colr_cmd(translate_code, &opts);
     } else if (opts.is_disabled) {
         // No need to colorize anything, colors were disabled. We are `cat` now.
         return run_colr_cmd(print_plain, &opts);
@@ -144,6 +146,7 @@ ColrOpts ColrOpts_new(void) {
         .list_codes=false,
         .list_unique_codes=false,
         .strip_codes=false,
+        .translate_code=false,
         .out_stream=stdout,
     };
 }
@@ -187,6 +190,7 @@ char* ColrOpts_repr(ColrOpts opts) {
     .list_codes=%s,\n\
     .list_unique_codes=%s,\n\
     .strip_codes=%s,\n\
+    .translate_code=%s,\n\
     .out_stream=%s,\n\
 )",
         text_repr ? text_repr : "NULL",
@@ -207,6 +211,7 @@ char* ColrOpts_repr(ColrOpts opts) {
         bool_str(opts.list_codes),
         bool_str(opts.list_unique_codes),
         bool_str(opts.strip_codes),
+        bool_str(opts.translate_code),
         stream_name(opts.out_stream)
     );
     free(text_repr);
@@ -365,6 +370,7 @@ int parse_args(int argc, char** argv, ColrOpts* opts) {
         // Commands
         {"listcodes", no_argument, 0, 'z'},
         {"stripcodes", no_argument, 0, 'x'},
+        {"translate", no_argument, 0, 't'},
         // Command options.
         {"auto-disable", no_argument, 0, 'a'},
         {"err", no_argument, 0, 'e'},
@@ -372,7 +378,7 @@ int parse_args(int argc, char** argv, ColrOpts* opts) {
         // Rainbow options.
         {"frequency", required_argument, 0, 'q'},
         {"offset", required_argument, 0, 'o'},
-        // Commands.
+        // Example Commands.
         {"basic", no_argument, 0, 0 },
         {"basicbg", no_argument, 0, 0 },
         {"256", no_argument, 0, 0},
@@ -394,7 +400,7 @@ int parse_args(int argc, char** argv, ColrOpts* opts) {
         c = getopt_long(
             argc,
             argv,
-            ":aehuvxzb:c:F:f:l:o:q:r:s:",
+            ":aehtuvxzb:c:F:f:l:o:q:r:s:",
             long_options,
             &option_index
         );
@@ -539,6 +545,9 @@ int parse_args(int argc, char** argv, ColrOpts* opts) {
                 opts->style = style(optarg);
                 if (!validate_color_arg(*(opts->style), optarg)) return EXIT_FAILURE;
                 break;
+            case 't':
+                opts->translate_code = true;
+                break;
             case 'u':
                 opts->list_codes = true;
                 opts->list_unique_codes = true;
@@ -564,12 +573,17 @@ int parse_args(int argc, char** argv, ColrOpts* opts) {
         }
     }
     // Remaining non-option arguments.
+    bool no_colr_opts = (
+        opts->list_codes ||
+        opts->strip_codes ||
+        opts->translate_code
+    );
     while (optind < argc) {
         if (!opts->text && !opts->filepath) {
             // If a file path is set, the text will come later.
             opts->text = argv[optind];
             optind++;
-            if (opts->list_codes || opts->strip_codes) {
+            if (no_colr_opts) {
                 // No color options are needed for this operation.
                 break;
             }
@@ -680,14 +694,16 @@ int print_256(ColrOpts* opts, bool do_back) {
             if ((i == 7) || (i == 15)) fprintf(opts->out_stream, "\n");
             free(text);
         } else {
+            // Print the number as is.
             text = colr(carg, num);
             fprintf(opts->out_stream, "%s ", text);
             free(text);
+            // Print the other 5 in the group.
             int j = i;
             for (int k=0; k < 5; k++) {
                 j = j + 36;
                 snprintf(num, 4, "%03d", j);
-                carg = do_back ? back(ext(i)) : fore(ext(i));
+                carg = do_back ? back(ext(j)) : fore(ext(j));
                 text = colr(carg, num);
                 fprintf(opts->out_stream, "%s ", text);
                 free(text);
@@ -695,6 +711,7 @@ int print_256(ColrOpts* opts, bool do_back) {
             fprintf(opts->out_stream, "\n");
         }
     }
+    // Print the grayscale numbers.
     for (int i = 232; i < 256; i++) {
         snprintf(num, 4, "%03d", i);
         carg = do_back ? back(ext(i)) : fore(ext(i));
@@ -753,22 +770,29 @@ int print_plain(ColrOpts* opts) {
 */
 void print_name(ColrOpts* opts, size_t index, bool do_rgb) {
     if (index >= colr_name_data_len) return;
-    char* name = colr_name_data[index].name;
-    int bval = BasicValue_from_str(name);
-    // Use RGB if requested, use BasicValue if the name is also a BasicValue
-    // name, otherwise use the ExtendedValue.
-    // This matches the behavior of fore(name) and back(name), without doing
-    // all of the lookups.
+    ColorNameData item = colr_name_data[index];
+    char* name = item.name;
+    char* numblock = NULL;
+    if_not_asprintf(&numblock, "   %03d   ", item.ext) {
+        return;
+    }
+
+    RGB foreval = RGB_inverted(RGB_monochrome(item.rgb));
+    ExtendedValue forevalext = foreval.red > 128 ? XWHITE : XBLACK;
+    // Use RGB if requested.
     char* block = colr(
         Colr(
-            "         ",
+            numblock,
             do_rgb ?
-                back(colr_name_data[index].rgb) :
-                bval == BASIC_INVALID ?
-                    back(ext(colr_name_data[index].ext)) :
-                    back(basic(bval))
+                fore(foreval) :
+                fore(forevalext),
+            do_rgb ?
+                back(item.rgb) :
+                back(ext(item.ext)),
+                style(BRIGHT)
             )
     );
+    free(numblock);
     fprintf(opts->out_stream, "%21s: %s", name, block);
     free(block);
 }
@@ -796,7 +820,7 @@ int print_names(ColrOpts* opts, bool do_rgb) {
     if (printed != colr_name_data_len) {
         // Should never happen unless colr_name_data is updated.
         printferr("\nSome names are missing from this print-out.\n");
-        return 1;
+        return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
 }
@@ -882,7 +906,7 @@ int print_usage(const char* reason) {
     Usage:\n\
         colr -h | -v\n\
         colr --basic | --256 | --names | --rainbow | --rgb | --rgbterm\n\
-        colr (-x | -z [-u]) [-a] [TEXT]\n\
+        colr (-t | -x | -z [-u]) [-a] [TEXT]\n\
         colr [TEXT] [FORE | -f color] [BACK | -b color] [STYLE | -s style]\n\
              [-a] [-c num | -l num | -r num] [-o num] [-q num]\n\
         colr [-F file] [FORE | -f color] [BACK | -b color] [STYLE | -s style]\n\
@@ -896,74 +920,81 @@ int print_usage(const char* reason) {
 */
 int print_usage_full() {
     print_usage(NULL);
-    printf("\
-\n\
-    Commands:\n\
-        --basic[bg]          : Print all basic color names and colors.\n\
-        --256[bg]            : Print all extended color values and colors.\n\
-        --names[rgb]         : Print extra extended/rgb names and colors.\n\
-                               If 'rgb' is appended to the argument, RGB colors\n\
-                               will be used.\n\
-        --rainbow[bg]        : Print a rainbow example.\n\
-        --rgb[bg]            : Print some rgb codes.\n\
-        --rgbterm[bg]        : Print some 256-compatible rgb codes.\n\
-\n\
-    If 'bg' is appended to a command argument, back colors will be used.\n\
-\n\
-    Options:\n\
-        TEXT                    : Text to colorize.\n\
-                                  Use \"-\" or \"-F -\" to force stdin.\n\
-                                  Default: stdin\n\
-        FORE                    : Fore color name/value for text.\n\
-                                  If set to 'rainbow', the text will be rainbowized.\n\
-                                  If set to 'rainbowterm', 256-color codes are used,\n\
-                                  instead of RGB.\n\
-        BACK                    : Back color name/value for text.\n\
-                                  If set to 'rainbow', the back colors will be rainbowized.\n\
-                                  If set to 'rainbowterm', 256-color codes are used,\n\
-                                  instead of RGB.\n\
-        STYLE                   : Style name for text.\n\
-        -a,--auto-disable       : Disable colored output when not outputting to a terminal.\n\
-        -b val,--back val       : Specify the back color explicitly, in any order.\n\
-        -c num,--center num     : Center-justify the resulting text using the specified width.\n\
-                                  If \"0\" is given, the terminal-width will be used.\n\
-        -F file,--file file     : Read text from a file.\n\
-                                  Use \"-F -\" to force stdin.\n\
-        -f val,--fore val       : Specify the fore color explicitly, in any order.\n\
-        -h, --help              : Print this message and exit.\n\
-        -l num,--ljust num      : Left-justify the resulting text using the specified width.\n\
-                                  If \"0\" is given, the terminal-width will be used.\n\
-        -o num,--offset num     : Starting offset into the rainbow if \"rainbow\"\n\
-                                  is used as a fore/back color.\n\
-                                  This will \"shift\" the starting color of the\n\
-                                  rainbow.\n\
-                                  Values must be 0 or positive.\n\
-                                  Default: 3\n\
-        -q num,--frequency num  : Frequency when \"rainbow\" is used as a fore/back color.\n\
-                                  Higher numbers cause more contrast.\n\
-                                  Lower numbers cause \"smoother\" gradients.\n\
-                                  Values can be: 0.1-1.0\n\
-                                  Default: 0.1\n\
-        -r num,--rjust num      : Right-justify the resulting text using the specified width.\n\
-                                  If \"0\" is given, the terminal-width will be used.\n\
-        -s val,--style val      : Specify the style explicitly, in any order.\n\
-        -u,--unique             : Only list unique escape codes with -z.\n\
-        -v,--version            : Show version and exit.\n\
-        -x,--stripcodes         : Strip escape codes from the text.\n\
-        -z,--listcodes          : List escape codes found in the text.\n\
-\n\
-    When the flag arguments are used (-f, -b, -s), the order does not matter\n\
-    and any of them may be omitted. The remaining non-flag arguments are parsed\n\
-    in order (text, fore, back, style).\n\
-\n\
-    Color values can be one of:\n\
-        A known name.      Use --names to list all known color names.\n\
-                           \"none\", \"red\", \"blue\", \"lightblue\", \"black\", etc.\n\
-                           \"rainbow\" causes fore or back colors to be rainbowized.\n\
-        A 256-color value. 0-255\n\
-        An RGB string.     \"R;G;B\", \"R:G:B\", \"R,G,B\", or \"R G B\".\n\
-        A hex color.       \"#ffffff\", or the short-form \"#fff\"\n\
-    ");
+    char* help_lines[] = {
+"\n",
+"    Commands:\n",
+"        --basic[bg]          : Print all basic color names and colors.\n",
+"        --256[bg]            : Print all extended color values and colors.\n",
+"        --names[rgb]         : Print extra extended/rgb names and colors.\n",
+"                               If 'rgb' is appended to the argument, RGB colors\n",
+"                               will be used.\n",
+"        --rainbow[bg]        : Print a rainbow example.\n",
+"        --rgb[bg]            : Print some rgb codes.\n",
+"        --rgbterm[bg]        : Print some 256-compatible rgb codes.\n",
+"\n",
+"    If 'bg' is appended to a command argument, back colors will be used.\n",
+"\n",
+"    Options:\n",
+"        TEXT                    : Text to colorize.\n",
+"                                  Use \"-\" or \"-F -\" to force stdin.\n",
+"                                  Default: stdin\n",
+"        FORE                    : Fore color name/value for text.\n",
+"                                  If set to 'rainbow', the text will be rainbowized.\n",
+"                                  If set to 'rainbowterm', 256-color codes are used,\n",
+"                                  instead of RGB.\n",
+"        BACK                    : Back color name/value for text.\n",
+"                                  If set to 'rainbow', the back colors will be rainbowized.\n",
+"                                  If set to 'rainbowterm', 256-color codes are used,\n",
+"                                  instead of RGB.\n",
+"        STYLE                   : Style name for text.\n",
+"        -a,--auto-disable       : Disable colored output when not outputting to a terminal.\n",
+"        -b val,--back val       : Specify the back color explicitly, in any order.\n",
+"        -c num,--center num     : Center-justify the resulting text using the specified width.\n",
+"                                  If \"0\" is given, the terminal-width will be used.\n",
+"        -F file,--file file     : Read text from a file.\n",
+"                                  Use \"-F -\" to force stdin.\n",
+"        -f val,--fore val       : Specify the fore color explicitly, in any order.\n",
+"        -h, --help              : Print this message and exit.\n",
+"        -l num,--ljust num      : Left-justify the resulting text using the specified width.\n",
+"                                  If \"0\" is given, the terminal-width will be used.\n",
+"        -o num,--offset num     : Starting offset into the rainbow if \"rainbow\"\n",
+"                                  is used as a fore/back color.\n",
+"                                  This will \"shift\" the starting color of the\n",
+"                                  rainbow.\n",
+"                                  Values must be 0 or positive.\n",
+"                                  Default: 3\n",
+"        -q num,--frequency num  : Frequency when \"rainbow\" is used as a fore/back color.\n",
+"                                  Higher numbers cause more contrast.\n",
+"                                  Lower numbers cause \"smoother\" gradients.\n",
+"                                  Values can be: 0.1-1.0\n",
+"                                  Default: 0.1\n",
+"        -r num,--rjust num      : Right-justify the resulting text using the specified width.\n",
+"                                  If \"0\" is given, the terminal-width will be used.\n",
+"        -s val,--style val      : Specify the style explicitly, in any order.\n",
+"        -t,--translate          : Translate a color into all three color types.\n",
+"        -u,--unique             : Only list unique escape codes with -z.\n",
+"        -v,--version            : Show version and exit.\n",
+"        -x,--stripcodes         : Strip escape codes from the text.\n",
+"        -z,--listcodes          : List escape codes found in the text.\n",
+"\n",
+"    When the flag arguments are used (-f, -b, -s), the order does not matter\n",
+"    and any of them may be omitted. The remaining non-flag arguments are parsed\n",
+"    in order (text, fore, back, style).\n",
+"\n",
+"    Color values can be one of:\n",
+"        A known name.      Use --names to list all known color names.\n",
+"                           \"none\", \"red\", \"blue\", \"lightblue\", \"black\", etc.\n",
+"                           \"rainbow\" causes fore or back colors to be rainbowized.\n",
+"        A 256-color value. 0-255\n",
+"        An RGB string.     \"R;G;B\", \"R:G:B\", \"R,G,B\", or \"R G B\".\n",
+"        A hex color.       \"#ffffff\", or the short-form \"#fff\"\n",
+NULL
+    };
+    size_t i = 0;
+    while (help_lines[i]) {
+        printf("%s", help_lines[i++]);
+    }
+
     puts("\n");
     return EXIT_SUCCESS;
 }
@@ -1109,6 +1140,109 @@ int strip_codes(ColrOpts* opts) {
     return EXIT_SUCCESS;
 }
 
+/*! Translate a user's color argument into all color types.
+
+    \pi opts ColrOpts to get the text/options from.
+    \return  `EXIT_SUCCESS` on success, otherwise `EXIT_FAILURE`.
+*/
+int translate_code(ColrOpts* opts) {
+    ColorArg* carg = fore(opts->text);
+    if (!validate_color_arg(*carg, opts->text)) {
+        free(carg);
+        return EXIT_FAILURE;
+    }
+    ColorValue cval = carg->value;
+    free(carg);
+    BasicValue bval = cval.basic;
+    ExtendedValue eval = cval.ext;
+    RGB rgbval = cval.rgb;
+
+    if (cval.type == TYPE_BASIC) {
+        dbug("Using BasicValue for: %s\n", opts->text);
+        rgbval = RGB_from_BasicValue(bval);
+        eval = ExtendedValue_from_BasicValue(bval);
+    } else if (cval.type == TYPE_EXTENDED) {
+        rgbval = RGB_from_ExtendedValue(eval);
+        bval = BASIC_NONE;
+    } else if (cval.type == TYPE_RGB) {
+        eval = ExtendedValue_from_RGB(rgbval);
+        bval = BASIC_NONE;
+    } else {
+        printferr("Invalid color: %s\n", opts->text);
+        return EXIT_FAILURE;
+    }
+
+    if (bval == BASIC_NONE) {
+        dbug("Converting to BasicValue from ExtendedValue: %d\n", eval);
+        // Only convert the first 16 ext values to basic.
+        BasicValue trybval = BasicValue_from_str(opts->text);
+        if (BasicValue_is_invalid(trybval)){
+            trybval = BASIC_NONE;
+            if (eval < 8) trybval = basic(eval);
+            else if (eval < 16) trybval = basic(eval + 2);
+            else {
+                for (size_t i = 0; i < colr_name_data_len; i++) {
+                    ColorNameData item = colr_name_data[i];
+                    if (item.ext == eval) {
+                        // Try the normal color names and light color names.
+                        trybval = BasicValue_from_str(item.name);
+                        dbug("FOUND IT: %d\n", trybval);
+                        break;
+                    }
+                }
+                if (BasicValue_is_invalid(trybval)) trybval = BASIC_NONE;
+            }
+        }
+        bval = trybval;
+    }
+
+    char* bstr = NULL;
+    if (bval != BASIC_NONE) bstr = BasicValue_to_str(bval);
+    if (!bstr) asprintf_or_return(EXIT_FAILURE, &bstr, "?");
+    char* estr = ExtendedValue_to_str(eval);
+    if (!estr) asprintf_or_return(EXIT_FAILURE, &estr, "?");
+    char* rgbstr = RGB_to_str(rgbval);
+    if (!rgbstr) asprintf_or_return(EXIT_FAILURE, &rgbstr, "?");
+    char* hexstr = RGB_to_hex(rgbval);
+    if (!hexstr) asprintf_or_return(EXIT_FAILURE, &hexstr, "?");
+    char* blbl = Colr_str("basic:", style(UNDERLINE));
+    if (!blbl) asprintf_or_return(EXIT_FAILURE, &blbl, "basic:");
+    char* elbl = Colr_str("ext:", style(UNDERLINE));
+    if (!elbl) asprintf_or_return(EXIT_FAILURE, &elbl, "ext:");
+    char* rgblbl = Colr_str("rgb:", style(UNDERLINE));
+    if (!rgblbl) asprintf_or_return(EXIT_FAILURE, &rgblbl, "rgb:");
+    char* hexlbl = Colr_str("hex:", style(UNDERLINE));
+    if (!hexlbl) asprintf_or_return(EXIT_FAILURE, &hexlbl, "hex:");
+
+    char* transtr = NULL;
+    asprintf_or_return(
+        EXIT_FAILURE,
+        &transtr,
+        "%s %-12s %s %-3s %s %-11s %s %-7s",
+        blbl,
+        bstr,
+        elbl,
+        estr,
+        rgblbl,
+        rgbstr,
+        hexlbl,
+        hexstr
+    );
+    free(bstr);
+    free(estr);
+    free(rgbstr);
+    free(hexstr);
+    free(blbl);
+    free(elbl);
+    free(rgblbl);
+    free(hexlbl);
+    // Always use the ExtendedValue.
+    colr_print(Colr("●", fore(ext(eval))));
+    printf(" - %s\n", transtr);
+    free(transtr);
+    return EXIT_SUCCESS;
+}
+
 /*! Checks `nametype` for TYPE_INVALID*, and prints the usage string
     with a warning message if it is invalid.
     If the code is valid, it simply returns `true`.
@@ -1116,16 +1250,14 @@ int strip_codes(ColrOpts* opts) {
 bool validate_color_arg(ColorArg carg, const char* name) {
     if (!name) {
         #if defined(DEBUG) && defined(dbug)
-        char* argtype = ArgType_to_str(carg.type);
-        dbug("No %s arg given.\n", argtype);
-        free(argtype);
+            char* argtype = ArgType_to_str(carg.type);
+            dbug("No %s arg given.\n", argtype);
+            free(argtype);
         #endif
-        return true;
+        return false;
     }
     char* errmsg;
-    char argtype[6] = "fore";
-    if (carg.type == BACK) sprintf(argtype, "%s", "back");
-
+    char* argtype = ArgType_to_str(carg.type);
     switch (carg.value.type) {
         case TYPE_INVALID_RGB_RANGE:
             asprintf_or_return(
@@ -1149,8 +1281,9 @@ bool validate_color_arg(ColorArg carg, const char* name) {
             asprintf_or_return(
                 false,
                 &errmsg,
-                "Invalid %s color name: %s",
+                "Invalid %s %sname: %s",
                 argtype,
+                (carg.type == BACK) || (carg.type == FORE) ? "color " : "",
                 name
             );
             break;
@@ -1164,10 +1297,12 @@ bool validate_color_arg(ColorArg carg, const char* name) {
             break;
         default:
             // Valid color arg passed.
+            free(argtype);
             return true;
     }
 
     // Print the error message that was built.
+    free(argtype);
     print_usage(errmsg);
     free(errmsg);
     return false;

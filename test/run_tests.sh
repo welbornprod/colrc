@@ -4,7 +4,7 @@
 # This was created to make the Makefile a little easier to understand/write.
 # -Christopher Welborn 07-13-2019
 appname="ColrC - Test Runner"
-appversion="0.0.2"
+appversion="0.0.3"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 appdir="${apppath%/*}"
@@ -216,7 +216,7 @@ function run_colrc_cmds {
                 # Use stdin.
                 colrfeedcmd=(
                     "$colrexe"
-                    "Testing $cmdarg in $run_mode mode."
+                    "Testing $cmdarg stdin in $run_mode mode."
                     "red"
                     "34"
                     "underline"
