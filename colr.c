@@ -10,25 +10,25 @@
 
 //! A list of BasicInfo items, used with BasicValue_from_str().
 const BasicInfo basic_names[] = {
-    {"none", RESET},
     {"reset", RESET},
+    {"none", RESET},
     {"black", BLACK},
     {"blue", BLUE},
     {"cyan", CYAN},
     {"green", GREEN},
     {"magenta", MAGENTA},
-    {"normal", WHITE},
     {"red", RED},
     {"white", WHITE},
+    {"normal", WHITE},
     {"yellow", YELLOW},
     {"lightblack", LIGHTBLACK},
     {"lightblue", LIGHTBLUE},
     {"lightcyan", LIGHTCYAN},
     {"lightgreen", LIGHTGREEN},
     {"lightmagenta", LIGHTMAGENTA},
-    {"lightnormal", LIGHTWHITE},
     {"lightred", LIGHTRED},
     {"lightwhite", LIGHTWHITE},
+    {"lightnormal", LIGHTWHITE},
     {"lightyellow", LIGHTYELLOW},
 };
 
@@ -44,8 +44,8 @@ const ExtendedInfo extended_names[] = {
     {"xblue", XBLUE},
     {"xmagenta", XMAGENTA},
     {"xcyan", XCYAN},
-    {"xnormal", XWHITE},
     {"xwhite", XWHITE},
+    {"xnormal", XWHITE},
     {"xlightred", XLIGHTRED},
     {"xlightgreen", XLIGHTGREEN},
     {"xlightyellow", XLIGHTYELLOW},
@@ -53,8 +53,8 @@ const ExtendedInfo extended_names[] = {
     {"xlightblue", XLIGHTBLUE},
     {"xlightmagenta", XLIGHTMAGENTA},
     {"xlightwhite", XLIGHTWHITE},
-    {"xlightcyan", XLIGHTCYAN},
     {"xlightnormal", XLIGHTWHITE},
+    {"xlightcyan", XLIGHTCYAN},
 };
 
 //! Length of extended_names.
@@ -121,12 +121,12 @@ const RGB ext2rgb_map[] = {
     {192, 192, 192},
     // "Bright" versions of the original 8 colors (8-15).
     {128, 128, 128},
-    {255, 0, 0},
-    {0, 255, 0},
-    {255, 255, 0},
-    {0, 0, 255},
-    {255, 0, 255},
-    {0, 255, 255},
+    {255, 85, 85},
+    {135, 255, 135},
+    {255, 255, 215},
+    {175, 215, 215},
+    {255, 85, 255},
+    {215, 255, 255},
     {255, 255, 255},
     // Strictly ascending.
     {0, 0, 0},
@@ -320,7 +320,7 @@ const RGB ext2rgb_map[] = {
     {255, 95, 135},
     {255, 95, 175},
     {255, 95, 215},
-    {255, 95, 255},
+    {255, 95, 255}, // Another lightmagenta
     {255, 135, 0},
     {255, 135, 95},
     {255, 135, 135},
@@ -4860,6 +4860,22 @@ bool ExtendedValue_eq(ExtendedValue a, ExtendedValue b) {
     return (a == b);
 }
 
+/*! Convert a BasicValue into an ExtendedValue.
+
+    \details
+    BASIC_INVALID, and other invalid BasicValues will return EXT_INVALID.
+
+    \pi bval BasicValue to convert.
+    \return  An ExtendedValue `0-15` on success, otherwise EXT_INVALID.
+*/
+int ExtendedValue_from_BasicValue(BasicValue bval) {
+    if (BasicValue_is_invalid(bval)) return EXT_INVALID;
+    if (bval < 8) return ext(bval);
+    if ((bval == UNUSED) || (bval == RESET)) return ext(0);
+    if (bval < 18) return ext(bval - 2);
+    return ext(0);
+}
+
 /*! Convert an escape-code \string to an ExtendedValue.
 
     \pi s   Escape-code string.\n
@@ -4937,6 +4953,14 @@ ExtendedValue ExtendedValue_from_hex_default(const char* hexstr, ExtendedValue d
     \sa ExtendedValue
 */
 ExtendedValue ExtendedValue_from_RGB(RGB rgb) {
+    // Try known names.
+    for (size_t i = 0; i < colr_name_data_len; i++) {
+        ColorNameData item = colr_name_data[i];
+        if (RGB_eq(item.rgb, rgb)) {
+            return item.ext;
+        }
+    }
+    // Try the closest matching.
     RGB closestrgb = RGB_to_term_RGB(rgb);
     for (size_t i = 0; i < ext2rgb_map_len; i++) {
         if (RGB_eq(closestrgb, ext2rgb_map[i])) {
@@ -5485,7 +5509,7 @@ RGB RGB_to_term_RGB(RGB rgb) {
             }
         }
     }
-    // Convert back into nearest hex value.
+    // Convert back into nearest rgb value.
     return (RGB){.red=res[0], .blue=res[1], .green=res[2]};
 }
 

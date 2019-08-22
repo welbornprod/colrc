@@ -38,7 +38,7 @@
 #endif
 
 //! Current version for ColrC.
-#define COLR_VERSION "0.3.0"
+#define COLR_VERSION "0.3.1"
 
 #ifndef DOXYGEN_SKIP
 /*! \def IS_C11
@@ -1830,6 +1830,7 @@ char* BasicValue_repr(BasicValue bval);
     \endinternal
 */
 bool ExtendedValue_eq(ExtendedValue a, ExtendedValue b);
+int ExtendedValue_from_BasicValue(BasicValue bval);
 int ExtendedValue_from_esc(const char* s);
 int ExtendedValue_from_hex(const char* hexstr);
 ExtendedValue ExtendedValue_from_hex_default(const char* hexstr, ExtendedValue default_value);
@@ -1857,6 +1858,7 @@ char* StyleValue_to_str(StyleValue sval);
 */
 unsigned char RGB_average(RGB rgb);
 bool RGB_eq(RGB a, RGB b);
+RGB RGB_from_BasicValue(BasicValue bval);
 RGB RGB_from_ExtendedValue(ExtendedValue eval);
 int RGB_from_esc(const char* s, RGB* rgb);
 int RGB_from_hex(const char* hexstr, RGB* rgb);
