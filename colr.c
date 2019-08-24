@@ -110,12 +110,12 @@ const size_t style_names_len = sizeof(style_names) / sizeof(style_names[0]);
 const RGB ext2rgb_map[] = {
     // Primary 3-bit colors (8 colors, 0-7)
     {0, 0, 0},
-    {128, 0, 0},
-    {0, 128, 0},
-    {128, 128, 0},
-    {0, 0, 128},
-    {128, 0, 128},
-    {0, 128, 128},
+    {255, 0, 0},
+    {0, 255, 0},
+    {255, 255, 0},
+    {0, 0, 255},
+    {255, 0, 255},
+    {0, 255, 255},
     {192, 192, 192},
     // "Bright" versions of the original 8 colors (8-15).
     {128, 128, 128},
