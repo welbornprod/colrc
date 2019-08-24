@@ -4,7 +4,7 @@
 # This was created to make the Makefile a little easier to understand/write.
 # -Christopher Welborn 07-13-2019
 appname="ColrC - Test Runner"
-appversion="0.0.3"
+appversion="0.0.4"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 appdir="${apppath%/*}"
@@ -389,8 +389,6 @@ function run_everything {
         echo_status "Rebuilding ($rebuild_colr)" "$colrexe"
         make_in "$colrdir" clean "$rebuild_colr" || \
             fail "\nTried to rebuild in $rebuild_colr mode, and failed."
-    else
-        rebuild_colr="release"
     fi
     local do_test_rebuild=0
     if [[ -n "$rebuild_tests" ]]; then
@@ -404,13 +402,13 @@ function run_everything {
         echo_status "Rebuilding ($rebuild_tests)" "$testexe"
         make_in "$testdir" clean "$rebuild_tests" || \
             fail "\nTried to rebuild tests in $rebuild_tests mode, and failed."
-    else
-        rebuild_tests="release"
     fi
 
-    printf "\n%sSuccess%s, the binaries are:\n" "$GREEN" "$NC" 1>&2
-    "${is_build_cmd[@]}" -s "$colrexe"
-    "${is_build_cmd[@]}" -s "$testexe"
+    local colrc_build_name test_build_name
+
+    colrc_build_name="$("${is_build_cmd[@]}" --color --status "$colrexe")"
+    test_build_name="$("${is_build_cmd[@]}" --color --status "$testexe")"
+    printf "\n%sSuccess%s, the binaries are: %s, %s\n" "$GREEN" "$NC" "$colrc_build_name" "$test_build_name" 1>&2
 }
 
 function run_source_examples {

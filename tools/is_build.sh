@@ -118,7 +118,7 @@ function print_usage {
 
     Usage:
         $appscript [-h | -v]
-        $appscript [-b] [-n] [-o] [-s] FILE [BUILD...]
+        $appscript [-b] [-c | -n] [-o] [-s] FILE [BUILD...]
 
     Options:
         BUILD         : One or more build names to check against the executable.
@@ -127,6 +127,8 @@ function print_usage {
                         If no args are given, the first executable in the
                         CWD is used.
         -b,--build    : Only show the build string, not the binary name.
+        -c,--color    : Use colors.
+                        This is enabled if outputting to a terminal.
         -h,--help     : Show this message.
         -n,--nocolor  : Don't use colors.
         -o,--or       : Match against any of the build names.
@@ -145,13 +147,16 @@ declare -a nonflags
 do_or=0
 do_binary=1
 do_status=0
+force_colr=0
 no_colr=0
-[[ -t 1 ]] || no_colr=1
 
 for arg; do
     case "$arg" in
         "-b" | "--build")
             do_binary=0
+            ;;
+        "-c" | "--color")
+            force_colr=1
             ;;
         "-h" | "--help")
             print_usage ""
@@ -179,6 +184,10 @@ for arg; do
 done
 
 { (( $# > 0 )) ||  [[ -x "$binary" ]]; } ||  fail "No executable given, none found either."
+
+# Automatically disable color unless force_colr was used.
+((force_colr)) || { [[ -t 1 ]] || no_colr=1; }
+
 
 no_args=0
 if ((${#nonflags[@]})); then
