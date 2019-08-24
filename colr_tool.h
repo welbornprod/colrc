@@ -18,12 +18,14 @@
 #endif
 
 #include <getopt.h>
+#include <locale.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-// colr.h does not include dbug.h, but it needs to be included first.
-// colr.h will define dbug() as a no-op if it gets included before dbug.h.
-#include "dbug.h"
-// colr.h already includes many headers that are used in the colr tool.
+#include <unistd.h>
 #include "colr.h"
 
 #pragma GCC diagnostic ignored "-Wunused-macros"

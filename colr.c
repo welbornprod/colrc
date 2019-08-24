@@ -99,14 +99,12 @@ const size_t style_names_len = sizeof(style_names) / sizeof(style_names[0]);
 
     \examplecodefor{ext2rgb_map,.c}
     // Fast map an ExtendedValue to an RGB value.
-    ExtendedValue eval = 9; // 9 happens to be XRED (255;0;0 in RGB).
+    ExtendedValue eval = 9; // 9 happens to be XRED (255;85;85 in RGB).
     RGB rgbval = ext2rgb_map[eval];
 
     // The result from ExtendedValue_from_RGB should always match the map.
     assert(ExtendedValue_from_RGB(rgbval) == eval);
 
-    // Also, the result of RGB_to_term_RGB() should always be in the map.
-    assert(RGB_eq(ext2rgb_map[eval], RGB_to_term_RGB(rgb(255, 47, 23))));
     \endexamplecode
 */
 const RGB ext2rgb_map[] = {
@@ -3398,7 +3396,7 @@ char* ColorArg_to_str(ColorArg carg) {
         char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
         if (!s) return 1;
         // Call something that creates a list of strings on the heap.
-        ColorArg** carg_list = ColorArgs_from_str(s);
+        ColorArg** carg_list = ColorArgs_from_str(s, false);
         free(s);
         if (!carg_list) return 1;
         // ... do something with the list of strings.
@@ -4108,7 +4106,7 @@ char* ColorType_repr(ColorType type) {
              \maybenullalloc
 */
 char* ColorType_to_str(ColorType type) {
-    char* typestr;
+    char* typestr = NULL;
     switch (type) {
         case TYPE_NONE:
             asprintf_or_return(NULL, &typestr, "none");
@@ -4193,8 +4191,8 @@ bool ColorValue_eq(ColorValue a, ColorValue b) {
 char* ColorValue_example(ColorValue cval) {
     char* valstr;
     char* typestr = ColorType_to_str(cval.type);
-
     if (!typestr) return NULL;
+
     switch (cval.type) {
         case TYPE_RGB:
             valstr = RGB_to_str(cval.rgb);
@@ -4739,6 +4737,9 @@ bool BasicValue_is_valid(BasicValue x) {
 char* BasicValue_repr(BasicValue bval) {
     char* repr;
     switch (bval) {
+        case BASIC_INVALID_RANGE:
+            asprintf_or_return(NULL, &repr, "(BasicValue) BASIC_INVALID_RANGE");
+            break;
         case BASIC_INVALID:
             asprintf_or_return(NULL, &repr, "(BasicValue) BASIC_INVALID");
             break;
@@ -4801,12 +4802,12 @@ char* BasicValue_repr(BasicValue bval) {
             break;
         default:
             // Should never happen, but the value will be known if it does.
-            asprintf_or_return(NULL, &repr, "(BasicValue) %d", bval);
+            asprintf_or_return(NULL, &repr, "(Invalid BasicValue) %d", bval);
     }
     return repr;
 }
 
-/*! Converts a fore/back BasicValue to the actual 4bit ansi code number.
+/*! Converts a fore/back BasicValue to the actual ansi code number.
 
     \pi type ArgType (FORE/BACK).
     \pi bval BasicValue to convert.

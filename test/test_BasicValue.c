@@ -7,6 +7,17 @@
 
 describe(BasicValue) {
 subdesc(BasicValue_from_esc) {
+    it("recognizes invalid basic codes") {
+        char* invalid_args[] = {
+            NULL,
+            "",
+            "\x1b[m",
+            "not_a_code"
+        };
+        for_each(invalid_args, i) {
+            assert_colr_eq(BasicValue_from_esc(invalid_args[i]), BASIC_INVALID);
+        }
+    }
     it("recognizes valid basic codes") {
         for_len(basic_names_len, i) {
             BasicValue bval = basic_names[i].value;

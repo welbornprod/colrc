@@ -409,8 +409,8 @@ function run_everything {
     fi
 
     printf "\n%sSuccess%s, the binaries are:\n" "$GREEN" "$NC" 1>&2
-    "${is_build_cmd[@]}" "$colrexe"
-    "${is_build_cmd[@]}" "$testexe"
+    "${is_build_cmd[@]}" -s "$colrexe"
+    "${is_build_cmd[@]}" -s "$testexe"
 }
 
 function run_source_examples {

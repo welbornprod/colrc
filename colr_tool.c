@@ -816,12 +816,12 @@ int print_names(ColrOpts* opts, bool do_rgb) {
         printed++;
         fprintf(opts->out_stream, "\n");
     }
-    fprintf(opts->out_stream, "\n");
-    if (printed != colr_name_data_len) {
-        // Should never happen unless colr_name_data is updated.
-        printferr("\nSome names are missing from this print-out.\n");
-        return EXIT_FAILURE;
+    // Print remaining names, should be 3 or less.
+    while (printed < colr_name_data_len) {
+        print_name(opts, printed, do_rgb);
+        printed++;
     }
+    fprintf(opts->out_stream, "\n\n");
     return EXIT_SUCCESS;
 }
 

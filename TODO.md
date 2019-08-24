@@ -20,8 +20,7 @@ to match the colr-tool features, which I think is possible.
     [ ] Tests for `ColorType_to_str`.
     [ ] Tests for '*_example' functions.
     [ ] Tests for `rainbow*` functions.
-    [ ] Tests for `BasicValue`
-        [ ] Tests for `BasicValue_from_esc` with invalid escape-codes.
+    [ ] Tests for `BasicValue`.
         [ ] Tests for `BasicValue_is_invalid`.
         [ ] Coverage for `BasicValue_repr`.
         [ ] Tests for `BasicValue_to_str`.

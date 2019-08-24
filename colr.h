@@ -69,24 +69,24 @@
 #endif
 
 #include <assert.h>
-#include <ctype.h>
-#include <errno.h>
-#include <malloc.h>
-#include <math.h>  /* Must include `-lm` in compiler args or Makefile LIBS! */
-#include <limits.h>
-#include <locale.h>
-#include <search.h>
-#include <stdarg.h>
+#include <ctype.h> // islower, iscntrl, isdigit, etc.
+/*  Must include `-lm` in compiler args or Makefile LIBS!
+    This is for the `sin()` function used in `rainbow_step()`.
+*/
+#include <math.h>
+#include <limits.h> // Used for struct markers, and asprintf return checking.
+#include <locale.h> // Not used in colr.c, but necessary for users of rainbow stuff.
+#include <stdarg.h> // Variadic functions and `va_list`.
 #include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-#include <wchar.h>
-#include <ttyent.h>
-
-// #include "dbug.h"
+#include <stdio.h> // snprintf, etc.
+#include <stdlib.h> // calloc, free, malloc, etc.
+#include <string.h> // strcat
+#include <sys/ioctl.h> //  For `struct winsize` and the `ioctl()` call to use it.
+#include <unistd.h> // isatty
+/* This is only enabled for development. */
+#if defined(DEBUG) && defined(COLR_DEBUG)
+    #include "dbug.h"
+#endif
 
 /* Tell gcc to ignore unused macros. */
 #pragma GCC diagnostic ignored "-Wunused-macros"

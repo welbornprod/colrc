@@ -98,7 +98,7 @@ coverage:
 
 .PHONY: debug
 debug: tags
-debug: CFLAGS+=-g3 -DDEBUG
+debug: CFLAGS+=-g3 -DDEBUG -DCOLR_DEBUG
 debug: $(binary)
 
 .PHONY: lib
@@ -109,7 +109,7 @@ lib:
 	$(CC) -shared -o libcolr.so colr.o
 
 .PHONY: libdebug
-libdebug: CFLAGS+=-g3 -DDEBUG
+libdebug: CFLAGS+=-g3 -DDEBUG -DCOLR_DEBUG
 libdebug: lib
 
 .PHONY: librelease

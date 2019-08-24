@@ -48,7 +48,7 @@ coverage:
 
 .PHONY: debug
 debug: tags
-debug: CFLAGS+=-g3 -DDEBUG
+debug: CFLAGS+=-g3 -DDEBUG -DCOLR_DEBUG
 debug: $(binary)
 
 .PHONY: release
@@ -60,7 +60,7 @@ release: $(binary)
 # Valgrind cannot be used with this build, so the `memcheck` target will
 # rebuild in `debug` mode if needed.
 .PHONY: sanitize
-sanitize: CFLAGS+=-g3 -DDEBUG $(FFLAGS)
+sanitize: CFLAGS+=-g3 -DDEBUG  -DCOLR_DEBUG $(FFLAGS)
 sanitize: LIBS+=-lasan
 sanitize: $(binary)
 
