@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
         Colr("color names", fore("dodgerblue"), back("aliceblue")),
         Colr("and styles.", style(BRIGHT))
     );
-    colr_puts(joined);
+    printf("%s\n", joined);
     free(joined);
 
     colr_puts(
@@ -37,6 +37,6 @@ int main(int argc, char** argv) {
     }
     char* userstr = colr("Argument: ", ctext);
     puts(userstr);
-    // colr() already called free(ctext).
+    // colr() already called ColorText_free(ctext).
     free(userstr);
 }
