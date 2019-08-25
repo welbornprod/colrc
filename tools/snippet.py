@@ -48,7 +48,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.2.3'
+VERSION = '0.2.4'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -57,51 +57,45 @@ CONFIGFILE = os.path.join(SCRIPTDIR, 'snippet.json')
 config = load_json_settings(
     CONFIGFILE,
     default={
+        'editor': [],
         'last_snippet': None,
         'last_binary': None,
         'last_c_file': None,
+        'includes': {'system': [], 'local': []},
+        'macros': {},
     }
 )
 TMPPREFIX = NAME.replace(' ', '').lower()
 TMPDIR = tempfile.gettempdir()
 
-EDITOR = os.environ.get('EDITOR', None)
-if EDITOR:
-    EDITOR_DESC = f'set to: {EDITOR}'
+if config['editor']:
+    EDITOR_DESC = f'set from config: {config["editor"][0]}'
 else:
-    EDITOR = 'vim'
-    EDITOR_DESC = f'not set, using: {EDITOR}'
+    EDITOR = os.environ.get('EDITOR', None)
+    if EDITOR:
+        config['editor'] = [EDITOR]
+        EDITOR_DESC = f'set from env: {config["editor"][0]}'
+    else:
+        config['editor'] = ['vim']
+        EDITOR_DESC = f'not set, using: {config["editor"][0]}'
 
+# TODO: This tool cannot be used with other projects because of this:
 COLR_DIR = os.path.abspath(os.path.join(SCRIPTDIR, '..'))
 COLRC_FILE = os.path.join(COLR_DIR, 'colr.c')
 COLRH_FILE = os.path.join(COLR_DIR, 'colr.h')
-DBUGH_FILE = os.path.join(COLR_DIR, 'dbug.h')
 EXAMPLES_SRC = (COLRC_FILE, COLRH_FILE)
 
-os.chdir(COLR_DIR)
-
-MACROS = {
-    'print': {
-        'define': '#define print(s) printf("%s\\n", s)',
-        'desc': 'Wrapper for print("%s\\n", s).',
-    },
-    'printferr': {
-        'define': '#define printferr(...) fprintf(stderr, __VA_ARGS__)',
-        'desc': 'Wrapper for fprintf(stderr, ...).',
-    },
-    'printerr': {
-        'define': '#define printerr(s) fprintf(stderr, "%s\\n", s)',
-        'desc': 'Wrapper for fprintf(stderr, "%s\\n", s).',
-    },
-    'print_repr': {
-        'define': '#define print_repr(x) printf("%s\\n", colr_repr(x))',
-        'desc': 'Wrapper for printf("%s\\n", colr_repr(x)).',
-    },
-}
-
+usage_incl_lines = []
+for incltype in sorted(config['includes']):
+    incls = config['includes'][incltype]
+    if not incls:
+        continue
+    usage_incl_lines.append(f'        {incltype.title()}:')
+    usage_incl_lines.extend(f'            {s}' for s in incls)
+USAGE_INCLUDES = '\n'.join(usage_incl_lines)
 USAGE_MACROS = '\n'.join(
-    f'{name:>27}  : {MACROS[name]["desc"]}'
-    for name in sorted(MACROS)
+    f'{name:>27}  : {config["macros"][name]["desc"]}'
+    for name in sorted(config['macros'])
 )
 
 SANITIZE_ARGS = (
@@ -131,7 +125,7 @@ USAGESTR = f"""{VERSIONSTR}
         ARGS                 : Extra arguments for the compiler.
         CODE                 : Code to compile. It is auto-wrapped in a main()
                                function if no main() signature is found.
-                               "colr.h" and "dbug.h" are included unless include
+                               Auto-includes are included unless include
                                lines for them are found.
                                When used with -e, the editor is started with
                                this as it's content.
@@ -145,9 +139,9 @@ USAGESTR = f"""{VERSIONSTR}
         -E,--preprocessor    : Run through gcc's preprocessor and print the
                                output.
         -e,--editlast        : Edit the last snippet in $EDITOR and run it.
+                               If the CODE argument is given, it will replace
+                               the contents of the last snippet.
                                $EDITOR is {EDITOR_DESC}
-                               If the CODE argument is given, the editor
-                               it will replace the contents of the last snippet.
         -f name,--file name  : Read file to get snippet to compile.
         -h,--help            : Show this help message.
         -L,--listexamples    : List example code snippets in the source.
@@ -166,8 +160,11 @@ USAGESTR = f"""{VERSIONSTR}
                                `.c` file for snippets.
         -x,--examples        : Use source examples as the snippets.
 
+    Auto-Includes:
+{USAGE_INCLUDES or '    <no includes set in config>'}
+
     Predefined Macros:
-{USAGE_MACROS}
+{USAGE_MACROS or '    <no macros set in config>'}
 """  # noqa (ignore long lines)
 
 CErr = ColrPreset(fore='red')
@@ -367,12 +364,15 @@ def edit_snippet(filepath=None, text=None):
         name = filepath
 
     try:
-        ret = os.system(' '.join((EDITOR, filepath)))
+        cmd = ' '.join(config['editor'])
+        cmdargs = ' '.join((cmd, filepath))
+        debug(f'Running: {cmdargs}')
+        ret = os.system(cmdargs)
     except Exception as ex:
         raise EditError(f'Failed to edit last snippet: {ex}')
     else:
         if ret != 0:
-            raise EditError(f'Editor ({EDITOR}) returned non-zero!')
+            raise EditError(f'Editor ({config["editor"]}) returned non-zero!')
 
     with open(filepath, 'r') as f:
         codelines = edited_code_trim(f)
@@ -1124,6 +1124,23 @@ class Snippet(object):
         return binaryname
 
     @staticmethod
+    def fix_macro_lines(deflines, indent=0):
+        """ Indent macro definitions if `indent` is set, and add the continuation
+            char `\\` for all lines that need it if it's not already there.
+        """
+        spaces = ' ' * indent
+        if len(deflines) == 1:
+            return [f'{spaces}{deflines[0]}']
+        lines = []
+        for line in deflines:
+            if not line.endswith('\\'):
+                lines.append(f'{spaces}{line} \\')
+            else:
+                lines.append(f'{spaces}{line}')
+        lines[-1] = lines[-1].rstrip('\\').rstrip()
+        return lines
+
+    @staticmethod
     def is_main_sig(line):
         """ Returns True if the `line` looks like a main() signature. """
         line = line.lstrip()
@@ -1163,25 +1180,26 @@ class Snippet(object):
             If colr.h is already included, no duplicate include is added.
         """
         line_table = set(line.strip() for line in code.splitlines())
-        # dbug.h must come first, so we don't redefine dbug() with colr.h,
-        # because it thinks it isn't defined.
-        includes = ('dbug.h', 'colr.h')
         lines = []
-        for includename in includes:
-            includedef = f'#include "{includename}"'
-            if includedef in line_table:
-                debug(f'Not including {includename}')
-                continue
-            lines.append(includedef)
-            debug(f'Including {includename}')
+        includes = config['includes']
+        for includetype in sorted(includes):
+            for includename in includes[includetype]:
+                includedef = f'#include "{includename}"'
+                if includedef in line_table:
+                    debug(f'Not including {includetype} {includename}')
+                    continue
+                lines.append(includedef)
+                debug(f'Including {includetype} {includename}')
 
-        for macroname in sorted(MACROS):
-            defline = MACROS[macroname]['define']
-            if defline in line_table:
+        for macroname in sorted(config['macros']):
+            deflines = config['macros'][macroname]['define']
+            if isinstance(deflines, str):
+                deflines = [deflines]
+            if deflines[0] in line_table:
                 debug(f'Not including macro: {macroname}')
                 continue
             lines.append(f'#ifndef {macroname}')
-            lines.append(f'    {defline}')
+            lines.extend(self.fix_macro_lines(deflines, indent=4))
             lines.append(f'#endif // ifdef {macroname}')
             debug(f'Including macro: {macroname}')
 
