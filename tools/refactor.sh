@@ -6,10 +6,13 @@ appname="refactor"
 appversion="0.0.1"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
-# appdir="${apppath%/*}"
+appdir="${apppath%/*}"
 
-hash replacestr &>/dev/null || {
-    printf "\nMissing \`replacestr\` (replacestr.py).\n" 1>&2
+py_cmd="$(bash "$appdir/find_python.sh" 3.5)" || fail "No python executable found."
+replace_str_file="${appdir}/replacestr.py"
+declare -a replace_str_cmd=("$py_cmd" "$replace_str_file")
+[[ -e "$replace_str_file" ]] || {
+    printf "\nMissing \`replacestr\` (replacestr.py): %s\n" "$replace_str_file" 1>&2
     exit 1
 }
 
@@ -46,6 +49,8 @@ function print_usage {
         -h,--help       : Show this message.
         -s,--substring  : Replace \`str\` with \`repl\` in all targets.
         -v,--version    : Show $appname version and exit.
+
+    Using: $py_cmd
     "
 }
 
@@ -102,7 +107,7 @@ fi
 let i=0
 for target in "${targets[@]}"; do
     replacement="${replacements[$i]}"
-    replacestr -R -e '.c,.h' "$target" "$replacement"
+    "${replace_str_cmd[@]}" -R -e '.c,.h' "$target" "$replacement"
     let i+=1
 done
 
