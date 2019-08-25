@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """ replacestr.py
-    Replaces strings in files.
+    Replaces strings in files. Slower than `sed`, but it lets you optionally
+    view the changes before committing to them.
     -Christopher Welborn 02-04-2019
 """
 
@@ -62,7 +63,8 @@ SOURCE_EXTS = {
 }
 
 USAGESTR = f"""{VERSIONSTR}
-    Like `sed s/TARGET/REPL/`, but simpler.
+    Like `sed s/TARGET/REPL/`, but simpler. You can view the changes
+    before committing to them.
 
     Usage:
         {SCRIPT} -h | -v

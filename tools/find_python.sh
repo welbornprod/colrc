@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Find the default python version/executable.
+# Find the default python version/executable, optionally targeting a specific
+# version.
 # -Christopher Welborn 08-24-2019
 appname="Python Finder"
 appversion="0.0.1"
@@ -41,10 +42,11 @@ function print_usage {
 
     echo "$appname v. $appversion
 
-    Prints the first non-2.7 python executable found.
+    Prints the first python executable found within the version range given.
 
     Usage:
         $appscript -h | -v
+        $appscript -e [-f] MIN
         $appscript [-f] [-l] [MIN] [MAX]
 
     Options:
@@ -52,6 +54,7 @@ function print_usage {
                         Default: $py_max_default
         MIN           : Minimum python version, in the form: X.Y
                         Default: $py_min_default
+        -e,--exact    : Check for the exact python version specified with MIN.
         -f,--full     : Print the full path.
         -h,--help     : Show this message.
         -l,--long     : Use only long-form executables like \`python3.7\` instead
@@ -60,9 +63,24 @@ function print_usage {
     "
 }
 
+function version_lt {
+    local verstr=$1 verstr2=$2
+    [[ -n "$verstr" ]] || fail "No version provided to version_lt()!"
+    [[ -n "$verstr2" ]] || fail "No version2 provided to version_lt()!"
+    local major1="${verstr%%.*}"
+    local minor1="${verstr#*.}"
+    minor1="${minor1%%.*}"
+    local major2="${verstr2%%.*}"
+    local minor2="${verstr2#*.}"
+    minor2="${minor2%%.*}"
+    ((major1 < major2)) && return 0;
+    ((minor1 < minor2)) && return 0;
+    return 1;
+}
 
 declare -a nonflags
 do_debug=0
+do_exact=0
 do_full=0
 do_long=0
 py_min_default="3.0"
@@ -74,6 +92,9 @@ for arg; do
     case "$arg" in
         "-D" | "--debug")
             do_debug=1
+            ;;
+        "-e" | "--exact")
+            do_exact=1
             ;;
         "-f" | "--full")
             do_full=1
@@ -107,6 +128,11 @@ done
 [[ -z "$py_max" ]] && py_max=$py_max_default
 [[ "$py_min" == *.* ]] || py_min="${py_min}.0"
 [[ "$py_max" == *.* ]] || py_max="${py_max}.0"
+# Trigger exact match by settings min/max to the same version.
+((do_exact)) && py_max=$py_min
+
+# If they're the same, then a specific major/minor combo is requested.
+[[ "$py_min" == "$py_max" ]] && do_long=1
 
 debug "Using min: $py_min, max: $py_max"
 
@@ -129,7 +155,11 @@ while ((trymajor > stopmajor)); do
         }
     }
     while ((pyminor > -1)); do
-        tryexe="python${trymajor}.${pyminor}"
+        tryver="${trymajor}.${pyminor}"
+        # Since we're looping until -1, cut it short if tryver is already too low.
+        version_lt "$tryver" "$py_min" && break;
+
+        tryexe="python${tryver}"
         debug "Trying long-form: $tryexe"
         hash "$tryexe" &>/dev/null && {
             py_name=$tryexe
@@ -148,7 +178,7 @@ done
         hash "python" &>/dev/null && py_name="python"
     }
 }
-[[ -n "$py_name" ]] || fail "No suitable python executable found."
+[[ -n "$py_name" ]] || fail "No suitable python executable found (min: $py_min, max: $py_max)."
 verstr="$("$py_name" --version 2>&1)" || fail "Cannot run python executable: $py_name"
 debug "Version: $verstr"
 vernum="${verstr,,}"
@@ -166,6 +196,6 @@ debug "Minor: $verminor"
 
 debug "Using python exe: $py_name"
 py_exe=$py_name
-((do_full)) && py_exe="$(readlink -f "$py_name")"
+((do_full)) && py_exe="$(type -P "$py_name")"
 printf "%s\n" "$py_exe"
 exit 0

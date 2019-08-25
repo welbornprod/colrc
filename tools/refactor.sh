@@ -8,9 +8,10 @@ apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 appdir="${apppath%/*}"
 
-py_cmd="$(bash "$appdir/find_python.sh" 3.5)" || fail "No python executable found."
+py_cmd="$(bash "$appdir/find_python.sh" -f 3.5)" || fail "No python executable found."
 replace_str_file="${appdir}/replacestr.py"
 declare -a replace_str_cmd=("$py_cmd" "$replace_str_file")
+replace_str_display="$py_cmd $(realpath --relative-to="$appdir" "$replace_str_file")"
 [[ -e "$replace_str_file" ]] || {
     printf "\nMissing \`replacestr\` (replacestr.py): %s\n" "$replace_str_file" 1>&2
     exit 1
@@ -50,7 +51,7 @@ function print_usage {
         -s,--substring  : Replace \`str\` with \`repl\` in all targets.
         -v,--version    : Show $appname version and exit.
 
-    Using: $py_cmd
+    Using: \`$replace_str_display\`
     "
 }
 
