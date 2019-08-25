@@ -593,7 +593,10 @@
 */
 #define assert_str_eq(s1, s2, msg) \
     do { \
-        char* _a_s_e_use_msg = msg ? (msg[0] == '\0' ? "Strings aren't equal" : msg) : "Strings aren't equal"; \
+        char* _a_s_e_use_msg = msg; \
+        if ((!msg) || (msg[0] == '\0')) { \
+            _a_s_e_use_msg = "Strings aren't equal"; \
+        } \
         if (s1 == NULL && s2 == NULL) { /* cppcheck-suppress literalWithCharPtrCompare */ \
             (void)0; \
         } else if (s1 != NULL && s2 == NULL) { /* cppcheck-suppress literalWithCharPtrCompare */ \
@@ -704,17 +707,8 @@
 */
 #define default_macro_msg(varname, defaultval, msg...) \
     char* _d_m_msg = "" msg; \
-    char* varname = (_d_m_msg[0] == '\0' ? defaultval : msg); \
+    char* varname = (_d_m_msg[0] == '\0' ? defaultval : _d_m_msg); \
 
-
-/*! \def in_range
-    Determine if a value is within a specified range (inclusive).
-
-    \pi x    The value to check.
-    \pi xmin Minimum value.
-    \pi xmax Maximum value.
-*/
-#define in_range(x, xmin, xmax) ((bool)((x >= xmin) && (x <= xmax)))
 
 /*! Construct a for-loop to iterate over an array, where `x` is the index.
 
@@ -754,6 +748,16 @@
 */
 #define for_not_null(array_name, x) \
     for (volatile size_t x = 0; array_name[x]; x++)
+
+/*! \def in_range
+    Determine if a value is within a specified range (inclusive).
+
+    \pi x    The value to check.
+    \pi xmin Minimum value.
+    \pi xmax Maximum value.
+*/
+#define in_range(x, xmin, xmax) ((bool)((x >= xmin) && (x <= xmax)))
+
 
 /*! Use stack strings to allocate and fill a list of string pointers.
 

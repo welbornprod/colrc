@@ -26,18 +26,11 @@ subdesc(colr_append_reset) {
             char s[expected_len + 1];
             colr_str_copy(s, tests[i].input, strlen(tests[i].input));
             colr_append_reset(s);
-            char* input_repr = colr_str_repr(tests[i].input);
-            char* input_msg = NULL;
-            if_not_asprintf(&input_msg, "colr_append_reset(%s) failed", input_repr) {
-                fail("Allocation failed for failure message!");
-            }
-            free(input_repr);
             assert_str_eq(
                 s,
                 tests[i].expected,
-                input_msg
+                "colr_append_reset() failed"
             );
-            free(input_msg);
         }
     }
 }
@@ -328,16 +321,7 @@ subdesc(colr_str_center) {
                 char* expected_repr = colr_repr(tests[i].expected);
                 fail("Unexpected NULL from colr_str_center(%s): %s", input_repr, expected_repr);
             }
-            char* input_repr = colr_repr(tests[i].s);
-            char* c_repr = colr_char_repr(tests[i].padchar);
-            char* msg = NULL;
-            if_not_asprintf(&msg, "colr_str_center(%s, %s, %d) failed", input_repr, c_repr, tests[i].width) {
-                fail("Failed to allocated for failure message!");
-            }
-            free(input_repr);
-            free(c_repr);
-            assert_str_eq(result, tests[i].expected, msg);
-            free(msg);
+            assert_str_eq(result, tests[i].expected, "colr_str_center() failed");
             free(result);
         }
         // For terminal-width, all I can do is make sure it doesn't crash.

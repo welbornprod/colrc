@@ -406,6 +406,9 @@ subdesc(ColorArg_to_ptr) {
         free(carg);
     }
 }
+} // describe(ColorArg)
+
+describe(ColorArgs) {
 subdesc(ColorArgs_from_str) {
     it("handles NULL") {
         bool do_unique = false;
@@ -451,4 +454,27 @@ subdesc(ColorArgs_list_free) {
         ColorArgs_list_free(lst);
     }
 }
-} // describe(ColorArg)
+subdesc(ColorArgs_list_repr) {
+    it("handles NULL") {
+        char* nullrepr = ColorArgs_list_repr(NULL);
+        assert_str_eq(nullrepr, "NULL", "failed on NULL");
+        free(nullrepr);
+        ColorArg** emptylist = {NULL};
+        char* emptyrepr = ColorArgs_list_repr(emptylist);
+        assert_str_eq(emptyrepr, "NULL", "failed on empty list");
+        free(emptyrepr);
+
+        ColorArg** lst = NULL;
+        ColorArgs_list_fill(
+            lst,
+            fore(RED),
+            back(WHITE)
+        );
+        char* repr = ColorArgs_list_repr(lst);
+        assert_not_null(repr);
+        assert_not_null(strstr(repr, "RED"));
+        free(repr);
+        ColorArgs_list_free(lst);
+    }
+}
+} // describe(ColorArgs)

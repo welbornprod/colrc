@@ -3515,10 +3515,6 @@ char* ColorArgs_list_repr(ColorArg** lst) {
         asprintf_or_return(NULL, &repr, "NULL");
         return repr;
     }
-    if (!lst[0]) {
-        asprintf_or_return(NULL, &repr, "{NULL}");
-        return repr;
-    }
     // Get count.
     size_t count = 0;
     for (size_t i = 0; lst[i]; i++) {

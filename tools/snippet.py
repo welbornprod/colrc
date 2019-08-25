@@ -509,6 +509,9 @@ def get_gcc_cmd(
 
 def get_make_flags(user_args=None):
     """ Get gcc flags from a `make` dry run, and return them. """
+    # These flags don't make since for general snippet compiling.
+    # The ColrC dir is already taken care of, and -c/-o will be used when
+    # get_gcc_cmd() is called.
     ignore_flags = {'-c', '-o', '-iquote../'}
     flags = set()
     for line in iter_make_output(user_args=user_args):
