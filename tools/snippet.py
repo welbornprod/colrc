@@ -81,7 +81,8 @@ else:
         EDITOR_DESC = f'not set, using: {config["editor"][0]}'
 
 # TODO: This tool cannot be used with other projects because of this:
-COLR_DIR = os.path.abspath(os.path.join(SCRIPTDIR, '..'))
+COLR_DIR = os.path.abspath(os.path.join(os.path.abspath(SCRIPTDIR), '..'))
+debug(f'Using ColrC dir: {COLR_DIR}')
 COLRC_FILE = os.path.join(COLR_DIR, 'colr.c')
 COLRH_FILE = os.path.join(COLR_DIR, 'colr.h')
 EXAMPLES_SRC = (COLRC_FILE, COLRH_FILE)
@@ -508,7 +509,7 @@ def get_gcc_cmd(
 
 def get_make_flags(user_args=None):
     """ Get gcc flags from a `make` dry run, and return them. """
-    ignore_flags = {'-c', '-o'}
+    ignore_flags = {'-c', '-o', '-iquote../'}
     flags = set()
     for line in iter_make_output(user_args=user_args):
         if (not line.strip()) or (not line.startswith('gcc')):
@@ -1094,6 +1095,7 @@ class Snippet(object):
         colrbase = os.path.splitext(COLRC_FILE)[0]
         colrobj = f'{colrbase}.o'
         tmpobjnames = get_obj_files()
+        debug(f'Found object files: {", ".join(tmpobjnames)}')
         objnames = []
         objnames.extend(tmpobjnames)
         objnames.append(colrobj)

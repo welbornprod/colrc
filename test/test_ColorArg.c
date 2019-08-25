@@ -407,12 +407,35 @@ subdesc(ColorArg_to_ptr) {
     }
 }
 subdesc(ColorArgs_from_str) {
-    it("parses escape codes") {
+    it("handles NULL") {
         bool do_unique = false;
         assert_call_null(ColorArgs_from_str, NULL, do_unique);
         assert_call_null(ColorArgs_from_str, "", do_unique);
         assert_call_null(ColorArgs_from_str, "No codes in here.", do_unique);
+    }
+    it("handle escape codes") {
+        char* escstr = "\x1b[4m\x1b[31m\x1b[31m\x1b[47m\x1b[47mtest\x1b[0m";
+        // Do non-unique codes.
+        ColorArg** cargs = ColorArgs_from_str(escstr, false);
+        ColorArg expected[] = {
+            fore_arg(RED),
+            back_arg(WHITE),
+            style_arg(UNDERLINE),
+            style_arg(RESET_ALL)
+        };
+        for_each(expected, i) {
+            assert_ColorArgs_list_contains(cargs, expected[i]);
+        }
+        assert_size_eq_repr(ColorArgs_list_len(cargs), 6, cargs);
+        ColorArgs_list_free(cargs);
 
+        // Do unique codes.
+        cargs = ColorArgs_from_str(escstr, true);
+        for_each(expected, i) {
+            assert_ColorArgs_list_contains(cargs, expected[i]);
+        }
+        assert_size_eq_repr(ColorArgs_list_len(cargs), 4, cargs);
+        ColorArgs_list_free(cargs);
     }
 }
 subdesc(ColorArgs_list_free) {

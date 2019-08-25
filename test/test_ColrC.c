@@ -9,6 +9,19 @@
 */
 #include "test_ColrC.h"
 
+/*! Return the length of a ColorArgs list (`ColorArg**`), minus the `NULL` element.
+
+    \pi lst The ColorArg list to check.
+    \return The number of non-null items.
+*/
+size_t ColorArgs_list_len(ColorArg** lst) {
+    if (!lst) return 0;
+    size_t i = 0;
+    while (lst[i]) i++;
+    return i;
+}
+
+
 /*! Return the length of a string list (`char**`), minus the `NULL` element.
 
     \pi lst The string list to check.
@@ -24,7 +37,7 @@ size_t colr_str_list_len(char** lst) {
 /*! Creates a string representation for a list of string pointers.
 
     \pi lst The string list to create the representation for (`char**`).
-    \return An allocate string, or `NULL` if \p lst is `NULL`, or the allocation
+    \return An allocated string, or `NULL` if \p lst is `NULL`, or the allocation
             fails.
 */
 char* colr_str_list_repr(char** lst) {

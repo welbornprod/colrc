@@ -41,6 +41,27 @@
 */
 #define array_length(array) (sizeof(array) / sizeof(array[0]))
 
+#define assert_ColorArgs_list_contains(lst, carg) \
+    do { \
+        bool _a_ca_l_c_found = false; \
+        for (size_t _a_ca_l_c_i = 0; lst[_a_ca_l_c_i]; _a_ca_l_c_i++) { \
+            if (ColorArg_eq(carg, *lst[_a_ca_l_c_i])) { \
+                _a_ca_l_c_found = true; \
+                break; \
+            } \
+        } \
+        if (!_a_ca_l_c_found) { \
+            char* _a_ca_l_c_repr = colr_repr(carg); \
+            char* _a_ca_l_c_lstrepr = ColorArgs_list_repr(lst); \
+            fail( \
+                "ColorArgs list does not contain: %s\n    List: %s\n", \
+                _a_ca_l_c_repr ? _a_ca_l_c_repr : "<alloc failed for repr>", \
+                _a_ca_l_c_lstrepr ? _a_ca_l_c_lstrepr : "<alloc failed for repr>" \
+            ); \
+            free(_a_ca_l_c_repr); \
+            free(_a_ca_l_c_lstrepr); \
+        } \
+    } while (0)
 /*! \def assert_ColorText_has_arg
     Ensure a ColorText contains a specific ColorArg value.
 
@@ -705,8 +726,7 @@
     \pi x          The index variable to use (usually `i`).
 */
 #define for_each(array_name, x) \
-    size_t _fe_ ## array_name ## _len = array_length(array_name); \
-    for (volatile size_t x = 0; x < _fe_ ## array_name ## _len; x++)
+    for (volatile size_t alen = array_length(array_name), x = 0; x < alen; x++)
 
 /*! Construct a for-loop to iterate from `0` to `len`, where `x` is the index.
 
@@ -797,6 +817,8 @@
 */
 #define test_str_repr(s) (s ? ((s[0] == '\0') ? "\"\"" : s) : "NULL")
 
+size_t ColorArgs_list_len(ColorArg** lst);
+char* ColorArgs_list_repr(ColorArg** lst);
 size_t colr_str_list_len(char** lst);
 char* colr_str_list_repr(char** lst);
 char* int_repr(int x);

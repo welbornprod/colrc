@@ -3389,40 +3389,6 @@ ColorArg *ColorArg_to_ptr(ColorArg carg) {
     return p;
 }
 
-/*! Free an allocated list of ColorArgs, including the list itself.
-
-    \details
-    Each individual ColorArg will be released, and finally the allocated memory
-    for the list of pointers will be released.
-
-    \pi ps A pointer to a list of ColorArgs, where `NULL` is the last item.
-
-    \examplecodefor{ColorArgs_list_free,.c}
-    #include "colr.h"
-    int main(void) {
-        char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
-        if (!s) return 1;
-        // Call something that creates a list of strings on the heap.
-        ColorArg** carg_list = ColorArgs_from_str(s, false);
-        free(s);
-        if (!carg_list) return 1;
-        // ... do something with the list of strings.
-
-        // And then free it:
-        ColorArgs_list_free(carg_list);
-    }
-    \endexamplecode
-*/
-void ColorArgs_list_free(ColorArg** ps) {
-    if (!ps) return;
-    // Free the individual items, until NULL is hit.
-    for (size_t i = 0; ps[i]; i++) {
-        free(ps[i]);
-    }
-    // Free the pointer list.
-    free(ps);
-}
-
 /*! Create a list of ColorArgs from escape-codes found in a \string.
 
     \details
@@ -3483,6 +3449,114 @@ ColorArg** ColorArgs_from_str(const char* s, bool unique) {
     colr_str_list_free(codes);
     cargs[count] = NULL;
     return cargs;
+}
+
+/*! Free an allocated list of ColorArgs, including the list itself.
+
+    \details
+    Each individual ColorArg will be released, and finally the allocated memory
+    for the list of pointers will be released.
+
+    \pi ps A pointer to a list of ColorArgs, where `NULL` is the last item.
+
+    \examplecodefor{ColorArgs_list_free,.c}
+    #include "colr.h"
+    int main(void) {
+        char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
+        if (!s) return 1;
+        // Call something that creates a list of ColorArgs on the heap.
+        ColorArg** carg_list = ColorArgs_from_str(s, false);
+        free(s);
+        if (!carg_list) return 1;
+        // ... do something with the list of ColorArgs.
+
+        // And then free it:
+        ColorArgs_list_free(carg_list);
+    }
+    \endexamplecode
+*/
+void ColorArgs_list_free(ColorArg** ps) {
+    if (!ps) return;
+    // Free the individual items, until NULL is hit.
+    for (size_t i = 0; ps[i]; i++) {
+        free(ps[i]);
+    }
+    // Free the pointer list.
+    free(ps);
+}
+
+/*! Creates a string representation for a list of ColorArg pointers.
+
+    \pi lst The ColorArg list to create the representation for (`ColorArg**`).
+    \return An allocated string, or `NULL` if \p lst is `NULL`, or the allocation
+            fails.
+
+    \examplecodefor{ColorArgs_list_repr,.c}
+    #include "colr.h"
+    int main(void) {
+        char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
+        if (!s) return 1;
+        // Call something that creates a list of ColorArgs on the heap.
+        ColorArg** carg_list = ColorArgs_from_str(s, false);
+        free(s);
+        if (!carg_list) return 1;
+        char* lst_repr = ColorArgs_list_repr(carg_list);
+        ColorArgs_list_free(carg_list);
+        if (!lst_repr) return 1;
+        printf("ColorArg carg_list[] = %s\n", lst_repr);
+        // And then free it:
+        free(lst_repr);
+    }
+    \endexamplecode
+*/
+char* ColorArgs_list_repr(ColorArg** lst) {
+    char* repr = NULL;
+    if (!lst) {
+        asprintf_or_return(NULL, &repr, "NULL");
+        return repr;
+    }
+    if (!lst[0]) {
+        asprintf_or_return(NULL, &repr, "{NULL}");
+        return repr;
+    }
+    // Get count.
+    size_t count = 0;
+    for (size_t i = 0; lst[i]; i++) {
+        count++;
+    }
+    // Get length, and ColorArg reprs.
+    char* strings[count];
+    size_t length = 0;
+    for (size_t i = 0; lst[i]; i++) {
+        char* srepr = colr_repr(*lst[i]);
+        length += srepr ? strlen(srepr) : 4;
+        strings[i] = srepr;
+    }
+    // Account for last NULL item.
+    length += 4;
+    char* sep = ",\n";
+    size_t sep_len = strlen(sep);
+    char* indent = "    ";
+    size_t indent_len = strlen(indent);
+    // Account for commas/spaces/newlines, and the NULL item.
+    length += (count + 1) * (indent_len + sep_len);
+    // Account for wrappers.
+    length += 2;
+    repr = calloc(length + 1, sizeof(char));
+    char* repr_start = repr;
+    repr[0] = '{';
+    repr[1] = '\n';
+    repr += 2;
+    for (size_t i = 0; i < count; i++) {
+        sprintf(repr, "%s%s", indent, strings[i]);
+        repr += indent_len + strlen(strings[i]);
+        free(strings[i]);
+        sprintf(repr, "%s", sep);
+        // Skip past the separator string.
+        repr += sep_len;
+    }
+    sprintf(repr, "%sNULL\n}", indent);
+    return repr_start;
 }
 
 /*! Creates an "empty" ColorJustify, with JUST_NONE set.

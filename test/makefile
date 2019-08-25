@@ -77,7 +77,7 @@ $(test_objects): $(test_source) $(test_headers)
 	@objpath="$@"; \
 	cfile="$${objpath%.*}.c"; \
 	printf "\nCompiling $$cfile for tests (caused by $@)...\n    "; \
-	$(CC) -c $$cfile -o $@ $(CFLAGS) $(INCLUDES);
+	$(CC) -c $$cfile -o $@ $(CFLAGS) $(INCLUDES)
 
 tags: $(source) $(headers)
 	@printf "Building ctags...\n    ";

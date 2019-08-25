@@ -753,6 +753,9 @@
 // This one stringifies the entire argument list as one string.
 #define _colr_macro_str_all(...) #__VA_ARGS__
 #define colr_macro_str_all(...) _colr_macro_str_all(__VA_ARGS__)
+// This is the standard concatenation macro.
+#define _colr_macro_concat(a, b) a ## b
+#define colr_macro_concat(a, b) _colr_macro_concat(a, b)
 #endif
 /*! \def colr_max
     Macro for `(a > b ? a : b)`.
@@ -863,6 +866,7 @@
     _Generic( \
         (x), \
         ColorArg: ColorArg_repr, \
+        ColorArg**: ColorArgs_list_repr, \
         ColorJustify: ColorJustify_repr, \
         ColorJustifyMethod: ColorJustifyMethod_repr, \
         ColorText: ColorText_repr, \
@@ -1757,8 +1761,10 @@ size_t ColorArg_length(ColorArg carg);
 char* ColorArg_repr(ColorArg carg);
 ColorArg* ColorArg_to_ptr(ColorArg carg);
 char* ColorArg_to_esc(ColorArg carg);
+
 ColorArg** ColorArgs_from_str(const char* s, bool unique);
 void ColorArgs_list_free(ColorArg** ps);
+char* ColorArgs_list_repr(ColorArg** lst);
 
 /*! \internal
     ColorJustify functions that deal with colr/string justification.
