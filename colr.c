@@ -1874,7 +1874,7 @@ char* colr_str_replace(char *s, const char *target, const char *repl) {
 char* colr_str_replace_ColorArg(char* s, const char* target, const ColorArg* repl) {
     if (!(s && target)) return NULL;
     if ((s[0] == '\0') || (target[0] == '\0')) return NULL;
-    char* replstr = repl ? ColorArg_to_str(*repl): NULL;
+    char* replstr = repl ? ColorArg_to_esc(*repl): NULL;
     char* result = colr_str_replace(s, target, replstr);
     if (replstr) free(replstr);
     return result;
@@ -2360,7 +2360,7 @@ char* _colr(void *p, ...) {
     if (ColorArg_is_ptr(p)) {
         // It's a ColorArg.
         cargp = p;
-        s = ColorArg_to_str(*cargp);
+        s = ColorArg_to_esc(*cargp);
         ColorArg_free(cargp);
         need_reset = true;
     } else if (ColorText_is_ptr(p)) {
@@ -2390,7 +2390,7 @@ char* _colr(void *p, ...) {
         if (ColorArg_is_ptr(arg)) {
             // It's a ColorArg.
             cargp = arg;
-            s = ColorArg_to_str(*cargp);
+            s = ColorArg_to_esc(*cargp);
             ColorArg_free(cargp);
             need_reset = true;
         } else if (ColorText_is_ptr(arg)) {
@@ -2538,7 +2538,7 @@ char* _colr_join(void *joinerp, ...) {
     if (ColorArg_is_ptr(joinerp)) {
         // It's a ColorArg.
         joiner_cargp = joinerp;
-        joiner = ColorArg_to_str(*joiner_cargp);
+        joiner = ColorArg_to_esc(*joiner_cargp);
         ColorArg_free(joiner_cargp);
         needs_reset = true;
     } else if (ColorText_is_ptr(joinerp)) {
@@ -2563,7 +2563,7 @@ char* _colr_join(void *joinerp, ...) {
         if (ColorArg_is_ptr(arg)) {
             // It's a ColorArg.
             cargp = arg;
-            piece = ColorArg_to_str(*cargp);
+            piece = ColorArg_to_esc(*cargp);
             ColorArg_free(cargp);
             needs_reset = true;
         } else if (ColorText_is_ptr(arg)) {
@@ -2702,7 +2702,7 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
     char* joiner = NULL;
     if (ColorArg_is_ptr(joinerp)) {
         joiner_cargp = joinerp;
-        joiner = ColorArg_to_str(*joiner_cargp);
+        joiner = ColorArg_to_esc(*joiner_cargp);
     } else if (ColorText_is_ptr(joinerp)) {
         joiner_ctextp = joinerp;
         joiner = ColorText_to_str(*joiner_ctextp);
@@ -2719,7 +2719,7 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
     if (ColorArg_is_ptr(*cargps)) {
         while ((i < count) && cargps[i]) {
             if (i) strcat(final, joiner);
-            char* s = ColorArg_to_str(*(cargps[i++]));
+            char* s = ColorArg_to_esc(*(cargps[i++]));
             if (!s || s[0] == '\0') continue;
             strcat(final, s);
             free(s);
@@ -2880,7 +2880,7 @@ char* ArgType_repr(ArgType type) {
     return typestr;
 }
 
-/*! Creates a \string from an ArgType.
+/*! Creates a human-friendly \string from an ArgType.
 
     \pi type An ArgType to get the type from.
     \return  A pointer to an allocated string.\n
@@ -2984,7 +2984,7 @@ char* ColorArg_example(ColorArg carg, bool colorized) {
     }
     // Always use fore-codes for example colors.
     if (carg.type == BACK) carg.type = FORE;
-    char* codes = ColorArg_to_str(carg);
+    char* codes = ColorArg_to_esc(carg);
     if (!codes) {
         free(argtype_name);
         free(val_example);
@@ -3305,7 +3305,7 @@ bool ColorArg_is_valid(ColorArg carg) {
 
 
 /*! Returns the length in bytes needed to allocate a \string built with
-    ColorArg_to_str().
+    ColorArg_to_esc().
 
     \pi carg ColorArg to use.
 
@@ -3347,25 +3347,6 @@ char* ColorArg_repr(ColorArg carg) {
     return repr;
 }
 
-/*! Copies a ColorArg into memory and returns the pointer.
-
-    \details
-    You must free() the memory if you call this directly.
-
-    \pi carg ColorArg to copy/allocate for.
-    \return  Pointer to a heap-allocated ColorArg.\n
-             \mustfree
-             \maybenullalloc
-
-    \sa ColorArg
-*/
-ColorArg *ColorArg_to_ptr(ColorArg carg) {
-    ColorArg *p = malloc(sizeof(carg));
-    carg.marker = COLORARG_MARKER;
-    *p = carg;
-    return p;
-}
-
 /*! Converts a ColorArg into an escape code \string.
 
     \details
@@ -3384,9 +3365,28 @@ ColorArg *ColorArg_to_ptr(ColorArg carg) {
 
     \sa ColorArg
 */
-char* ColorArg_to_str(ColorArg carg) {
+char* ColorArg_to_esc(ColorArg carg) {
     if (ColorArg_is_empty(carg)) return colr_empty_str();
-    return ColorValue_to_str(carg.type, carg.value);
+    return ColorValue_to_esc(carg.type, carg.value);
+}
+
+/*! Copies a ColorArg into memory and returns the pointer.
+
+    \details
+    You must free() the memory if you call this directly.
+
+    \pi carg ColorArg to copy/allocate for.
+    \return  Pointer to a heap-allocated ColorArg.\n
+             \mustfree
+             \maybenullalloc
+
+    \sa ColorArg
+*/
+ColorArg *ColorArg_to_ptr(ColorArg carg) {
+    ColorArg *p = malloc(sizeof(carg));
+    carg.marker = COLORARG_MARKER;
+    *p = carg;
+    return p;
 }
 
 /*! Free an allocated list of ColorArgs, including the list itself.
@@ -3922,17 +3922,17 @@ char* ColorText_to_str(ColorText ctext) {
     char* final = calloc(ColorText_length(ctext), sizeof(char));
     bool do_reset = (ctext.style || ctext.fore || ctext.back);
     if (ctext.style && !ColorArg_is_empty(*(ctext.style))) {
-        char* stylecode = ColorArg_to_str(*(ctext.style));
+        char* stylecode = ColorArg_to_esc(*(ctext.style));
         strcat(final, stylecode);
         free(stylecode);
     }
     if (ctext.fore && !ColorArg_is_empty(*(ctext.fore))) {
-        char* forecode = ColorArg_to_str(*(ctext.fore));
+        char* forecode = ColorArg_to_esc(*(ctext.fore));
         strcat(final, forecode);
         free(forecode);
     }
     if (ctext.back && !ColorArg_is_empty(*(ctext.back))) {
-        char* backcode = ColorArg_to_str(*(ctext.back));
+        char* backcode = ColorArg_to_esc(*(ctext.back));
         strcat(final, backcode);
         free(backcode);
     }
@@ -4472,7 +4472,7 @@ bool ColorValue_is_valid(ColorValue cval) {
 }
 
 /*! Returns the length in bytes needed to allocate a \string built with
-    ColorValue_to_str() with the specified ArgType and ColorValue.
+    ColorValue_to_esc() with the specified ArgType and ColorValue.
 
     \pi type ArgType (`FORE`, `BACK`, `STYLE`)
     \pi cval ColorValue to use.
@@ -4575,7 +4575,7 @@ char* ColorValue_repr(ColorValue cval) {
 
     \sa ColorValue
 */
-char* ColorValue_to_str(ArgType type, ColorValue cval) {
+char* ColorValue_to_esc(ArgType type, ColorValue cval) {
     char* codes;
     switch (type) {
         case FORE:
@@ -5106,8 +5106,8 @@ bool ExtendedValue_is_valid(int x) {
     return ((x > -1) && (x < 256));
 }
 
-/*! Creates a \string from an ExtendedValue's actual value, suitable for use
-    with ExtendedValue_from_str().
+/*! Creates a human-friendly \string from an ExtendedValue's actual value,
+    suitable for use  with ExtendedValue_from_str().
 
     \pi eval    A ExtendedValue to get the value from.
     \return     A pointer to an allocated string\n
@@ -5471,7 +5471,8 @@ char* RGB_to_hex(RGB rgb) {
     return s;
 }
 
-/*! Convert an RGB value into an RGB \string suitable for input to RGB_from_str().
+/*! Convert an RGB value into a human-friendly RGB \string suitable for input
+    to RGB_from_str().
 
     \pi rgb RGB value to convert.
     \return An allocated string in the form `"red;green;blue"`.\n

@@ -342,15 +342,7 @@ subdesc(ColorArg_repr) {
         free(s);
     }
 }
-subdesc(ColorArg_to_ptr) {
-    it("allocates a ColorArg") {
-        ColorArg* carg = ColorArg_to_ptr(fore_arg(WHITE));
-        assert(ColorArg_is_valid(*carg));
-        assert(ColorArg_is_ptr(carg));
-        free(carg);
-    }
-}
-subdesc(ColorArg_to_str) {
+subdesc(ColorArg_to_esc) {
     it("creates escape codes") {
         struct {
             ColorArg carg;
@@ -360,7 +352,7 @@ subdesc(ColorArg_to_str) {
             {fore_arg("NOTACOLOR"), true},
         };
         for_each(tests, i) {
-            char* s = ColorArg_to_str(tests[i].carg);
+            char* s = ColorArg_to_esc(tests[i].carg);
             if (tests[i].invalid) {
                 assert_str_empty(s);
             } else {
@@ -368,6 +360,14 @@ subdesc(ColorArg_to_str) {
             }
             free(s);
         }
+    }
+}
+subdesc(ColorArg_to_ptr) {
+    it("allocates a ColorArg") {
+        ColorArg* carg = ColorArg_to_ptr(fore_arg(WHITE));
+        assert(ColorArg_is_valid(*carg));
+        assert(ColorArg_is_ptr(carg));
+        free(carg);
     }
 }
 }

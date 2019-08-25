@@ -325,7 +325,7 @@
 
     \sa back back_arg
 */
-#define back_str(x) ColorArg_to_str(back_arg(x))
+#define back_str(x) ColorArg_to_esc(back_arg(x))
 
 /*! \def basic
     Casts to BasicValue.
@@ -903,10 +903,10 @@
         (x), \
         ArgType: ArgType_to_str, \
         BasicValue: BasicValue_to_str, \
-        ColorArg: ColorArg_to_str, \
+        ColorArg: ColorArg_to_esc, \
         ColorText: ColorText_to_str, \
         ColorType: ColorType_to_str, \
-        ColorValue: ColorValue_to_str, \
+        ColorValue: ColorValue_to_esc, \
         ExtendedValue: ExtendedValue_to_str, \
         StyleValue: StyleValue_to_str, \
         RGB: RGB_to_str \
@@ -1086,7 +1086,7 @@
 
     \sa fore fore_arg
 */
-#define fore_str(x) ColorArg_to_str(fore_arg(x))
+#define fore_str(x) ColorArg_to_esc(fore_arg(x))
 
 /*! \def hex
     Use RGB_from_hex_default() to create an RGB value.
@@ -1198,7 +1198,7 @@
 
     \sa style style_arg
 */
-#define style_str(x) ColorArg_to_str(style_arg(x))
+#define style_str(x) ColorArg_to_esc(style_arg(x))
 
 /*! \def while_colr_va_arg
     Construct a while-loop over a `va_list`, where the last argument is
@@ -1747,7 +1747,7 @@ bool ColorArg_is_valid(ColorArg carg);
 size_t ColorArg_length(ColorArg carg);
 char* ColorArg_repr(ColorArg carg);
 ColorArg* ColorArg_to_ptr(ColorArg carg);
-char* ColorArg_to_str(ColorArg carg);
+char* ColorArg_to_esc(ColorArg carg);
 ColorArg** ColorArgs_from_str(const char* s, bool unique);
 void ColorArgs_list_free(ColorArg** ps);
 
@@ -1811,7 +1811,7 @@ bool ColorValue_is_invalid(ColorValue cval);
 bool ColorValue_is_valid(ColorValue cval);
 size_t ColorValue_length(ArgType type, ColorValue cval);
 char* ColorValue_repr(ColorValue cval);
-char* ColorValue_to_str(ArgType type, ColorValue cval);
+char* ColorValue_to_esc(ArgType type, ColorValue cval);
 
 
 /*! \internal

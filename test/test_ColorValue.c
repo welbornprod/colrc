@@ -231,7 +231,7 @@ subdesc(ColorValue_repr) {
         free(s);
     }
 }
-subdesc(ColorValue_to_str) {
+subdesc(ColorValue_to_esc) {
     it("creates escape codes from ColorValues") {
         BasicValue basic = WHITE;
         ExtendedValue extended = XWHITE;
@@ -249,7 +249,7 @@ subdesc(ColorValue_to_str) {
             {FORE, color_val(rgbval), "\x1b[38;2;1;1;1m"},
         };
         for_each(tests, i) {
-            char* s = ColorValue_to_str(tests[i].type, tests[i].cval);
+            char* s = ColorValue_to_esc(tests[i].type, tests[i].cval);
             assert_str_eq(s, tests[i].expected, "Failed to create escape-code.");
             free(s);
         }
