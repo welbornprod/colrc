@@ -43,6 +43,40 @@ subdesc(ColorArg_eq) {
         }
     }
 }
+subdesc(ColorArg_example) {
+    it("creates colorized examples") {
+        bool colorized = true;
+        ColorArg* cargs[] = {
+            fore(RED),
+            fore(XGREEN),
+            fore(rgb(0, 255, 0))
+        };
+        for_each(cargs, i) {
+            ColorArg* carg = cargs[i];
+            char* s = ColorArg_example(*carg, colorized);
+            assert_not_null(s);
+            assert(colr_str_has_codes(s));
+            free(s);
+            ColorArg_free(carg);
+        }
+    }
+    it("creates non-colorized examples") {
+        bool colorized = false;
+        ColorArg* cargs[] = {
+            fore(RED),
+            fore(XGREEN),
+            fore(rgb(0, 255, 0))
+        };
+        for_each(cargs, i) {
+            ColorArg* carg = cargs[i];
+            char* s = ColorArg_example(*carg, colorized);
+            assert_not_null(s);
+            assert(!colr_str_has_codes(s));
+            free(s);
+            ColorArg_free(carg);
+        }
+    }
+}
 subdesc(ColorArg_free) {
     it("frees it's resources") {
         ColorArg* carg = ColorArg_to_ptr(ColorArg_empty());
