@@ -1,5 +1,8 @@
 /*! Tests for the ColrC library.
 
+    \details
+    This contains macros and function definitions for the ColrC tests.
+
     \author Christopher Welborn
     \date 06-29-2019
 */
@@ -21,7 +24,7 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic warning "-Wunused-macros"
 #pragma clang diagnostic ignored "-Wvariadic-macros"
-
+#pragma clang diagnostic ignored "-Wgnu-statement-expression"
 
 #include "../colr.h"
 
@@ -30,29 +33,20 @@
 #define SNOW_ENABLED
 #include "snow.h"
 
+/*! \def array_length
+    Get the length of an array (not a malloc'd list of pointers).
 
-#define assert_ColorArg_eq(a, b) \
-    do { \
-        if (!ColorArg_eq(a, b)) { \
-            char* _a_CA_eq_a = colr_repr(a); \
-            char* _a_CA_eq_b = colr_repr(b); \
-            fail("ColorArgs are not equal: (" #a ") %s != (" #b ") %s", _a_CA_eq_a, _a_CA_eq_b); \
-            free(_a_CA_eq_a); \
-            free(_a_CA_eq_b); \
-        }\
-    } while (0)
+    \pi array The array to get the length for.
+    \return   `sizeof(array) / sizeof(array[0])`
+*/
+#define array_length(array) (sizeof(array) / sizeof(array[0]))
 
-#define assert_ColorArg_neq(a, b) \
-    do { \
-        if (ColorArg_eq(a, b)) { \
-            char* _a_CA_neq_a = colr_repr(a); \
-            char* _a_CA_neq_b = colr_repr(b); \
-            fail("ColorArgs are equal: (" #a ") %s == (" #b ") %s", _a_CA_neq_a, _a_CA_neq_b); \
-            free(_a_CA_neq_a); \
-            free(_a_CA_neq_b); \
-        }\
-    } while (0)
+/*! \def assert_ColorText_has_arg
+    Ensure a ColorText contains a specific ColorArg value.
 
+    \pi clrtext A ColorText to check.
+    \pi clrarg  A ColorArg to check for.
+*/
 #define assert_ColorText_has_arg(clrtext, clrarg) \
     do { \
         if (!ColorText_has_arg(clrtext, clrarg)) { \
@@ -66,7 +60,13 @@
         }\
     } while (0)
 
-#define assert_ColorText_nothas_arg(clrtext, clrarg) \
+/*! \def assert_ColorText_missing_arg
+    Ensure a ColorText does NOT contain a specific ColorArg value.
+
+    \pi clrtext A ColorText to check.
+    \pi clrarg  A ColorArg to check for.
+*/
+#define assert_ColorText_missing_arg(clrtext, clrarg) \
     do { \
         if (ColorText_has_arg(clrtext, clrarg)) { \
             char* _a_CT_h_a_clrtext_repr = colr_repr(clrtext); \
@@ -81,6 +81,13 @@
         }\
     } while (0)
 
+/*! \def assert_ColorValue_has
+    Ensure a ColorValue contains a specific BasicValue, ExtendedValue,
+    StyleValue, or RGB value, and has the correct ColorType set.
+
+    \pi cval ColorValue to check.
+    \pi val  BasicValue, ExtendedValue, StyleValue, or RGB value to check for.
+*/
 #define assert_ColorValue_has(cval, val) \
     do { \
         if (!ColorValue_has(cval, val)) { \
@@ -96,6 +103,54 @@
         } \
     } while (0)
 
+/*! \def assert_call_null
+    Make sure a function call's return value is `NULL`.
+
+    \details
+    This actually checks boolean logic.
+    It may be switched to `== NULL`.
+
+    \pi func The function to call.
+    \pi ...  Arguments for the function.
+*/
+#define assert_call_null(func, ...) \
+    do { \
+        __auto_type x = func(__VA_ARGS__); \
+        if (x) { \
+            fail( \
+                "Supposed to be NULL: " colr_macro_str(func) "(%s) == " colr_macro_str(x), \
+                colr_macro_str_all(__VA_ARGS__) \
+            ); \
+        } \
+    } while (0)
+
+/*! \def assert_call_not_null
+    Make sure a function call's return value is not `NULL`.
+
+    \details
+    This actually checks boolean logic.
+    It may be switched to `!= NULL`.
+
+    \pi func The function to call.
+    \pi ...  Arguments for the function.
+*/
+#define assert_call_not_null(func, ...) \
+    do { \
+        __auto_type x = func(__VA_ARGS__); \
+        if (!x) { \
+            fail( \
+                "Not supposed to be NULL: " colr_macro_str(func) "(%s) == " colr_macro_str(x), \
+                colr_macro_str_all(__VA_ARGS__) \
+            ); \
+        } \
+    } while (0)
+
+/*! \def assert_colr_eq
+    Make sure two colr_eq() and colr_repr() compatible values are equal.
+
+    \pi a First value to compare.
+    \pi b Second value to compare.
+*/
 #define assert_colr_eq(a, b) \
     do { \
         if (!colr_eq(a, b)) { \
@@ -107,6 +162,12 @@
         }\
     } while (0)
 
+/*! \def assert_colr_neq
+    Make sure two colr_eq() and colr_repr() compatible values are NOT equal.
+
+    \pi a First value to compare.
+    \pi b Second value to compare.
+*/
 #define assert_colr_neq(a, b) \
     do { \
         if (colr_eq(a, b)) { \
@@ -167,25 +228,46 @@
             free(_a_c_neq_repr); \
         }\
     } while (0)
-// Assert two ExtendedValues are equal, with a better message on failure.
-#define assert_ext_eq(a, b, msg) \
+
+/*! \def assert_ext_eq
+    Make sure two ExtendedValues are equal.
+
+    \details
+    This covers the case where `int` isn't compatible with colr_eq().
+
+    \pi a   First value to compare.
+    \pi b   Second value to compare.
+    \pi msg Failure msg.
+*/
+#define assert_ext_eq(a, b, msg...) \
     do { \
         if (a != b) { \
+            default_macro_msg(_a_e_e_msg, "Not equal", msg); \
             char* _a_e_e_eval_repr_a = ExtendedValue_repr(a); \
             char* _a_e_e_eval_repr_b = ExtendedValue_repr(b); \
-            fail("%s: %s != %s", msg, _a_e_e_eval_repr_a, _a_e_e_eval_repr_b); \
+            fail("%s: %s != %s", _a_e_e_msg, _a_e_e_eval_repr_a, _a_e_e_eval_repr_b); \
             free(_a_e_e_eval_repr_a); \
             free(_a_e_e_eval_repr_b); \
         } \
     } while (0)
 
-// Assert two ExtendedValues are not equal, with a better message on failure.
-#define assert_ext_neq(a, b, msg) \
+/*! \def assert_ext_neq
+    Make sure two ExtendedValues are equal.
+
+    \details
+    This covers the case where `int` isn't compatible with colr_eq().
+
+    \pi a   First value to compare.
+    \pi b   Second value to compare.
+    \pi msg Failure msg.
+*/
+#define assert_ext_neq(a, b, msg...) \
     do { \
         if (a == b) { \
+            default_macro_msg(_a_e_ne_msg, "Equal", msg); \
             char* _a_e_ne_eval_repr_a = ExtendedValue_repr(a); \
             char* _a_e_ne_eval_repr_b = ExtendedValue_repr(b); \
-            fail("%s: %s == %s", msg, _a_e_ne_eval_repr_a, _a_e_ne_eval_repr_b); \
+            fail("%s: %s == %s", _a_e_ne_msg, _a_e_ne_eval_repr_a, _a_e_ne_eval_repr_b); \
             free(_a_e_ne_eval_repr_a); \
             free(_a_e_ne_eval_repr_b); \
         } \
@@ -265,6 +347,8 @@
 
 #define assert_hash_eq(a, b) assert_fmt_op(a, ==, b, COLR_HASH_FMT, "Hashes are not equal")
 #define assert_hash_eq_func(a, b, func) assert_fmt_op_func(a, ==, b, COLR_HASH_FMT, func, "Hashes are not equal")
+#define assert_hash_neq(a, b) assert_fmt_op(a, !=, b, COLR_HASH_FMT, "Hashes are equal")
+#define assert_hash_neq_func(a, b, func) assert_fmt_op_func(a, !=, b, COLR_HASH_FMT, func, "Hashes are equal")
 #define assert_hash_str_eq(a, b) assert_hash_str_op(a, ==, b, "Hashes are not equal")
 #define assert_hash_str_neq(a, b) assert_hash_str_op(a, !=, b, "Hashes are equal")
 #define assert_hash_str_op_func(a, op, b, func, msg) \
@@ -286,8 +370,6 @@
     } while (0)
 #define assert_hash_str_op(a, op, b, msg) assert_hash_str_op_func(a, op, b, colr_str_hash, msg)
 
-#define assert_hash_neq(a, b) assert_fmt_op(a, !=, b, COLR_HASH_FMT, "Hashes are equal")
-#define assert_hash_neq_func(a, b, func) assert_fmt_op_func(a, !=, b, COLR_HASH_FMT, func, "Hashes are equal")
 
 #define assert_int_eq(a, b) assert_fmt_op(a, ==, b, "%d", "Integers are not equal")
 #define assert_int_neq(a, b) assert_fmt_op(a, ==, b, "%d", "Integers are equal")
@@ -315,8 +397,6 @@
             free(_a_i_v_repr); \
         } \
     } while (0)
-
-#define array_length(array) (sizeof(array) / sizeof(array[0]))
 
 /*! Make sure a value is `NULL`.
     \details
@@ -357,21 +437,23 @@
         } \
     } while (0)
 
-#define assert_range(x, xmin, xmax, msg) \
+#define assert_range(x, xmin, xmax, msg...) \
     do { \
         if (!in_range(x, xmin, xmax)) { \
-            char* _a_r_msg = NULL; \
+            default_macro_msg(_a_r_msg, "Not in range", msg); \
             char* _a_r_x_repr = test_repr(x); \
             char* _a_r_xmin_repr = test_repr(xmin); \
             char* _a_r_xmax_repr = test_repr(xmax); \
-            if_not_asprintf(&_a_r_msg, "%s (%s): %s-%s", msg, _a_r_x_repr, _a_r_xmin_repr, _a_r_xmax_repr) { \
-                fail("Allocation failed for failure message!"); \
-            } \
+            fail( \
+                "%s (%s): %s-%s", \
+                _a_r_msg, \
+                _a_r_x_repr, \
+                _a_r_xmin_repr, \
+                _a_r_xmax_repr \
+            ); \
             free(_a_r_x_repr); \
             free(_a_r_xmin_repr); \
             free(_a_r_xmax_repr); \
-            fail("%s", _a_r_msg); \
-            free(_a_r_msg); \
         } \
     } while (0)
 
@@ -571,6 +653,46 @@
         }\
     } while (0)
 
+/*! Use stack ColorArg pointers to allocate and fill a list of ColorArg pointers.
+
+    \pi lstname The name of the variable to use (`ColorArg**`).
+    \pi ...         Strings to use.
+*/
+#define ColorArgs_list_fill(lstname, ...) \
+    do { \
+        ColorArg* _ca_l_f_stack[] = { __VA_ARGS__, NULL }; \
+        size_t _ca_l_f_len = array_length(_ca_l_f_stack); \
+        lstname = calloc(_ca_l_f_len, sizeof(_ca_l_f_stack[0])); \
+        assert(lstname != NULL); \
+        for (size_t i = 0; _ca_l_f_stack[i]; i++) { \
+            lstname[i] = _ca_l_f_stack[i]; \
+        } \
+        lstname[_ca_l_f_len - 1] = NULL; \
+    } while (0)
+
+/*! Default message in colr test macros with a `msg...` parameter.
+
+    \details
+    `default_macro_msg("ok", <nothing>) == "ok"`
+
+    `default_macro_msg("ok", "something") == "something"`
+
+    \pi defaultval Message to use when none is given.
+    \pi msg...     Message argument as passed to the macro using this.
+    \return        \p msg if \p msg was given, otherwise \p defaultval.
+*/
+#define default_macro_msg(varname, defaultval, msg...) \
+    char* _d_m_msg = "" msg; \
+    char* varname = (_d_m_msg[0] == '\0' ? defaultval : msg); \
+
+
+/*! \def in_range
+    Determine if a value is within a specified range (inclusive).
+
+    \pi x    The value to check.
+    \pi xmin Minimum value.
+    \pi xmax Maximum value.
+*/
 #define in_range(x, xmin, xmax) ((bool)((x >= xmin) && (x <= xmax)))
 
 /*! Construct a for-loop to iterate over an array, where `x` is the index.
@@ -615,27 +737,30 @@
 
 /*! Use stack strings to allocate and fill a list of string pointers.
 
-    \pi dsl_lstname The name of the variable to use (`char**`).
-    \pi ...         Strings to use.
+    \pi lstname The name of the variable to use (`char**`).
+    \pi ...     Strings to use.
 */
-#define str_list_fill(dsl_lstname, ...) \
+#define str_list_fill(lstname, ...) \
     do { \
-        char* _d_s_l_stack[] = { __VA_ARGS__, NULL }; \
-        size_t _d_s_l_len = array_length(_d_s_l_stack); \
-        dsl_lstname = calloc(_d_s_l_len, sizeof(char*)); \
-        assert(dsl_lstname != NULL); \
-        for (size_t i = 0; _d_s_l_stack[i]; i++) { \
-            if (_d_s_l_stack[i][0] == '\0') { \
-                dsl_lstname[i] = colr_empty_str(); \
+        char* _s_l_f_stack[] = { __VA_ARGS__, NULL }; \
+        size_t _s_l_f_len = array_length(_s_l_f_stack); \
+        lstname = calloc(_s_l_f_len, sizeof(_s_l_f_stack[0])); \
+        assert(lstname != NULL); \
+        for (size_t i = 0; _s_l_f_stack[i]; i++) { \
+            if (_s_l_f_stack[i][0] == '\0') { \
+                lstname[i] = colr_empty_str(); \
             } else { \
-                dsl_lstname[i] = strdup(_d_s_l_stack[i]); \
+                lstname[i] = strdup(_s_l_f_stack[i]); \
             } \
         } \
-        dsl_lstname[_d_s_l_len - 1] = NULL; \
+        lstname[_s_l_f_len - 1] = NULL; \
     } while (0)
 
 /*! \def test_repr
     Calls the correct \<type\>_repr method using `_Generic`.
+
+    \details
+    This duplicates some of the colr_repr() macro, but not all of it.
 
     \pi     x The value to get a string representation for.
     \return An allocated string with the result.\n
@@ -652,7 +777,14 @@
         long: long_repr, \
         long long: long_long_repr, \
         unsigned long: ulong_repr, \
-        unsigned long long: ulong_long_repr \
+        unsigned long long: ulong_long_repr, \
+        ColorArg: ColorArg_repr, \
+        ColorJustify: ColorJustify_repr, \
+        ColorText: ColorText_repr, \
+        ColorValue: ColorValue_repr, \
+        ExtendedValue: ExtendedValue_repr, \
+        RGB: RGB_repr, \
+        TermSize: TermSize_repr \
     )(x)
 
 /*! Kinda like colr_str_repr, but nothing is escaped.

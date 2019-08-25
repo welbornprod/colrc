@@ -54,9 +54,9 @@ subdesc(ColorText_has_arg) {
         ColorArg backarg = fore_arg(rgb(255, 35, 45));
         ColorArg stylearg = fore_arg(rgb(255, 35, 45));
         ColorText ctext = ColorText_empty();
-        assert_ColorText_nothas_arg(ctext, forearg);
-        assert_ColorText_nothas_arg(ctext, backarg);
-        assert_ColorText_nothas_arg(ctext, stylearg);
+        assert_ColorText_missing_arg(ctext, forearg);
+        assert_ColorText_missing_arg(ctext, backarg);
+        assert_ColorText_missing_arg(ctext, stylearg);
         ctext = ColorText_from_values("test", &forearg, &backarg, &stylearg, _ColrLastArg);
         assert_ColorText_has_arg(ctext, forearg);
         assert_ColorText_has_arg(ctext, backarg);

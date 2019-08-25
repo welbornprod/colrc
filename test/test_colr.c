@@ -21,6 +21,7 @@ subdesc(colr) {
         free(s3);
         char* s4 = colr("", NULL);
         assert_str_empty(s4);
+        free(s4);
     }
     it("handles sentinel value") {
         char* s = _colr("test", "this", _ColrLastArg);

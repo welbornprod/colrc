@@ -440,6 +440,11 @@ for arg; do
         "-A" | "--all")
             do_all=1
             ;;
+        "-Aq" | "-qA")
+            # Convenience short-hand for '-A -q' or '-q -A'
+            do_all=1
+            do_quiet=1
+            ;;
         "-a" | "--allmodes")
             do_colors_mode=1
             do_colrc_examples_mode=1

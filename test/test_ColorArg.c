@@ -5,6 +5,8 @@
 
 #include "test_ColrC.h"
 
+#pragma clang diagnostic ignored "-Wgnu-auto-type"
+
 describe(ColorArg) {
 subdesc(ColorArg_empty) {
     it("creates an initialized ColorArg") {
@@ -36,9 +38,9 @@ subdesc(ColorArg_eq) {
         };
         for_each(tests, i) {
             if (tests[i].expected) {
-                assert_ColorArg_eq(tests[i].a, tests[i].b);
+                assert_colr_eq(tests[i].a, tests[i].b);
             } else {
-                assert_ColorArg_neq(tests[i].a, tests[i].b);
+                assert_colr_neq(tests[i].a, tests[i].b);
             }
         }
     }
@@ -214,7 +216,7 @@ subdesc(ColorArg_from_str) {
             {STYLE, "reset_all", style_arg(RESET_ALL)},
         };
         for_each(tests, i) {
-            assert_ColorArg_eq(
+            assert_colr_eq(
                 ColorArg_from_str(tests[i].type, tests[i].name),
                 tests[i].expected
             );
@@ -268,7 +270,7 @@ subdesc(ColorArg_from_value) {
                 tests[i].type,
                 tests[i].p
             );
-            assert_ColorArg_eq(carg, tests[i].expected);
+            assert_colr_eq(carg, tests[i].expected);
         }
     }
 }
@@ -404,4 +406,26 @@ subdesc(ColorArg_to_ptr) {
         free(carg);
     }
 }
+subdesc(ColorArgs_from_str) {
+    it("parses escape codes") {
+        bool do_unique = false;
+        assert_call_null(ColorArgs_from_str, NULL, do_unique);
+        assert_call_null(ColorArgs_from_str, "", do_unique);
+        assert_call_null(ColorArgs_from_str, "No codes in here.", do_unique);
+
+    }
 }
+subdesc(ColorArgs_list_free) {
+    it("frees ColorArg lists") {
+        // The real test is when is sent through valgrind.
+        ColorArg** lst = NULL;
+        ColorArgs_list_fill(
+            lst,
+            fore(RED),
+            back(WHITE),
+            style(UNDERLINE)
+        );
+        ColorArgs_list_free(lst);
+    }
+}
+} // describe(ColorArg)

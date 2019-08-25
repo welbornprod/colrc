@@ -67,8 +67,10 @@ subdesc(ExtendedValue_from_str) {
                 sprintf(numstr, "%d", i);
                 int eval = ExtendedValue_from_str(numstr);
                 assert_ext_eq(i, eval, "Known extended number was considered invalid");
-                assert(
-                    (eval >= 0) && (eval <= 255),
+                assert_range(
+                    eval,
+                    0,
+                    255,
                     "ExtendedValue within range returned invalid."
                 );
                 assert_ext_neq(

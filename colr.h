@@ -745,6 +745,15 @@
 #define colr_join(joiner, ...) _colr_join(joiner, __VA_ARGS__, _ColrLastArg)
 
 
+#ifndef DOXYGEN_SKIP
+// These are just some stringification macros.
+// The first one is the typical stringify macro.
+#define _colr_macro_str(x) #x
+#define colr_macro_str(x) _colr_macro_str(x)
+// This one stringifies the entire argument list as one string.
+#define _colr_macro_str_all(...) #__VA_ARGS__
+#define colr_macro_str_all(...) _colr_macro_str_all(__VA_ARGS__)
+#endif
 /*! \def colr_max
     Macro for `(a > b ? a : b)`.
 
