@@ -919,9 +919,10 @@
         dbug prints it, and calls free() when it's done.
 
         \details
-        Without `dbug.h` (defines dbug()) and `DEBUG` these calls will be disabled.
-        This is for debugging purposes, and is a no-op when DEBUG is not
-        defined.
+        Without `COLR_DEBUG` and `dbug.h` (defines dbug()) and `DEBUG` these
+        calls will be disabled.
+        This is for debugging purposes, and is a no-op when `COLR_DEBUG` and
+        `DEBUG` are not defined.
 
         \pi lbl Label text for the dbug print.
         \pi x   Any object supported by colr_repr().
@@ -957,12 +958,12 @@
 #endif // DOXYGEN_SKIP
 
 /*! \def ext
-    Casts to ExtendedValue (unsigned char).
+    Casts to ExtendedValue (`unsigned char`).
 
     \pi x   Value to cast to `unsigned char`/`ExtendedValue`.
     \return An ExtendedValue.
 
-    \sa fore back colr Colr ext_hex ext_hex_or
+    \sa fore back colr Colr ext_hex ext_hex_or ext_rgb ext_RGB
 */
 #define ext(x) ((ExtendedValue)x)
 

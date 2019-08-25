@@ -1761,7 +1761,13 @@ size_t colr_str_mb_len(const char* s) {
     size_t total = 0;
     while ((next_len = mblen(s + i, MB_LEN_MAX))) {
         if (next_len < 0) {
-            dbug("Invalid multibyte sequence at: %d\n", i);
+            #if defined(COLR_DEBUG) && !defined(COLR_TEST)
+                // Make sure this is a no-op when not explicitly requesting
+                // colrc-debug-mode. It helps to know which part was "invalid".
+                char* repr = colr_repr(s + i);
+                dbug("Invalid multibyte sequence at: %d, Repr: %s\n", i, repr ? repr : "NULL");
+                if (repr) free(repr);
+            #endif
             return 0;
         }
         i += next_len;
@@ -2161,9 +2167,10 @@ TermSize colr_term_size(void) {
     \return A `winsize` struct (`sys/ioctl.h`) with window size information.
 */
 struct winsize colr_win_size(void) {
-    struct winsize ws = {0, 0, 0, 0};
+    struct winsize ws = {.ws_row=0, .ws_col=0, .ws_xpixel=0, .ws_ypixel=0};
     if (ioctl(0, TIOCGWINSZ, &ws) < 0) {
         // No support?
+        // This branch is not tested right now, but colr_win_size_env() is.
         dbug("No support for ioctl TIOCGWINSZ, using defaults.");
         return colr_win_size_env();
     }

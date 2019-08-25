@@ -10,6 +10,7 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Winline -Wlogical-op \
        -Wno-variadic-macros \
        -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 \
        -D_GNU_SOURCE \
+       -DCOLR_TEST \
        -std=gnu11
 INCLUDES=-iquote../
 LIBS=-lm

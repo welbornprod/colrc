@@ -6,20 +6,22 @@
 
 
 #ifndef TEST_COLR_H
-/* Tell gcc to ignore this unused inclusion macro. */
+// Tell gcc to ignore this unused inclusion macro.
 #pragma GCC diagnostic ignored "-Wunused-macros"
-/* Tell gcc to ignore clang pragmas, for linting. */
+// Tell gcc to ignore clang pragmas, for linting.
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
-/* Tell clang to ignore this unused inclusion macro. */
+// Tell clang to ignore this unused inclusion macro.
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-macros"
 #define TEST_COLR_H
+
 #pragma clang diagnostic pop
-/* Warn for any other unused macros, for gcc and clang. */
+// Warn for any other unused macros, for gcc and clang.
 #pragma GCC diagnostic warning "-Wunused-macros"
 #pragma clang diagnostic push
 #pragma clang diagnostic warning "-Wunused-macros"
 #pragma clang diagnostic ignored "-Wvariadic-macros"
+
 
 #include "../colr.h"
 
@@ -27,6 +29,7 @@
 #undef assert
 #define SNOW_ENABLED
 #include "snow.h"
+
 
 #define assert_ColorArg_eq(a, b) \
     do { \

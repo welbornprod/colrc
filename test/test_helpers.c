@@ -949,6 +949,15 @@ subdesc(colr_str_mb_len) {
             assert_size_eq_repr(length, tests[i].expected, tests[i].s);
         }
     }
+    it("detects invalid multibyte strings") {
+        char* invalid_strs[] = {
+            // This is a utf16-encoded "Test\n".
+            "\xff\xfeT\x00e\x00s\x00t\x00\n\x00",
+        };
+        for_each(invalid_strs, i) {
+            assert_size_eq_repr(colr_str_mb_len(invalid_strs[i]), 0, invalid_strs[i]);
+        }
+    }
 }
 // colr_str_noncode_len
 subdesc(colr_str_noncode_len) {

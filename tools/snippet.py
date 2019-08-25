@@ -57,6 +57,7 @@ CONFIGFILE = os.path.join(SCRIPTDIR, 'snippet.json')
 config = load_json_settings(
     CONFIGFILE,
     default={
+        'defines': {},
         'editor': [],
         'last_snippet': None,
         'last_binary': None,
@@ -1181,6 +1182,16 @@ class Snippet(object):
         """
         line_table = set(line.strip() for line in code.splitlines())
         lines = []
+        for defname in sorted(config['defines']):
+            defline = f'#define {defname} {config["defines"][defname]}'
+            if defline in line_table:
+                debug(f'Not defining {defname}')
+                continue
+            lines.append(f'#ifndef {defname}')
+            lines.append(f'    {defline}')
+            lines.append(f'#endif // {defname}')
+            debug(f'Defined {defname} {config["defines"][defname]}')
+
         includes = config['includes']
         for includetype in sorted(includes):
             for includename in includes[includetype]:
