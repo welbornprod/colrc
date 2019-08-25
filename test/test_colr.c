@@ -19,6 +19,8 @@ subdesc(colr) {
         char* s3 = colr("this", NULL, "that");
         assert_str_eq(s3, "thisthat", "Should act like strdup()/strcat() with a NULL argument.");
         free(s3);
+        char* s4 = colr("", NULL);
+        assert_str_empty(s4);
     }
     it("handles sentinel value") {
         char* s = _colr("test", "this", _ColrLastArg);
@@ -426,4 +428,4 @@ subdesc(colr_replace) {
         }
     }
 }
-} // describe(colr_api)
+} // describe(colr)
