@@ -15,3 +15,4 @@ cachegrind.*
 images/*.xcf
 libcolr.so
 cppcheck_report
+colrc-*.*.*
