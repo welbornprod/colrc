@@ -143,4 +143,27 @@ subdesc(ColorType_repr) {
         }
     }
 }
+subdesc(ColorType_to_str) {
+    it("creates a ColorType string") {
+        struct {
+            ColorType type;
+            char* repr;
+        } tests[] = {
+            {TYPE_NONE, "none"},
+            {TYPE_BASIC, "basic"},
+            {TYPE_EXTENDED, "ext"},
+            {TYPE_RGB, "rgb"},
+            {TYPE_STYLE, "style"},
+            {TYPE_INVALID, "invalid"},
+            {TYPE_INVALID_STYLE, "invalid style"},
+            {TYPE_INVALID_EXT_RANGE, "invalid ext"},
+            {TYPE_INVALID_RGB_RANGE, "invalid rgb"},
+        };
+        for_each(tests, i) {
+            char* s = ColorType_to_str(tests[i].type);
+            assert_str_eq(s, tests[i].repr, "ColorType_to_str() failed!");
+            free(s);
+        }
+    }
+}
 } // describe(ColorType)
