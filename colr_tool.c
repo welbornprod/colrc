@@ -245,8 +245,8 @@ bool ColrOpts_set_disabled(ColrOpts* opts) {
     If `opts->text == "-"`, it is read from stdin.
 
     \details
-    If processing-options are set (`.list_codes`, `.strip_codes`), the default
-    is to read from stdin.
+    If processing-options are set (`.list_codes`, `.strip_codes`, `.translate_code`),
+    the default is to read from stdin.
 
     \po opts A ColrOpts to set the text for.
     \return  `true` if text was set (or already set), otherwise `false`.
@@ -262,8 +262,18 @@ bool ColrOpts_set_text(ColrOpts* opts) {
         }
         return true;
     }
+    if (colr_str_starts_with(opts->text, "\\-")) {
+        // User has some text that starts with "-", and they escaped it to
+        // bypass argument parsing. Try to do the right thing and strip the
+        // backslash.
+        opts->text = opts->text + 1;
+    }
+    // Do stdin if explicitly requested.
     bool do_stdin = colr_str_eq(opts->text, "-");
-    if (!opts->text && (opts->list_codes || opts->strip_codes)) do_stdin = true;
+    // Do stdin if there is no text, and one of the commands is being used.
+    bool is_cmd = (opts->list_codes || opts->strip_codes || opts->translate_code);
+    if (!opts->text && is_cmd) do_stdin = true;
+
     if (do_stdin) {
         // Fill text with stdin if a marker argument was used.
         // Read from stdin.
@@ -580,8 +590,11 @@ int parse_args(int argc, char** argv, ColrOpts* opts) {
     );
     while (optind < argc) {
         if (!opts->text && !opts->filepath) {
-            // If a file path is set, the text will come later.
+            // No filepath to read from, if argv[optind] is "-" stdin will be
+            // used. If argv[optind] startswith "\\-", the "\\" will be stripped.
+            // This happens in ColrOpts_set_text(), below.
             opts->text = argv[optind];
+
             optind++;
             if (no_colr_opts) {
                 // No color options are needed for this operation.
