@@ -6,13 +6,14 @@ appname="gen_latex_pdf"
 appversion="0.0.2"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
-appdir="${apppath%/*}/.."
+appdir="${apppath%/*}"
 
-latex_dir="${appdir}/docs/latex"
+colrc_dir="${appdir}/.."
+latex_dir="${colrc_dir}/docs/latex"
 doxy_tex="${latex_dir}/refman.tex"
 ref_pdf="${latex_dir}/refman.pdf"
-doc_pdf="${appdir}/docs/ColrC-manual.pdf"
-doxy_config="${appdir}/Doxyfile_latex"
+doc_pdf="${colrc_dir}/docs/ColrC-manual.pdf"
+doxy_config="${colrc_dir}/doc_deps/Doxyfile_latex"
 
 declare -A script_deps=(
     ["doxygen"]="doxygen"

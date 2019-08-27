@@ -1,4 +1,4 @@
-@INCLUDE = Doxyfile_common
+@INCLUDE = doc_deps/Doxyfile_common
 GENERATE_HTML          = YES
 GENERATE_MAN           = YES
 GENERATE_LATEX         = NO
