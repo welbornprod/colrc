@@ -14,7 +14,7 @@
     // Use ColrC functions/macros/etc.
 
     int main(void) {
-        char *colorized = colr(
+        char* colorized = colr(
             "This is ",
             Colr("ColrC", fore(BLUE), style(BRIGHT)),
             " and it tries to make things ",
@@ -38,7 +38,7 @@
 #endif
 
 //! Current version for ColrC.
-#define COLR_VERSION "0.3.2"
+#define COLR_VERSION "0.3.3"
 
 #ifndef DOXYGEN_SKIP
 /*! \def IS_C11
@@ -1635,15 +1635,15 @@ bool colr_check_marker(unsigned int marker, void* p);
 char* colr_empty_str(void);
 bool colr_supports_rgb(void);
 
-size_t colr_str_char_count(const char*s, const char c);
+size_t colr_str_char_count(const char* s, const char c);
 char* colr_str_center(const char* s, const char padchar, int width);
 size_t colr_str_code_cnt(const char* s);
 size_t colr_str_code_len(const char* s);
-char* colr_str_copy(char* dest, const char* src, size_t length);
-bool colr_str_ends_with(const char* s, const char* suffix);
+char* colr_str_copy(char* restrict dest, const char* restrict src, size_t length);
+bool colr_str_ends_with(const char* restrict s, const char* restrict suffix);
 char** colr_str_get_codes(const char* s, bool unique);
 bool colr_str_has_codes(const char* s);
-colr_hash colr_str_hash(const char *s);
+colr_hash colr_str_hash(const char* s);
 bool colr_str_is_all(const char* s, const char c);
 bool colr_str_is_codes(const char* s);
 bool colr_str_is_digits(const char* s);
@@ -1651,15 +1651,15 @@ bool colr_str_list_contains(char** lst, const char* s);
 void colr_str_list_free(char** ps);
 char* colr_str_ljust(const char* s, const char padchar, int width);
 void colr_str_lower(char* s);
-char* colr_str_lstrip_chars(const char* s, const char* chars);
+char* colr_str_lstrip_chars(const char* restrict s, const char* restrict chars);
 size_t colr_str_mb_len(const char* s);
 size_t colr_str_noncode_len(const char* s);
-char* colr_str_replace(char* s, const char *target, const char* repl);
-char* colr_str_replace_ColorArg(char* s, const char *target, const ColorArg* repl);
-char* colr_str_replace_ColorText(char* s, const char *target, const ColorText* repl);
+char* colr_str_replace(char* restrict s, const char* restrict target, const char* restrict repl);
+char* colr_str_replace_ColorArg(char* restrict s, const char* restrict target, const ColorArg* repl);
+char* colr_str_replace_ColorText(char* restrict s, const char* restrict target, const ColorText* repl);
 char* colr_str_repr(const char* s);
 char* colr_str_rjust(const char* s, const char padchar, int width);
-bool colr_str_starts_with(const char* s, const char* prefix);
+bool colr_str_starts_with(const char* restrict s, const char* restrict prefix);
 char* colr_str_strip_codes(const char* s);
 char* colr_str_to_lower(const char* s);
 
