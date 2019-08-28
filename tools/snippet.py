@@ -515,7 +515,7 @@ def get_gcc_cmd(
     if output_file:
         cmd.extend(('-o', output_file))
     cmd.append(f'-iquote{COLR_DIR}')
-    cmd.extend(get_make_flags(user_args=[make_target]))
+    cmd.extend(get_make_flags(user_args=[make_target] if make_target else None))
     cmd.extend(user_args or [])
     return cmd
 

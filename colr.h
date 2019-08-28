@@ -103,8 +103,13 @@
 #define WCODE_RESET_ALL L"\x1b[0m"
 //! Short-hand for CODE_RESET_ALL, stands for "No Color".
 #define NC CODE_RESET_ALL
+//! Short-hand for `CODE_RESET_ALL "\n"`, stands for "No Color, New Line".
+#define NCNL CODE_RESET_ALL "\n"
 //! Short-hand for WCODE_RESET_ALL, stands for "Wide No Color".
 #define WNC WCODE_RESET_ALL
+//! Short-hand for `WCODE_RESET_ALL "\n"`, stands for "No Color, New Line".
+#define WNCNL WCODE_RESET_ALL L"\n"
+
 //! Length of CODE_RESET_ALL, including `'\0'`.
 #define CODE_RESET_LEN 5
 /*! Minimum length for the shortest basic fore/back escape code, including `'\0'`.
@@ -1033,6 +1038,59 @@
 */
 #define ext_RGB(rgbval) ExtendedValue_from_RGB(rgbval)
 
+/*! \def ext_str_static
+    Creates a stack-allocated escape code \string for an ExtendedValue.
+
+    \details
+    These are not constant strings, but they are stored on the stack.
+    A "statement expression" is used to build a string of the correct length
+    using `sprintf()`. It basically does:
+    \code
+    ExtendedValue xval = 16;
+    char my_string[CODEX_LEN];
+    if (argtype == FORE) sprintf("\x1b[38;5;%dm", x);
+    else sprintf("\x1b[48;5;%dm", x);
+    // Return `my_string` to the caller.
+    \endcode
+
+    \pi argtype ArgType, either FORE or BACK.
+    \pi x       An ExtendedValue to use.
+    \return     A stack-allocated escape code string.
+
+    \sa style_str_static
+
+    \examplecodefor{ext_str_static,.c}
+    // This results in a call to sprintf(), to format an extended escape code.
+    // The string is stored on the stack.
+    char* foreblue = ext_str_static(FORE, 27);
+    char* backwhite = ext_str_static(BACK, 255);
+    printf("%s%sBlue on white" NC "\n", foreblue, backwhite);
+
+    ExtendedValue xval = 23;
+    printf("%s%d\n", ext_str_static(FORE, xval), xval);
+
+    \endexamplecode
+*/
+#define ext_str_static(argtype, x) ( \
+    argtype == FORE ? \
+        ext_str_static_fore(x) : \
+        ext_str_static_back(x) \
+    )
+
+#define ext_str_static_back(x) \
+    __extension__ ({ \
+    char codes[CODEX_LEN]; \
+    sprintf(codes, "\x1b[48;5;%dm", x); \
+    codes; \
+    })
+
+#define ext_str_static_fore(x) \
+    __extension__ ({ \
+    char codes[CODEX_LEN]; \
+    sprintf(codes, "\x1b[38;5;%dm", x); \
+    codes; \
+    })
+
 /*! \def fore
     Create a fore color suitable for use with the colr() and Colr() macros.
 
@@ -1215,11 +1273,12 @@
 #define style_str(x) ColorArg_to_esc(style_arg(x))
 
 /*! \def style_str_static
-    A less-flexible style_str(). Returns a static escape code string for a style.
+    A less-flexible style_str() that returns a static escape code string for a
+    style.
 
     \details
     This macro function does not accept style names. Only `StyleValue` and
-    the underlying `int` values are accepted.
+    literal `int` values are accepted.
 
     \details
     The resulting expression will be optimized into a constant static string.
@@ -1231,13 +1290,18 @@
 
     \examplecodefor{style_str_static,.c}
     // This is optimized into a constant static string, even with -g3.
-    printf("%sThis is a test.\n" NC, style_str_static(UNDERLINE));
+    char* ul_codes = style_str_static(UNDERLINE);
+    printf("%sUnderlined.\n" NC, ul_codes);
 
-    // This is only optimized when optimizations are turned on (-O2, -O3).
+    // This is also optimized as if you wrote the string "\x1b[4m".
+    printf("%sNo branches.\n" NC, style_str_static(UNDERLINE));
+
+    // This is only optimized when optimizations are turned on (-O2, -O3)
+    // because of the variable `sval`.
     // When compiling for debug (-g3), the compiler will produce branches/jumps
     // for each possible StyleValue case.
     StyleValue sval = BRIGHT;
-    printf("%sThis is another test.\n" NC, style_str_static(sval));
+    printf("%sBranches in debug mode.\n" NC, style_str_static(sval));
     \endexamplecode
 */
 #define style_str_static(x) \
