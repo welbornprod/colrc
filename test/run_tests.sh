@@ -356,13 +356,13 @@ function run_everything {
     echo_status "Trying to build (sanitize)" "$testexe"
     make_in "$testdir" clean sanitize testquiet
 
-    echo_status "Running examples..."
+    echo_status "Running examples"
     run_examples "${exampleargs[@]}"
 
-    echo_status "Running source examples..."
+    echo_status "Running source examples"
     run_source_examples "${exampleargs[@]}"
 
-    echo_status "Building test coverage..."
+    echo_status "Building test coverage"
     make_in "$testdir" clean coverage
 
     echo_status "Trying to build (release)" "$colrexe"

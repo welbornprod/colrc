@@ -1260,6 +1260,9 @@ size_t colr_str_code_len(const char* s) {
     \details
     A null-terminator is always appended to \p dest.
 
+    \details
+    \p src and \p dest must not overlap.
+
     \pi dest   Memory allocated for new string.
                <em>Must have room for `strlen(src) + 1` or `length + 1`</em>.
     \pi src    Source string to copy.
@@ -1285,7 +1288,7 @@ size_t colr_str_code_len(const char* s) {
     free(dest);
     \endexamplecode
 */
-char* colr_str_copy(char* dest, const char* src, size_t length) {
+char* colr_str_copy(char* restrict dest, const char* restrict src, size_t length) {
     if (!(src && dest)) {
         return NULL;
     }
@@ -1302,14 +1305,16 @@ char* colr_str_copy(char* dest, const char* src, size_t length) {
 /*! Determine if one \string ends with another.
 
     \details
-    `str` and `suf` \mustnull
+    \p str and \p suf must not overlap.
 
-    \pi str String to check.
-    \pi suf Suffix to check for.
+    \pi str String to check.\n
+            \mustnull
+    \pi suf Suffix to check for.\n
+            \mustnull
     \return True if `str` ends with `suf`.
     \return False if either is NULL, or the string doesn't end with the suffix.
 */
-bool colr_str_ends_with(const char* str, const char* suf) {
+bool colr_str_ends_with(const char* restrict str, const char* restrict suf) {
     if (!str || !suf) {
         return false;
     }
@@ -1714,6 +1719,8 @@ char* colr_str_ljust(const char* s, const char padchar, int width) {
 
     `colr_str_lstrip_chars("aabbccTEST", "bca") == "TEST"`
 
+    \details
+    \p s and \p chars must not overlap.
 
     \pi s     The string to strip.
               \p s \mustnull
@@ -1725,10 +1732,12 @@ char* colr_str_ljust(const char* s, const char padchar, int width) {
               \mustfree
               \maybenullalloc
 */
-char* colr_str_lstrip_chars(const char* s, const char* chars) {
+char* colr_str_lstrip_chars(const char* restrict s, const char* restrict chars) {
     if (!(s && chars)) return NULL;
     if ((s[0] == '\0') || (chars[0] == '\0')) return NULL;
 
+    // The string may not even contain the `chars`. Worst case is the same
+    // string, with the same length.
     size_t length = strlen(s);
     char* result = calloc(length + 1, sizeof(char));
     size_t result_pos = 0;
@@ -1805,7 +1814,8 @@ size_t colr_str_noncode_len(const char* s) {
 /*! Replaces substrings in a \string.
 
     \details
-    Using `NULL` as a replacement is like using an empty string ("").
+    Using `NULL` as a replacement is like using an empty string (""), which
+    removes the \p target string from \p s.
 
     \pi s      The string to operate on.
     \pi target The string to replace.
@@ -1815,7 +1825,7 @@ size_t colr_str_noncode_len(const char* s) {
                \mustfree
                \maybenullalloc
 */
-char* colr_str_replace(char *s, const char *target, const char *repl) {
+char* colr_str_replace(char* restrict s, const char* restrict target, const char* restrict repl) {
     if (!(s && target)) return NULL;
     if ((s[0] == '\0') || (target[0] == '\0')) return NULL;
     if (!repl) repl = "";
@@ -1871,7 +1881,7 @@ char* colr_str_replace(char *s, const char *target, const char *repl) {
                \mustfree
                \maybenullalloc
 */
-char* colr_str_replace_ColorArg(char* s, const char* target, const ColorArg* repl) {
+char* colr_str_replace_ColorArg(char* restrict s, const char* restrict target, const ColorArg* repl) {
     if (!(s && target)) return NULL;
     if ((s[0] == '\0') || (target[0] == '\0')) return NULL;
     char* replstr = repl ? ColorArg_to_esc(*repl): NULL;
@@ -1892,7 +1902,7 @@ char* colr_str_replace_ColorArg(char* s, const char* target, const ColorArg* rep
                \mustfree
                \maybenullalloc
 */
-char* colr_str_replace_ColorText(char* s, const char* target, const ColorText* repl) {
+char* colr_str_replace_ColorText(char* restrict s, const char* restrict target, const ColorText* repl) {
     if (!(s && target)) return NULL;
     if ((s[0] == '\0') || (target[0] == '\0')) return NULL;
     char* replstr = repl ? ColorText_to_str(*repl): NULL;
@@ -2029,7 +2039,7 @@ char* colr_str_rjust(const char* s, const char padchar, int width) {
     \return True if the string `s` starts with prefix.
     \return False if one of the strings is null, or the prefix isn't found.
 */
-bool colr_str_starts_with(const char* s, const char* prefix) {
+bool colr_str_starts_with(const char* restrict s, const char* restrict prefix) {
     if (!(s && prefix)) {
         // One of the strings is null.
         return false;
