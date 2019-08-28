@@ -149,6 +149,7 @@ subdesc(colr_char_repr) {
             {'\t', "'\\t'"},
             {'\v', "'\\v'"},
             {3, "'\\x3'"},
+            {'a', "'a'"},
         };
         for_each(tests, i) {
             char *repr = colr_char_repr(tests[i].c);
