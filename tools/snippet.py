@@ -48,7 +48,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.2.4'
+VERSION = '0.2.5'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -59,13 +59,16 @@ config = load_json_settings(
     default={
         'defines': {},
         'editor': [],
-        'last_snippet': None,
+        'last_snippet': os.path.join(SCRIPTDIR, 'snippet.last.c'),
         'last_binary': None,
         'last_c_file': None,
         'includes': {'system': [], 'local': []},
         'macros': {},
     }
 )
+# Set in main().
+LAST_SNIPPET = None
+
 TMPPREFIX = NAME.replace(' ', '').lower()
 TMPDIR = tempfile.gettempdir()
 
@@ -180,6 +183,7 @@ CNumInfo = ColrPreset(fore='cyan', style='bright')
 def main(argd):
     """ Main entry point, expects docopt arg dict as argd. """
     global status
+    last_snippet_read()
     if argd['--quiet']:
         status = noop
     if argd['--sanitize']:
@@ -219,10 +223,10 @@ def main(argd):
                 quiet=argd['--quiet'],
             )
         else:
-            if not config['last_snippet']:
+            if not LAST_SNIPPET:
                 raise InvalidArg('no "last snippet" found.')
             return view_snippet(
-                text=config['last_snippet'],
+                text=LAST_SNIPPET,
                 show_name=argd['--name'],
                 quiet=argd['--quiet'],
             )
@@ -238,16 +242,16 @@ def main(argd):
                 raise InvalidArg('no "last file" found.')
             snippet = edit_snippet(filepath=config['last_c_file'])
         else:
-            if not (argd['CODE'] or config['last_snippet']):
+            if not (argd['CODE'] or LAST_SNIPPET):
                 raise InvalidArg('no "last snippet" found, no code given.')
-            snippet = edit_snippet(text=argd['CODE'] or config['last_snippet'])
+            snippet = edit_snippet(text=argd['CODE'] or LAST_SNIPPET)
         if not snippet:
             raise UserCancelled()
         snippets = [snippet]
     elif argd['--last']:
-        if not config['last_snippet']:
+        if not LAST_SNIPPET:
             raise InvalidArg('no "last snippet" found.')
-        snippets = [Snippet(config['last_snippet'], name='last-snippet')]
+        snippets = [Snippet(LAST_SNIPPET, name='last-snippet')]
     else:
         snippets = [
             Snippet(argd['CODE'], name='cmdline-snippet') or read_stdin()
@@ -568,6 +572,39 @@ def iter_output(cmd, stderr=subprocess.PIPE):
             stderr=stderr
         ).decode().strip().splitlines()
     )
+
+
+def last_snippet_read():
+    """ Read the last-snippet file, and set the global LAST_SNIPPET. """
+    global LAST_SNIPPET
+    snippetfile = config['last_snippet']
+    try:
+        with open(snippetfile, 'r') as f:
+            LAST_SNIPPET = f.read()
+    except FileNotFoundError:
+        LAST_SNIPPET = None
+    except EnvironmentError as ex:
+        print_err(
+            f'\nError reading last-snippet file: {snippetfile}\n{ex}'
+        )
+        LAST_SNIPPET = None
+
+
+def last_snippet_write(code):
+    """ Write to the last-snippet file. """
+    if not LAST_SNIPPET:
+        return False
+    snippetfile = config['last_snippet']
+    try:
+        with open(snippetfile, 'w') as f:
+            f.write(LAST_SNIPPET)
+    except EnvironmentError as ex:
+        print_err(
+            f'Error writing last-snippet file: {snippetfile}\n{ex}'
+        )
+    else:
+        return True
+    return False
 
 
 def list_examples(name_pat=None, names_only=False):
@@ -1081,10 +1118,18 @@ class Snippet(object):
 
         self.write_code(self.wrap_code(self.code), ext='.c')
         config['last_c_file'] = self.src_file
-        config['last_snippet'] = self.code
+        last_snippet_write(self.code)
         basename = os.path.split(os.path.splitext(self.src_file)[0])[-1]
         objname = f'{basename}.o'
         cfiles = [self.src_file, COLRC_FILE]
+        colrobj = 'colr.o'
+        if os.path.exists(colrobj):
+            try:
+                os.remove(colrobj)
+                debug(f'Removed existing: {colrobj}')
+            except EnvironmentError as ex:
+                print_err(f'Unable to remove {colrobj}: {ex}')
+
         cmd = get_gcc_cmd(cfiles, user_args=user_args)
         try:
             debug('Compiling C files:')
@@ -1095,8 +1140,6 @@ class Snippet(object):
         else:
             if compret != 0:
                 raise CompileError(self.src_file)
-        colrbase = os.path.splitext(COLRC_FILE)[0]
-        colrobj = f'{colrbase}.o'
         tmpobjnames = get_obj_files()
         debug(f'Found object files: {", ".join(tmpobjnames)}')
         objnames = []
@@ -1146,6 +1189,18 @@ class Snippet(object):
         lines[-1] = lines[-1].rstrip('\\').rstrip()
         return lines
 
+    def has_define(self, name, lines=None):
+        """ Return True if self.code seems to define a given name. """
+        lines = lines or set(
+            line.strip() for line in self.code.splitlines()
+        )
+        defpat = re.compile(rf'#([ \t]+)?define([ \t]+){name}[( \t]')
+        for line in lines:
+            if defpat.search(line) is not None:
+                debug(f'Found define: {line}')
+                return True
+        return False
+
     @staticmethod
     def is_main_sig(line):
         """ Returns True if the `line` looks like a main() signature. """
@@ -1166,7 +1221,7 @@ class Snippet(object):
 
         filepath = self.write_code(self.wrap_code(self.code), ext='.c')
         config['last_c_file'] = filepath
-        config['last_snippet'] = self.code
+        last_snippet_write(self.code)
         cfiles = [filepath, COLRC_FILE]
         cmd = get_gcc_cmd(cfiles, user_args=user_args, preprocess=True)
         try:
@@ -1188,10 +1243,10 @@ class Snippet(object):
         line_table = set(line.strip() for line in code.splitlines())
         lines = []
         for defname in sorted(config['defines']):
-            defline = f'#define {defname} {config["defines"][defname]}'
-            if defline in line_table:
+            if self.has_define(defname, lines=line_table):
                 debug(f'Not defining {defname}')
                 continue
+            defline = f'#define {defname} {config["defines"][defname]}'
             lines.append(f'#ifndef {defname}')
             lines.append(f'    {defline}')
             lines.append(f'#endif // {defname}')
@@ -1211,7 +1266,7 @@ class Snippet(object):
             deflines = config['macros'][macroname]['define']
             if isinstance(deflines, str):
                 deflines = [deflines]
-            if deflines[0] in line_table:
+            if self.has_define(macroname, lines=line_table):
                 debug(f'Not including macro: {macroname}')
                 continue
             lines.append(f'#ifndef {macroname}')
@@ -1271,5 +1326,5 @@ if __name__ == '__main__':
     except BrokenPipeError:
         print_err('\nBroken pipe, input/output was interrupted.\n')
         mainret = 3
-    config.save()
+    config.save(sort_keys=True)
     sys.exit(mainret)
