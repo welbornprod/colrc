@@ -4519,14 +4519,7 @@ bool ColorValue_has_RGB(ColorValue cval, RGB rgb) {
     \sa ColorValue ColorValue_empty ColorArg_empty ColorArg_is_empty
 */
 bool ColorValue_is_empty(ColorValue cval) {
-    return (cval.type == TYPE_NONE) || (
-        (cval.basic == basic(0)) &&
-        (cval.ext == ext(0)) &&
-        RGB_eq(cval.rgb, rgb(0, 0, 0)) &&
-        // Everything will be set to 0 if TYPE_STYLE and RESET_ALL.
-        (cval.type != TYPE_STYLE) &&
-        (cval.style == RESET_ALL)
-    );
+    return (cval.type == TYPE_NONE);
 }
 
 /*! Checks to see if a ColorValue holds an invalid value.
