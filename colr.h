@@ -1165,6 +1165,7 @@
         } \
     } while (0);
 
+
 /*! \def style
     Create a style suitable for use with the colr() and Colr() macros.
 
@@ -1212,6 +1213,47 @@
     \sa style style_arg
 */
 #define style_str(x) ColorArg_to_esc(style_arg(x))
+
+/*! \def style_str_static
+    A less-flexible style_str(). Returns a static escape code string for a style.
+
+    \details
+    This macro function does not accept style names. Only `StyleValue` and
+    the underlying `int` values are accepted.
+
+    \details
+    The resulting expression will be optimized into a constant static string.
+
+    \pi x   A StyleValue to use.
+    \return A stack-allocated string.
+
+    \sa style style_arg style_str
+
+    \examplecodefor{style_str_static,.c}
+    // This is optimized into a constant static string, even with -g3.
+    printf("%sThis is a test.\n" NC, style_str_static(UNDERLINE));
+
+    // This is only optimized when optimizations are turned on (-O2, -O3).
+    // When compiling for debug (-g3), the compiler will produce branches/jumps
+    // for each possible StyleValue case.
+    StyleValue sval = BRIGHT;
+    printf("%sThis is another test.\n" NC, style_str_static(sval));
+    \endexamplecode
+*/
+#define style_str_static(x) \
+    (x == RESET_ALL ? "\x1b[0m" : \
+    (x ==BRIGHT ? "\x1b[1m" : \
+    (x == DIM ? "\x1b[2m" : \
+    (x == ITALIC ? "\x1b[3m" : \
+    (x == UNDERLINE ? "\x1b[4m" : \
+    (x == FLASH ? "\x1b[5m" : \
+    (x == HIGHLIGHT ? "\x1b[7m" : \
+    (x == STRIKETHRU ? "\x1b[9m" : \
+    (x == NORMAL ? "\x1b[22m" : \
+    (x == FRAME ? "\x1b[51m" : \
+    (x == ENCIRCLE ? "\x1b[52m" : \
+    (x == OVERLINE ? "\x1b[53m" : "\x1b[" colr_macro_str(x) "m" \
+    ))))))))))))
 
 /*! \def while_colr_va_arg
     Construct a while-loop over a `va_list`, where the last argument is

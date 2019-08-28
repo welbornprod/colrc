@@ -118,52 +118,53 @@ USAGESTR = f"""{VERSIONSTR}
         {SCRIPT} [-D] (-L | -N) [PATTERN]
         {SCRIPT} [-D] [-n] [-q] [-w] -V
         {SCRIPT} [-D] [-n] [-q] [-m | -r exe] -b
-        {SCRIPT} [-D] [-n] [-q] [-m | -r exe | -s] -x [PATTERN] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-m | -r exe | -s] [CODE] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-m | -r exe | -s] [-f file...] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-m | -r exe | -s] [-w] (-e [CODE] | -l) [-- ARGS...]
-        {SCRIPT} [-D] -E [CODE] [-- ARGS...]
-        {SCRIPT} [-D] -E [-f file...] [-- ARGS...]
-        {SCRIPT} [-D] -E [-w] (-e [CODE] | -l) [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-m | -r exe | -s] [-t name] -x [PATTERN] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-m | -r exe | -s] [-t name] [CODE] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-m | -r exe | -s] [-t name] [-f file...] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-m | -r exe | -s] [-t name] [-w] (-e [CODE] | -l) [-- ARGS...]
+        {SCRIPT} [-D] -E [-t name] [CODE] [-- ARGS...]
+        {SCRIPT} [-D] -E [-t name] [-f file...] [-- ARGS...]
+        {SCRIPT} [-D] -E [-t name] [-w] (-e [CODE] | -l) [-- ARGS...]
 
     Options:
-        ARGS                 : Extra arguments for the compiler.
-        CODE                 : Code to compile. It is auto-wrapped in a main()
-                               function if no main() signature is found.
-                               Auto-includes are included unless include
-                               lines for them are found.
-                               When used with -e, the editor is started with
-                               this as it's content.
-                               Default: stdin
-        PATTERN              : Only use examples with a leading comment
-                               that matches this text/regex pattern.
-        -b,--lastbinary      : Re-run the last binary that was compiled.
-        -c,--clean           : Clean {TMPDIR} files, even though they will be
-                               cleaned when the OS reboots.
-        -D,--debug           : Show some debug info while running.
-        -E,--preprocessor    : Run through gcc's preprocessor and print the
-                               output.
-        -e,--editlast        : Edit the last snippet in $EDITOR and run it.
-                               If the CODE argument is given, it will replace
-                               the contents of the last snippet.
-                               $EDITOR is {EDITOR_DESC}
-        -f name,--file name  : Read file to get snippet to compile.
-        -h,--help            : Show this help message.
-        -L,--listexamples    : List example code snippets in the source.
-        -l,--last            : Re-run the last snippet.
-        -m,--memcheck        : Run the snippet through `valgrind`.
-        -N,--listnames       : List example snippet names from the source.
-        -n,--name            : Print the resulting binary name, for further
-                               testing.
-        -q,--quiet           : Don't print any status messages.
-        -r exe,--run exe     : Run a program on the compiled binary, like
-                               `gdb` or `kdbg`.
-        -s,--sanitize        : Use -fsanitize compiler arguments.
-        -V,--viewlast        : View the last snippet that was compiled.
-        -v,--version         : Show version.
-        -w,--wrapped         : Use the "wrapped" version, which is the resulting
-                               `.c` file for snippets.
-        -x,--examples        : Use source examples as the snippets.
+        ARGS                   : Extra arguments for the compiler.
+        CODE                   : Code to compile. It is auto-wrapped in a main()
+                                 function if no main() signature is found.
+                                 Auto-includes are included unless include
+                                 lines for them are found.
+                                 When used with -e, the editor is started with
+                                 this as it's content.
+                                 Default: stdin
+        PATTERN                : Only use examples with a leading comment
+                                 that matches this text/regex pattern.
+        -b,--lastbinary        : Re-run the last binary that was compiled.
+        -c,--clean             : Clean {TMPDIR} files, even though they will be
+                                 cleaned when the OS reboots.
+        -D,--debug             : Show some debug info while running.
+        -E,--preprocessor      : Run through gcc's preprocessor and print the
+                                 output.
+        -e,--editlast          : Edit the last snippet in $EDITOR and run it.
+                                 If the CODE argument is given, it will replace
+                                 the contents of the last snippet.
+                                 $EDITOR is {EDITOR_DESC}
+        -f name,--file name    : Read file to get snippet to compile.
+        -h,--help              : Show this help message.
+        -L,--listexamples      : List example code snippets in the source.
+        -l,--last              : Re-run the last snippet.
+        -m,--memcheck          : Run the snippet through `valgrind`.
+        -N,--listnames         : List example snippet names from the source.
+        -n,--name              : Print the resulting binary name, for further
+                                 testing.
+        -q,--quiet             : Don't print any status messages.
+        -r exe,--run exe       : Run a program on the compiled binary, like
+                                 `gdb` or `kdbg`.
+        -s,--sanitize          : Use -fsanitize compiler arguments.
+        -t name,--target name  : Make target to get compiler flags from.
+        -V,--viewlast          : View the last snippet that was compiled.
+        -v,--version           : Show version.
+        -w,--wrapped           : Use the "wrapped" version, which is the resulting
+                                 `.c` file for snippets.
+        -x,--examples          : Use source examples as the snippets.
 
     Auto-Includes:
 {USAGE_INCLUDES or '    <no includes set in config>'}
@@ -199,8 +200,10 @@ def main(argd):
             pat=pat,
             exe=argd['--run'],
             compiler_args=argd['ARGS'],
+            show_name=argd['--name'],
             memcheck=argd['--memcheck'],
             quiet=argd['--quiet'],
+            make_target=argd['--target'],
         )
     elif argd['--lastbinary']:
         if not config['last_binary']:
@@ -258,7 +261,11 @@ def main(argd):
         ]
 
     if argd['--preprocessor']:
-        return preprocess_snippets(snippets, compiler_args=argd['ARGS'])
+        return preprocess_snippets(
+            snippets,
+            compiler_args=argd['ARGS'],
+            make_target=argd['--target'],
+        )
 
     return run_snippets(
         snippets,
@@ -267,6 +274,7 @@ def main(argd):
         compiler_args=argd['ARGS'],
         memcheck=argd['--memcheck'],
         quiet=argd['--quiet'],
+        make_target=argd['--target'],
     )
 
 
@@ -494,7 +502,8 @@ def get_example_snippets(pat=None):
 
 
 def get_gcc_cmd(
-        input_files, output_file=None, user_args=None, preprocess=False):
+        input_files, output_file=None, user_args=None, preprocess=False,
+        make_target=None):
     """ Get the cmd needed to run gcc on a file (without -c or -o). """
     c_files = [s for s in input_files if s.endswith('.c')]
     cmd = ['gcc']
@@ -506,7 +515,7 @@ def get_gcc_cmd(
     if output_file:
         cmd.extend(('-o', output_file))
     cmd.append(f'-iquote{COLR_DIR}')
-    cmd.extend(get_make_flags())
+    cmd.extend(get_make_flags(user_args=[make_target]))
     cmd.extend(user_args or [])
     return cmd
 
@@ -592,17 +601,19 @@ def last_snippet_read():
 
 def last_snippet_write(code):
     """ Write to the last-snippet file. """
-    if not LAST_SNIPPET:
+    if not code:
+        debug('No snippet to write.')
         return False
     snippetfile = config['last_snippet']
     try:
         with open(snippetfile, 'w') as f:
-            f.write(LAST_SNIPPET)
+            f.write(code)
     except EnvironmentError as ex:
         print_err(
             f'Error writing last-snippet file: {snippetfile}\n{ex}'
         )
     else:
+        debug(f'Wrote last-snippet file: {snippetfile}')
         return True
     return False
 
@@ -837,7 +848,7 @@ def run_compiled_exe(
 
 def run_examples(
         pat=None, exe=None, show_name=False, compiler_args=None,
-        memcheck=False, quiet=False):
+        memcheck=False, quiet=False, make_target=None):
     """ Compile and run source examples, with optional filtering pattern.
     """
     errs = 0
@@ -867,6 +878,7 @@ def run_examples(
             compiler_args=compiler_args,
             memcheck=memcheck,
             quiet=quiet,
+            make_target=make_target,
         )
         snipscnt = snippetinfo['total'] - snippetinfo['skipped']
         success += snipscnt - errs
@@ -899,11 +911,14 @@ def run_examples(
 
 def run_snippets(
         snippets, exe=None, show_name=False, compiler_args=None,
-        memcheck=False, quiet=False):
+        memcheck=False, quiet=False, make_target=None):
     """ Compile and run several c code snippets. """
     errs = 0
     for snippet in snippets:
-        binaryname = snippet.compile(user_args=compiler_args)
+        binaryname = snippet.compile(
+            user_args=compiler_args,
+            make_target=make_target,
+        )
         errs += 0 if run_compiled_exe(
             binaryname,
             exe=exe,
@@ -922,11 +937,14 @@ def noop(*args, **kwargs):
     return None
 
 
-def preprocess_snippets(snippets, compiler_args=None):
+def preprocess_snippets(snippets, compiler_args=None, make_target=None):
     """ Compile and run several c code snippets. """
     errs = 0
     for snippet in snippets:
-        errs += snippet.preprocess(user_args=compiler_args)
+        errs += snippet.preprocess(
+            user_args=compiler_args,
+            make_target=make_target,
+        )
     return errs
 
 
@@ -1110,7 +1128,7 @@ class Snippet(object):
     def __str__(self):
         return str(self.code)
 
-    def compile(self, user_args=None):
+    def compile(self, user_args=None, make_target=None):
         status(C(': ').join(
             C('Compiling', 'cyan'),
             self.name,
@@ -1130,7 +1148,7 @@ class Snippet(object):
             except EnvironmentError as ex:
                 print_err(f'Unable to remove {colrobj}: {ex}')
 
-        cmd = get_gcc_cmd(cfiles, user_args=user_args)
+        cmd = get_gcc_cmd(cfiles, user_args=user_args, make_target=make_target)
         try:
             debug('Compiling C files:')
             debug(' '.join(cmd), align=True)
@@ -1150,6 +1168,7 @@ class Snippet(object):
             objnames,
             output_file=binaryname,
             user_args=user_args,
+            make_target=make_target,
         )
         try:
             debug('Linking object files:')
@@ -1211,7 +1230,7 @@ class Snippet(object):
             line.startswith('main(')
         )
 
-    def preprocess(self, user_args=None):
+    def preprocess(self, user_args=None, make_target=None):
         """ Run this snippet through gcc's preprocessor and print the output.
         """
         status(C(': ').join(
@@ -1223,7 +1242,12 @@ class Snippet(object):
         config['last_c_file'] = filepath
         last_snippet_write(self.code)
         cfiles = [filepath, COLRC_FILE]
-        cmd = get_gcc_cmd(cfiles, user_args=user_args, preprocess=True)
+        cmd = get_gcc_cmd(
+            cfiles,
+            user_args=user_args,
+            preprocess=True,
+            make_target=make_target,
+        )
         try:
             debug('Preprocessing C files:')
             debug(' '.join(cmd), align=True)
