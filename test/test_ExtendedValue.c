@@ -10,14 +10,13 @@ describe(ExtendedValue) {
 subdesc(ExtendedValue_from_esc) {
     it("recognizes valid extended codes") {
         for (unsigned short eval = 0; eval < 256; eval++) {
-            char codes[CODEX_LEN];
-            format_fgx(codes, eval);
+            char* codes = fore_str_static(ext(eval));
             assert_ext_eq(
                 ExtendedValue_from_esc(codes),
                 eval,
                 "Failed to recognize fore code."
             );
-            format_bgx(codes, eval);
+            codes = back_str_static(ext(eval));
             assert_ext_eq(
                 ExtendedValue_from_esc(codes),
                 eval,

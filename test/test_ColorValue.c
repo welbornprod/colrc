@@ -15,13 +15,12 @@ subdesc(ColorValue_from_esc) {
     it("creates ColorValues from basic esc-codes") {
         for_len(basic_names_len, i) {
             BasicValue bval = basic_names[i].value;
-            char codes[CODE_LEN];
-            format_fg(codes, bval);
+            char* codes = fore_str_static(bval);
             ColorValue cval = ColorValue_from_esc(codes);
             assert_is_valid(cval);
             assert_ColorValue_has(cval, bval);
 
-            format_bg(codes, bval);
+            codes = back_str_static(bval);
             cval = ColorValue_from_esc(codes);
             assert_is_valid(cval);
             assert_ColorValue_has(cval, bval);
@@ -30,13 +29,12 @@ subdesc(ColorValue_from_esc) {
     it("creates ColorValues from ext esc-codes") {
         for (unsigned short i = 0; i < 256; i++) {
             ExtendedValue eval = i;
-            char codes[CODEX_LEN];
-            format_fgx(codes, eval);
+            char* codes = fore_str_static(eval);
             ColorValue cval = ColorValue_from_esc(codes);
             assert_is_valid(cval);
             assert_ColorValue_has(cval, eval);
 
-            format_bgx(codes, eval);
+            codes = back_str_static(eval);
             cval = ColorValue_from_esc(codes);
             assert_is_valid(cval);
             assert_ColorValue_has(cval, eval);
@@ -45,8 +43,7 @@ subdesc(ColorValue_from_esc) {
     it("creates ColorValues from style esc-codes") {
         for_len(style_names_len, i) {
             StyleValue sval = style_names[i].value;
-            char codes[STYLE_LEN];
-            format_style(codes, sval);
+            char* codes = style_str_static(sval);
             ColorValue cval = ColorValue_from_esc(codes);
             assert_is_valid(cval);
             assert_ColorValue_has(cval, sval);
@@ -55,13 +52,12 @@ subdesc(ColorValue_from_esc) {
     it("creates ColorValues from RGB esc-codes") {
         for_len(colr_name_data_len, i) {
             RGB expected = colr_name_data[i].rgb;
-            char codes[CODE_RGB_LEN];
-            format_fg_RGB(codes, expected);
+            char* codes = fore_str_static(expected);
             ColorValue cval = ColorValue_from_esc(codes);
             assert_is_valid(cval);
             assert_ColorValue_has(cval, expected);
 
-            format_bg_RGB(codes, expected);
+            codes = back_str_static(expected);
             cval = ColorValue_from_esc(codes);
             assert_is_valid(cval);
             assert_ColorValue_has(cval, expected);
@@ -252,6 +248,44 @@ subdesc(ColorValue_to_esc) {
             char* s = ColorValue_to_esc(tests[i].type, tests[i].cval);
             assert_str_eq(s, tests[i].expected, "Failed to create escape-code.");
             free(s);
+        }
+    }
+}
+subdesc(ColorValue_to_esc_s) {
+    it("fills with escape codes from ColorValues") {
+        BasicValue basic = WHITE;
+        ExtendedValue extended = XWHITE;
+        StyleValue style = BRIGHT;
+        RGB rgbval = rgb(1, 1, 1);
+        struct {
+            ArgType type;
+            ColorValue cval;
+            char* expected;
+        } tests[] = {
+            {FORE, ColorValue_from_str("NOTACOLOR"), ""},
+            {FORE, color_val(basic), "\x1b[37m"},
+            {FORE, color_val(extended), "\x1b[38;5;7m"},
+            {STYLE, color_val(style), "\x1b[1m"},
+            {BACK, color_val(rgbval), "\x1b[48;2;1;1;1m"},
+        };
+        for_each(tests, i) {
+            size_t expected_len = ColorValue_length(tests[i].type, tests[i].cval);
+            // ColorValue_length() never returns 0, but we'll make sure that
+            // hasn't changed.
+            assert(expected_len);
+            char dest[expected_len];
+            bool success = ColorValue_to_esc_s(
+                dest,
+                tests[i].type,
+                tests[i].cval
+            );
+            if (tests[i].expected[0] == '\0') {
+                assert(!success);
+                assert_str_empty(dest);
+            } else {
+                assert(success);
+            }
+            assert_str_eq(dest, tests[i].expected, "Failed to fill with escape-code.");
         }
     }
 }

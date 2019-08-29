@@ -10,14 +10,13 @@ subdesc(RGB_from_esc) {
     it("recognizes RGB escape codes") {
         for_len(colr_name_data_len, i) {
             RGB expected = colr_name_data[i].rgb;
-            char codes[CODE_RGB_LEN];
+            char* codes = fore_str_static(expected);
             RGB rgb;
             // Test fore colors.
-            format_fg_RGB(codes, expected);
             assert_rgb_from(codes, RGB_from_esc, 0, &rgb);
             assert_RGB_eq(rgb, expected);
             // Test back colors also.
-            format_bg_RGB(codes, expected);
+            codes = back_str_static(expected);
             assert_rgb_from(codes, RGB_from_esc, 0, &rgb);
             assert_RGB_eq(rgb, expected);
         }
