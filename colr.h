@@ -261,6 +261,7 @@
 */
 #define asprintf_or_return(retval, ...) if_not_asprintf(__VA_ARGS__) return retval
 
+
 /*! \def back
     Create a back color suitable for use with the colr() and Colr() macros.
 
@@ -332,6 +333,46 @@
 */
 #define back_str(x) ColorArg_to_esc(back_arg(x))
 
+/*! \def back_str_static
+    Creates a stack-allocated escape code \string for a back color.
+
+    \details
+    These are not constant strings, but they are stored on the stack.
+    A "statement expression" is used to build a string of the correct length
+    and content using ColorArg_to_esc_s().
+
+    \pi x       A BasicValue, ExtendedValue, or RGB value.
+    \return     A stack-allocated escape code string.
+
+    \sa basic_str_static
+    \sa ext_str_static ext_rgb_str_static ext_RGB_str_static
+    \sa RGB_str_static
+    \sa style_str_static
+
+    \examplecodefor{back_str_static,.c}
+    // This results in a call to sprintf(), to format an extended escape code.
+    // The string is stored on the stack.
+    char* backwhite = back_str_static(WHITE);
+    char* foreblue = fore_str_static(BLUE);
+    printf("%s%sBlue on White." NCNL, backwhite, foreblue);
+
+    RGB rgbval = rgb(255, 34, 0);
+    printf("%sA reddish." NCNL, back_str_static(rgbval));
+
+    printf("%sAquaMarine." NCNL, back_str_static("aquamarine"));
+
+    \endexamplecode
+*/
+#define back_str_static(x) \
+    __extension__ ({ \
+        __typeof(x) _bss_val = x; \
+        ColorArg _bss_carg = back_arg(_bss_val); \
+        size_t _bss_len = ColorArg_length(_bss_carg); \
+        char* _bss_codes = alloca(_bss_len); \
+        ColorArg_to_esc_s(_bss_codes, _bss_carg); \
+        _bss_codes; \
+    })
+
 /*! \def basic
     Casts to BasicValue.
 
@@ -342,10 +383,42 @@
 */
 #define basic(x) ((BasicValue)(x))
 
+/*! \def basic_str_static
+    Creates a stack-allocated escape code \string for a BasicValue.
+
+    \details
+    These are not constant strings, but they are stored on the stack.
+    A "statement expression" is used to build a string of the correct length
+    and content using `snprintf()` and BasicValue_to_ansi().
+
+    \pi argtype ArgType, either FORE or BACK.
+    \pi x       A BasicValue to use.
+    \return     A stack-allocated escape code string.
+
+    \sa ext_str_static ext_rgb_str_static ext_RGB_str_static RGB_str_static style_str_static
+
+    \examplecodefor{basic_str_static,.c}
+    // This results in a call to sprintf(), to format an extended escape code.
+    // The string is stored on the stack.
+    char* foreblue = basic_str_static(FORE, BLUE);
+    char* backwhite = basic_str_static(BACK, WHITE);
+    printf("%s%sBlue on white" NCNL, foreblue, backwhite);
+
+    BasicValue bval = LIGHTRED;
+    printf("%sA reddish." NCNL, basic_str_static(FORE, bval));
+
+    \endexamplecode
+*/
+#define basic_str_static(argtype, x) \
+    __extension__ ({ \
+        char* _bss_codes = alloca(CODE_LEN); \
+        snprintf(_bss_codes, CODE_LEN, "\x1b[%dm", BasicValue_to_ansi(argtype, x)); \
+        _bss_codes; \
+    })
 
 /*! \def bool_colr_enum
     Returns the "truthiness" of the enums used in ColrC
-    (BasicValue, ExtendedValue, StyleValue, ColorType, ArgType).
+    (BasicValue, ExtendedValue function-returns, StyleValue, ColorType, ArgType).
 
     \details
     Any value less than `0` is considered false.
@@ -370,6 +443,7 @@
 #define color_arg(type, x) \
     _Generic( \
         (x), \
+        char*: ColorArg_from_str(type, x), \
         BasicValue: ColorArg_from_value(type, TYPE_BASIC, &x), \
         ExtendedValue: ColorArg_from_value(type, TYPE_EXTENDED, &x), \
         StyleValue: ColorArg_from_value(type, TYPE_STYLE, &x), \
@@ -595,6 +669,22 @@
 */
 #define colr(...) _colr(__VA_ARGS__, _ColrLastArg)
 
+/*! \def colr_alloc_len
+    Return the number of bytes needed to allocate an escape code string based
+    on the color type.
+
+    \pi x   A BasicValue, ExtendedValue, RGB value, or StyleValue.
+    \return The number of bytes needed to allocate a string using the color value.
+*/
+#define colr_alloc_len(x) \
+    _Generic( \
+        (x), \
+        RGB: CODE_RGB_LEN, \
+        BasicValue: CODE_LEN, \
+        ExtendedValue: CODEX_LEN, \
+        StyleValue: STYLE_LEN \
+    )
+
 /*! \def colr_eq
     Calls the \<type\>_eq functions for the supported types.
 
@@ -710,9 +800,9 @@
 
     \return `1` if \p s1 is equal to \p s2 or \p s3, otherwise `0`.
 */
-#define colr_istr_either(s1, s2, s3) ((s1 && s2 && s3) ? (colr_istreq(s1, s2) || colr_istreq(s1, s3)) : 0)
+#define colr_istr_either(s1, s2, s3) ((s1 && s2 && s3) ? (colr_istr_eq(s1, s2) || colr_istr_eq(s1, s3)) : 0)
 
-/*! \def colr_istreq
+/*! \def colr_istr_eq
     Convenience macro for `!strcasecmp(s1, s2)`.
 
     \pi s1  The first string to compare.
@@ -720,7 +810,7 @@
 
     \return `1` if \p s1 and \p s2 are equal, otherwise `0`.
 */
-#define colr_istreq(s1, s2) ((s1 && s2) ? !strcasecmp(s1, s2) : 0)
+#define colr_istr_eq(s1, s2) ((s1 && s2) ? !strcasecmp(s1, s2) : 0)
 
 /*! \def colr_join
     Join ColorArg pointers, ColorText pointers, and strings by another
@@ -1038,36 +1128,90 @@
 */
 #define ext_RGB(rgbval) ExtendedValue_from_RGB(rgbval)
 
+/*! \def ext_rgb_str_static
+    Creates a stack-allocated escape code \string for separate red, green, and
+    blue values.
+
+    \details
+    These are not constant strings, but they are stored on the stack.
+    A "statement expression" is used to build a string of the correct length
+    and content using `snprintf()`.
+
+    \pi argtype ArgType, either FORE or BACK.
+    \pi r       Red value to use.
+    \pi g       Green value to use.
+    \pi b       Blue value to use.
+    \return     A stack-allocated escape code string.
+
+    \sa basic_str_static ext_str_static ext_RGB_str_static rgb_str_static style_str_static
+
+    \examplecodefor{ext_rgb_str_static,.c}
+    // This results in a call to sprintf(), to format an extended escape code.
+    // The string is stored on the stack.
+    char* foreblue = ext_rgb_str_static(FORE, 0, 0, 255);
+    char* backwhite = ext_rgb_str_static(BACK, 255, 255, 255);
+    printf("%s%sBlue on white" NCNL, foreblue, backwhite);
+
+    unsigned char r = 255, g = 35, b = 0;
+    printf("%sA reddish." NCNL, ext_rgb_str_static(FORE, r, g, b));
+    \endexamplecode
+*/
+#define ext_rgb_str_static(argtype, r, g, b) ( \
+        ext_str_static(argtype, ExtendedValue_from_RGB((RGB) {r, g, b})) \
+    )
+
+/*! \def ext_RGB_str_static
+    Creates a stack-allocated escape code \string for an RGB value.
+
+    \details
+    These are not constant strings, but they are stored on the stack.
+    A "statement expression" is used to build a string of the correct length
+    and content using `snprintf()`.
+
+    \pi argtype ArgType, either FORE or BACK.
+    \pi rgbval  An RGB value to use.
+    \return     A stack-allocated escape code string.
+
+    \sa basic_str_static ext_str_static ext_rgb_str_static rgb_str_static style_str_static
+
+    \examplecodefor{ext_RGB_str_static,.c}
+    // This results in a call to sprintf(), to format an extended escape code.
+    // The string is stored on the stack.
+    char* foreblue = ext_RGB_str_static(FORE, rgb(0, 0, 255));
+    char* backwhite = ext_RGB_str_static(BACK, rgb(255, 255, 255));
+    printf("%s%sBlue on white" NCNL, foreblue, backwhite);
+
+    RGB rgbval = rgb(255, 35, 0);
+    printf("%sA reddish." NCNL, ext_RGB_str_static(FORE, rgbval));
+    \endexamplecode
+*/
+#define ext_RGB_str_static(argtype, rgbval) ( \
+        ext_str_static(argtype, ExtendedValue_from_RGB(rgbval)) \
+    )
+
 /*! \def ext_str_static
     Creates a stack-allocated escape code \string for an ExtendedValue.
 
     \details
     These are not constant strings, but they are stored on the stack.
     A "statement expression" is used to build a string of the correct length
-    using `sprintf()`. It basically does:
-    \code
-    ExtendedValue xval = 16;
-    char my_string[CODEX_LEN];
-    if (argtype == FORE) sprintf("\x1b[38;5;%dm", x);
-    else sprintf("\x1b[48;5;%dm", x);
-    // Return `my_string` to the caller.
-    \endcode
+    and content using `snprintf()`.
 
     \pi argtype ArgType, either FORE or BACK.
     \pi x       An ExtendedValue to use.
     \return     A stack-allocated escape code string.
 
-    \sa style_str_static
+    \sa basic_str_static ext_rgb_str_static ext_RGB_str_static RGB_str_static style_str_static
 
     \examplecodefor{ext_str_static,.c}
     // This results in a call to sprintf(), to format an extended escape code.
     // The string is stored on the stack.
     char* foreblue = ext_str_static(FORE, 27);
     char* backwhite = ext_str_static(BACK, 255);
-    printf("%s%sBlue on white" NC "\n", foreblue, backwhite);
+    printf("%s%sBlue on white" NCNL, foreblue, backwhite);
 
     ExtendedValue xval = 23;
-    printf("%s%d\n", ext_str_static(FORE, xval), xval);
+    printf("%s%d" NCNL, ext_str_static(FORE, xval), xval);
 
     \endexamplecode
 */
@@ -1077,18 +1221,34 @@
         ext_str_static_back(x) \
     )
 
+/*! \def ext_str_static_back
+    Create a stack-allocated escape code \string for an ExtendedValue.
+
+    \pi x   An ExtendedValue to use.
+    \return A stack-allocated string with the escape code.
+
+    \sa ext_str_static ext_str_static_fore
+*/
 #define ext_str_static_back(x) \
     __extension__ ({ \
-    char codes[CODEX_LEN]; \
-    sprintf(codes, "\x1b[48;5;%dm", x); \
-    codes; \
+    char* _ess_b_codes = alloca(CODEX_LEN); \
+    snprintf(_ess_b_codes, CODEX_LEN, "\x1b[48;5;%dm", x); \
+    _ess_b_codes; \
     })
 
+/*! \def ext_str_static_fore
+    Create a stack-allocated escape code \string for an ExtendedValue.
+
+    \pi x   An ExtendedValue to use.
+    \return A stack-allocated string with the escape code.
+
+    \sa ext_str_static ext_str_static_back
+*/
 #define ext_str_static_fore(x) \
     __extension__ ({ \
-    char codes[CODEX_LEN]; \
-    sprintf(codes, "\x1b[38;5;%dm", x); \
-    codes; \
+    char _ess_f_codes[CODEX_LEN]; \
+    snprintf(_ess_f_codes, CODEX_LEN, "\x1b[38;5;%dm", x); \
+    _ess_f_codes; \
     })
 
 /*! \def fore
@@ -1159,6 +1319,48 @@
 */
 #define fore_str(x) ColorArg_to_esc(fore_arg(x))
 
+/*! \def fore_str_static
+    Creates a stack-allocated escape code \string for a fore color.
+
+    \details
+    These are not constant strings, but they are stored on the stack.
+    A "statement expression" is used to build a string of the correct length
+    and content using ColorArg_to_esc_s().
+
+    \pi x       A BasicValue, ExtendedValue, or RGB value.
+    \return     A stack-allocated escape code string.
+
+    \sa basic_str_static
+    \sa ext_str_static ext_rgb_str_static ext_RGB_str_static
+    \sa RGB_str_static
+    \sa style_str_static
+
+    \examplecodefor{fore_str_static,.c}
+    // This results in a call to sprintf(), to format an extended escape code.
+    // The string is stored on the stack.
+    char* foreblue = fore_str_static(BLUE);
+    char* backwhite = back_str_static(WHITE);
+    printf("%s%sBlue on White." NCNL, foreblue, backwhite);
+
+    RGB rgbval = rgb(255, 34, 0);
+    printf("%sA reddish." NCNL, fore_str_static(rgbval));
+
+    printf("%sAquaMarine." NCNL, fore_str_static("aquamarine"));
+
+    \endexamplecode
+*/
+#define fore_str_static(x) \
+    __extension__ ({ \
+        __typeof(x) _fss_val = x; \
+        ColorArg _fss_carg = fore_arg(_fss_val); \
+        size_t _fss_len = ColorArg_length(_fss_carg); \
+        char* _fss_codes = alloca(_fss_len); \
+        ColorArg_to_esc_s(_fss_codes, _fss_carg); \
+        _fss_codes; \
+    })
+
+
+
 /*! \def hex
     Use RGB_from_hex_default() to create an RGB value.
 
@@ -1190,21 +1392,6 @@
 */
 #define if_not_asprintf(...) if (asprintf(__VA_ARGS__) < 1)
 
-//! Convenience macro for `fprintf(stderr, ...)`.
-#define printferr(...) fprintf(stderr, __VA_ARGS__)
-
-/*! \def rgb
-    Creates an anonymous RGB struct for use in function calls.
-
-    \pi r   `unsigned char` Red value.
-    \pi g   `unsigned char` Blue value.
-    \pi b   `unsigned char` Green value.
-    \return An RGB struct.
-
-    \sa fore back colr Colr
-*/
-#define rgb(r, g, b) ((RGB){.red=r, .green=g, .blue=b})
-
 /*! Strip a leading character from a string, filling a  `char` array with the
     result.
 
@@ -1223,6 +1410,96 @@
         } \
     } while (0);
 
+//! Convenience macro for `fprintf(stderr, ...)`.
+#define printferr(...) fprintf(stderr, __VA_ARGS__)
+
+/*! \def RGB_str_static
+    Creates a stack-allocated escape code \string for an RGB value.
+
+    \details
+    These are not constant strings, but they are stored on the stack.
+    A "statement expression" is used to build a string of the correct length
+    and content using `snprintf()` and BasicValue_to_ansi().
+
+    \pi argtype ArgType, either FORE or BACK.
+    \pi rgbval  An RGB value to use.
+    \return     A stack-allocated escape code string.
+
+    \sa basic_str_static ext_str_static ext_rgb_str_static ext_RGB_str_static style_str_static
+
+    \examplecodefor{RGB_str_static,.c}
+    // This results in a call to sprintf(), to format an extended escape code.
+    // The string is stored on the stack.
+    char* foreblue = RGB_str_static(FORE, rgb(0, 0,255));
+    char* backwhite = RGB_str_static(BACK, rgb(255, 255, 255));
+    printf("%s%sBlue on white" NCNL, foreblue, backwhite);
+
+    RGB rgbval = rgb(255, 34, 34);
+    printf("%sA reddish." NCNL, RGB_str_static(FORE, rgbval));
+
+    \endexamplecode
+*/
+#define RGB_str_static(argtype, rgbval) ( \
+    argtype == FORE ? \
+        RGB_str_static_fore(rgbval) : \
+        RGB_str_static_back(rgbval) \
+    )
+
+/*! \def RGB_str_static_back
+    Create a stack-allocated escape code \string for an RGB value.
+
+    \pi rgbval An RGB value to use.
+    \return    A stack-allocated string with the escape code.
+
+    \sa RGB_str_static RGB_str_static_fore
+*/
+#define RGB_str_static_back(rgbval) \
+    __extension__ ({ \
+        char* _rss_b_codes = alloca(CODE_RGB_LEN); \
+        snprintf( \
+            _rss_b_codes, \
+            CODE_RGB_LEN, \
+            "\x1b[48;2;%d;%d;%dm", \
+            rgbval.red, \
+            rgbval.green, \
+            rgbval.blue \
+        ); \
+        _rss_b_codes; \
+    })
+
+/*! \def RGB_str_static_fore
+    Create a stack-allocated escape code \string for an RGB value.
+
+    \pi rgbval An RGB value to use.
+    \return    A stack-allocated string with the escape code.
+
+    \sa RGB_str_static RGB_str_static_back
+*/
+#define RGB_str_static_fore(rgbval) \
+    __extension__ ({ \
+        char* _rss_f_codes = alloca(CODE_RGB_LEN); \
+        snprintf( \
+            _rss_f_codes, \
+            CODE_RGB_LEN, \
+            "\x1b[38;2;%d;%d;%dm", \
+            rgbval.red, \
+            rgbval.green, \
+            rgbval.blue \
+        ); \
+        _rss_f_codes; \
+    })
+
+/*! \def rgb
+    Creates an anonymous RGB struct for use in function calls.
+
+    \pi r   `unsigned char` Red value.
+    \pi g   `unsigned char` Blue value.
+    \pi b   `unsigned char` Green value.
+    \return An RGB struct.
+
+    \sa fore back colr Colr
+*/
+#define rgb(r, g, b) ((RGB){.red=r, .green=g, .blue=b})
 
 /*! \def style
     Create a style suitable for use with the colr() and Colr() macros.
@@ -1286,7 +1563,7 @@
     \pi x   A StyleValue to use.
     \return A stack-allocated string.
 
-    \sa style style_arg style_str
+    \sa basic_str_static ext_str_static
 
     \examplecodefor{style_str_static,.c}
     // This is optimized into a constant static string, even with -g3.
@@ -1836,6 +2113,7 @@ size_t _colr_join_array_length(void* ps);
 size_t _colr_join_arrayn_size(void* joinerp, void* ps, size_t count);
 char* colr_join_array(void* joinerp, void* ps);
 char* colr_join_arrayn(void* joinerp, void* ps, size_t count);
+
 /*! \internal
     ArgType functions that only deal with argument types (fore, back, style).
     \endinternal
@@ -1867,6 +2145,7 @@ size_t ColorArg_length(ColorArg carg);
 char* ColorArg_repr(ColorArg carg);
 ColorArg* ColorArg_to_ptr(ColorArg carg);
 char* ColorArg_to_esc(ColorArg carg);
+bool ColorArg_to_esc_s(char* dest, ColorArg carg);
 
 ColorArg** ColorArgs_from_str(const char* s, bool unique);
 void ColorArgs_list_free(ColorArg** ps);
@@ -1933,7 +2212,7 @@ bool ColorValue_is_valid(ColorValue cval);
 size_t ColorValue_length(ArgType type, ColorValue cval);
 char* ColorValue_repr(ColorValue cval);
 char* ColorValue_to_esc(ArgType type, ColorValue cval);
-
+bool ColorValue_to_esc_s(char* dest, ArgType type, ColorValue cval);
 
 /*! \internal
     BasicValue functions.

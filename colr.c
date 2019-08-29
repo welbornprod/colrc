@@ -318,7 +318,7 @@ const RGB ext2rgb_map[] = {
     {255, 95, 135},
     {255, 95, 175},
     {255, 95, 215},
-    {255, 95, 255}, // Another lightmagenta
+    {255, 95, 255},
     {255, 135, 0},
     {255, 135, 95},
     {255, 135, 135},
@@ -2295,7 +2295,7 @@ void format_fgx(char* out, unsigned char num) {
 */
 void format_fg_RGB(char* out, RGB rgb) {
     if (!out) return;
-        snprintf(out, CODE_RGB_LEN, "\x1b[38;2;%d;%d;%dm", rgb.red, rgb.green, rgb.blue);
+    snprintf(out, CODE_RGB_LEN, "\x1b[38;2;%d;%d;%dm", rgb.red, rgb.green, rgb.blue);
 }
 
 /*! Create an escape code for a true color (rgb) fore color using an
@@ -3357,6 +3357,7 @@ char* ColorArg_repr(ColorArg carg) {
     return repr;
 }
 
+
 /*! Converts a ColorArg into an escape code \string.
 
     \details
@@ -3380,6 +3381,29 @@ char* ColorArg_to_esc(ColorArg carg) {
     return ColorValue_to_esc(carg.type, carg.value);
 }
 
+/*! Converts a ColorArg into an escape code \string and fill the destination
+    string.
+
+    \details
+    If the ColorArg is empty (`ARGTYPE_NONE`), `dest[0]` is set to `'\0'`.
+
+    \details
+    If the ColorValue is invalid, `dest[0]` is set to `'\0'`.
+
+    \pi dest Destination for the escape code string.
+             <em>Must have room for the code type being used</em>.
+    \pi carg ColorArg to get the ArgType and ColorValue from.
+    \return  `true` if the ColorArg was valid, otherwise `false`.
+
+    \sa ColorArg
+*/
+bool ColorArg_to_esc_s(char* dest, ColorArg carg) {
+    if (ColorArg_is_empty(carg)) {
+        dest[0] = '\0';
+        return false;
+    }
+    return ColorValue_to_esc_s(dest, carg.type, carg.value);
+}
 /*! Copies a ColorArg into memory and returns the pointer.
 
     \details
@@ -4724,6 +4748,88 @@ char* ColorValue_to_esc(ArgType type, ColorValue cval) {
     return colr_empty_str();
 }
 
+/*! Converts a ColorValue into an escape code \string and fills the destination
+    string.
+
+    \details
+    For invalid ArgType/ColorValue combinations, `dest[0]` is set to `'\0'`.
+
+    \po dest Destination string for the escape code string.
+            <em>Must have room for the code type being used</em>.
+    \pi type ArgType (FORE, BACK, STYLE) to build the escape code for.
+    \pi cval ColorValue to get the color value from.
+
+    \return  `true` if a proper ArgType/ColorValue combination was used, otherwise `false`.
+
+    \sa ColorValue
+*/
+bool ColorValue_to_esc_s(char* dest, ArgType type, ColorValue cval) {
+    switch (type) {
+        case FORE:
+            switch (cval.type) {
+                case TYPE_BASIC:
+                    format_fg(dest, cval.basic);
+                    return true;
+                case TYPE_EXTENDED:
+                    format_fgx(dest, cval.ext);
+                    return true;
+                case TYPE_RGB:
+                    format_fg_RGB(dest, cval.rgb);
+                    return true;
+                // This case is not valid, but I will try to do the right thing.
+                case TYPE_STYLE:
+                    format_style(dest, cval.style);
+                    return true;
+                default:
+                    dest[0] = '\0';
+                    return false;
+                }
+        case BACK:
+            switch (cval.type) {
+                case TYPE_BASIC:
+                    format_bg(dest, cval.basic);
+                    return true;
+                case TYPE_EXTENDED:
+                    format_bgx(dest, cval.ext);
+                    return true;
+                case TYPE_RGB:
+                    format_bg_RGB(dest, cval.rgb);
+                    return true;
+                // This case is not even valid, but okay.
+                case TYPE_STYLE:
+                    format_style(dest, cval.style);
+                    return true;
+                default:
+                    dest[0] = '\0';
+                    return false;
+                }
+        case STYLE:
+            switch (cval.type) {
+                case TYPE_STYLE:
+                    // This is the only appropriate case.
+                    format_style(dest, cval.style);
+                    return true;
+                // All of these other cases are a product of mismatched info.
+                case TYPE_BASIC:
+                    format_fg(dest, cval.basic);
+                    return true;
+                case TYPE_EXTENDED:
+                    format_fgx(dest, cval.ext);
+                    return true;
+                case TYPE_RGB:
+                    format_fg_RGB(dest, cval.rgb);
+                    return true;
+                default:
+                    dest[0] = '\0';
+                    return false;
+            }
+        default:
+            dest[0] = '\0';
+            return false;
+    }
+    dest[0] = '\0';
+    return false;
+}
 /*! Compares two BasicValues.
 
     \details
