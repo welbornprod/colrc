@@ -889,6 +889,43 @@ subdesc(colr_str_lower) {
         }
     }
 }
+// colr_str_lstrip_char
+subdesc(colr_str_lstrip_char) {
+    it("should lstrip a char") {
+        struct {
+            char* s;
+            char c;
+            char* expected;
+        } tests[] = {
+            {"", 'c', NULL},
+            {NULL, 'c', NULL},
+            {NULL, 0, NULL},
+            {"test", 0, "test"},
+            {"test", 'c', "test"},
+            {"aatest", 'a', "test"},
+            {"btest", 'b', "test"},
+            {"\t\t\n test", '\t', "\n test"},
+            {"\t\t\n test", 0, "test"},
+        };
+        for_each(tests, i) {
+            char* result = colr_str_lstrip_char(tests[i].s, tests[i].c);
+            if (!result) {
+                if (tests[i].expected) {
+                    fail(
+                        "Falsely returned NULL: colr_str_lstrip_char(%s, %s)\n",
+                        colr_repr(tests[i].s),
+                        colr_repr(tests[i].c)
+                    );
+                } else {
+                    // expected failure.
+                    continue;
+                }
+            }
+            assert_str_eq(result, tests[i].expected, "Failed to remove char.");
+            free(result);
+        }
+    }
+}
 // colr_str_lstrip_chars
 subdesc(colr_str_lstrip_chars) {
     it("should lstrip chars") {
@@ -922,7 +959,7 @@ subdesc(colr_str_lstrip_chars) {
                     continue;
                 }
             }
-            asserteq(result, tests[i].expected);
+            assert_str_eq(result, tests[i].expected, "Failed to remove chars.");
             free(result);
         }
     }

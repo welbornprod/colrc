@@ -1794,6 +1794,7 @@ void colr_str_list_free(char** ps);
 char* colr_str_ljust(const char* s, const char padchar, int width);
 void colr_str_lower(char* s);
 size_t colr_str_lstrip(char* restrict dest, const char* restrict s, size_t length, const char c);
+char* colr_str_lstrip_char(const char* s, const char c);
 char* colr_str_lstrip_chars(const char* restrict s, const char* restrict chars);
 size_t colr_str_mb_len(const char* s);
 size_t colr_str_noncode_len(const char* s);
