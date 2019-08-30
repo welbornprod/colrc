@@ -366,32 +366,6 @@
         val \
     )
 
-#define assert_hash_eq(a, b) assert_fmt_op(a, ==, b, COLR_HASH_FMT, "Hashes are not equal")
-#define assert_hash_eq_func(a, b, func) assert_fmt_op_func(a, ==, b, COLR_HASH_FMT, func, "Hashes are not equal")
-#define assert_hash_neq(a, b) assert_fmt_op(a, !=, b, COLR_HASH_FMT, "Hashes are equal")
-#define assert_hash_neq_func(a, b, func) assert_fmt_op_func(a, !=, b, COLR_HASH_FMT, func, "Hashes are equal")
-#define assert_hash_str_eq(a, b) assert_hash_str_op(a, ==, b, "Hashes are not equal")
-#define assert_hash_str_neq(a, b) assert_hash_str_op(a, !=, b, "Hashes are equal")
-#define assert_hash_str_op_func(a, op, b, func, msg) \
-    do { \
-        ColrHash _a_h_s_e_a = func(a); \
-        ColrHash _a_h_s_e_b = func(b); \
-        if (!(_a_h_s_e_a op _a_h_s_e_b)) { \
-            char* _a_h_s_e_repr_a = colr_repr(a); \
-            char* _a_h_s_e_repr_b = colr_repr(b); \
-            fail( \
-                "%s: " #func "(%s) " #op " " #func "(%s)", \
-                msg, \
-                _a_h_s_e_repr_a, \
-                _a_h_s_e_repr_b \
-            ); \
-            free(_a_h_s_e_repr_a); \
-            free(_a_h_s_e_repr_b); \
-        } \
-    } while (0)
-#define assert_hash_str_op(a, op, b, msg) assert_hash_str_op_func(a, op, b, colr_str_hash, msg)
-
-
 #define assert_int_eq(a, b) assert_fmt_op(a, ==, b, "%d", "Integers are not equal")
 #define assert_int_neq(a, b) assert_fmt_op(a, ==, b, "%d", "Integers are equal")
 
@@ -618,6 +592,30 @@
             ); \
             free(_a_s_e_s1_repr); \
             free(_a_s_e_s2_repr); \
+        } \
+    } while (0)
+
+#define assert_hash_eq(a, b) assert_fmt_op(a, ==, b, COLR_HASH_FMT, "Hashes are not equal")
+#define assert_hash_neq(a, b) assert_fmt_op(a, !=, b, COLR_HASH_FMT, "Hashes are equal")
+#define assert_str_hash_eq(a, b) assert_str_hash_op_func(a, ==, b, colr_str_hash, "Hashes are not equal")
+#define assert_str_hash_neq(a, b) assert_str_hash_op_func(a, !=, b, colr_str_hash, "Hashes are equal")
+#define assert_str_hash_static_eq(a, b) assert_str_hash_op_func(a, ==, b, colr_str_hash_static, "Hashes are not equal")
+#define assert_str_hash_static_neq(a, b) assert_str_hash_op_func(a, !=, b, colr_str_hash_static, "Hashes are equal")
+#define assert_str_hash_op_func(a, op, b, func, msg) \
+    do { \
+        ColrHash _a_h_s_e_a = func(a); \
+        ColrHash _a_h_s_e_b = func(b); \
+        if (!(_a_h_s_e_a op _a_h_s_e_b)) { \
+            char* _a_h_s_e_repr_a = colr_repr(a); \
+            char* _a_h_s_e_repr_b = colr_repr(b); \
+            fail( \
+                "%s: " #func "(%s) " #op " " #func "(%s)", \
+                msg, \
+                _a_h_s_e_repr_a, \
+                _a_h_s_e_repr_b \
+            ); \
+            free(_a_h_s_e_repr_a); \
+            free(_a_h_s_e_repr_b); \
         } \
     } while (0)
 

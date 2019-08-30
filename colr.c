@@ -1502,7 +1502,7 @@ bool colr_str_has_codes(const char* s) {
 ColrHash colr_str_hash(const char *s) {
     if (!s) return 0;
     // This is also the default value for empty strings.
-    ColrHash hash = 5381;
+    ColrHash hash = COLR_HASH_SEED;
     int c;
 
     while ((c = *s++)) {

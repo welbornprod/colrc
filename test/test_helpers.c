@@ -609,6 +609,7 @@ subdesc(colr_str_hash) {
         assert_hash_eq(colr_str_hash(NULL), zero);
         assert_hash_eq(colr_str_hash(""), empty);
         assert(colr_str_hash("test"));
+        assert(colr_str_hash_static("test"));
     }
     it("does not collide for basic color names") {
         for_len(basic_names_len, i) {
@@ -616,8 +617,13 @@ subdesc(colr_str_hash) {
             for_len(basic_names_len, j) {
                 char* nameb = basic_names[j].name;
                 if (colr_str_eq(namea, nameb)) continue;
+                // Ensure the static/non-static has functions are in sync.
+                assert_hash_eq(colr_str_hash(namea), colr_str_hash_static(namea));
+                assert_hash_eq(colr_str_hash(nameb), colr_str_hash_static(nameb));
+
                 // Names are different, they should not be equal.
-                assert_hash_str_neq(namea, nameb);
+                assert_str_hash_neq(namea, nameb);
+                assert_str_hash_static_neq(namea, nameb);
             }
         }
     }
@@ -627,8 +633,13 @@ subdesc(colr_str_hash) {
             for_len(style_names_len, j) {
                 char* nameb = style_names[j].name;
                 if (colr_str_eq(namea, nameb)) continue;
+                // Ensure the static/non-static has functions are in sync.
+                assert_hash_eq(colr_str_hash(namea), colr_str_hash_static(namea));
+                assert_hash_eq(colr_str_hash(nameb), colr_str_hash_static(nameb));
+
                 // Names are different, they should not be equal.
-                assert_hash_str_neq(namea, nameb);
+                assert_str_hash_neq(namea, nameb);
+                assert_str_hash_static_neq(namea, nameb);
             }
         }
     }
@@ -638,8 +649,13 @@ subdesc(colr_str_hash) {
             for_len(colr_name_data_len, j) {
                 char* nameb = colr_name_data[j].name;
                 if (colr_str_eq(namea, nameb)) continue;
+                // Ensure the static/non-static has functions are in sync.
+                assert_hash_eq(colr_str_hash(namea), colr_str_hash_static(namea));
+                assert_hash_eq(colr_str_hash(nameb), colr_str_hash_static(nameb));
+
                 // Names are different, they should not be equal.
-                assert_hash_str_neq(namea, nameb);
+                assert_str_hash_neq(namea, nameb);
+                assert_str_hash_static_neq(namea, nameb);
             }
         }
     }

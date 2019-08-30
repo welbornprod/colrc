@@ -20,6 +20,7 @@ import subprocess
 import stat
 import sys
 import tempfile
+from time import time
 
 try:
     from colr import (
@@ -184,6 +185,7 @@ CName = ColrPreset(fore='blue')
 CInfo = ColrPreset(fore='cyan')
 CNum = ColrPreset(fore='blue', style='bright')
 CNumInfo = ColrPreset(fore='cyan', style='bright')
+CTime = ColrPreset(fore='yellow')
 
 
 def main(argd):
@@ -217,7 +219,7 @@ def main(argd):
             raise InvalidArg('no "last binary" found.')
         if argd['--disasm']:
             return disasm_file(config['last_binary'])
-        return run_compiled_exe(
+        procresult = run_compiled_exe(
             config['last_binary'],
             exe=argd['--run'],
             src_file=config['last_c_file'],
@@ -225,6 +227,8 @@ def main(argd):
             memcheck=argd['--memcheck'],
             quiet=argd['--quiet'],
         )
+        status_runtime(procresult['duration'])
+        return 1 if procresult['returncode'] else 0
     elif argd['--viewlast']:
         if argd['--wrapped']:
             if not config['last_c_file']:
@@ -734,6 +738,13 @@ def no_output_str(filepath, src_file=None):
     return f'{msg}\n'
 
 
+def noop(*args, **kwargs):
+    """ Used to replace other functions with a no-op function call,
+        to disable them.
+    """
+    return None
+
+
 def prepend_to_file(filepath, s, cond_first_line=None):
     """ Prepend a string to a file's contents.
         If `cond_first_line` is set, and the first line in the file matches,
@@ -762,6 +773,17 @@ def prepend_to_file(filepath, s, cond_first_line=None):
             f'Failed to write header to file: {filepath}\nError: {ex}'
         )
     return True
+
+
+def preprocess_snippets(snippets, compiler_args=None, make_target=None):
+    """ Compile and run several c code snippets. """
+    errs = 0
+    for snippet in snippets:
+        errs += snippet.preprocess(
+            user_args=compiler_args,
+            make_target=make_target,
+        )
+    return errs
 
 
 def print_err(*args, **kwargs):
@@ -851,6 +873,7 @@ def run_compiled_exe(
             C('  Running', 'cyan'),
             namefmt,
         ))
+    start_time = None
     if exe:
         cmd = [exe, filepath]
     elif memcheck:
@@ -866,6 +889,7 @@ def run_compiled_exe(
             cmd.append('--quiet')
         cmd.append(filepath)
     else:
+        start_time = time()
         cmd = [filepath]
     debug(f'Trying to run: {" ".join(cmd)}')
     try:
@@ -874,7 +898,9 @@ def run_compiled_exe(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
+        duration = (time() - start_time) if start_time else None
     except subprocess.CalledProcessError:
+        duration = None
         print_err('Snippet failed to run!')
         return 1
     try:
@@ -891,7 +917,7 @@ def run_compiled_exe(
         print(stdout)
     if stderr:
         print(stderr, file=sys.stderr)
-    return proc.returncode
+    return {'returncode': proc.returncode, 'duration': duration}
 
 
 def run_examples(
@@ -992,32 +1018,16 @@ def run_snippets(
         if disasm:
             errs += disasm_file(binaryname)
         else:
-            errs += 0 if run_compiled_exe(
+            procresult = run_compiled_exe(
                 binaryname,
                 exe=exe,
                 src_file=snippet.src_file,
                 show_name=show_name,
                 memcheck=memcheck,
                 quiet=quiet,
-            ) == 0 else 1
-    return errs
-
-
-def noop(*args, **kwargs):
-    """ Used to replace other functions with a no-op function call,
-        to disable them.
-    """
-    return None
-
-
-def preprocess_snippets(snippets, compiler_args=None, make_target=None):
-    """ Compile and run several c code snippets. """
-    errs = 0
-    for snippet in snippets:
-        errs += snippet.preprocess(
-            user_args=compiler_args,
-            make_target=make_target,
-        )
+            )
+            errs += 1 if procresult['returncode'] else 0
+            status_runtime(procresult['duration'])
     return errs
 
 
@@ -1026,6 +1036,17 @@ def status(*args, **kwargs):
         is used.
     """
     print(*args, **kwargs)
+
+
+def status_runtime(seconds):
+    """ Prints the run time for a compiled snippet, if --quiet wasn't used.
+    """
+    if not seconds:
+        return None
+    status(C(': ').join(
+        CInfo('Run Time'),
+        CTime(f'{seconds:0.3f}')('s', fore=CTime.fore),
+    ))
 
 
 def temp_file(ext='.c', extra_prefix=None):
