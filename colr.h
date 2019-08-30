@@ -1266,9 +1266,6 @@
         } \
     } while (0);
 
-//! Convenience macro for `fprintf(stderr, ...)`.
-#define printferr(...) fprintf(stderr, __VA_ARGS__)
-
 /*! \def rgb
     Creates an anonymous RGB struct for use in function calls.
 

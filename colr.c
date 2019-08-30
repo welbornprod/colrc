@@ -1348,8 +1348,8 @@ bool colr_str_ends_with(const char* restrict str, const char* restrict suf) {
                value. The last pointer is always `NULL`.
 
     \examplecodefor{colr_str_get_codes,.c}
+    #include <stdio.h>
     #include "colr.h"
-
     int main(void) {
         char* s = colr(
             Colr("Testing this out.", fore(RED), back(WHITE)),
@@ -1359,7 +1359,7 @@ bool colr_str_ends_with(const char* restrict str, const char* restrict suf) {
         char** code_list = colr_str_get_codes(s, false);
         free(s);
         if (!code_list) {
-            printferr("No code found? Impossible!\n");
+            fprintf(stderr, "No code found? Impossible!\n");
             return 1;
         }
         // Iterate over the code list.
@@ -3440,6 +3440,7 @@ ColorArg *ColorArg_to_ptr(ColorArg carg) {
                value. The last pointer is always `NULL`.
 
     \examplecodefor{ColorArgs_from_str,.c}
+    #include <stdio.h>
     #include "colr.h"
 
     int main(void) {
@@ -3451,7 +3452,7 @@ ColorArg *ColorArg_to_ptr(ColorArg carg) {
         ColorArg** carg_list = ColorArgs_from_str(s, false);
         free(s);
         if (!carg_list) {
-            printferr("No code found? Impossible!\n");
+            fprintf(stderr, "No code found? Impossible!\n");
             return 1;
         }
         // Iterate over the ColorArg list.
