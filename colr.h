@@ -1248,24 +1248,6 @@
 */
 #define if_not_asprintf(...) if (asprintf(__VA_ARGS__) < 1)
 
-/*! Strip a leading character from a string, filling a  `char` array with the
-    result.
-
-    \po dest   Destination `char` array. Must have room for `strlen(s) + 1`.
-    \pi s      String to strip the character from.
-    \pi length Length of \p s, the input string.
-    \pi c      Character to strip.
-*/
-#define inline_str_lstrip_char(dest, s, length, c) \
-    do { \
-        size_t _st_l_c_dest_i = 0; \
-        for (size_t _st_l_c_i = 0; _st_l_c_i < length; _st_l_c_i++) { \
-            if (s[_st_l_c_i] == c) continue; \
-            dest[_st_l_c_dest_i] = s[_st_l_c_i]; \
-            _st_l_c_dest_i++; \
-        } \
-    } while (0);
-
 /*! \def rgb
     Creates an anonymous RGB struct for use in function calls.
 
@@ -1811,6 +1793,7 @@ bool colr_str_list_contains(char** lst, const char* s);
 void colr_str_list_free(char** ps);
 char* colr_str_ljust(const char* s, const char padchar, int width);
 void colr_str_lower(char* s);
+size_t colr_str_lstrip(char* restrict dest, const char* restrict s, size_t length, const char c);
 char* colr_str_lstrip_chars(const char* restrict s, const char* restrict chars);
 size_t colr_str_mb_len(const char* s);
 size_t colr_str_noncode_len(const char* s);

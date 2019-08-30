@@ -1712,6 +1712,31 @@ char* colr_str_ljust(const char* s, const char padchar, int width) {
     return start;
 }
 
+/*! Strip a leading character from a string, filling a  `char` array with the
+    result.
+
+    \po dest   Destination `char` array. Must have room for `strlen(s) + 1`.
+    \pi s      String to strip the character from.
+    \pi length Length of \p s, the input string.
+    \pi c      Character to strip.
+    \return    The number of \p c characters removed.
+*/
+size_t colr_str_lstrip(char* restrict dest, const char* restrict s, size_t length, const char c) {
+    size_t pos = 0;
+    size_t stripped = 0;
+    for (size_t i = 0; i < length && s[i]; i++) {
+        if (s[i] == c) {
+            stripped++;
+            continue;
+        }
+        dest[pos] = s[i];
+        pos++;
+    }
+    dest[pos] = '\0';
+    return stripped;
+}
+
+
 /*! Removes certain characters from the start of a \string.
     \details
     The order of the characters in \p chars does not matter. If any of them
@@ -5458,9 +5483,9 @@ int RGB_from_hex(const char* hexstr, RGB* rgb) {
     if ((length < 3) || (length > 7)) return COLOR_INVALID;
     // Strip leading #'s.
     char copy[] = "\0\0\0\0\0\0\0\0";
-    inline_str_lstrip_char(copy, hexstr, length, '#');
+    size_t stripped = colr_str_lstrip(copy, hexstr, length, '#');
     size_t copy_length = strlen(copy);
-    if (copy_length < length - 1) {
+    if (stripped > 1) {
         // There was more than one # symbol, I'm not gonna be *that* nice.
         return COLOR_INVALID;
     }
