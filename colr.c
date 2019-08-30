@@ -1477,7 +1477,7 @@ bool colr_str_has_codes(const char* s) {
     [here](https://softwareengineering.stackexchange.com/a/145633).
 
     \pi s   The string to hash.
-    \return A \colr_hash value with the hash.
+    \return A \ColrHash value with the hash.
     \retval 0 if \p s is `NULL`.
     \retval 5381 if \p s is an empty string.
 
@@ -1493,16 +1493,16 @@ bool colr_str_has_codes(const char* s) {
     };
     size_t strings_len = sizeof(strings) / sizeof(strings[0]);
     for (size_t i = 0; i < strings_len; i++) {
-        colr_hash hashval = colr_str_hash(strings[i]);
+        ColrHash hashval = colr_str_hash(strings[i]);
         printf("%8s: hash=%lu\n", strings[i], hashval);
     }
     \endexamplecode
 */
 
-colr_hash colr_str_hash(const char *s) {
+ColrHash colr_str_hash(const char *s) {
     if (!s) return 0;
     // This is also the default value for empty strings.
-    colr_hash hash = 5381;
+    ColrHash hash = 5381;
     int c;
 
     while ((c = *s++)) {
@@ -1600,10 +1600,10 @@ bool colr_str_is_digits(const char* s) {
 */
 bool colr_str_list_contains(char** lst, const char* s) {
     if (!(lst && s)) return false;
-    colr_hash strhash = colr_str_hash(s);
+    ColrHash strhash = colr_str_hash(s);
     size_t i = 0;
     while (lst[i]) {
-        colr_hash hash = colr_str_hash(lst[i]);
+        ColrHash hash = colr_str_hash(lst[i]);
         i++;
         if (hash == strhash) return true;
     }

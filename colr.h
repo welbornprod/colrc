@@ -1983,8 +1983,8 @@ extern const ColorNameData colr_name_data[];
 extern const size_t colr_name_data_len;
 
 //! Type returned from colr_str_hash.
-typedef unsigned long colr_hash;
-//! Format for `colr_hash` in printf-like functions.
+typedef unsigned long ColrHash;
+//! Format for `ColrHash` in printf-like functions.
 #define COLR_HASH_FMT "%lu"
 
 //! A specific ColorArg-like struct that marks the end of variadic argument lists.
@@ -2026,7 +2026,7 @@ char* colr_str_copy(char* restrict dest, const char* restrict src, size_t length
 bool colr_str_ends_with(const char* restrict s, const char* restrict suffix);
 char** colr_str_get_codes(const char* s, bool unique);
 bool colr_str_has_codes(const char* s);
-colr_hash colr_str_hash(const char* s);
+ColrHash colr_str_hash(const char* s);
 bool colr_str_is_all(const char* s, const char c);
 bool colr_str_is_codes(const char* s);
 bool colr_str_is_digits(const char* s);

@@ -604,8 +604,8 @@ subdesc(colr_str_has_codes) {
 // colr_str_hash
 subdesc(colr_str_hash) {
     it("computes simple string hashes") {
-        colr_hash zero = 0;
-        colr_hash empty = 5381;
+        ColrHash zero = 0;
+        ColrHash empty = 5381;
         assert_hash_eq(colr_str_hash(NULL), zero);
         assert_hash_eq(colr_str_hash(""), empty);
         assert(colr_str_hash("test"));

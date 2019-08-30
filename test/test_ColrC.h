@@ -374,8 +374,8 @@
 #define assert_hash_str_neq(a, b) assert_hash_str_op(a, !=, b, "Hashes are equal")
 #define assert_hash_str_op_func(a, op, b, func, msg) \
     do { \
-        colr_hash _a_h_s_e_a = func(a); \
-        colr_hash _a_h_s_e_b = func(b); \
+        ColrHash _a_h_s_e_a = func(a); \
+        ColrHash _a_h_s_e_b = func(b); \
         if (!(_a_h_s_e_a op _a_h_s_e_b)) { \
             char* _a_h_s_e_repr_a = colr_repr(a); \
             char* _a_h_s_e_repr_b = colr_repr(b); \
