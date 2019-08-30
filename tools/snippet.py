@@ -52,7 +52,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.2.6'
+VERSION = '0.2.7'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -939,7 +939,7 @@ def run_examples(
         if snippetinfo['skipped']:
             # Some were skipped.
             count = C('/').join(
-                CNumInfo(snippetinfo['skipped']),
+                CNumInfo(snippetinfo['total'] - snippetinfo['skipped']),
                 CNum(snippetinfo['total'])
             )
         else:
@@ -1045,7 +1045,11 @@ def status_runtime(seconds):
         return None
     status(C(': ').join(
         CInfo('Run Time'),
-        CTime(f'{seconds:0.3f}')('s', fore=CTime.fore),
+        C('').join(
+            CTime(f'{seconds:0.3f}'),
+            C('s', fore=CTime.fore),
+            '\n'
+        )
     ))
 
 
