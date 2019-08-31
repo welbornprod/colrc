@@ -3,7 +3,7 @@
 # vim: set ts=4 sw=4
 SHELL=bash
 # This is only for testing standard differences. ColrC must use at least c11/gnu11.
-STD=c11
+STD=gnu11
 # The flags will be different for clang, so just use the `clang` target (`make clang`).
 CC=gcc
 # More warnings may be added, but none should be taken away just to get a clean compile.

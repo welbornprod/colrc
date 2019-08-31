@@ -21,13 +21,12 @@ subdesc(BasicValue_from_esc) {
     it("recognizes valid basic codes") {
         for_len(basic_names_len, i) {
             BasicValue bval = basic_names[i].value;
-            char codes[CODE_LEN];
-            format_fg(codes, bval);
+            char* codes = fore_str_static(bval);
             assert_colr_eq(
                 BasicValue_from_esc(codes),
                 bval
             );
-            format_bg(codes, bval);
+            codes = back_str_static(bval);
             assert_colr_eq(
                 BasicValue_from_esc(codes),
                 bval

@@ -20,15 +20,19 @@ import subprocess
 import stat
 import sys
 import tempfile
+from time import time
 
 try:
     from colr import (
+        AnimatedProgress,
         Colr as C,
+        Frames,
         Preset as ColrPreset,
         auto_disable as colr_auto_disable,
         docopt,
     )
     from easysettings import load_json_settings
+    from outputcatcher import ProcessOutput
     from printdebug import DebugColrPrinter
     from pygments import highlight
     from pygments.lexers import get_lexer_by_name
@@ -48,7 +52,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.2.5'
+VERSION = '0.2.7'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -117,53 +121,56 @@ USAGESTR = f"""{VERSIONSTR}
         {SCRIPT} [-D] -c
         {SCRIPT} [-D] (-L | -N) [PATTERN]
         {SCRIPT} [-D] [-n] [-q] [-w] -V
-        {SCRIPT} [-D] [-n] [-q] [-m | -r exe] -b
-        {SCRIPT} [-D] [-n] [-q] [-m | -r exe | -s] -x [PATTERN] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-m | -r exe | -s] [CODE] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-m | -r exe | -s] [-f file...] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-m | -r exe | -s] [-w] (-e [CODE] | -l) [-- ARGS...]
-        {SCRIPT} [-D] -E [CODE] [-- ARGS...]
-        {SCRIPT} [-D] -E [-f file...] [-- ARGS...]
-        {SCRIPT} [-D] -E [-w] (-e [CODE] | -l) [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe] -b
+        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -s] [-t name] -x [PATTERN] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -s] [-t name] [CODE] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -s] [-t name] [-f file...] [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -s] [-t name] [-w] (-e [CODE] | -l) [-- ARGS...]
+        {SCRIPT} [-D] -E [-t name] -x [PATTERN] [-- ARGS...]
+        {SCRIPT} [-D] -E [-t name] [CODE] [-- ARGS...]
+        {SCRIPT} [-D] -E [-t name] [-f file...] [-- ARGS...]
+        {SCRIPT} [-D] -E [-t name] [-w] (-e [CODE] | -l) [-- ARGS...]
 
     Options:
-        ARGS                 : Extra arguments for the compiler.
-        CODE                 : Code to compile. It is auto-wrapped in a main()
-                               function if no main() signature is found.
-                               Auto-includes are included unless include
-                               lines for them are found.
-                               When used with -e, the editor is started with
-                               this as it's content.
-                               Default: stdin
-        PATTERN              : Only use examples with a leading comment
-                               that matches this text/regex pattern.
-        -b,--lastbinary      : Re-run the last binary that was compiled.
-        -c,--clean           : Clean {TMPDIR} files, even though they will be
-                               cleaned when the OS reboots.
-        -D,--debug           : Show some debug info while running.
-        -E,--preprocessor    : Run through gcc's preprocessor and print the
-                               output.
-        -e,--editlast        : Edit the last snippet in $EDITOR and run it.
-                               If the CODE argument is given, it will replace
-                               the contents of the last snippet.
-                               $EDITOR is {EDITOR_DESC}
-        -f name,--file name  : Read file to get snippet to compile.
-        -h,--help            : Show this help message.
-        -L,--listexamples    : List example code snippets in the source.
-        -l,--last            : Re-run the last snippet.
-        -m,--memcheck        : Run the snippet through `valgrind`.
-        -N,--listnames       : List example snippet names from the source.
-        -n,--name            : Print the resulting binary name, for further
-                               testing.
-        -q,--quiet           : Don't print any status messages.
-        -r exe,--run exe     : Run a program on the compiled binary, like
-                               `gdb` or `kdbg`.
-        -s,--sanitize        : Use -fsanitize compiler arguments.
-        -V,--viewlast        : View the last snippet that was compiled.
-        -v,--version         : Show version.
-        -w,--wrapped         : Use the "wrapped" version, which is the resulting
-                               `.c` file for snippets.
-        -x,--examples        : Use source examples as the snippets.
+        ARGS                   : Extra arguments for the compiler.
+        CODE                   : Code to compile. It is auto-wrapped in a main()
+                                 function if no main() signature is found.
+                                 Auto-includes are included unless include
+                                 lines for them are found.
+                                 When used with -e, the editor is started with
+                                 this as it's content.
+                                 Default: stdin
+        PATTERN                : Only use examples with a leading comment
+                                 that matches this text/regex pattern.
+        -b,--lastbinary        : Re-run the last binary that was compiled.
+        -c,--clean             : Clean {TMPDIR} files, even though they will be
+                                 cleaned when the OS reboots.
+        -D,--debug             : Show some debug info while running.
+        -d,--disasm            : Disassemble the resulting binary.
+        -E,--preprocessor      : Run through gcc's preprocessor and print the
+                                 output.
+        -e,--editlast          : Edit the last snippet in $EDITOR and run it.
+                                 If the CODE argument is given, it will replace
+                                 the contents of the last snippet.
+                                 $EDITOR is {EDITOR_DESC}
+        -f name,--file name    : Read file to get snippet to compile.
+        -h,--help              : Show this help message.
+        -L,--listexamples      : List example code snippets in the source.
+        -l,--last              : Re-run the last snippet.
+        -m,--memcheck          : Run the snippet through `valgrind`.
+        -N,--listnames         : List example snippet names from the source.
+        -n,--name              : Print the resulting binary name, for further
+                                 testing.
+        -q,--quiet             : Don't print any status messages.
+        -r exe,--run exe       : Run a program on the compiled binary, like
+                                 `gdb` or `kdbg`.
+        -s,--sanitize          : Use -fsanitize compiler arguments.
+        -t name,--target name  : Make target to get compiler flags from.
+        -V,--viewlast          : View the last snippet that was compiled.
+        -v,--version           : Show version.
+        -w,--wrapped           : Use the "wrapped" version, which is the resulting
+                                 `.c` file for snippets.
+        -x,--examples          : Use source examples as the snippets.
 
     Auto-Includes:
 {USAGE_INCLUDES or '    <no includes set in config>'}
@@ -178,6 +185,7 @@ CName = ColrPreset(fore='blue')
 CInfo = ColrPreset(fore='cyan')
 CNum = ColrPreset(fore='blue', style='bright')
 CNumInfo = ColrPreset(fore='cyan', style='bright')
+CTime = ColrPreset(fore='yellow')
 
 
 def main(argd):
@@ -199,13 +207,19 @@ def main(argd):
             pat=pat,
             exe=argd['--run'],
             compiler_args=argd['ARGS'],
+            disasm=argd['--disasm'],
+            show_name=argd['--name'],
             memcheck=argd['--memcheck'],
+            preprocess=argd['--preprocessor'],
             quiet=argd['--quiet'],
+            make_target=argd['--target'],
         )
     elif argd['--lastbinary']:
         if not config['last_binary']:
             raise InvalidArg('no "last binary" found.')
-        return run_compiled_exe(
+        if argd['--disasm']:
+            return disasm_file(config['last_binary'])
+        procresult = run_compiled_exe(
             config['last_binary'],
             exe=argd['--run'],
             src_file=config['last_c_file'],
@@ -213,6 +227,8 @@ def main(argd):
             memcheck=argd['--memcheck'],
             quiet=argd['--quiet'],
         )
+        status_runtime(procresult['duration'])
+        return 1 if procresult['returncode'] else 0
     elif argd['--viewlast']:
         if argd['--wrapped']:
             if not config['last_c_file']:
@@ -258,15 +274,21 @@ def main(argd):
         ]
 
     if argd['--preprocessor']:
-        return preprocess_snippets(snippets, compiler_args=argd['ARGS'])
+        return preprocess_snippets(
+            snippets,
+            compiler_args=argd['ARGS'],
+            make_target=argd['--target'],
+        )
 
     return run_snippets(
         snippets,
         exe=argd['--run'],
         show_name=argd['--name'],
         compiler_args=argd['ARGS'],
+        disasm=argd['--disasm'],
         memcheck=argd['--memcheck'],
         quiet=argd['--quiet'],
+        make_target=argd['--target'],
     )
 
 
@@ -295,6 +317,24 @@ def clean_tmp():
     tmpfmt = C(tmplen, 'blue', style='bright')
     status(f'Cleaned {tmpfmt} temporary {plural} in: {TMPDIR}')
     return 0 if tmpfiles else 1
+
+
+def disasm_file(filepath):
+    """ Disassemble a file using `objdump`, and format the result.
+        Returns an exit status code.
+    """
+    anim = AnimatedProgress(
+        text=f'Disassembling {filepath}',
+        frames=Frames.dots_orbit.as_rainbow(),
+    )
+    if sys.stdout.isatty():
+        anim.start()
+    formatted = Disasm(filepath).objdump_file(sections=['main'])
+    anim.stop()
+    if not formatted:
+        return 1
+    print(formatted)
+    return 0
 
 
 def edited_code_trim(lines):
@@ -494,10 +534,11 @@ def get_example_snippets(pat=None):
 
 
 def get_gcc_cmd(
-        input_files, output_file=None, user_args=None, preprocess=False):
+        input_files, output_file=None, user_args=None, preprocess=False,
+        make_target=None):
     """ Get the cmd needed to run gcc on a file (without -c or -o). """
     c_files = [s for s in input_files if s.endswith('.c')]
-    cmd = ['gcc']
+    cmd = []
     if preprocess:
         cmd.append('-E')
     elif c_files:
@@ -506,28 +547,48 @@ def get_gcc_cmd(
     if output_file:
         cmd.extend(('-o', output_file))
     cmd.append(f'-iquote{COLR_DIR}')
-    cmd.extend(get_make_flags())
+    compiler, make_flags = get_make_flags(
+        user_args=[make_target] if make_target else None
+    )
+    if not compiler:
+        compiler = 'gcc'
+    cmd.extend(make_flags)
     cmd.extend(user_args or [])
+    if c_files:
+        # Remove linker options from c-file command.
+        cmd = [s for s in cmd if not s.startswith('-l')]
+    cmd.insert(0, compiler)
     return cmd
 
 
 def get_make_flags(user_args=None):
-    """ Get gcc flags from a `make` dry run, and return them. """
+    """ Get compiler and flags from a `make` dry run, and return them.
+    """
     # These flags don't make since for general snippet compiling.
     # The ColrC dir is already taken care of, and -c/-o will be used when
     # get_gcc_cmd() is called.
     ignore_flags = {'-c', '-o', '-iquote../'}
     flags = set()
+    compiler = None
     for line in iter_make_output(user_args=user_args):
-        if (not line.strip()) or (not line.startswith('gcc')):
+        if (not line.strip()) or (not line.startswith(('clang', 'gcc'))):
             continue
+        if not compiler:
+            compiler = line.split()[0]
+            debug(f'Compiler set to: {compiler}')
+
         flags.update(
             arg
             for arg in line.split()
             if arg.startswith('-') and (arg not in ignore_flags)
         )
+    if not flags:
+        debug('No flags from make!')
+        if user_args:
+            debug(f'Arguments: {" ".join(user_args)}', align=True)
+        return flags
     debug('Flags from make: {}'.format(' '.join(flags)))
-    return flags
+    return compiler, flags
 
 
 def get_obj_files():
@@ -592,17 +653,19 @@ def last_snippet_read():
 
 def last_snippet_write(code):
     """ Write to the last-snippet file. """
-    if not LAST_SNIPPET:
+    if not code:
+        debug('No snippet to write.')
         return False
     snippetfile = config['last_snippet']
     try:
         with open(snippetfile, 'w') as f:
-            f.write(LAST_SNIPPET)
+            f.write(code)
     except EnvironmentError as ex:
         print_err(
             f'Error writing last-snippet file: {snippetfile}\n{ex}'
         )
     else:
+        debug(f'Wrote last-snippet file: {snippetfile}')
         return True
     return False
 
@@ -675,6 +738,13 @@ def no_output_str(filepath, src_file=None):
     return f'{msg}\n'
 
 
+def noop(*args, **kwargs):
+    """ Used to replace other functions with a no-op function call,
+        to disable them.
+    """
+    return None
+
+
 def prepend_to_file(filepath, s, cond_first_line=None):
     """ Prepend a string to a file's contents.
         If `cond_first_line` is set, and the first line in the file matches,
@@ -703,6 +773,17 @@ def prepend_to_file(filepath, s, cond_first_line=None):
             f'Failed to write header to file: {filepath}\nError: {ex}'
         )
     return True
+
+
+def preprocess_snippets(snippets, compiler_args=None, make_target=None):
+    """ Compile and run several c code snippets. """
+    errs = 0
+    for snippet in snippets:
+        errs += snippet.preprocess(
+            user_args=compiler_args,
+            make_target=make_target,
+        )
+    return errs
 
 
 def print_err(*args, **kwargs):
@@ -792,6 +873,7 @@ def run_compiled_exe(
             C('  Running', 'cyan'),
             namefmt,
         ))
+    start_time = None
     if exe:
         cmd = [exe, filepath]
     elif memcheck:
@@ -807,6 +889,7 @@ def run_compiled_exe(
             cmd.append('--quiet')
         cmd.append(filepath)
     else:
+        start_time = time()
         cmd = [filepath]
     debug(f'Trying to run: {" ".join(cmd)}')
     try:
@@ -815,7 +898,9 @@ def run_compiled_exe(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
+        duration = (time() - start_time) if start_time else None
     except subprocess.CalledProcessError:
+        duration = None
         print_err('Snippet failed to run!')
         return 1
     try:
@@ -832,12 +917,13 @@ def run_compiled_exe(
         print(stdout)
     if stderr:
         print(stderr, file=sys.stderr)
-    return proc.returncode
+    return {'returncode': proc.returncode, 'duration': duration}
 
 
 def run_examples(
         pat=None, exe=None, show_name=False, compiler_args=None,
-        memcheck=False, quiet=False):
+        disasm=False, memcheck=False, preprocess=False,
+        quiet=False, make_target=None):
     """ Compile and run source examples, with optional filtering pattern.
     """
     errs = 0
@@ -853,21 +939,43 @@ def run_examples(
         if snippetinfo['skipped']:
             # Some were skipped.
             count = C('/').join(
-                CNumInfo(snippetinfo['skipped']),
+                CNumInfo(snippetinfo['total'] - snippetinfo['skipped']),
                 CNum(snippetinfo['total'])
             )
         else:
             count = CNum(snippetinfo['total'])
         plural = 'snippet' if count == 1 else 'snippets'
-        status(f'\nCompiling {count} {plural} for: {CFile(filepath)}')
-        errs += run_snippets(
-            snippetinfo['snippets'],
-            exe=exe,
-            show_name=show_name,
-            compiler_args=compiler_args,
-            memcheck=memcheck,
-            quiet=quiet,
-        )
+        if preprocess:
+            if make_target:
+                tgt = f' ({CInfo(make_target)})'
+            else:
+                tgt = ''
+            status(
+                f'\nPreprocessing {count} {plural} for: {CFile(filepath)}{tgt}'
+            )
+            errs += preprocess_snippets(
+                snippetinfo['snippets'],
+                compiler_args=compiler_args,
+                make_target=make_target,
+            )
+        else:
+            if make_target:
+                tgt = f' ({CInfo(make_target)})'
+            else:
+                tgt = ''
+            status(
+                f'\nCompiling {count} {plural} for: {CFile(filepath)}{tgt}'
+            )
+            errs += run_snippets(
+                snippetinfo['snippets'],
+                exe=exe,
+                show_name=show_name,
+                compiler_args=compiler_args,
+                disasm=disasm,
+                memcheck=memcheck,
+                quiet=quiet,
+                make_target=make_target,
+            )
         snipscnt = snippetinfo['total'] - snippetinfo['skipped']
         success += snipscnt - errs
 
@@ -899,34 +1007,27 @@ def run_examples(
 
 def run_snippets(
         snippets, exe=None, show_name=False, compiler_args=None,
-        memcheck=False, quiet=False):
+        disasm=False, memcheck=False, quiet=False, make_target=None):
     """ Compile and run several c code snippets. """
     errs = 0
     for snippet in snippets:
-        binaryname = snippet.compile(user_args=compiler_args)
-        errs += 0 if run_compiled_exe(
-            binaryname,
-            exe=exe,
-            src_file=snippet.src_file,
-            show_name=show_name,
-            memcheck=memcheck,
-            quiet=quiet,
-        ) == 0 else 1
-    return errs
-
-
-def noop(*args, **kwargs):
-    """ Used to replace other functions with a no-op function call,
-        to disable them.
-    """
-    return None
-
-
-def preprocess_snippets(snippets, compiler_args=None):
-    """ Compile and run several c code snippets. """
-    errs = 0
-    for snippet in snippets:
-        errs += snippet.preprocess(user_args=compiler_args)
+        binaryname = snippet.compile(
+            user_args=compiler_args,
+            make_target=make_target,
+        )
+        if disasm:
+            errs += disasm_file(binaryname)
+        else:
+            procresult = run_compiled_exe(
+                binaryname,
+                exe=exe,
+                src_file=snippet.src_file,
+                show_name=show_name,
+                memcheck=memcheck,
+                quiet=quiet,
+            )
+            errs += 1 if procresult['returncode'] else 0
+            status_runtime(procresult['duration'])
     return errs
 
 
@@ -935,6 +1036,21 @@ def status(*args, **kwargs):
         is used.
     """
     print(*args, **kwargs)
+
+
+def status_runtime(seconds):
+    """ Prints the run time for a compiled snippet, if --quiet wasn't used.
+    """
+    if not seconds:
+        return None
+    status(C(': ').join(
+        CInfo('Run Time'),
+        C('').join(
+            CTime(f'{seconds:0.3f}'),
+            C('s', fore=CTime.fore),
+            '\n'
+        )
+    ))
 
 
 def temp_file(ext='.c', extra_prefix=None):
@@ -1063,6 +1179,208 @@ class UserCancelled(KeyboardInterrupt):
         return 'User cancelled.'
 
 
+class Disasm(object):
+    """ Disassembles object files using `objdump`, and formats them for the
+        terminal, optionally filtering certain sections/functions.
+    """
+    pyg_lexer = get_lexer_by_name('nasm')
+
+    def __init__(self, filepath):
+        self.filepath = filepath
+
+    @staticmethod
+    def format_byte(b):
+        """ Return a Colr representation of a byte in ascii, where non-ascii
+            characters are represented with '.' (like `hexdump` and `xxd`).
+        """
+        if (b < 32) or (b > 126):
+            return C('.', 'grey')
+        return C(chr(b), 'white')
+
+    def format_bytes(self, data, with_ascii=True):
+        """ Formats byte data into hex/ascii using a terminal-friendly
+            representation.
+        """
+        if not data:
+            return None
+        hexdump = []
+        asciidump = []
+        for b in data:
+            hexdump.append('{:0>2x}'.format(b))
+            asciidump.append(self.format_byte(b))
+
+        hexstr = self.format_hex(''.join(hexdump)).ljust(24)
+        asciifmt = C('').join(asciidump).ljust(12)
+        if not with_ascii:
+            return hexstr
+        if len(data) > 30:
+            return C('{}\n{}'.format(hexstr, asciifmt))
+        return C(' ').join(hexstr, asciifmt)
+
+    @staticmethod
+    def format_hex(hexstr, ljust=0):
+        """ Format a hex string, like '00FFAA'. """
+        hexstr = hexstr.strip().replace(' ', '')
+        return C('').join(
+            C(hexstr[i:i + 2], 'green' if i % 4 == 0 else 'cyan')
+            for i in range(0, len(hexstr), 2)
+        ).ljust(ljust)
+
+    def format_inst(self, inst):
+        """ Format an asm instruction, using pygments. """
+        if not sys.stdout.isatty():
+            return inst
+        return highlight(inst, self.pyg_lexer, pyg_fmter).rstrip()
+
+    def format_objdump(
+            self, output, show_addr=False, sections=None, ignore_sections=None):
+        """ Format output from `objdump` to be used with asmsh.
+            (...trim unnecessary stuff)
+        """
+        capture = False
+        lines = []
+        for line in output.split('\n'):
+            if line.endswith('>:'):
+                capture = True
+            if not capture:
+                continue
+            if line.lstrip() == '...':
+                break
+            if not line:
+                continue
+            if line.startswith('Disassembly of'):
+                continue
+            maybesection, rest = line.split(':', 1)
+
+            if rest:
+                addr = maybesection.strip().replace(' ', '')
+            else:
+                addr = ''
+                debug(f'Section found: {line!r}')
+                _, sectname = self.get_section_parts(line)
+                if self.is_ignored_section(sectname, sections, ignore_sections):
+                    capture = False
+                    continue
+                sectionfmt = self.format_section_start(maybesection)
+                if sectionfmt:
+                    # When disassembling small hex strings, there is no name.
+                    lines.append(sectionfmt)
+                continue
+
+            try:
+                hexstr, inst = rest.split('\t')[1:]
+            except ValueError:
+                # No instructions, for lines with only hex.
+                debug('No instruction: {!r}'.format(rest))
+                hexstr = rest.strip()
+                inst = ''
+            else:
+                hexstr = hexstr.strip().replace(' ', '')
+                if show_addr:
+                    pcs = [self.format_hex(addr, ljust=11).indent(4)]
+                else:
+                    pcs = []
+                pcs.extend((
+                    self.format_bytes(
+                        bytes(
+                            int(hexstr[i:i + 2], 16)
+                            for i in range(0, len(hexstr), 2)
+                        ),
+                        with_ascii=True,
+                    ),
+                    self.format_inst(inst.strip()),
+                ))
+                lines.append(C(' ').join(pcs))
+
+        return C('\n').join(lines)
+
+    @staticmethod
+    def format_section_name(name):
+        """ Format a section name, like '<_start>'. """
+        name = name.lstrip('<').rstrip('>')
+        return C(name, 'magenta', style='bright').join('<', '>', fore='grey')
+
+    def format_section_start(self, line):
+        """ Format a section start line, like '00000000 <_start>' """
+        addr, name = self.get_section_parts(line)
+        if not name:
+            return C('')
+
+        return C('').join(
+            C(' ').join(
+                self.format_hex(addr),
+                self.format_section_name(name),
+            ),
+            C(':', 'grey'),
+        )
+
+    @staticmethod
+    def get_section_parts(line):
+        """ Retrieve the section name and hex address from lines like:
+                00000000 <_start>:
+            Where '_start' is the name, and '00000000' is the hex address.
+            Returns hex_addr, name
+        """
+        line = line.strip().rstrip(':')
+        addr, name = line.split(' ')
+        addr = addr.strip()
+        name = name.strip().lstrip('<').rstrip('>')
+        if not name:
+            return addr, ''
+
+        return addr, name
+
+    @staticmethod
+    def is_ignored_section(name, includes, excludes):
+        """ Returns True if `name` is not in `includes` list, or if `name`
+            starts/ends with any of the strings in `excludes`.
+        """
+        if includes:
+            if name in includes:
+                return False
+            return True
+
+        for s in excludes or []:
+            if name.startswith(s) or name.endswith(s):
+                return True
+        return False
+
+    def objdump_file(
+            self, filepath=None, syntax='intel',
+            sections=None, ignore_sections=None):
+        """ Run objdump on an executable file, and format it's output.
+            Arguments:
+                filepath        : Executable to dump.
+                syntax          : Syntax for objdump -M
+                sections        : Only include section names in this list.
+                ignore_sections : Ignore any sections starting/ending with
+                                  strings in this list.
+
+        """
+        filepath = filepath or self.filepath
+        if not os.path.exists(filepath):
+            print_err(f'File doesn\'t exist: {filepath}')
+            return None
+
+        cmd = ['objdump', '-M', syntax.lower(), '-d', filepath]
+        debug('Running {}'.format(' '.join(cmd)))
+        with ProcessOutput(cmd) as objdump_proc:
+            if objdump_proc.stderr:
+                print_err(objdump_proc.stderr.decode())
+                return None
+            if not objdump_proc.stdout:
+                print_err('Can\'t decode, objdump had no output.')
+                return None
+            debug(objdump_proc.stdout.decode())
+
+            return self.format_objdump(
+                objdump_proc.stdout.decode(),
+                show_addr=True,
+                sections=sections,
+                ignore_sections=ignore_sections,
+            )
+
+
 class Snippet(object):
     """ A Snippet is just a string, with an optional name. """
     indent = 4
@@ -1110,7 +1428,7 @@ class Snippet(object):
     def __str__(self):
         return str(self.code)
 
-    def compile(self, user_args=None):
+    def compile(self, user_args=None, make_target=None):
         status(C(': ').join(
             C('Compiling', 'cyan'),
             self.name,
@@ -1130,7 +1448,7 @@ class Snippet(object):
             except EnvironmentError as ex:
                 print_err(f'Unable to remove {colrobj}: {ex}')
 
-        cmd = get_gcc_cmd(cfiles, user_args=user_args)
+        cmd = get_gcc_cmd(cfiles, user_args=user_args, make_target=make_target)
         try:
             debug('Compiling C files:')
             debug(' '.join(cmd), align=True)
@@ -1150,6 +1468,7 @@ class Snippet(object):
             objnames,
             output_file=binaryname,
             user_args=user_args,
+            make_target=make_target,
         )
         try:
             debug('Linking object files:')
@@ -1211,7 +1530,7 @@ class Snippet(object):
             line.startswith('main(')
         )
 
-    def preprocess(self, user_args=None):
+    def preprocess(self, user_args=None, make_target=None):
         """ Run this snippet through gcc's preprocessor and print the output.
         """
         status(C(': ').join(
@@ -1223,7 +1542,12 @@ class Snippet(object):
         config['last_c_file'] = filepath
         last_snippet_write(self.code)
         cfiles = [filepath, COLRC_FILE]
-        cmd = get_gcc_cmd(cfiles, user_args=user_args, preprocess=True)
+        cmd = get_gcc_cmd(
+            cfiles,
+            user_args=user_args,
+            preprocess=True,
+            make_target=make_target,
+        )
         try:
             debug('Preprocessing C files:')
             debug(' '.join(cmd), align=True)
@@ -1307,6 +1631,8 @@ class Snippet(object):
     def write_code(self, s, ext='.c'):
         """ Write a string to a temporary file, and return the file name. """
         fd, filepath = temp_file(ext=ext)
+        if not s.endswith('\n'):
+            s = f'{s}\n'
         os.write(fd, s.encode())
         os.close(fd)
         debug(f'Wrote code to: {filepath}')

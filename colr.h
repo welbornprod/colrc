@@ -103,8 +103,13 @@
 #define WCODE_RESET_ALL L"\x1b[0m"
 //! Short-hand for CODE_RESET_ALL, stands for "No Color".
 #define NC CODE_RESET_ALL
+//! Short-hand for `CODE_RESET_ALL "\n"`, stands for "No Color, New Line".
+#define NCNL CODE_RESET_ALL "\n"
 //! Short-hand for WCODE_RESET_ALL, stands for "Wide No Color".
 #define WNC WCODE_RESET_ALL
+//! Short-hand for `WCODE_RESET_ALL "\n"`, stands for "No Color, New Line".
+#define WNCNL WCODE_RESET_ALL L"\n"
+
 //! Length of CODE_RESET_ALL, including `'\0'`.
 #define CODE_RESET_LEN 5
 /*! Minimum length for the shortest basic fore/back escape code, including `'\0'`.
@@ -187,6 +192,10 @@
 #define COLOR_INVALID (-2)
 //! Possible error return value for RGB_from_str().
 #define COLOR_INVALID_RANGE (-3)
+
+//! Seed value for colr_str_hash().
+#define COLR_HASH_SEED 5381
+
 /*! Alias for COLOR_INVALID.
     \details
     All color values share an _INVALID member with the same value, so:
@@ -255,6 +264,7 @@
     \pi ...    Arguments for asprintf.
 */
 #define asprintf_or_return(retval, ...) if_not_asprintf(__VA_ARGS__) return retval
+
 
 /*! \def back
     Create a back color suitable for use with the colr() and Colr() macros.
@@ -327,6 +337,46 @@
 */
 #define back_str(x) ColorArg_to_esc(back_arg(x))
 
+/*! \def back_str_static
+    Creates a stack-allocated escape code \string for a back color.
+
+    \details
+    These are not constant strings, but they are stored on the stack.
+    A "statement expression" is used to build a string of the correct length
+    and content using ColorArg_to_esc_s().
+
+    \pi x       A BasicValue, ExtendedValue, or RGB value.
+    \return     A stack-allocated escape code string.
+
+    \sa basic_str_static
+    \sa ext_str_static ext_rgb_str_static ext_RGB_str_static
+    \sa RGB_str_static
+    \sa style_str_static
+
+    \examplecodefor{back_str_static,.c}
+    // This results in a call to sprintf(), to format an extended escape code.
+    // The string is stored on the stack.
+    char* backwhite = back_str_static(WHITE);
+    char* foreblue = fore_str_static(BLUE);
+    printf("%s%sBlue on White." NCNL, backwhite, foreblue);
+
+    RGB rgbval = rgb(255, 34, 0);
+    printf("%sA reddish." NCNL, back_str_static(rgbval));
+
+    printf("%sAquaMarine." NCNL, back_str_static("aquamarine"));
+
+    \endexamplecode
+*/
+#define back_str_static(x) \
+    __extension__ ({ \
+        __typeof(x) _bss_val = x; \
+        ColorArg _bss_carg = back_arg(_bss_val); \
+        size_t _bss_len = ColorArg_length(_bss_carg); \
+        char* _bss_codes = alloca(_bss_len); \
+        ColorArg_to_esc_s(_bss_codes, _bss_carg); \
+        _bss_codes; \
+    })
+
 /*! \def basic
     Casts to BasicValue.
 
@@ -337,10 +387,9 @@
 */
 #define basic(x) ((BasicValue)(x))
 
-
 /*! \def bool_colr_enum
     Returns the "truthiness" of the enums used in ColrC
-    (BasicValue, ExtendedValue, StyleValue, ColorType, ArgType).
+    (BasicValue, ExtendedValue function-returns, StyleValue, ColorType, ArgType).
 
     \details
     Any value less than `0` is considered false.
@@ -365,6 +414,7 @@
 #define color_arg(type, x) \
     _Generic( \
         (x), \
+        char*: ColorArg_from_str(type, x), \
         BasicValue: ColorArg_from_value(type, TYPE_BASIC, &x), \
         ExtendedValue: ColorArg_from_value(type, TYPE_EXTENDED, &x), \
         StyleValue: ColorArg_from_value(type, TYPE_STYLE, &x), \
@@ -590,6 +640,22 @@
 */
 #define colr(...) _colr(__VA_ARGS__, _ColrLastArg)
 
+/*! \def colr_alloc_len
+    Return the number of bytes needed to allocate an escape code string based
+    on the color type.
+
+    \pi x   A BasicValue, ExtendedValue, RGB value, or StyleValue.
+    \return The number of bytes needed to allocate a string using the color value.
+*/
+#define colr_alloc_len(x) \
+    _Generic( \
+        (x), \
+        RGB: CODE_RGB_LEN, \
+        BasicValue: CODE_LEN, \
+        ExtendedValue: CODEX_LEN, \
+        StyleValue: STYLE_LEN \
+    )
+
 /*! \def colr_eq
     Calls the \<type\>_eq functions for the supported types.
 
@@ -705,9 +771,9 @@
 
     \return `1` if \p s1 is equal to \p s2 or \p s3, otherwise `0`.
 */
-#define colr_istr_either(s1, s2, s3) ((s1 && s2 && s3) ? (colr_istreq(s1, s2) || colr_istreq(s1, s3)) : 0)
+#define colr_istr_either(s1, s2, s3) ((s1 && s2 && s3) ? (colr_istr_eq(s1, s2) || colr_istr_eq(s1, s3)) : 0)
 
-/*! \def colr_istreq
+/*! \def colr_istr_eq
     Convenience macro for `!strcasecmp(s1, s2)`.
 
     \pi s1  The first string to compare.
@@ -715,7 +781,7 @@
 
     \return `1` if \p s1 and \p s2 are equal, otherwise `0`.
 */
-#define colr_istreq(s1, s2) ((s1 && s2) ? !strcasecmp(s1, s2) : 0)
+#define colr_istr_eq(s1, s2) ((s1 && s2) ? !strcasecmp(s1, s2) : 0)
 
 /*! \def colr_join
     Join ColorArg pointers, ColorText pointers, and strings by another
@@ -905,6 +971,14 @@
     \return `1` if \p s1 is equal to \p s2 or \p s3, otherwise `0`.
 */
 #define colr_str_either(s1, s2, s3) (colr_str_eq(s1, s2) || colr_str_eq(s1, s3))
+
+#define colr_str_hash_static(s) \
+    __extension__ ({ \
+        char* _c_s_s = s; \
+        ColrHash _c_s_hash = COLR_HASH_SEED; \
+        for (int c; (c = *_c_s_s); _c_s_s++) _c_s_hash = ((_c_s_hash << 5) + _c_s_hash) + c; \
+        _c_s_hash; \
+    })
 
 /*! \def colr_to_str
     Calls the \<type\>to_str functions for the supported types.
@@ -1101,6 +1175,48 @@
 */
 #define fore_str(x) ColorArg_to_esc(fore_arg(x))
 
+/*! \def fore_str_static
+    Creates a stack-allocated escape code \string for a fore color.
+
+    \details
+    These are not constant strings, but they are stored on the stack.
+    A "statement expression" is used to build a string of the correct length
+    and content using ColorArg_to_esc_s().
+
+    \pi x       A BasicValue, ExtendedValue, or RGB value.
+    \return     A stack-allocated escape code string.
+
+    \sa basic_str_static
+    \sa ext_str_static ext_rgb_str_static ext_RGB_str_static
+    \sa RGB_str_static
+    \sa style_str_static
+
+    \examplecodefor{fore_str_static,.c}
+    // This results in a call to sprintf(), to format an extended escape code.
+    // The string is stored on the stack.
+    char* foreblue = fore_str_static(BLUE);
+    char* backwhite = back_str_static(WHITE);
+    printf("%s%sBlue on White." NCNL, foreblue, backwhite);
+
+    RGB rgbval = rgb(255, 34, 0);
+    printf("%sA reddish." NCNL, fore_str_static(rgbval));
+
+    printf("%sAquaMarine." NCNL, fore_str_static("aquamarine"));
+
+    \endexamplecode
+*/
+#define fore_str_static(x) \
+    __extension__ ({ \
+        __typeof(x) _fss_val = x; \
+        ColorArg _fss_carg = fore_arg(_fss_val); \
+        size_t _fss_len = ColorArg_length(_fss_carg); \
+        char* _fss_codes = alloca(_fss_len); \
+        ColorArg_to_esc_s(_fss_codes, _fss_carg); \
+        _fss_codes; \
+    })
+
+
+
 /*! \def hex
     Use RGB_from_hex_default() to create an RGB value.
 
@@ -1132,9 +1248,6 @@
 */
 #define if_not_asprintf(...) if (asprintf(__VA_ARGS__) < 1)
 
-//! Convenience macro for `fprintf(stderr, ...)`.
-#define printferr(...) fprintf(stderr, __VA_ARGS__)
-
 /*! \def rgb
     Creates an anonymous RGB struct for use in function calls.
 
@@ -1146,24 +1259,6 @@
     \sa fore back colr Colr
 */
 #define rgb(r, g, b) ((RGB){.red=r, .green=g, .blue=b})
-
-/*! Strip a leading character from a string, filling a  `char` array with the
-    result.
-
-    \po dest   Destination `char` array. Must have room for `strlen(s) + 1`.
-    \pi s      String to strip the character from.
-    \pi length Length of \p s, the input string.
-    \pi c      Character to strip.
-*/
-#define inline_str_lstrip_char(dest, s, length, c) \
-    do { \
-        size_t _st_l_c_dest_i = 0; \
-        for (size_t _st_l_c_i = 0; _st_l_c_i < length; _st_l_c_i++) { \
-            if (s[_st_l_c_i] == c) continue; \
-            dest[_st_l_c_dest_i] = s[_st_l_c_i]; \
-            _st_l_c_dest_i++; \
-        } \
-    } while (0);
 
 /*! \def style
     Create a style suitable for use with the colr() and Colr() macros.
@@ -1212,6 +1307,53 @@
     \sa style style_arg
 */
 #define style_str(x) ColorArg_to_esc(style_arg(x))
+
+/*! \def style_str_static
+    A less-flexible style_str() that returns a static escape code string for a
+    style.
+
+    \details
+    This macro function does not accept style names. Only `StyleValue` and
+    literal `int` values are accepted.
+
+    \details
+    The resulting expression will be optimized into a constant static string.
+
+    \pi x   A StyleValue to use.
+    \return A stack-allocated string.
+
+    \sa basic_str_static ext_str_static
+
+    \examplecodefor{style_str_static,.c}
+    // This is optimized into a constant static string, even with -g3.
+    char* ul_codes = style_str_static(UNDERLINE);
+    printf("%sUnderlined.\n" NC, ul_codes);
+
+    // This is also optimized as if you wrote the string "\x1b[4m".
+    printf("%sNo branches.\n" NC, style_str_static(UNDERLINE));
+
+    // This is only optimized when optimizations are turned on (-O2, -O3)
+    // because of the variable `sval`.
+    // When compiling for debug (-g3), the compiler will produce branches/jumps
+    // for each possible StyleValue case.
+    StyleValue sval = BRIGHT;
+    printf("%sBranches in debug mode.\n" NC, style_str_static(sval));
+    \endexamplecode
+*/
+#define style_str_static(x) \
+    (x == RESET_ALL ? "\x1b[0m" : \
+    (x ==BRIGHT ? "\x1b[1m" : \
+    (x == DIM ? "\x1b[2m" : \
+    (x == ITALIC ? "\x1b[3m" : \
+    (x == UNDERLINE ? "\x1b[4m" : \
+    (x == FLASH ? "\x1b[5m" : \
+    (x == HIGHLIGHT ? "\x1b[7m" : \
+    (x == STRIKETHRU ? "\x1b[9m" : \
+    (x == NORMAL ? "\x1b[22m" : \
+    (x == FRAME ? "\x1b[51m" : \
+    (x == ENCIRCLE ? "\x1b[52m" : \
+    (x == OVERLINE ? "\x1b[53m" : "\x1b[" colr_macro_str(x) "m" \
+    ))))))))))))
 
 /*! \def while_colr_va_arg
     Construct a while-loop over a `va_list`, where the last argument is
@@ -1600,8 +1742,8 @@ extern const ColorNameData colr_name_data[];
 extern const size_t colr_name_data_len;
 
 //! Type returned from colr_str_hash.
-typedef unsigned long colr_hash;
-//! Format for `colr_hash` in printf-like functions.
+typedef unsigned long ColrHash;
+//! Format for `ColrHash` in printf-like functions.
 #define COLR_HASH_FMT "%lu"
 
 //! A specific ColorArg-like struct that marks the end of variadic argument lists.
@@ -1643,7 +1785,7 @@ char* colr_str_copy(char* restrict dest, const char* restrict src, size_t length
 bool colr_str_ends_with(const char* restrict s, const char* restrict suffix);
 char** colr_str_get_codes(const char* s, bool unique);
 bool colr_str_has_codes(const char* s);
-colr_hash colr_str_hash(const char* s);
+ColrHash colr_str_hash(const char* s);
 bool colr_str_is_all(const char* s, const char c);
 bool colr_str_is_codes(const char* s);
 bool colr_str_is_digits(const char* s);
@@ -1651,6 +1793,8 @@ bool colr_str_list_contains(char** lst, const char* s);
 void colr_str_list_free(char** ps);
 char* colr_str_ljust(const char* s, const char padchar, int width);
 void colr_str_lower(char* s);
+size_t colr_str_lstrip(char* restrict dest, const char* restrict s, size_t length, const char c);
+char* colr_str_lstrip_char(const char* s, const char c);
 char* colr_str_lstrip_chars(const char* restrict s, const char* restrict chars);
 size_t colr_str_mb_len(const char* s);
 size_t colr_str_noncode_len(const char* s);
@@ -1730,6 +1874,7 @@ size_t _colr_join_array_length(void* ps);
 size_t _colr_join_arrayn_size(void* joinerp, void* ps, size_t count);
 char* colr_join_array(void* joinerp, void* ps);
 char* colr_join_arrayn(void* joinerp, void* ps, size_t count);
+
 /*! \internal
     ArgType functions that only deal with argument types (fore, back, style).
     \endinternal
@@ -1761,6 +1906,7 @@ size_t ColorArg_length(ColorArg carg);
 char* ColorArg_repr(ColorArg carg);
 ColorArg* ColorArg_to_ptr(ColorArg carg);
 char* ColorArg_to_esc(ColorArg carg);
+bool ColorArg_to_esc_s(char* dest, ColorArg carg);
 
 ColorArg** ColorArgs_from_str(const char* s, bool unique);
 void ColorArgs_list_free(ColorArg** ps);
@@ -1827,7 +1973,7 @@ bool ColorValue_is_valid(ColorValue cval);
 size_t ColorValue_length(ArgType type, ColorValue cval);
 char* ColorValue_repr(ColorValue cval);
 char* ColorValue_to_esc(ArgType type, ColorValue cval);
-
+bool ColorValue_to_esc_s(char* dest, ArgType type, ColorValue cval);
 
 /*! \internal
     BasicValue functions.

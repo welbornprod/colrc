@@ -318,7 +318,7 @@ const RGB ext2rgb_map[] = {
     {255, 95, 135},
     {255, 95, 175},
     {255, 95, 215},
-    {255, 95, 255}, // Another lightmagenta
+    {255, 95, 255},
     {255, 135, 0},
     {255, 135, 95},
     {255, 135, 135},
@@ -1348,8 +1348,8 @@ bool colr_str_ends_with(const char* restrict str, const char* restrict suf) {
                value. The last pointer is always `NULL`.
 
     \examplecodefor{colr_str_get_codes,.c}
+    #include <stdio.h>
     #include "colr.h"
-
     int main(void) {
         char* s = colr(
             Colr("Testing this out.", fore(RED), back(WHITE)),
@@ -1359,7 +1359,7 @@ bool colr_str_ends_with(const char* restrict str, const char* restrict suf) {
         char** code_list = colr_str_get_codes(s, false);
         free(s);
         if (!code_list) {
-            printferr("No code found? Impossible!\n");
+            fprintf(stderr, "No code found? Impossible!\n");
             return 1;
         }
         // Iterate over the code list.
@@ -1477,7 +1477,7 @@ bool colr_str_has_codes(const char* s) {
     [here](https://softwareengineering.stackexchange.com/a/145633).
 
     \pi s   The string to hash.
-    \return A \colr_hash value with the hash.
+    \return A \ColrHash value with the hash.
     \retval 0 if \p s is `NULL`.
     \retval 5381 if \p s is an empty string.
 
@@ -1493,16 +1493,16 @@ bool colr_str_has_codes(const char* s) {
     };
     size_t strings_len = sizeof(strings) / sizeof(strings[0]);
     for (size_t i = 0; i < strings_len; i++) {
-        colr_hash hashval = colr_str_hash(strings[i]);
+        ColrHash hashval = colr_str_hash(strings[i]);
         printf("%8s: hash=%lu\n", strings[i], hashval);
     }
     \endexamplecode
 */
 
-colr_hash colr_str_hash(const char *s) {
+ColrHash colr_str_hash(const char *s) {
     if (!s) return 0;
     // This is also the default value for empty strings.
-    colr_hash hash = 5381;
+    ColrHash hash = COLR_HASH_SEED;
     int c;
 
     while ((c = *s++)) {
@@ -1600,10 +1600,10 @@ bool colr_str_is_digits(const char* s) {
 */
 bool colr_str_list_contains(char** lst, const char* s) {
     if (!(lst && s)) return false;
-    colr_hash strhash = colr_str_hash(s);
+    ColrHash strhash = colr_str_hash(s);
     size_t i = 0;
     while (lst[i]) {
-        colr_hash hash = colr_str_hash(lst[i]);
+        ColrHash hash = colr_str_hash(lst[i]);
         i++;
         if (hash == strhash) return true;
     }
@@ -1712,7 +1712,66 @@ char* colr_str_ljust(const char* s, const char padchar, int width) {
     return start;
 }
 
-/*! Removes certain characters from the start of a \string.
+/*! Strip a leading character from a \string, filling another \string with the
+    result.
+
+    \details
+    \p dest and \p s should not overlap.
+
+    \po dest   Destination `char` array. Must have room for `strlen(s) + 1`.
+    \pi s      String to strip the character from.
+    \pi length Length of \p s, the input string.
+    \pi c      Character to strip. If set to `0`, all whitespace characters will
+               be used (`' '`, `'\n'`, `'\t'`, `'\v'`, `'\f'`, `'\r'`).
+    \return    The number of \p c characters removed.
+               May return `0` if \p s is `NULL`/empty, \p dest is `NULL`, or
+               \p c is `0`.
+*/
+size_t colr_str_lstrip(char* restrict dest, const char* restrict s, size_t length, const char c) {
+    if (!(s && dest)) return 0;
+    if (s[0] == '\0') return 0;
+    bool start = true;
+    size_t pos = 0;
+    size_t char_cnt = 0;
+    for (size_t i = 0; i < length && s[i]; i++) {
+        if (start && ((c && (s[i] == c)) || ((!c) && isspace(s[i])))) {
+            char_cnt++;
+            continue;
+        }
+        start = false;
+        dest[pos] = s[i];
+        pos++;
+    }
+    dest[pos] = '\0';
+    return char_cnt;
+}
+
+/*! Strips a leading character from a \string, and allocates a new string with
+    the result.
+
+    \pi s      String to strip the character from.
+    \pi c      Character to strip. If set to `0`, all whitespace characters will
+               be used (`' '`, `'\n'`, `'\t'`).
+    \return    An allocated string with the result.
+               May return `NULL` if \p s or \p c is `NULL`.
+               \mustfree
+               \maybenullalloc
+
+*/
+char* colr_str_lstrip_char(const char* s, const char c) {
+    if (!s) return NULL;
+    if (s[0] == '\0') return NULL;
+
+    size_t length = strlen(s);
+    char* dest = calloc(length, sizeof(char));
+    if (!dest) return NULL;
+    colr_str_lstrip(dest, s, length, c);
+    return dest;
+}
+
+/*! Removes certain characters from the start of a \string and allocates
+    a new string with the result.
+
     \details
     The order of the characters in \p chars does not matter. If any of them
     are found at the start of a string, they will be removed.
@@ -2295,7 +2354,7 @@ void format_fgx(char* out, unsigned char num) {
 */
 void format_fg_RGB(char* out, RGB rgb) {
     if (!out) return;
-        snprintf(out, CODE_RGB_LEN, "\x1b[38;2;%d;%d;%dm", rgb.red, rgb.green, rgb.blue);
+    snprintf(out, CODE_RGB_LEN, "\x1b[38;2;%d;%d;%dm", rgb.red, rgb.green, rgb.blue);
 }
 
 /*! Create an escape code for a true color (rgb) fore color using an
@@ -3357,6 +3416,7 @@ char* ColorArg_repr(ColorArg carg) {
     return repr;
 }
 
+
 /*! Converts a ColorArg into an escape code \string.
 
     \details
@@ -3380,6 +3440,29 @@ char* ColorArg_to_esc(ColorArg carg) {
     return ColorValue_to_esc(carg.type, carg.value);
 }
 
+/*! Converts a ColorArg into an escape code \string and fill the destination
+    string.
+
+    \details
+    If the ColorArg is empty (`ARGTYPE_NONE`), `dest[0]` is set to `'\0'`.
+
+    \details
+    If the ColorValue is invalid, `dest[0]` is set to `'\0'`.
+
+    \pi dest Destination for the escape code string.
+             <em>Must have room for the code type being used</em>.
+    \pi carg ColorArg to get the ArgType and ColorValue from.
+    \return  `true` if the ColorArg was valid, otherwise `false`.
+
+    \sa ColorArg
+*/
+bool ColorArg_to_esc_s(char* dest, ColorArg carg) {
+    if (ColorArg_is_empty(carg)) {
+        dest[0] = '\0';
+        return false;
+    }
+    return ColorValue_to_esc_s(dest, carg.type, carg.value);
+}
 /*! Copies a ColorArg into memory and returns the pointer.
 
     \details
@@ -3416,6 +3499,7 @@ ColorArg *ColorArg_to_ptr(ColorArg carg) {
                value. The last pointer is always `NULL`.
 
     \examplecodefor{ColorArgs_from_str,.c}
+    #include <stdio.h>
     #include "colr.h"
 
     int main(void) {
@@ -3427,7 +3511,7 @@ ColorArg *ColorArg_to_ptr(ColorArg carg) {
         ColorArg** carg_list = ColorArgs_from_str(s, false);
         free(s);
         if (!carg_list) {
-            printferr("No code found? Impossible!\n");
+            fprintf(stderr, "No code found? Impossible!\n");
             return 1;
         }
         // Iterate over the ColorArg list.
@@ -4724,6 +4808,88 @@ char* ColorValue_to_esc(ArgType type, ColorValue cval) {
     return colr_empty_str();
 }
 
+/*! Converts a ColorValue into an escape code \string and fills the destination
+    string.
+
+    \details
+    For invalid ArgType/ColorValue combinations, `dest[0]` is set to `'\0'`.
+
+    \po dest Destination string for the escape code string.
+            <em>Must have room for the code type being used</em>.
+    \pi type ArgType (FORE, BACK, STYLE) to build the escape code for.
+    \pi cval ColorValue to get the color value from.
+
+    \return  `true` if a proper ArgType/ColorValue combination was used, otherwise `false`.
+
+    \sa ColorValue
+*/
+bool ColorValue_to_esc_s(char* dest, ArgType type, ColorValue cval) {
+    switch (type) {
+        case FORE:
+            switch (cval.type) {
+                case TYPE_BASIC:
+                    format_fg(dest, cval.basic);
+                    return true;
+                case TYPE_EXTENDED:
+                    format_fgx(dest, cval.ext);
+                    return true;
+                case TYPE_RGB:
+                    format_fg_RGB(dest, cval.rgb);
+                    return true;
+                // This case is not valid, but I will try to do the right thing.
+                case TYPE_STYLE:
+                    format_style(dest, cval.style);
+                    return true;
+                default:
+                    dest[0] = '\0';
+                    return false;
+                }
+        case BACK:
+            switch (cval.type) {
+                case TYPE_BASIC:
+                    format_bg(dest, cval.basic);
+                    return true;
+                case TYPE_EXTENDED:
+                    format_bgx(dest, cval.ext);
+                    return true;
+                case TYPE_RGB:
+                    format_bg_RGB(dest, cval.rgb);
+                    return true;
+                // This case is not even valid, but okay.
+                case TYPE_STYLE:
+                    format_style(dest, cval.style);
+                    return true;
+                default:
+                    dest[0] = '\0';
+                    return false;
+                }
+        case STYLE:
+            switch (cval.type) {
+                case TYPE_STYLE:
+                    // This is the only appropriate case.
+                    format_style(dest, cval.style);
+                    return true;
+                // All of these other cases are a product of mismatched info.
+                case TYPE_BASIC:
+                    format_fg(dest, cval.basic);
+                    return true;
+                case TYPE_EXTENDED:
+                    format_fgx(dest, cval.ext);
+                    return true;
+                case TYPE_RGB:
+                    format_fg_RGB(dest, cval.rgb);
+                    return true;
+                default:
+                    dest[0] = '\0';
+                    return false;
+            }
+        default:
+            dest[0] = '\0';
+            return false;
+    }
+    dest[0] = '\0';
+    return false;
+}
 /*! Compares two BasicValues.
 
     \details
@@ -5351,9 +5517,9 @@ int RGB_from_hex(const char* hexstr, RGB* rgb) {
     if ((length < 3) || (length > 7)) return COLOR_INVALID;
     // Strip leading #'s.
     char copy[] = "\0\0\0\0\0\0\0\0";
-    inline_str_lstrip_char(copy, hexstr, length, '#');
+    size_t char_cnt = colr_str_lstrip(copy, hexstr, length, '#');
     size_t copy_length = strlen(copy);
-    if (copy_length < length - 1) {
+    if (char_cnt > 1) {
         // There was more than one # symbol, I'm not gonna be *that* nice.
         return COLOR_INVALID;
     }

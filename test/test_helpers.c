@@ -604,11 +604,12 @@ subdesc(colr_str_has_codes) {
 // colr_str_hash
 subdesc(colr_str_hash) {
     it("computes simple string hashes") {
-        colr_hash zero = 0;
-        colr_hash empty = 5381;
+        ColrHash zero = 0;
+        ColrHash empty = 5381;
         assert_hash_eq(colr_str_hash(NULL), zero);
         assert_hash_eq(colr_str_hash(""), empty);
         assert(colr_str_hash("test"));
+        assert(colr_str_hash_static("test"));
     }
     it("does not collide for basic color names") {
         for_len(basic_names_len, i) {
@@ -616,8 +617,13 @@ subdesc(colr_str_hash) {
             for_len(basic_names_len, j) {
                 char* nameb = basic_names[j].name;
                 if (colr_str_eq(namea, nameb)) continue;
+                // Ensure the static/non-static has functions are in sync.
+                assert_hash_eq(colr_str_hash(namea), colr_str_hash_static(namea));
+                assert_hash_eq(colr_str_hash(nameb), colr_str_hash_static(nameb));
+
                 // Names are different, they should not be equal.
-                assert_hash_str_neq(namea, nameb);
+                assert_str_hash_neq(namea, nameb);
+                assert_str_hash_static_neq(namea, nameb);
             }
         }
     }
@@ -627,8 +633,13 @@ subdesc(colr_str_hash) {
             for_len(style_names_len, j) {
                 char* nameb = style_names[j].name;
                 if (colr_str_eq(namea, nameb)) continue;
+                // Ensure the static/non-static has functions are in sync.
+                assert_hash_eq(colr_str_hash(namea), colr_str_hash_static(namea));
+                assert_hash_eq(colr_str_hash(nameb), colr_str_hash_static(nameb));
+
                 // Names are different, they should not be equal.
-                assert_hash_str_neq(namea, nameb);
+                assert_str_hash_neq(namea, nameb);
+                assert_str_hash_static_neq(namea, nameb);
             }
         }
     }
@@ -638,8 +649,13 @@ subdesc(colr_str_hash) {
             for_len(colr_name_data_len, j) {
                 char* nameb = colr_name_data[j].name;
                 if (colr_str_eq(namea, nameb)) continue;
+                // Ensure the static/non-static has functions are in sync.
+                assert_hash_eq(colr_str_hash(namea), colr_str_hash_static(namea));
+                assert_hash_eq(colr_str_hash(nameb), colr_str_hash_static(nameb));
+
                 // Names are different, they should not be equal.
-                assert_hash_str_neq(namea, nameb);
+                assert_str_hash_neq(namea, nameb);
+                assert_str_hash_static_neq(namea, nameb);
             }
         }
     }
@@ -873,6 +889,45 @@ subdesc(colr_str_lower) {
         }
     }
 }
+// colr_str_lstrip_char
+subdesc(colr_str_lstrip_char) {
+    it("should lstrip a char") {
+        struct {
+            char* s;
+            char c;
+            char* expected;
+        } tests[] = {
+            {"", 'c', NULL},
+            {NULL, 'c', NULL},
+            {NULL, 0, NULL},
+            {"test", 0, "test"},
+            {"test", 'c', "test"},
+            {"aatest", 'a', "test"},
+            {"btest", 'b', "test"},
+            {"test", 't', "est"},
+            {"tttttesttttt", 't', "esttttt"},
+            {"\t\t\n test", '\t', "\n test"},
+            {"\t\t\n test", 0, "test"},
+        };
+        for_each(tests, i) {
+            char* result = colr_str_lstrip_char(tests[i].s, tests[i].c);
+            if (!result) {
+                if (tests[i].expected) {
+                    fail(
+                        "Falsely returned NULL: colr_str_lstrip_char(%s, %s)\n",
+                        colr_repr(tests[i].s),
+                        colr_repr(tests[i].c)
+                    );
+                } else {
+                    // expected failure.
+                    continue;
+                }
+            }
+            assert_str_eq(result, tests[i].expected, "Failed to remove char.");
+            free(result);
+        }
+    }
+}
 // colr_str_lstrip_chars
 subdesc(colr_str_lstrip_chars) {
     it("should lstrip chars") {
@@ -906,7 +961,7 @@ subdesc(colr_str_lstrip_chars) {
                     continue;
                 }
             }
-            asserteq(result, tests[i].expected);
+            assert_str_eq(result, tests[i].expected, "Failed to remove chars.");
             free(result);
         }
     }

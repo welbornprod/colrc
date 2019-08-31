@@ -87,6 +87,10 @@
         free(_p_u_m_s); \
     } while (0)
 
+
+//! Convenience macro for `fprintf(stderr, ...)`.
+#define printferr(...) fprintf(stderr, __VA_ARGS__)
+
 /*! \def return_error
     Print a message before returning `EXIT_FAILURE`.
     \pi ... Arguments for `fprintf(stderr, ...)`.

@@ -10,8 +10,7 @@ subdesc(StyleValue_from_esc) {
     it("recognizes valid style codes") {
         for_len(style_names_len, i) {
             StyleValue sval = style_names[i].value;
-            char codes[STYLE_LEN];
-            format_style(codes, sval);
+            char* codes = style_str_static(sval);
             assert_colr_eq(StyleValue_from_esc(codes), sval);
         }
     }
