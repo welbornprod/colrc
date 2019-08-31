@@ -13,7 +13,9 @@ import subprocess
 import sys
 
 from colr import (
+    AnimatedProgress,
     Colr as C,
+    Frames,
     Preset,
     auto_disable as colr_auto_disable,
     docopt,
@@ -31,6 +33,8 @@ debug_err = debugprinter.debug_err
 
 pyg_lexer = get_lexer_by_name('c')
 pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
+
+anim_frames = Frames.dots_orbit.as_rainbow()
 
 colr_auto_disable()
 
@@ -238,15 +242,26 @@ def get_cppcheck_names(pat=None):
     debug(f'Running: {" ".join(cmd)}')
     proc = ProcessOutput(cmd)
     names = []
-    for line in proc.iter_stderr():
-        if not line.endswith(b'is never used.'):
-            continue
-        _, _, name = line.partition(b'\'')
-        name, _, _ = name.rpartition(b'\'')
-        name = name.decode()
-        if pat and (pat.search(name) is None):
-            continue
-        names.append(name)
+    total = 0
+    prog = AnimatedProgress(
+        'Running cppcheck',
+        frames=anim_frames,
+        delay=0.5,
+        auto_disable=True,
+    )
+    with prog:
+        for line in proc.iter_stderr():
+            if not line.endswith(b'is never used.'):
+                continue
+            _, _, name = line.partition(b'\'')
+            name, _, _ = name.rpartition(b'\'')
+            name = name.decode()
+            if pat and (pat.search(name) is None):
+                continue
+            total += 1
+            if total % 10 == 0:
+                prog.text = f'Running cppcheck (names: {total})'
+            names.append(name)
     return names
 
 
