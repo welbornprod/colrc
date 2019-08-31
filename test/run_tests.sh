@@ -544,17 +544,41 @@ if ((do_all)); then
     fi
     exit
 elif ((do_memcheck)); then
+    declare -a use_args
+    if [[ -n "$exe_wrapper" ]]; then
+        if [[ "$exe_wrapper" == "kdbg" ]]; then
+            for userarg in "${userargs[@]}"; do
+                use_args+=("-a" "$userarg")
+            done
+        else
+            use_args=("${userargs[@]}")
+        fi
+        use_binary=$exe_wrapper
+        use_args=("$default_binary" "${use_args[@]}")
+    else
+        use_binary=$default_binary
+        use_args=("${userargs[@]}")
+    fi
     cmd=(
         "valgrind"
         "--tool=memcheck"
         "--leak-check=full"
         "--track-origins=yes"
         "--error-exitcode=1"
-        "$default_binary"
-        "${userargs[@]}"
+        "$use_binary"
+        "--"
+        "${use_args[@]}"
     )
 elif [[ -n "$exe_wrapper" ]]; then
-    cmd=("$exe_wrapper" "$default_binary" "${userargs[@]}")
+    declare -a use_args
+    if [[ "$exe_wrapper" == "kdbg" ]]; then
+        for userarg in "${userargs[@]}"; do
+            use_args+=("-a" "$userarg")
+        done
+    else
+        use_args=("--" "${userargs[@]}")
+    fi
+    cmd=("$exe_wrapper" "$default_binary" "${use_args[@]}")
 else
     ((do_quiet)) && userargs+=("--quiet")
     cmd=("$default_binary" "${userargs[@]}")

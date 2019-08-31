@@ -1725,8 +1725,7 @@ char* colr_str_ljust(const char* s, const char padchar, int width) {
     \pi c      Character to strip. If set to `0`, all whitespace characters will
                be used (`' '`, `'\n'`, `'\t'`, `'\v'`, `'\f'`, `'\r'`).
     \return    The number of \p c characters removed.
-               May return `0` if \p s is `NULL`/empty, \p dest is `NULL`, or
-               \p c is `0`.
+               May return `0` if \p s is `NULL`/empty, \p dest is `NULL`.
 */
 size_t colr_str_lstrip(char* restrict dest, const char* restrict s, size_t length, const char c) {
     if (!(s && dest)) return 0;
@@ -1754,7 +1753,7 @@ size_t colr_str_lstrip(char* restrict dest, const char* restrict s, size_t lengt
     \pi c      Character to strip. If set to `0`, all whitespace characters will
                be used (`' '`, `'\n'`, `'\t'`).
     \return    An allocated string with the result.
-               May return `NULL` if \p s or \p c is `NULL`.
+               May return `NULL` if \p s is `NULL`/empty.
                \mustfree
                \maybenullalloc
 
@@ -1764,7 +1763,7 @@ char* colr_str_lstrip_char(const char* s, const char c) {
     if (s[0] == '\0') return NULL;
 
     size_t length = strlen(s);
-    char* dest = calloc(length, sizeof(char));
+    char* dest = calloc(length + 1, sizeof(char));
     if (!dest) return NULL;
     colr_str_lstrip(dest, s, length, c);
     return dest;
