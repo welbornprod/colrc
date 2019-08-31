@@ -1034,10 +1034,11 @@ bool colr_char_should_escape(const char c) {
     printf("colr_check_marker() assertions held up.\n");
     \endexamplecode
 */
-bool colr_check_marker(unsigned int marker, void* p) {
+bool colr_check_marker(uint32_t marker, void* p) {
     // Don't overflow the bounds. Check a byte at a time.
+    if (!p) return false;
     ColorStructMarker byte_checker = {marker};
-    unsigned char* singlebyte = p;
+    uint8_t* singlebyte = p;
     if (*singlebyte != byte_checker.bytes.b1) return false;
     else if (*(singlebyte + 1) != byte_checker.bytes.b2) return false;
     else if (*(singlebyte + 2) != byte_checker.bytes.b3) return false;
@@ -2487,6 +2488,17 @@ char* _colr(void *p, ...) {
     return final;
 }
 
+/*! Calls Colr `*_free()` functions for Colr objects, otherwise just calls `free()`.
+
+    \pi p Pointer to a heap-allocated object.
+*/
+void _colr_free(void* p) {
+    if (!p) return;
+    if (ColorArg_is_ptr(p)) ColorArg_free(p);
+    else if (ColorText_is_ptr(p)) ColorText_free(p);
+    else free(p);
+}
+
 /*! Determines if a void pointer is _ColrLastArg (the last-arg-marker).
 
     \pi p The pointer to check.
@@ -2496,11 +2508,7 @@ bool _colr_is_last_arg(void* p) {
     if (!p) return false;
     // Most likely the very same memory.
     if (p == _ColrLastArg) return true;
-    // Don't overflow the bounds. Check a byte at a time.
-    unsigned char* singlebyte = p;
-    if (*singlebyte != 235) return false;
-    else if (*(singlebyte + 1) != 255) return false;
-    else if (*(singlebyte + 2) != 255) return false;
+    if (!colr_check_marker(_ColrLastArgValue.marker, p)) return false;
     // Check to see if someone allocated their own _ColrLastArgValue.
     struct _ColrLastArg_s* clastp = p;
     return (

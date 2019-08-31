@@ -78,6 +78,7 @@
 #include <locale.h> // Not used in colr.c, but necessary for users of rainbow stuff.
 #include <stdarg.h> // Variadic functions and `va_list`.
 #include <stdbool.h>
+#include <stdint.h> // marker integers for colr structs
 #include <stdio.h> // snprintf, etc.
 #include <stdlib.h> // calloc, free, malloc, etc.
 #include <string.h> // strcat
@@ -705,6 +706,11 @@
     \details
     If the type is not supported, a plain `free(x)` is used.
 
+    \details
+    Colr objects that have a \<type\>_free function will be properly released,
+    even through a `void` pointer (as long as the `.marker` member is set,
+    which it will be if it was created by the Colr functions/macros).
+
     \pi x A pointer to a supported type to free.
 */
 #define colr_free(x) \
@@ -712,7 +718,7 @@
         (x), \
         ColorArg*: ColorArg_free, \
         ColorText*: ColorText_free, \
-        default: free \
+        default: _colr_free \
     )(x)
 
 /*! \def colr_is_empty
@@ -1622,15 +1628,10 @@ typedef struct StyleInfo {
     StyleValue value;
 } StyleInfo;
 
-static_assert(
-    sizeof(unsigned int) == 4,
-    "Struct markers will not work without a 32-bit `unsigned int` type."
-);
-
 //! Holds a string justification method, width, and padding character for ColorTexts.
 typedef struct ColorJustify {
     //! A marker used to inspect void pointers and determine if they are ColorJustifys.
-    unsigned int marker;
+    uint32_t marker;
     //! The justification method, can be JUST_NONE.
     ColorJustifyMethod method;
     //! The desired width for the final string, or `0` to use colr_term_size().
@@ -1641,14 +1642,14 @@ typedef struct ColorJustify {
 
 //! Breaks down Colr struct markers, such as COLORARG_MARKER, into individual bytes.
 typedef union ColorStructMarker {
-    //! The actual unsigned int marker value.
-    unsigned int marker;
+    //! The actual uint32_t marker value.
+    uint32_t marker;
     //! Individual bytes that make up the marker.
     struct {
-        unsigned char b1;
-        unsigned char b2;
-        unsigned char b3;
-        unsigned char b4;
+        uint8_t b1;
+        uint8_t b2;
+        uint8_t b3;
+        uint8_t b4;
     } bytes;
 } ColorStructMarker;
 /*! Holds a color type and it's value.
@@ -1687,7 +1688,7 @@ typedef struct ColorNameData {
 //! Holds an ArgType, and a ColorValue.
 typedef struct ColorArg {
     //! A marker used to inspect void pointers and determine if they are ColorArgs.
-    unsigned int marker;
+    uint32_t marker;
     //! Fore, back, style, invalid.
     ArgType type;
     //! Color type and value.
@@ -1697,7 +1698,7 @@ typedef struct ColorArg {
 //! Holds a string of text, and optional fore, back, and style ColorArgs.
 typedef struct ColorText {
     //! A marker used to inspect void pointers and determine if they are ColorTexts.
-    unsigned int marker;
+    uint32_t marker;
     //! Text to colorize.
     char* text;
     // Pointers are used for compatibility with the fore(), back(), and style() macros.
@@ -1748,7 +1749,7 @@ typedef unsigned long ColrHash;
 
 //! A specific ColorArg-like struct that marks the end of variadic argument lists.
 struct _ColrLastArg_s {
-    unsigned int marker;
+    uint32_t marker;
     unsigned short value;
 };
 
@@ -1773,7 +1774,7 @@ bool colr_char_is_code_end(const char c);
 char* colr_char_repr(char x);
 bool colr_char_should_escape(const char c);
 
-bool colr_check_marker(unsigned int marker, void* p);
+bool colr_check_marker(uint32_t marker, void* p);
 char* colr_empty_str(void);
 bool colr_supports_rgb(void);
 
@@ -1844,6 +1845,14 @@ char* rainbow_fg_term(const char* s, double freq, size_t offset);
 char* rainbow_bg(const char* s, double freq, size_t offset);
 char* rainbow_bg_term(const char* s, double freq, size_t offset);
 RGB rainbow_step(double freq, size_t offset);
+
+/*! \internal
+    A free() that inspects the pointer to see if it's a Colr object.
+    If it is, the appropriate *_free() function is called.
+    Otherwise, plain `free()` is used.
+    \endinternal
+*/
+void _colr_free(void* p);
 
 /*! \internal
     Helpers for the variadic colr* functions.

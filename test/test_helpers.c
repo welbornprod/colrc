@@ -199,6 +199,46 @@ subdesc(colr_char_should_escape) {
         }
     }
 }
+// colr_check_marker
+subdesc(colr_check_marker) {
+    it("identifies valid markers") {
+        ColorJustify* cjust = malloc(sizeof(ColorJustify));
+        assert_not_null(cjust);
+        *cjust = ColorJustify_empty();
+        struct {
+            void* p;
+            uint32_t marker;
+        } tests[] = {
+            {fore(RED), COLORARG_MARKER},
+            {back(WHITE), COLORARG_MARKER},
+            {Colr("test", fore(RED)), COLORTEXT_MARKER},
+            {cjust, COLORJUSTIFY_MARKER},
+        };
+        for_each(tests, i) {
+            assert(colr_check_marker(tests[i].marker, tests[i].p));
+            colr_free(tests[i].p);
+        }
+    }
+    it("identifies invalid markers") {
+        struct {
+            void* p;
+            uint32_t marker;
+            bool expected;
+        } str_tests[] = {
+            {NULL, COLORLASTARG_MARKER, false},
+            {"", COLORLASTARG_MARKER, false},
+            {"abc", COLORLASTARG_MARKER, false},
+            {"abcd", COLORLASTARG_MARKER, false},
+            {"abcde", COLORLASTARG_MARKER, false},
+            // This edge case that I hope no one ever uses.
+            // All of the markers have their own edge case like this.
+            {"\xff\xff\xff\xff", COLORARG_MARKER, true},
+        };
+        for_each(str_tests, i) {
+            assert(colr_check_marker(str_tests[i].marker, str_tests[i].p) == str_tests[i].expected);
+        }
+    }
+}
 // colr_empty_str
 subdesc(colr_empty_str) {
     it("sanity check for colr_empty_str()") {
