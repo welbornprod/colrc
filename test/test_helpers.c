@@ -904,6 +904,8 @@ subdesc(colr_str_lstrip_char) {
             {"test", 'c', "test"},
             {"aatest", 'a', "test"},
             {"btest", 'b', "test"},
+            {"test", 't', "est"},
+            {"tttttesttttt", 't', "esttttt"},
             {"\t\t\n test", '\t', "\n test"},
             {"\t\t\n test", 0, "test"},
         };

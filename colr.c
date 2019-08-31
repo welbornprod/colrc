@@ -1722,7 +1722,7 @@ char* colr_str_ljust(const char* s, const char padchar, int width) {
     \pi s      String to strip the character from.
     \pi length Length of \p s, the input string.
     \pi c      Character to strip. If set to `0`, all whitespace characters will
-               be used (`' '`, `'\n'`, `'\t'`).
+               be used (`' '`, `'\n'`, `'\t'`, `'\v'`, `'\f'`, `'\r'`).
     \return    The number of \p c characters removed.
                May return `0` if \p s is `NULL`/empty, \p dest is `NULL`, or
                \p c is `0`.
@@ -1730,17 +1730,15 @@ char* colr_str_ljust(const char* s, const char padchar, int width) {
 size_t colr_str_lstrip(char* restrict dest, const char* restrict s, size_t length, const char c) {
     if (!(s && dest)) return 0;
     if (s[0] == '\0') return 0;
-
+    bool start = true;
     size_t pos = 0;
     size_t char_cnt = 0;
     for (size_t i = 0; i < length && s[i]; i++) {
-        if (c && (s[i] == c)) {
-            char_cnt++;
-            continue;
-        } else if (!c && ((s[i] == ' ') || (s[i] == '\n') || (s[i] == '\t'))) {
+        if (start && ((c && (s[i] == c)) || ((!c) && isspace(s[i])))) {
             char_cnt++;
             continue;
         }
+        start = false;
         dest[pos] = s[i];
         pos++;
     }
