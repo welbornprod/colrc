@@ -74,7 +74,7 @@
     This is for the `sin()` function used in `rainbow_step()`.
 */
 #include <math.h>
-#include <limits.h> // Used for struct markers, and asprintf return checking.
+#include <limits.h> // Used for asprintf return checking.
 #include <locale.h> // Not used in colr.c, but necessary for users of rainbow stuff.
 #include <stdarg.h> // Variadic functions and `va_list`.
 #include <stdbool.h>
@@ -170,22 +170,22 @@
 /*! Marker for the ColorArg struct, for identifying a void pointer as a
     ColorArg.
 */
-#define COLORARG_MARKER UINT_MAX
+#define COLORARG_MARKER UINT32_MAX
 
 /*! Marker for the _ColrLastArg_s struct, for identifying a void pointer as a
     _ColrLastArg_s.
 */
-#define COLORLASTARG_MARKER (UINT_MAX - 20)
+#define COLORLASTARG_MARKER (UINT32_MAX - 20)
 
 /*! Marker for the ColorJustify struct, for identifying a void pointer as a
     ColorJustify.
 */
-#define COLORJUSTIFY_MARKER (UINT_MAX - 30)
+#define COLORJUSTIFY_MARKER (UINT32_MAX - 30)
 
 /*! Marker for the ColorText struct, for identifying a void pointer as a
     ColorText.
 */
-#define COLORTEXT_MARKER (UINT_MAX - 40)
+#define COLORTEXT_MARKER (UINT32_MAX - 40)
 
 /*! Possible error return value for BasicValue_from_str(), ExtendedValue_from_str(),
     and colorname_to_rgb().
