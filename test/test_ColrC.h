@@ -421,6 +421,88 @@
         } \
     } while (0)
 
+#define assert_ptr_eq(a, b) \
+    assert_ptr_op(a, ==, b, "Pointers are not equal")
+
+#define assert_ptr_eq_full(a, b, colrobj) \
+    assert_ptr_op_full(a, ==, b, colrobj, "Pointers are not equal")
+
+#define assert_ptr_eq_repr(a, b, colrobj) \
+    assert_ptr_op_repr(a, ==, b, colrobj, "Pointers are not equal")
+
+#define assert_ptr_eq_str(a, b, colrobj) \
+    assert_ptr_op_str(a, ==, b, colrobj, "Pointers are not equal")
+
+#define assert_ptr_gt_full(a, b, colrobj) \
+    assert_ptr_op_full(a, >, b, colrobj, "Pointer is not greater")
+
+#define assert_ptr_gte_full(a, b, colrobj) \
+    assert_ptr_op_full(a, >=, b, colrobj, "Pointer is not greater or equal")
+
+#define assert_ptr_op(a, op, b, msg) \
+    do { \
+        if (!(a op b)) { \
+            fail("%s: (" #a ") %p " #op " (" #b ") %p", msg, a, b); \
+        }\
+    } while (0)
+
+#define assert_ptr_op_func(a, op, b, func, msg) \
+    do { \
+        if (!(a op b)) { \
+            fail("%s: " #func "(" #a ") %p " #op " " #func "(" #b ") %p", msg, a, b); \
+        }\
+    } while (0)
+
+#define assert_ptr_op_full(a, op,  b, colrobj, msg) \
+    do { \
+        if (!(a op b)) { \
+            char* _a_s_op_f_repr = colr_repr(colrobj); \
+            char* _a_s_op_f_str = colr_to_str(colrobj); \
+            char* _a_s_op_f_strrepr = colr_repr(_a_s_op_f_str); \
+            free(_a_s_op_f_str); \
+            fail( \
+                "%s: (" #a ") %p " #op " (" #b ") %p\n      Repr: %s\n    String: %s", \
+                msg, \
+                (void*) a, \
+                (void*) b, \
+                _a_s_op_f_repr, \
+                _a_s_op_f_strrepr \
+            ); \
+            free(_a_s_op_f_repr); \
+            free(_a_s_op_f_strrepr); \
+        }\
+    } while (0)
+
+#define assert_ptr_op_repr(a, op, b, colrobj, msg) \
+    do { \
+        if (!(a op b)) { \
+            char* _a_s_op_r_repr = colr_repr(colrobj); \
+            fail( \
+                "%s: (" #a ") %p " #op " (" #b ") %p\n      Repr: %s", \
+                msg, \
+                (void*) a, \
+                (void*) b, \
+                _a_s_op_r_repr \
+            ); \
+            free(_a_s_op_r_repr); \
+        }\
+    } while (0)
+
+#define assert_ptr_op_str(a, op, b, colrobj, msg) \
+    do { \
+        if (!(a op b)) { \
+            char* _a_s_op_s_str = colr_to_str(colrobj); \
+            fail( \
+                "%s: (" #a ") %p " #op " (" #b ") %p\n    String: %s", \
+                msg, \
+                (void*) a, \
+                (void*) b, \
+                _a_s_op_s_str \
+            ); \
+            free(_a_s_op_s_str); \
+        }\
+    } while (0)
+
 #define assert_RGB_eq(a, b) \
     do { \
         if (!RGB_eq(a, b)) { \
@@ -533,6 +615,7 @@
             free(_a_s_op_s_str); \
         }\
     } while (0)
+
 
 #define assert_str_contains(s, needle) \
     do { \

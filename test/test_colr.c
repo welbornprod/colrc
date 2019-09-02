@@ -54,6 +54,19 @@ subdesc(colr) {
         );
         free(s);
     }
+    it("joins ColorResults") {
+        char* s = colr(
+            Colr_join("this", "[", "]"),
+            Colr_join("that", "[", "]"),
+            Colr_join("the other", "[", "]")
+        );
+        assert_str_eq(
+            s,
+            "[this][that][the other]",
+            "Failed to join ColorResults"
+        );
+        free(s);
+    }
     it("joins ColorTexts") {
         char* s = colr(
             Colr("this", fore(RED)),
@@ -75,6 +88,7 @@ subdesc(colr_join) {
         assert_str_empty(result);
         free(result);
     }
+    // string
     it("joins strings by a string") {
         char* s = colr_join("-", "this", "that", "the other");
         assert_str_eq(
@@ -93,15 +107,25 @@ subdesc(colr_join) {
         );
         free(ca);
     }
-    it("joins strings by a ColorText") {
-        char* ct = colr_join(Colr("X", fore(RED)), "this", "that", "the other");
+    it("joins strings by a ColorResult") {
+        char* ct = colr_join(Colr_join("X", "[", "]"), "this", "that", "the other");
         assert_str_eq(
             ct,
-            "this\x1b[31mX\x1b[0mthat\x1b[31mX\x1b[0mthe other\x1b[0m",
+            "this[X]that[X]the other",
             "Failed to join strings by a string"
         );
         free(ct);
     }
+    it("joins strings by a ColorText") {
+        char* ct = colr_join(Colr("X", fore(RED)), "this", "that", "the other");
+        assert_str_eq(
+            ct,
+            "this\x1b[31mX\x1b[0mthat\x1b[31mX\x1b[0mthe other",
+            "Failed to join strings by a string"
+        );
+        free(ct);
+    }
+    // ColorArg
     it("joins ColorArgs by a string") {
         char* s = colr_join(
             "-",
@@ -130,6 +154,20 @@ subdesc(colr_join) {
         );
         free(ca);
     }
+    it("joins ColorArgs by a ColorResult") {
+        char* ct = colr_join(
+            Colr_join("X", "[", "]"),
+            fore(RED),
+            back(XWHITE),
+            fore(rgb(255, 255, 255))
+        );
+        assert_str_eq(
+            ct,
+            "\x1b[31m[X]\x1b[48;5;7m[X]\x1b[38;2;255;255;255m\x1b[0m",
+            "Failed to join ColorArgs by a ColorResult"
+        );
+        free(ct);
+    }
     it("joins ColorArgs by a ColorText") {
         char* ct = colr_join(
             Colr("X", fore(GREEN)),
@@ -143,8 +181,65 @@ subdesc(colr_join) {
             "Failed to join ColorArgs by a ColorText"
         );
         free(ct);
-
     }
+    // ColorResult
+    it("joins ColorResults by a string") {
+        char* s = colr_join(
+            "-",
+            Colr_join("A", "[", "]"),
+            Colr_join("B", "[", "]"),
+            Colr_join("C", "[", "]")
+        );
+        assert_str_eq(
+            s,
+            "[A]-[B]-[C]",
+            "Failed to join ColorResults by a string"
+        );
+        free(s);
+    }
+    it("joins ColorResults by a ColorArg") {
+        char* ca = colr_join(
+            fore(GREEN),
+            Colr_join("A", "[", "]"),
+            Colr_join("B", "[", "]"),
+            Colr_join("C", "[", "]")
+        );
+        assert_str_eq(
+            ca,
+            "[A]\x1b[32m[B]\x1b[32m[C]\x1b[0m",
+            "Failed to join ColorResults by a ColorArg"
+        );
+        free(ca);
+    }
+    it("joins ColorResults by a ColorResult") {
+        char* cr = colr_join(
+            Colr_join("X", "[", "]"),
+            Colr_join("A", "[", "]"),
+            Colr_join("B", "[", "]"),
+            Colr_join("C", "[", "]")
+        );
+        assert_str_eq(
+            cr,
+            "[A][X][B][X][C]",
+            "Failed to join ColorResults by a ColorResult"
+        );
+        free(cr);
+    }
+    it("joins ColorResults by a ColorText") {
+        char* ct = colr_join(
+            Colr("X", fore(GREEN)),
+            Colr_join("A", "[", "]"),
+            Colr_join("B", "[", "]"),
+            Colr_join("C", "[", "]")
+        );
+        assert_str_eq(
+            ct,
+            "[A]\x1b[32mX\x1b[0m[B]\x1b[32mX\x1b[0m[C]",
+            "Failed to join ColorResults by a ColorText"
+        );
+        free(ct);
+    }
+    // ColorText
     it("joins ColorTexts by a string") {
         char* s = colr_join(
             "-",
@@ -173,6 +268,20 @@ subdesc(colr_join) {
         );
         free(ca);
     }
+    it("joins ColorTexts by a ColorResult") {
+        char* ct = colr_join(
+            Colr_join("X", "[", "]"),
+            Colr("this", fore(RED)),
+            Colr("that", back(XWHITE)),
+            Colr("the other", fore(rgb(255, 255, 255)))
+        );
+        assert_str_eq(
+            ct,
+            "\x1b[31mthis\x1b[0m[X]\x1b[48;5;7mthat\x1b[0m[X]\x1b[38;2;255;255;255mthe other\x1b[0m",
+            "Failed to join ColorTexts by a ColorResult"
+        );
+        free(ct);
+    }
     it("joins ColorTexts by a ColorText") {
         char* ct = colr_join(
             Colr("X", fore(GREEN)),
@@ -190,6 +299,7 @@ subdesc(colr_join) {
 } // subdesc(colr_join)
 // colr_join_array
 subdesc(colr_join_array) {
+    // string arrays
     it("joins string arrays by strings") {
         char* j = "-";
         char* words[] = {
@@ -223,6 +333,23 @@ subdesc(colr_join_array) {
         colr_free(cargp);
         free(s);
     }
+    it("joins string arrays by ColorResults") {
+        ColorResult* cresp = Colr_join("X", "[", "]");
+        char* words[] = {
+            "this",
+            "that",
+            "the other",
+            NULL
+        };
+        char* s = colr_join_array(cresp, words);
+        assert_str_eq(
+            s,
+            "this[X]that[X]the other",
+            "Failed to join strings by a ColorResult."
+        );
+        colr_free(cresp);
+        free(s);
+    }
     it("joins string arrays by ColorTexts") {
         ColorText* ctextp = Colr("X", fore(RED));
         char* words[] = {
@@ -240,6 +367,7 @@ subdesc(colr_join_array) {
         colr_free(ctextp);
         free(s);
     }
+    // ColorArg arrays
     it("joins ColorArg arrays by strings") {
         char* j = "-";
         ColorArg* cargs[] = {
@@ -275,6 +403,24 @@ subdesc(colr_join_array) {
         for_not_null(cargs, i) colr_free(cargs[i]);
         free(s);
     }
+    it("joins ColorArg arrays by ColorResults") {
+        ColorResult* cresp = Colr_join("X", "[", "]");
+        ColorArg* cargs[] = {
+            fore(RED),
+            fore(XWHITE),
+            fore(rgb(255, 255, 255)),
+            NULL
+        };
+        char* s = colr_join_array(cresp, cargs);
+        assert_str_eq(
+            s,
+            "\x1b[31m[X]\x1b[38;5;7m[X]\x1b[38;2;255;255;255m\x1b[0m",
+            "Failed to join ColorArgs by a ColorResult."
+        );
+        colr_free(cresp);
+        for_not_null(cargs, i) colr_free(cargs[i]);
+        free(s);
+    }
     it("joins ColorArg arrays by ColorTexts") {
         ColorText* ctextp = Colr("X", fore(RED));
         ColorArg* cargs[] = {
@@ -293,6 +439,79 @@ subdesc(colr_join_array) {
         for_not_null(cargs, i) colr_free(cargs[i]);
         free(s);
     }
+    // ColorResult arrays
+    it("joins ColorResult arrays by strings") {
+        char* j = "-";
+        ColorResult* cress[] = {
+            Colr_join("X", "[", "]"),
+            Colr_join("X", "<", ">"),
+            Colr_join("X", "(", ")"),
+            NULL
+        };
+        char* s = colr_join_array(j, cress);
+        assert_str_eq(
+            s,
+            "[X]-<X>-(X)",
+            "Failed to join ColorResults by a string."
+        );
+        free(s);
+        for_not_null(cress, i) colr_free(cress[i]);
+    }
+    it("joins ColorResult arrays by ColorArgs") {
+        ColorArg* cargp = fore(RED);
+        ColorResult* cress[] = {
+            Colr_join("A", "[", "]"),
+            Colr_join("B", "[", "]"),
+            Colr_join("C", "[", "]"),
+            NULL
+        };
+        char* s = colr_join_array(cargp, cress);
+        assert_str_eq(
+            s,
+            "[A]\x1b[31m[B]\x1b[31m[C]\x1b[0m",
+            "Failed to join ColorResults by a ColorArg."
+        );
+        colr_free(cargp);
+        for_not_null(cress, i) colr_free(cress[i]);
+        free(s);
+    }
+    it("joins ColorResult arrays by ColorResults") {
+        ColorResult* cresp = Colr_join("X", "[", "]");
+        ColorResult* cress[] = {
+            Colr_join("A", "[", "]"),
+            Colr_join("B", "[", "]"),
+            Colr_join("C", "[", "]"),
+            NULL
+        };
+        char* s = colr_join_array(cresp, cress);
+        assert_str_eq(
+            s,
+            "[A][X][B][X][C]",
+            "Failed to join ColorResults by a ColorResult."
+        );
+        colr_free(cresp);
+        for_not_null(cress, i) colr_free(cress[i]);
+        free(s);
+    }
+    it("joins ColorResult arrays by ColorTexts") {
+        ColorText* ctextp = Colr("X", fore(RED));
+        ColorResult* cress[] = {
+            Colr_join("A", "[", "]"),
+            Colr_join("B", "[", "]"),
+            Colr_join("C", "[", "]"),
+            NULL
+        };
+        char* s = colr_join_array(ctextp, cress);
+        assert_str_eq(
+            s,
+            "[A]\x1b[31mX\x1b[0m[B]\x1b[31mX\x1b[0m[C]\x1b[0m",
+            "Failed to join ColorResults by a ColorText."
+        );
+        colr_free(ctextp);
+        for_not_null(cress, i) colr_free(cress[i]);
+        free(s);
+    }
+    // ColorText arrays
     it("joins ColorText arrays by strings") {
         char* j = "-";
         ColorText* ctexts[] = {
@@ -325,6 +544,24 @@ subdesc(colr_join_array) {
             "Failed to join ColorTexts by a ColorArg."
         );
         colr_free(cargp);
+        for_not_null(ctexts, i) colr_free(ctexts[i]);
+        free(s);
+    }
+    it("joins ColorText arrays by ColorResults") {
+        ColorResult* cresp = Colr_join("X", "[", "]");
+        ColorText* ctexts[] = {
+            Colr("A", fore(RED)),
+            Colr("B", fore(XWHITE)),
+            Colr("C", fore(rgb(255, 255, 255))),
+            NULL
+        };
+        char* s = colr_join_array(cresp, ctexts);
+        assert_str_eq(
+            s,
+            "\x1b[31mA\x1b[0m[X]\x1b[38;5;7mB\x1b[0m[X]\x1b[38;2;255;255;255mC\x1b[0m",
+            "Failed to join ColorTexts by a ColorResult."
+        );
+        colr_free(cresp);
         for_not_null(ctexts, i) colr_free(ctexts[i]);
         free(s);
     }
@@ -387,8 +624,57 @@ subdesc(colr_replace) {
                 tests[i].target,
                 tests[i].repl
             );
-            colr_free(tests[i].repl);
             assert_str_eq(result, tests[i].expected, "Failed on ColorArg");
+            free(result);
+        }
+    }
+    it("replaces ColorResults") {
+        struct {
+            char* s;
+            char* target;
+            ColorResult* repl;
+            char* expected;
+        } tests[] = {
+            // Null/empty string and/or target.
+            {NULL, "", NULL, NULL},
+            {"", "", NULL, NULL},
+            {"a", NULL, NULL, NULL},
+            {"a", "", NULL, NULL},
+            // Empty replacements.
+            {"a", "a", NULL, ""},
+            // ColorResults.
+            {
+                "apple",
+                "a",
+                Colr_join("test", fore(RED), fore(RED)),
+                "\x1b[31mtest\x1b[31m\x1b[0mpple"
+            },
+            {
+                "apple",
+                "e",
+                Colr_join("test", "[", "]"),
+                "appl[test]"
+            },
+            {
+                "apple",
+                "p",
+                Colr_join("test", fore(RED), fore(RED)),
+                "a\x1b[31mtest\x1b[31m\x1b[0m\x1b[31mtest\x1b[31m\x1b[0mle"
+            },
+            {
+                " this has spaces ",
+                " ",
+                Colr_join("test", "[", "]"),
+                "[test]this[test]has[test]spaces[test]"
+            }
+        };
+        for_each(tests, i) {
+            char* result = colr_replace(
+                tests[i].s,
+                tests[i].target,
+                tests[i].repl
+            );
+            assert_str_eq(result, tests[i].expected, "Failed on ColorResult");
             free(result);
         }
     }
@@ -423,7 +709,6 @@ subdesc(colr_replace) {
                 tests[i].target,
                 tests[i].repl
             );
-            colr_free(tests[i].repl);
             assert_str_eq(result, tests[i].expected, "Failed on ColorText");
             free(result);
         }

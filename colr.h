@@ -182,10 +182,15 @@
 */
 #define COLORJUSTIFY_MARKER (UINT32_MAX - 30)
 
+/*! Marker for the ColorResult struct, for identifying a void pointer as a
+    ColorResult.
+*/
+#define COLORRESULT_MARKER (UINT32_MAX - 40)
+
 /*! Marker for the ColorText struct, for identifying a void pointer as a
     ColorText.
 */
-#define COLORTEXT_MARKER (UINT32_MAX - 40)
+#define COLORTEXT_MARKER (UINT32_MAX - 50)
 
 /*! Possible error return value for BasicValue_from_str(), ExtendedValue_from_str(),
     and colorname_to_rgb().
@@ -618,6 +623,14 @@
         (ColorJustify){.method=JUST_RIGHT, .width=justwidth, .padchar=' '} \
     )
 
+/*! Wraps an allocated string in a ColorResult, which marks it as "freeable" in
+    the colr macros.
+
+    \pi s   An allocated string.
+    \return An allocated ColorResult.
+*/
+#define ColrResult(s) ColorResult_to_ptr(ColorResult_new(s))
+
 /*! \def colr
     Join ColorArg pointers, ColorText pointers, and strings into one long string.
 
@@ -816,6 +829,7 @@
 */
 #define colr_join(joiner, ...) _colr_join(joiner, __VA_ARGS__, _ColrLastArg)
 
+#define Colr_join(joiner, ...) ColrResult(colr_join(joiner, __VA_ARGS__))
 
 #ifndef DOXYGEN_SKIP
 // These are just some stringification macros.
@@ -849,7 +863,7 @@
         char* _c_p_s = colr(__VA_ARGS__); \
         if (!_c_p_s) break; \
         printf("%s", _c_p_s); \
-        free(_c_p_s); \
+        colr_free(_c_p_s); \
     } while (0)
 
 /*! \def colr_puts
@@ -864,7 +878,7 @@
         char* _c_p_s = colr(__VA_ARGS__); \
         if (!_c_p_s) break; \
         puts(_c_p_s); \
-        free(_c_p_s); \
+        colr_free(_c_p_s); \
     } while (0)
 
 /*! \def colr_replace
@@ -888,7 +902,7 @@
                \mustnull
     \pi target A target string to replace in \p s.
                \mustnull
-    \pi repl   A string, ColorArg, or ColorText to replace the target string with.
+    \pi repl   A string, ColorArg, ColorResult, or ColorText to replace the target string with.
                If this is `NULL`, then an empty string is used (`""`) as the replacement.
     \return    An allocated string with the result.\n
                \mustfree
@@ -898,6 +912,7 @@
         (repl), \
         char*: colr_str_replace, \
         ColorArg*: colr_str_replace_ColorArg, \
+        ColorResult*: colr_str_replace_ColorResult, \
         ColorText*: colr_str_replace_ColorText \
     )(s, target, repl)
 
@@ -941,6 +956,7 @@
         ColorArg**: ColorArgs_list_repr, \
         ColorJustify: ColorJustify_repr, \
         ColorJustifyMethod: ColorJustifyMethod_repr, \
+        ColorResult: ColorResult_repr, \
         ColorText: ColorText_repr, \
         ColorValue: ColorValue_repr, \
         ArgType: ArgType_repr, \
@@ -965,7 +981,9 @@
 
     \return `1` if \p s1 and \p s2 are equal, otherwise `0`.
 */
-#define colr_str_eq(s1, s2) ((s1 && s2) ? !strcmp(s1, s2) : 0)
+#define colr_str_eq(s1, s2) ( \
+        (s1 && s2) ? (bool)!strcmp(s1, s2) : false \
+    )
 
 /*! \def colr_str_either
     Convenience macro for `!strcmp(s1, s2) || !strcmp(s1, s3)`.
@@ -997,6 +1015,7 @@
         ArgType: ArgType_to_str, \
         BasicValue: BasicValue_to_str, \
         ColorArg: ColorArg_to_esc, \
+        ColorResult: ColorResult_to_str, \
         ColorText: ColorText_to_str, \
         ColorType: ColorType_to_str, \
         ColorValue: ColorValue_to_esc, \
@@ -1695,6 +1714,18 @@ typedef struct ColorArg {
     ColorValue value;
 } ColorArg;
 
+//! Holds a \string that was definitely allocated by Colr.
+typedef struct ColorResult {
+    //! A marker used to inspect void pointers and determine if they are ColorResults.
+    uint32_t marker;
+    //! A \string result from one of the colr functions.
+    char* result;
+    /*! A length in bytes for the string result. Set when the ColorResult is
+        initialized with a string (ColorResult_new()). Initially set to `-1`.
+    */
+    size_t length;
+} ColorResult;
+
 //! Holds a string of text, and optional fore, back, and style ColorArgs.
 typedef struct ColorText {
     //! A marker used to inspect void pointers and determine if they are ColorTexts.
@@ -1800,8 +1831,9 @@ char* colr_str_lstrip_chars(const char* restrict s, const char* restrict chars);
 size_t colr_str_mb_len(const char* s);
 size_t colr_str_noncode_len(const char* s);
 char* colr_str_replace(char* restrict s, const char* restrict target, const char* restrict repl);
-char* colr_str_replace_ColorArg(char* restrict s, const char* restrict target, const ColorArg* repl);
-char* colr_str_replace_ColorText(char* restrict s, const char* restrict target, const ColorText* repl);
+char* colr_str_replace_ColorArg(char* restrict s, const char* restrict target, ColorArg* repl);
+char* colr_str_replace_ColorResult(char* restrict s, const char* restrict target, ColorResult* repl);
+char* colr_str_replace_ColorText(char* restrict s, const char* restrict target, ColorText* repl);
 char* colr_str_repr(const char* s);
 char* colr_str_rjust(const char* s, const char padchar, int width);
 bool colr_str_starts_with(const char* restrict s, const char* restrict prefix);
@@ -1931,6 +1963,20 @@ bool ColorJustify_is_empty(ColorJustify cjust);
 ColorJustify ColorJustify_new(ColorJustifyMethod method, int width, char padchar);
 char* ColorJustify_repr(ColorJustify cjust);
 char* ColorJustifyMethod_repr(ColorJustifyMethod meth);
+
+/*! \internal
+    ColorResult functions that deal with allocated colr results.
+    \endinternal
+*/
+ColorResult ColorResult_empty(void);
+bool ColorResult_eq(ColorResult a, ColorResult b);
+void ColorResult_free(ColorResult* p);
+bool ColorResult_is_ptr(void* p);
+size_t ColorResult_length(ColorResult cres);
+ColorResult ColorResult_new(char *s);
+char* ColorResult_repr(ColorResult cres);
+ColorResult* ColorResult_to_ptr(ColorResult cres);
+char* ColorResult_to_str(ColorResult cred);
 
 /*! \internal
     ColorText functions that deal with a string of text, and fore/back/style
@@ -2075,6 +2121,12 @@ static_assert(
             (COLORTEXT_MARKER != COLORLASTARG_MARKER) &&
             (COLORTEXT_MARKER != COLORARG_MARKER) &&
             (COLORTEXT_MARKER != COLORJUSTIFY_MARKER)
+        ) &&
+        (COLORRESULT_MARKER &&
+            (COLORRESULT_MARKER != COLORLASTARG_MARKER) &&
+            (COLORRESULT_MARKER != COLORARG_MARKER) &&
+            (COLORRESULT_MARKER != COLORJUSTIFY_MARKER) &&
+            (COLORRESULT_MARKER != COLORTEXT_MARKER)
         )
     ),
     "Markers must be positive and unique for each struct in Colr!"

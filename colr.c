@@ -1935,20 +1935,43 @@ char* colr_str_replace(char* restrict s, const char* restrict target, const char
     \pi s      The string to operate on.
     \pi target The string to replace.
     \pi repl   The ColorArg to produce escape-codes to replace with.
+               ColorArg_free() is called after the replacement is done.
     \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                \p target is `NULL`/empty.\n
                \mustfree
                \maybenullalloc
 */
-char* colr_str_replace_ColorArg(char* restrict s, const char* restrict target, const ColorArg* repl) {
+char* colr_str_replace_ColorArg(char* restrict s, const char* restrict target, ColorArg* repl) {
     if (!(s && target)) return NULL;
     if ((s[0] == '\0') || (target[0] == '\0')) return NULL;
     char* replstr = repl ? ColorArg_to_esc(*repl): NULL;
     char* result = colr_str_replace(s, target, replstr);
     if (replstr) free(replstr);
+    ColorArg_free(repl);
     return result;
 }
 
+/*! Replace substrings in a \string with a ColorResult's string result.
+    \details
+    Using `NULL` as a replacement is like using an empty string ("").
+
+    \pi s      The string to operate on.
+    \pi target The string to replace.
+    \pi repl   The ColorResult to produce escape-codes to replace with.
+               ColorResult_free() is called after the replacement is done.
+    \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+               \p target is `NULL`/empty.\n
+               \mustfree
+               \maybenullalloc
+*/
+char* colr_str_replace_ColorResult(char* restrict s, const char* restrict target, ColorResult* repl) {
+    if (!(s && target)) return NULL;
+    if ((s[0] == '\0') || (target[0] == '\0')) return NULL;
+    char* replstr = repl ? ColorResult_to_str(*repl): NULL;
+    char* result = colr_str_replace(s, target, replstr);
+    ColorResult_free(repl);
+    return result;
+}
 /*! Replace substrings in a \string with a ColorText's string result.
     \details
     Using `NULL` as a replacement is like using an empty string ("").
@@ -1956,17 +1979,19 @@ char* colr_str_replace_ColorArg(char* restrict s, const char* restrict target, c
     \pi s      The string to operate on.
     \pi target The string to replace.
     \pi repl   The ColorText to produce text/escape-codes to replace with.
+               ColorText_free() is called after the replacement is done.
     \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                \p target is `NULL`/empty.\n
                \mustfree
                \maybenullalloc
 */
-char* colr_str_replace_ColorText(char* restrict s, const char* restrict target, const ColorText* repl) {
+char* colr_str_replace_ColorText(char* restrict s, const char* restrict target, ColorText* repl) {
     if (!(s && target)) return NULL;
     if ((s[0] == '\0') || (target[0] == '\0')) return NULL;
     char* replstr = repl ? ColorText_to_str(*repl): NULL;
     char* result = colr_str_replace(s, target, replstr);
     if (replstr) free(replstr);
+    ColorText_free(repl);
     return result;
 }
 
@@ -2392,8 +2417,8 @@ void format_style(char* out, StyleValue style) {
     to free those. ColrC only manages the temporary Colr-based objects needed
     to build up these strings.
 
-    \pi p   The first of any ColorArgs, ColorTexts, or strings to join.
-    \pi ... Zero or more ColorArgs, ColorTexts, or strings to join.
+    \pi p   The first of any ColorArgs, ColorResults, ColorTexts, or strings to join.
+    \pi ... Zero or more ColorArgs, ColorResults, ColorTexts, or strings to join.
             The last argument must be a ColorArg pointer that is equal to
             _ColrLastArgValue.
     \return An allocated string with mixed escape codes/strings.\n
@@ -2423,8 +2448,9 @@ char* _colr(void *p, ...) {
     char* final = calloc(length, sizeof(char));
 
     char* s;
-    ColorArg *cargp = NULL;
-    ColorText *ctextp = NULL;
+    ColorArg* cargp = NULL;
+    ColorResult* cresp = NULL;
+    ColorText* ctextp = NULL;
     bool need_reset = false;
     if (ColorArg_is_ptr(p)) {
         // It's a ColorArg.
@@ -2432,6 +2458,9 @@ char* _colr(void *p, ...) {
         s = ColorArg_to_esc(*cargp);
         ColorArg_free(cargp);
         need_reset = true;
+    } else if (ColorResult_is_ptr(p)) {
+        cresp = p;
+        s = ColorResult_to_str(*cresp);
     } else if (ColorText_is_ptr(p)) {
         ctextp = p;
         s = ColorText_to_str(*ctextp);
@@ -2444,12 +2473,16 @@ char* _colr(void *p, ...) {
     if (cargp || ctextp) {
         // Free the temporary string created with Color(Arg/Text)_to_str().
         free(s);
+    } else if (cresp) {
+        // Free the temporary string and the ColorResult.
+        ColorResult_free(cresp);
     }
     void *arg = NULL;
 
     while_colr_va_arg(args, void*, arg) {
         if (!arg) continue;
         cargp = NULL;
+        cresp = NULL;
         ctextp = NULL;
         bool is_string = false;
         // These ColorArgs/ColorTexts were heap allocated through the fore,
@@ -2462,6 +2495,9 @@ char* _colr(void *p, ...) {
             s = ColorArg_to_esc(*cargp);
             ColorArg_free(cargp);
             need_reset = true;
+        } else if (ColorResult_is_ptr(arg)) {
+            cresp = arg;
+            s = ColorResult_to_str(*cresp);
         } else if (ColorText_is_ptr(arg)) {
             ctextp = arg;
             s = ColorText_to_str(*ctextp);
@@ -2476,6 +2512,9 @@ char* _colr(void *p, ...) {
         if (cargp || ctextp) {
             // Free the temporary string from those ColorArgs/ColorTexts.
             free(s);
+        } else if (cresp) {
+            // Free the temporary string and the ColorResult.
+            ColorResult_free(cresp);
         } else if (is_string && need_reset) {
             // String was passed, append reset if needed.
             colr_append_reset(final);
@@ -2494,6 +2533,7 @@ char* _colr(void *p, ...) {
 void _colr_free(void* p) {
     if (!p) return;
     if (ColorArg_is_ptr(p)) ColorArg_free(p);
+    else if (ColorResult_is_ptr(p)) ColorResult_free(p);
     else if (ColorText_is_ptr(p)) ColorText_free(p);
     else free(p);
 }
@@ -2524,9 +2564,9 @@ bool _colr_is_last_arg(void* p) {
     This allows _colr() to allocate once, instead of reallocating for each
     argument that is passed.
 
-    \pi p    The first of any ColorArg, ColorText, or strings to join.
-    \pi args A `va_list` with zero or more ColorArgs, ColorTexts, or strings to join.
-
+    \pi p    The first of any ColorArg, ColorResult, ColorText, or strings to join.
+    \pi args A `va_list` with zero or more ColorArgs, ColorResults, ColorTexts,
+             or strings to join.
     \return  The length (in bytes) needed to allocate a string built with _colr().
 
     \sa _colr
@@ -2535,6 +2575,7 @@ size_t _colr_size(void *p, va_list args) {
     // Argument list must have ColorArg/ColorText with NULL members at the end.
     if (!p) return 0;
     ColorArg* cargp = NULL;
+    ColorResult* cresp = NULL;
     ColorText* ctextp = NULL;
     size_t length = _colr_ptr_length(p);
     bool need_reset = false;
@@ -2542,6 +2583,7 @@ size_t _colr_size(void *p, va_list args) {
     while_colr_va_arg(args, void*, arg) {
         if (!arg) continue;
         cargp = NULL;
+        cresp = NULL;
         ctextp = NULL;
         // These ColorArgs/ColorTexts were heap allocated through the fore,
         // back, style, and ColrC macros. I'm going to free them, so the user
@@ -2552,6 +2594,9 @@ size_t _colr_size(void *p, va_list args) {
             cargp = arg;
             length += ColorArg_length(*cargp);
             need_reset = true;
+        } else if (ColorResult_is_ptr(arg)) {
+            cresp = arg;
+            length += ColorResult_length(*cresp);
         } else if (ColorText_is_ptr(arg)) {
             ctextp = arg;
             length += ColorText_length(*ctextp);
@@ -2583,8 +2628,9 @@ size_t _colr_size(void *p, va_list args) {
     to free those. ColrC only manages the temporary Colr-based objects needed
     to build up these strings.
 
-    \pi joinerp The joiner (any ColorArg, ColorText, or string).
-    \pi ...     Zero or more ColorArgs, ColorTexts, or strings to join by the joiner.
+    \pi joinerp The joiner (any ColorArg, ColorResult, ColorText, or string).
+    \pi ...     Zero or more ColorArgs, ColorResults, ColorTexts, or strings to
+                join by the joiner.
     \return     An allocated string with mixed escape codes/strings.\n
                 CODE_RESET_ALL is appended to all ColorText arguments.
                 This allows easy part-colored messages.\n
@@ -2594,6 +2640,11 @@ size_t _colr_size(void *p, va_list args) {
 char* _colr_join(void *joinerp, ...) {
     // Argument list must have ColorArg/ColorText with NULL members at the end.
     if (!joinerp) {
+        // TODO: colr_join(NULL, a, b) should act like _colr(a, b)?
+        //       The _colr() would be implemented as _colr_join(NULL, ...).
+        //       It would reduce all of this code duplication.
+        //       Tests would need to be updated for the NULL case,
+        //       the *_size() functions may need to be updated too.
         return colr_empty_str();
     }
     va_list args;
@@ -2606,9 +2657,11 @@ char* _colr_join(void *joinerp, ...) {
     char* final = calloc(length, sizeof(char));
     char* joiner;
     ColorArg* joiner_cargp = NULL;
+    ColorResult* joiner_cresp = NULL;
     ColorText* joiner_ctextp = NULL;
     char* piece;
     ColorArg* cargp = NULL;
+    ColorResult* cresp = NULL;
     ColorText* ctextp = NULL;
     bool needs_reset = false;
     if (ColorArg_is_ptr(joinerp)) {
@@ -2617,11 +2670,14 @@ char* _colr_join(void *joinerp, ...) {
         joiner = ColorArg_to_esc(*joiner_cargp);
         ColorArg_free(joiner_cargp);
         needs_reset = true;
+    } else if (ColorResult_is_ptr(joinerp)) {
+        joiner_cresp = joinerp;
+        joiner = ColorResult_to_str(*joiner_cresp);
     } else if (ColorText_is_ptr(joinerp)) {
         joiner_ctextp = joinerp;
         joiner = ColorText_to_str(*joiner_ctextp);
         ColorText_free(joiner_ctextp);
-        needs_reset = true;
+        // ColorText already has it's own reset code.
     } else {
         // It's a string, or it better be anyway.
         joiner = (char* )joinerp;
@@ -2631,6 +2687,7 @@ char* _colr_join(void *joinerp, ...) {
     while_colr_va_arg(args, void*, arg) {
         if (!arg) continue;
         cargp = NULL;
+        cresp = NULL;
         ctextp = NULL;
         // These ColorArgs/ColorTexts were heap allocated through the fore,
         // back, style, and ColrC macros. I'm going to free them, so the user
@@ -2642,10 +2699,13 @@ char* _colr_join(void *joinerp, ...) {
             piece = ColorArg_to_esc(*cargp);
             ColorArg_free(cargp);
             needs_reset = true;
+        } else if (ColorResult_is_ptr(arg)) {
+            cresp = arg;
+            piece = ColorResult_to_str(*cresp);
         } else if (ColorText_is_ptr(arg)) {
             ctextp = arg;
             piece = ColorText_to_str(*ctextp);
-            if (ColorText_has_args(*ctextp)) needs_reset = true;
+            // ColorText already has it's own reset code.
             ColorText_free(ctextp);
         } else {
             // It better be a string.
@@ -2656,13 +2716,13 @@ char* _colr_join(void *joinerp, ...) {
 
         // Free the temporary string from those ColorArgs/ColorTexts.
         if (cargp || ctextp) free(piece);
+        else if (cresp) ColorResult_free(cresp);
     }
     va_end(args);
-    if (joiner_cargp) {
+    if (joiner_cargp || joiner_ctextp) {
         free(joiner);
-    }
-    if (joiner_ctextp) {
-        free(joiner);
+    } else if (joiner_cresp) {
+        ColorResult_free(joiner_cresp);
     }
     if (needs_reset) colr_append_reset(final);
     return final;
@@ -2774,11 +2834,15 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
     size_t length = _colr_join_arrayn_size(joinerp, ps, count);
     if (length == 1) return colr_empty_str();
     ColorArg* joiner_cargp = NULL;
+    ColorResult* joiner_cresp = NULL;
     ColorText* joiner_ctextp = NULL;
     char* joiner = NULL;
     if (ColorArg_is_ptr(joinerp)) {
         joiner_cargp = joinerp;
         joiner = ColorArg_to_esc(*joiner_cargp);
+    } else if (ColorResult_is_ptr(joinerp)) {
+        joiner_cresp = joinerp;
+        joiner = ColorResult_to_str(*joiner_cresp);
     } else if (ColorText_is_ptr(joinerp)) {
         joiner_ctextp = joinerp;
         joiner = ColorText_to_str(*joiner_ctextp);
@@ -2791,6 +2855,7 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
     char* final = calloc(length, sizeof(char));
     size_t i = 0;
     ColorArg** cargps = ps;
+    ColorResult** cresps = ps;
     ColorText** ctextps = ps;
     if (ColorArg_is_ptr(*cargps)) {
         while ((i < count) && cargps[i]) {
@@ -2801,6 +2866,13 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
             free(s);
         }
         do_reset = true;
+    } else if (ColorResult_is_ptr(*cresps)) {
+        while ((i < count) && cresps[i]) {
+            if (i) strcat(final, joiner);
+            char* s = ColorResult_to_str(*(cresps[i++]));
+            if (!s || s[0] == '\0') continue;
+            strcat(final, s);
+        }
     } else if (ColorText_is_ptr(*ctextps)) {
         while ((i < count) && ctextps[i]) {
             if (i) strcat(final, joiner);
@@ -2809,7 +2881,6 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
             strcat(final, s);
             free(s);
         }
-        do_reset = true;
     } else {
         char** sps = ps;
         while ((i < count) && sps[i]) {
@@ -2828,8 +2899,9 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
     \details
     This is used to allocate memory in the _colr_join_array() function.
 
-    \pi joinerp The joiner (any ColorArg, ColorText, or string).
-    \pi ps      An array of pointers to ColorArgs, ColorTexts, or strings.
+    \pi joinerp The joiner (any ColorArg, ColorResult, ColorText, or string).
+    \pi ps      An array of pointers to ColorArgs, ColorResults, ColorTexts,
+                or strings.
                 The array must have `NULL` as the last item if \p count is
                 greater than the total number of items.
     \pi count   Total number of items in the array.
@@ -2848,9 +2920,12 @@ size_t _colr_join_arrayn_size(void* joinerp, void* ps, size_t count) {
 
     size_t i = 0;
     ColorArg** cargps = ps;
+    ColorResult** cresps = ps;
     ColorText** ctextps = ps;
     if (ColorArg_is_ptr(*cargps)) {
         while ((i < count) && cargps[i]) length += ColorArg_length(*(cargps[i++]));
+    } else if (ColorResult_is_ptr(*cresps)) {
+        while ((i < count) && cresps[i]) length += ColorResult_length(*(cresps[i++]));
     } else if (ColorText_is_ptr(*ctextps)) {
         while ((i < count) && ctextps[i]) length += ColorText_length(*(ctextps[i++]));
     } else {
@@ -2867,16 +2942,20 @@ size_t _colr_join_arrayn_size(void* joinerp, void* ps, size_t count) {
 /*! Determine the length of a `NULL`-terminated array of \strings, ColorArgs,
     or ColorTexts.
 
-    \pi ps  A `NULL`-terminated array of ColorArgs, ColorTexts, or strings.
+    \pi ps  A `NULL`-terminated array of ColorArgs, ColorResults, ColorTexts,
+            or strings.
     \return The number of items (before `NULL`) in the array.
 */
 size_t _colr_join_array_length(void* ps) {
     if (!ps) return 0;
     size_t i = 0;
     ColorArg** cargps = ps;
+    ColorResult** cresps = ps;
     ColorText** ctextps = ps;
     if (ColorArg_is_ptr(*cargps)) {
         while (cargps[i++]);
+    } else if (ColorResult_is_ptr(*cresps)) {
+        while (cresps[i++]);
     } else if (ColorText_is_ptr(*ctextps)) {
         while (ctextps[i++]);
     } else {
@@ -2886,8 +2965,8 @@ size_t _colr_join_array_length(void* ps) {
     return i - 1;
 }
 
-/*! Get the size, in bytes, needed to convert a ColorArg, ColorText, or \string
-    into a string.
+/*! Get the size, in bytes, needed to convert a ColorArg, ColorResult, ColorText,
+    or \string into a string.
 
     \details
     This is used in the variadic _colr* functions.
@@ -2905,6 +2984,9 @@ size_t _colr_ptr_length(void* p) {
         // Gonna need a reset to close this code if a plain string follows it
         // in the _colr() function arguments.
         length += CODE_RESET_LEN;
+    } else if (ColorResult_is_ptr(p)) {
+        ColorResult* cresp = p;
+        length = ColorResult_length(*cresp);
     } else if (ColorText_is_ptr(p)) {
         ColorText* ctextp = p;
         length = ColorText_length(*ctextp);
@@ -3484,6 +3566,7 @@ bool ColorArg_to_esc_s(char* dest, ColorArg carg) {
 */
 ColorArg *ColorArg_to_ptr(ColorArg carg) {
     ColorArg *p = malloc(sizeof(carg));
+    if (!p) return NULL;
     carg.marker = COLORARG_MARKER;
     *p = carg;
     return p;
@@ -3786,6 +3869,82 @@ char* ColorJustifyMethod_repr(ColorJustifyMethod meth) {
     return repr;
 }
 
+ColorResult ColorResult_empty(void) {
+    return (ColorResult){
+        .marker=COLORRESULT_MARKER,
+        .result=NULL,
+        .length=-1,
+    };
+}
+
+/*! Compares two ColorResults.
+
+    \details
+    They are equal if all of their members are equal, excluding the memory
+    address for the `.result` member.
+
+    \pi a First ColorResult to compare.
+    \pi b Second ColorResult to compare.
+    \return `true` if they are equal, otherwise `false`.
+*/
+bool ColorResult_eq(ColorResult a, ColorResult b) {
+    // Purposely doing pointer comparison here.
+    if ((a.marker != b.marker) || (a.length != b.length)) return false;
+    // They are both NULL?
+    if (!(a.result && b.result)) return true;
+    return colr_str_eq(a.result, b.result);
+}
+
+void ColorResult_free(ColorResult* p) {
+    if (!p) return;
+    free(p->result);
+    free(p);
+}
+
+bool ColorResult_is_ptr(void* p) {
+    if (!p) return false;
+    if (!colr_check_marker(COLORRESULT_MARKER, p)) return false;
+    // The head of a ColorResult is always a valid marker.
+    // This is probably not needed, now that colr_check_marker is implemented.
+    ColorArg *cargp = p;
+    return cargp->marker == COLORRESULT_MARKER;
+}
+
+/*! Return the length in bytes (including the null-terminator), that is needed
+    to store the return from ColorResult_to_str() (`.result`).
+
+    \pi cres A ColorResult to calculate the length for.
+    \return  The length of a ColorResult, possibly `0` if `.result` is `NULL`.
+*/
+size_t ColorResult_length(ColorResult cres) {
+    if (!cres.result) return 0;
+    if (cres.length > (size_t)-1) return cres.length;
+    return strlen(cres.result) + 1;
+}
+
+ColorResult ColorResult_new(char *s) {
+    ColorResult cres = ColorResult_empty();
+    cres.result = s;
+    cres.length = s ? (strlen(s) + 1) : ((size_t)-1);
+    return cres;
+}
+
+char* ColorResult_repr(ColorResult cres) {
+    return colr_str_repr(cres.result);
+}
+
+ColorResult* ColorResult_to_ptr(ColorResult cres) {
+    ColorResult *p = malloc(sizeof(cres));
+    if (!p) return NULL;
+    cres.marker = COLORRESULT_MARKER;
+    *p = cres;
+    return p;
+}
+
+char* ColorResult_to_str(ColorResult cres) {
+    return cres.result;
+}
+
 /*! Creates an "empty" ColorText with pointers set to `NULL`.
 
     \return An initialized ColorText.
@@ -4069,9 +4228,8 @@ void ColorText_set_values(ColorText* ctext, char* text, ...) {
     \sa ColorText
 */
 ColorText* ColorText_to_ptr(ColorText ctext) {
-    size_t length = sizeof(ColorText);
-    if (ctext.text) length += strlen(ctext.text) + 1;
-    ColorText *p = malloc(length);
+    ColorText *p = malloc(sizeof(ColorText));
+    if (!p) return NULL;
     ctext.marker = COLORTEXT_MARKER;
     *p = ctext;
     return p;
