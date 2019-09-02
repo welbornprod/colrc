@@ -652,7 +652,8 @@
 
     \example colr_example.c
 */
-#define colr(...) _colr(__VA_ARGS__, _ColrLastArg)
+// #define colr(...) _colr(__VA_ARGS__, _ColrLastArg)
+#define colr(...) _colr_join("", __VA_ARGS__, _ColrLastArg)
 
 /*! \def colr_alloc_len
     Return the number of bytes needed to allocate an escape code string based
