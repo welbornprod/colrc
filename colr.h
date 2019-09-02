@@ -632,7 +632,8 @@
 #define ColrResult(s) ColorResult_to_ptr(ColorResult_new(s))
 
 /*! \def colr
-    Join ColorArg pointers, ColorText pointers, and strings into one long string.
+    Join ColorArg pointers, ColorResult pointers, ColorText pointers, and
+    strings into one long string.
 
     \details
     To build the ColorArg pointers, it is better to use the fore(), back(),
@@ -644,6 +645,18 @@
     along with the fore(), back(), and style() macros. The ColorTexts are
     heap allocated, but colr() will free() them for you.
 
+    \details
+    You can use ColrResult() to wrap any <em>allocated</em> string and colr()
+    will free it for you. Do not wrap static/stack-allocated strings. It will
+    result in an "invalid free".
+    The result of Colr_join() is an allocated ColorResult, like ColrResult()
+    returns.
+
+    \details
+    If you do not want the colr macros to free your Colr-based structs/strings
+    for you, then you will have to call colr_to_str() on the structs and build
+    or join the resulting strings yourself.
+
     \pi ... One or more ColorArg pointers, ColorText pointers, or strings to join.
     \return An allocated string result.\n
             \mustfree
@@ -652,7 +665,6 @@
 
     \example colr_example.c
 */
-// #define colr(...) _colr(__VA_ARGS__, _ColrLastArg)
 #define colr(...) _colr_join("", __VA_ARGS__, _ColrLastArg)
 
 /*! \def colr_alloc_len
@@ -1893,13 +1905,6 @@ void _colr_free(void* p);
 */
 bool _colr_is_last_arg(void* p);
 size_t _colr_ptr_length(void* p);
-
-/*! \internal
-    The multi-type variadiac function behind the colr() macro.
-    \endinternal
-*/
-char* _colr(void* p, ...);
-size_t _colr_size(void* p, va_list args);
 
 /*! \internal
     The multi-type variadiac function behind the colr_join() macro.
