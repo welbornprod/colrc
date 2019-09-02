@@ -39,6 +39,7 @@ GREEN="${GREEN:-\x1b[1;32m}"
 RED="${RED:-\x1b[1;31m}"
 blue="${blue:-\x1b[1;34m}"
 green="${green:-\x1b[1;32m}"
+yellow="${yellow:-\x1b[1;33m}"
 red="${red:-\x1b[1;31m}"
 NC="${NC:-\x1b[0m}"
 
@@ -97,6 +98,29 @@ function fail_usage {
     print_usage "$@"
     exit 1
 }
+
+function format_duration {
+    local seconds="${1:-0}"
+    ((seconds)) || {
+        printf "%b0s%b" "$yellow" "$NC"
+        return 1
+    }
+    local mins=$((seconds / 60))
+    ((mins)) || {
+        printf "%b%ss%b" "$yellow" "$seconds" "$NC"
+        return 0
+    }
+    local secs=$((seconds - (mins * 60)))
+    ((secs)) || {
+        printf "%b%sm%b" "$yellow" "$mins" "$NC"
+        return 0
+    }
+    printf "%b%sm%b" "$yellow" "$mins" "$NC"
+    printf ":"
+    printf "%b%ss%b" "$yellow" "$secs" "$NC"
+    return 0
+}
+
 
 function is_debug_exe {
     # Returns a 0 exit status if the argument is an executable built with
@@ -323,6 +347,9 @@ function run_everything {
     # Run every single unit test, example, source-example, and anything else
     # thay may show a failure, and run them through memcheck if possible.
     local rebuild_colr="" rebuild_tests=""
+    local start_time
+    start_time="$(date +"%s")"
+
     [[ -e "$colrexe" ]] && {
         rebuild_colr="release"
         is_debug_exe "$colrexe" && rebuild_colr="debug"
@@ -408,7 +435,12 @@ function run_everything {
 
     colrc_build_name="$("${is_build_cmd[@]}" --color --status "$colrexe")"
     test_build_name="$("${is_build_cmd[@]}" --color --status "$testexe")"
-    printf "\n%sSuccess%s, the binaries are: %s, %s\n" "$GREEN" "$NC" "$colrc_build_name" "$test_build_name" 1>&2
+    local duration
+    duration=$(($(date "+%s") - start_time))
+    printf "\n%sSuccess%s, the binaries are: %s, %s\n(%s)\n" \
+        "$GREEN" "$NC" \
+        "$colrc_build_name" "$test_build_name" \
+        "$(format_duration "$duration")" 1>&2
 }
 
 function run_source_examples {
