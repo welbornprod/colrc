@@ -387,8 +387,57 @@ subdesc(colr_replace) {
                 tests[i].target,
                 tests[i].repl
             );
-            colr_free(tests[i].repl);
             assert_str_eq(result, tests[i].expected, "Failed on ColorArg");
+            free(result);
+        }
+    }
+    it("replaces ColorResults") {
+        struct {
+            char* s;
+            char* target;
+            ColorResult* repl;
+            char* expected;
+        } tests[] = {
+            // Null/empty string and/or target.
+            {NULL, "", NULL, NULL},
+            {"", "", NULL, NULL},
+            {"a", NULL, NULL, NULL},
+            {"a", "", NULL, NULL},
+            // Empty replacements.
+            {"a", "a", NULL, ""},
+            // ColorResults.
+            {
+                "apple",
+                "a",
+                Colr_join("test", fore(RED), fore(RED)),
+                "\x1b[31mtest\x1b[31m\x1b[0mpple"
+            },
+            {
+                "apple",
+                "e",
+                Colr_join("test", "[", "]"),
+                "appl[test]"
+            },
+            {
+                "apple",
+                "p",
+                Colr_join("test", fore(RED), fore(RED)),
+                "a\x1b[31mtest\x1b[31m\x1b[0m\x1b[31mtest\x1b[31m\x1b[0mle"
+            },
+            {
+                " this has spaces ",
+                " ",
+                Colr_join("test", "[", "]"),
+                "[test]this[test]has[test]spaces[test]"
+            }
+        };
+        for_each(tests, i) {
+            char* result = colr_replace(
+                tests[i].s,
+                tests[i].target,
+                tests[i].repl
+            );
+            assert_str_eq(result, tests[i].expected, "Failed on ColorResult");
             free(result);
         }
     }
@@ -423,7 +472,6 @@ subdesc(colr_replace) {
                 tests[i].target,
                 tests[i].repl
             );
-            colr_free(tests[i].repl);
             assert_str_eq(result, tests[i].expected, "Failed on ColorText");
             free(result);
         }

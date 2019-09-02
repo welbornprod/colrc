@@ -35,7 +35,23 @@ int main(void) {
     free(final);
 
     /*
-        Arrays of ColorText, ColorArgs, or strings can be used with
+        Nested joins can be achieved without leaking memory by using Colr_join().
+        It wraps it's results in a ColorResult, which the colr macros are safe
+        to `free()`.
+    */
+    colr_puts(
+        Colr_join(
+            " ",
+            Colr_join(
+                Colr("warning", fore(YELLOW)),
+                "[",
+                "]"
+            ),
+            Colr("This combination of calls should never leak.", fore(RED))
+        )
+    );
+    /*
+        Arrays of ColorText, ColorArgs, ColorResults, or strings can be used with
         colr_join_array().
     */
     char* joiner = " [and] ";
@@ -49,12 +65,12 @@ int main(void) {
     char* s = colr_join_array(joiner, words);
     if (!s) {
         // Couldn't allocate memory for the final string.
-        for (size_t i = 0; words[i]; i++) ColorText_free(words[i]);
+        for (size_t i = 0; words[i]; i++) colr_free(words[i]);
         return 1;
     }
     printf("%s\n", s);
     free(s);
 
-    // Don't forget to free your ColorTexts/ColorArgs.
-    for (size_t i = 0; words[i]; i++) ColorText_free(words[i]);
+    // Don't forget to free your ColorResults/ColorTexts/ColorArgs.
+    for (size_t i = 0; words[i]; i++) colr_free(words[i]);
 }

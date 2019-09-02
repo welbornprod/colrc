@@ -16,6 +16,7 @@ to match the colr-tool features, which I think is possible.
 [ ] Should have almost %100 coverage.
     It will never be %100 percent though, unless I figure out a way to mock
     an `ioctl()` call for the `colr_win_size` stuff.
+    [ ] Coverage for `_colr` and friends using a `ColorResult`.
     [ ] Tests for `ColorArgs_from_str`.
     [ ] Tests for `ColorType_to_str`.
     [ ] Tests for '*_example' functions.
