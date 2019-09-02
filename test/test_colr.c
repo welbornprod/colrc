@@ -11,7 +11,7 @@ describe(colr) {
 subdesc(colr) {
     it("handles NULL") {
         char* s = colr(NULL, "that");
-        assert_str_empty(s);
+        assert_str_eq(s, "that", "Should act like strdup() with a NULL argument.");
         free(s);
         char* s2 = colr("this", NULL);
         assert_str_eq(s2, "this", "Should act like strdup() with a NULL argument.");
@@ -22,19 +22,10 @@ subdesc(colr) {
         char* s4 = colr("", NULL);
         assert_str_empty(s4);
         free(s4);
-    }
-    it("handles sentinel value") {
-        char* s = _colr("test", "this", _ColrLastArg);
-        assert_str_eq(s, "testthis", "Failed to stop on sentinel value!");
-        free(s);
-    }
-    it("handles custom sentinel value") {
-        struct _ColrLastArg_s* sent = malloc(sizeof(struct _ColrLastArg_s));
-        *sent = _ColrLastArgValue;
-        char* s = _colr("test", "this", "thing", sent);
-        free(sent);
-        assert_str_eq(s, "testthisthing", "Failed to stop on custom allocated sentinel value!");
-        free(s);
+        char* s5 = colr(NULL, NULL);
+        assert_not_null(s5);
+        assert_str_empty(s5);
+        free(s5);
     }
     it("joins strings") {
         char* s = colr("this", "that", "the other");
@@ -87,6 +78,19 @@ subdesc(colr_join) {
         char* result = colr_join(NULL, "this", "that");
         assert_str_empty(result);
         free(result);
+    }
+    it("handles sentinel value") {
+        char* s = _colr_join("", "test", "this", _ColrLastArg);
+        assert_str_eq(s, "testthis", "Failed to stop on sentinel value!");
+        free(s);
+    }
+    it("handles custom sentinel value") {
+        struct _ColrLastArg_s* sent = malloc(sizeof(struct _ColrLastArg_s));
+        *sent = _ColrLastArgValue;
+        char* s = _colr_join("", "test", "this", "thing", sent);
+        free(sent);
+        assert_str_eq(s, "testthisthing", "Failed to stop on custom allocated sentinel value!");
+        free(s);
     }
     // string
     it("joins strings by a string") {
