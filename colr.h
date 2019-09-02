@@ -1872,8 +1872,8 @@ size_t _colr_size(void* p, va_list args);
     The multi-type variadiac function behind the colr_join() macro.
     \endinternal
 */
-size_t _colr_join_size(void* joinerp, va_list args);
 char* _colr_join(void* joinerp, ...);
+size_t _colr_join_size(void* joinerp, va_list args);
 
 /*! \internal
     Array-based versions for colr_join().
