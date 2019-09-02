@@ -2677,7 +2677,7 @@ char* _colr_join(void *joinerp, ...) {
         joiner_ctextp = joinerp;
         joiner = ColorText_to_str(*joiner_ctextp);
         ColorText_free(joiner_ctextp);
-        needs_reset = true;
+        // ColorText already has it's own reset code.
     } else {
         // It's a string, or it better be anyway.
         joiner = (char* )joinerp;
@@ -2705,7 +2705,7 @@ char* _colr_join(void *joinerp, ...) {
         } else if (ColorText_is_ptr(arg)) {
             ctextp = arg;
             piece = ColorText_to_str(*ctextp);
-            if (ColorText_has_args(*ctextp)) needs_reset = true;
+            // ColorText already has it's own reset code.
             ColorText_free(ctextp);
         } else {
             // It better be a string.
@@ -2873,7 +2873,6 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
             if (!s || s[0] == '\0') continue;
             strcat(final, s);
         }
-        do_reset = true;
     } else if (ColorText_is_ptr(*ctextps)) {
         while ((i < count) && ctextps[i]) {
             if (i) strcat(final, joiner);
@@ -2882,7 +2881,6 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
             strcat(final, s);
             free(s);
         }
-        do_reset = true;
     } else {
         char** sps = ps;
         while ((i < count) && sps[i]) {
