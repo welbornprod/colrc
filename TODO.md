@@ -16,15 +16,8 @@ to match the colr-tool features, which I think is possible.
 [ ] Should have almost %100 coverage.
     It will never be %100 percent though, unless I figure out a way to mock
     an `ioctl()` call for the `colr_win_size` stuff.
-    [ ] Coverage for `_colr` and friends using a `ColorResult`.
-    [ ] Tests for `ColorArgs_from_str`.
-    [ ] Tests for `ColorType_to_str`.
     [ ] Tests for '*_example' functions.
     [ ] Tests for `rainbow*` functions.
-    [ ] Tests for `BasicValue`.
-        [ ] Tests for `BasicValue_is_invalid`.
-        [ ] Coverage for `BasicValue_repr`.
-        [ ] Tests for `BasicValue_to_str`.
     [ ] Tests for ExtendedValue (not fully covered).
         [ ] Coverage for `ExtendedValue_repr`.
         [ ] Tests for `ExtendedValue_from_hex_default`.

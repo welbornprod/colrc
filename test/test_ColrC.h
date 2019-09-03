@@ -250,6 +250,24 @@
         }\
     } while (0)
 
+/*! \def assert_colr_repr
+    Like assert(), but adds an extra argument to print the repr() for.
+
+    \pi cond    Condition to assert.
+    \pi colrobj Any object compatible with colr_repr(), to get the repr for.
+*/
+#define assert_colr_repr(cond, colrobj) \
+    do { \
+        if (!(cond)) { \
+            char* _a_c_eq_repr = colr_repr(colrobj); \
+            fail( \
+                "Assertion failed: (" #cond ")\n    Extra Repr: %s", \
+                _a_c_eq_repr \
+            ); \
+            free(_a_c_eq_repr); \
+        }\
+    } while (0)
+
 /*! \def assert_ext_eq
     Make sure two ExtendedValues are equal.
 
@@ -655,6 +673,7 @@
             _a_s_e_use_msg = "Strings aren't equal"; \
         } \
         if (s1 == NULL && s2 == NULL) { /* cppcheck-suppress literalWithCharPtrCompare */ \
+            /* Both are NULL, so they are equal. */ \
             (void)0; \
         } else if (s1 != NULL && s2 == NULL) { /* cppcheck-suppress literalWithCharPtrCompare */ \
             char* _a_s_e_s1_repr = colr_str_repr(s1); \
