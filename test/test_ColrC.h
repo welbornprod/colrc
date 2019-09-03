@@ -932,6 +932,8 @@ char* uint_repr(unsigned int x);
 char* ulong_repr(unsigned long x);
 char* ulong_long_repr(unsigned long long x);
 
+// Override ioctl to force a failed call.
+int ioctl(int fd, unsigned long request, ...);
 
 #pragma GCC diagnostic ignored "-Wstrict-prototypes"
 #pragma clang diagnostic push

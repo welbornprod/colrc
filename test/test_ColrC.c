@@ -94,6 +94,12 @@ char* int_repr(int x) {
     return repr;
 }
 
+int ioctl(int fd, unsigned long request, ...) {
+    (void)fd;
+    (void)request;
+    return -1;
+}
+
 /*! Creates a string representation for a long.
 
     \pi x Value to create the representation for.

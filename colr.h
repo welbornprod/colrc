@@ -88,7 +88,6 @@
 #if defined(DEBUG) && defined(COLR_DEBUG)
     #include "dbug.h"
 #endif
-
 /* Tell gcc to ignore unused macros. */
 #pragma GCC diagnostic ignored "-Wunused-macros"
 /* Tell gcc to ignore clang pragmas, for linting. */

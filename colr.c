@@ -2263,9 +2263,10 @@ TermSize colr_term_size(void) {
 struct winsize colr_win_size(void) {
     struct winsize ws = {.ws_row=0, .ws_col=0, .ws_xpixel=0, .ws_ypixel=0};
     if (ioctl(0, TIOCGWINSZ, &ws) < 0) {
-        // No support?
-        // This branch is not tested right now, but colr_win_size_env() is.
-        dbug("No support for ioctl TIOCGWINSZ, using defaults.");
+        // No support? Print a message for debug builds, when not testing.
+        #ifndef COLR_TEST
+            dbug("No support for ioctl TIOCGWINSZ, using defaults.\n");
+        #endif
         return colr_win_size_env();
     }
     return ws;
