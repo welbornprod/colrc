@@ -301,6 +301,14 @@ subdesc(TermSize) {
         assert(ws.ws_col == 80);
 
     }
+    it("create a repr") {
+        char* expected = "TermSize {.rows=25, .columns=35}";
+        TermSize ts = {.rows=25, .columns=35};
+        char* repr = TermSize_repr(ts);
+        assert_not_null(repr);
+        assert_str_eq(repr, expected, "Bad TermSize repr.");
+        free(repr);
+    }
 }
 // colr_str_center
 subdesc(colr_str_center) {
@@ -1376,4 +1384,3 @@ subdesc(colr_str_to_lower) {
     }
 }
 }
-// TODO: Tests for str_to_wide, wide_to_str.

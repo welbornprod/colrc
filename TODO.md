@@ -13,9 +13,7 @@ to match the colr-tool features, which I think is possible.
 [ ] --spread, for rainbow spread (same rgb code for several chars).
 
 ## Tests
-[ ] Should have almost %100 coverage.
-    It will never be %100 percent though, unless I figure out a way to mock
-    an `ioctl()` call for the `colr_win_size` stuff.
+[ ] Should have %100 coverage.
     [ ] Tests for '*_example' functions.
     [ ] Tests for `rainbow*` functions.
     [ ] Tests for ExtendedValue (not fully covered).
@@ -33,4 +31,3 @@ to match the colr-tool features, which I think is possible.
         [ ] Tests for `RGB_to_hex`.
         [ ] Tests for `RGB_to_str`.
         [ ] Tests for `RGB_repr`.
-    [ ] Tests for `TermSize_repr`.

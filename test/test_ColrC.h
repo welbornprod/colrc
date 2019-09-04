@@ -669,16 +669,6 @@
         } \
     } while (0)
 
-#define assert_str_empty(s) \
-    do { \
-        assert(s, "Empty string was actually NULL: " #s); \
-        char* _a_e_s_repr = test_repr(s); \
-        if (s[0] != '\0') { \
-            fail("String was not empty: " #s " == %s", _a_e_s_repr); \
-        } \
-        free(_a_e_s_repr); \
-    } while (0)
-
 /*! \def assert_str_either
     Assert that a string is equal with either of two other strings, with a nice
     message with string reprs.
@@ -720,6 +710,18 @@
             free(_a_s_e_s3_repr); \
         } \
     } while (0)
+
+
+#define assert_str_empty(s) \
+    do { \
+        assert(s, "Empty string was actually NULL: " #s); \
+        char* _a_e_s_repr = test_repr(s); \
+        if (s[0] != '\0') { \
+            fail("String was not empty: " #s " == %s", _a_e_s_repr); \
+        } \
+        free(_a_e_s_repr); \
+    } while (0)
+
 
 /*! \def assert_str_eq
     Assert that two strings are equal, with a nice message with string reprs.
