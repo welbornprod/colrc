@@ -5050,7 +5050,7 @@ int BasicValue_to_ansi(ArgType type, BasicValue bval) {
     int use_value = (int)bval;
     if (bval < 0) {
         // Invalid or NONE, just use the RESET code.
-        return (int)RESET;
+        return RESET + (type == BACK ? 40 : 30);
     }
     if (bval < 10) {
         // Normal back colors.

@@ -3,7 +3,7 @@
     \author Christopher Welborn
     \date 06-29-2019
 */
-#include "test_ColrC.h"
+#include "test_BasicValue.h"
 
 describe(BasicValue) {
 subdesc(BasicValue_eq) {
@@ -84,15 +84,10 @@ subdesc(BasicValue_is_valid) {
                 bval
             );
         }
-        // BASIC_NONE is a valid value.
-        BasicValue badvals[] = {
-            BASIC_INVALID_RANGE,
-            BASIC_INVALID,
-        };
-        for_each(badvals, i) {
+        for_each(basic_invalid_vals, i) {
             assert_colr_repr(
-                !BasicValue_is_valid(badvals[i]),
-                badvals[i]
+                !BasicValue_is_valid(basic_invalid_vals[i]),
+                basic_invalid_vals[i]
             );
         }
     }
@@ -106,15 +101,10 @@ subdesc(BasicValue_is_invalid) {
                 bval
             );
         }
-        // BASIC_NONE is a valid value.
-        BasicValue badvals[] = {
-            BASIC_INVALID_RANGE,
-            BASIC_INVALID,
-        };
-        for_each(badvals, i) {
+        for_each(basic_invalid_vals, i) {
             assert_colr_repr(
-                BasicValue_is_invalid(badvals[i]),
-                badvals[i]
+                BasicValue_is_invalid(basic_invalid_vals[i]),
+                basic_invalid_vals[i]
             );
         }
     }
@@ -132,7 +122,16 @@ subdesc(BasicValue_to_ansi) {
             assert_colr_eq(carg.value.basic, info.value);
         }
     }
+    it("converts invalid values to 'reset'") {
+        for_each(basic_invalid_vals, i) {
+            int foreval = BasicValue_to_ansi(FORE, basic_invalid_vals[i]);
+            assert_int_eq_repr(foreval, 39, foreval);
+            int backval = BasicValue_to_ansi(BACK, basic_invalid_vals[i]);
+            assert_int_eq_repr(backval, 49, backval);
+        }
+    }
 }
+            assert_str_either("test", "test", "this");
 subdesc(BasicValue_to_str) {
     it("converts to string") {
         for_len(basic_names_len, i) {
@@ -140,16 +139,19 @@ subdesc(BasicValue_to_str) {
             BasicValue bval = info.value;
             char* namestr = BasicValue_to_str(bval);
             assert_not_null(namestr);
-            if (colr_eq(bval, RESET) && colr_str_either(namestr, "reset", "none")) {
+            if (colr_eq(bval, RESET)) {
                 // Alias for "reset".
+                assert_str_either(namestr, "reset", "none");
                 free(namestr);
                 continue;
-            } else if (colr_eq(bval, WHITE) && colr_str_either(namestr, "white", "normal")) {
+            } else if (colr_eq(bval, WHITE)) {
                 // Alias for "white".
+                assert_str_either(namestr, "white", "normal");
                 free(namestr);
                 continue;
-            } else if (colr_eq(bval, LIGHTWHITE) && colr_str_either(namestr, "lightwhite", "lightnormal")) {
+            } else if (colr_eq(bval, LIGHTWHITE)) {
                 // Alias for "lightwhite".
+                assert_str_either(namestr, "lightwhite", "lightnormal");
                 free(namestr);
                 continue;
             }

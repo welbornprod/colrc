@@ -51,7 +51,7 @@
             } \
         } \
         if (!_a_ca_l_c_found) { \
-            char* _a_ca_l_c_repr = colr_repr(carg); \
+            char* _a_ca_l_c_repr = test_repr(carg); \
             char* _a_ca_l_c_lstrepr = ColorArgs_list_repr(lst); \
             fail( \
                 "ColorArgs list does not contain: %s\n    List: %s\n", \
@@ -71,8 +71,8 @@
 #define assert_ColorText_has_arg(clrtext, clrarg) \
     do { \
         if (!ColorText_has_arg(clrtext, clrarg)) { \
-            char* _a_CT_h_a_clrtext_repr = colr_repr(clrtext); \
-            char* _a_CT_h_a_clrarg_repr = colr_repr(clrarg); \
+            char* _a_CT_h_a_clrtext_repr = test_repr(clrtext); \
+            char* _a_CT_h_a_clrarg_repr = test_repr(clrarg); \
             fail( \
                 "ColorText does not contain ColorArg:\n     (" #clrtext ") %s\n  -> (" #clrarg ") %s", \
                 _a_CT_h_a_clrtext_repr, \
@@ -90,8 +90,8 @@
 #define assert_ColorText_missing_arg(clrtext, clrarg) \
     do { \
         if (ColorText_has_arg(clrtext, clrarg)) { \
-            char* _a_CT_h_a_clrtext_repr = colr_repr(clrtext); \
-            char* _a_CT_h_a_clrarg_repr = colr_repr(clrarg); \
+            char* _a_CT_h_a_clrtext_repr = test_repr(clrtext); \
+            char* _a_CT_h_a_clrarg_repr = test_repr(clrarg); \
             fail( \
                 "ColorText does contain ColorArg:\n     (" #clrtext ") %s\n  -> (" #clrarg ") %s", \
                 _a_CT_h_a_clrtext_repr, \
@@ -112,8 +112,8 @@
 #define assert_ColorValue_has(cval, val) \
     do { \
         if (!ColorValue_has(cval, val)) { \
-            char* _a_CT_h_a_clrval_repr = colr_repr(cval); \
-            char* _a_CT_h_a_val_repr = colr_repr(val); \
+            char* _a_CT_h_a_clrval_repr = test_repr(cval); \
+            char* _a_CT_h_a_val_repr = test_repr(val); \
             fail( \
                 "ColorValue does not contain value:\n     (" #cval ") %s\n  -> (" #val ") %s", \
                 _a_CT_h_a_clrval_repr, \
@@ -175,8 +175,8 @@
 #define assert_colr_eq(a, b) \
     do { \
         if (!colr_eq(a, b)) { \
-            char* _a_c_eq_a = colr_repr(a); \
-            char* _a_c_eq_b = colr_repr(b); \
+            char* _a_c_eq_a = test_repr(a); \
+            char* _a_c_eq_b = test_repr(b); \
             fail("Not equal: (" #a ") %s != (" #b ") %s", _a_c_eq_a, _a_c_eq_b); \
             free(_a_c_eq_a); \
             free(_a_c_eq_b); \
@@ -192,8 +192,8 @@
 #define assert_colr_neq(a, b) \
     do { \
         if (colr_eq(a, b)) { \
-            char* _a_c_neq_a = colr_repr(a); \
-            char* _a_c_neq_b = colr_repr(b); \
+            char* _a_c_neq_a = test_repr(a); \
+            char* _a_c_neq_b = test_repr(b); \
             fail("Equal: (" #a ") %s == (" #b ") %s", _a_c_neq_a, _a_c_neq_b); \
             free(_a_c_neq_a); \
             free(_a_c_neq_b); \
@@ -326,6 +326,21 @@
         }\
     } while (0)
 
+#define assert_fmt_op_repr(a, op, b, colrobj, fmt, msg) \
+    do { \
+        if (!(a op b)) { \
+            char* _a_f_o_repr = test_repr(colrobj); \
+            fail( \
+                "%s: (" #a ") " fmt " " #op " (" #b ") " fmt "\n      Extra Repr: %s", \
+                msg, \
+                a, \
+                b, \
+                _a_f_o_repr \
+            ); \
+            free(_a_f_o_repr); \
+        }\
+    } while (0)
+
 #define assert_from_esc_eq(s, val) \
     assert_colr_eq( \
         _Generic( \
@@ -384,8 +399,14 @@
         val \
     )
 
-#define assert_int_eq(a, b) assert_fmt_op(a, ==, b, "%d", "Integers are not equal")
-#define assert_int_neq(a, b) assert_fmt_op(a, ==, b, "%d", "Integers are equal")
+#define assert_int_eq(a, b) \
+    assert_fmt_op(a, ==, b, "%d", "Integers are not equal")
+#define assert_int_eq_repr(a, b, colrobj) \
+    assert_fmt_op_repr(a, ==, b, colrobj, "%d", "Integers are not equal")
+#define assert_int_neq(a, b) \
+    assert_fmt_op(a, ==, b, "%d", "Integers are equal")
+#define assert_int_neq_repr(a, b, colrobj) \
+    assert_fmt_op_repr(a, ==, b, colrobj, "%d", "Integers are equal")
 
 #define assert_is_invalid(colrobj) \
     do { \
@@ -587,9 +608,9 @@
 #define assert_size_op_full(a, op,  b, colrobj, msg) \
     do { \
         if (!(a op b)) { \
-            char* _a_s_op_f_repr = colr_repr(colrobj); \
+            char* _a_s_op_f_repr = test_repr(colrobj); \
             char* _a_s_op_f_str = colr_to_str(colrobj); \
-            char* _a_s_op_f_strrepr = colr_repr(_a_s_op_f_str); \
+            char* _a_s_op_f_strrepr = test_repr(_a_s_op_f_str); \
             free(_a_s_op_f_str); \
             fail( \
                 "%s: (" #a ") %zu " #op " (" #b ") %zu\n      Repr: %s\n    String: %s", \
@@ -642,8 +663,8 @@
         assert_str_not_empty(s); \
         assert_str_not_empty(needle); \
         if (!strstr(s, needle)) { \
-            char* _a_s_c_repr = colr_repr(s); \
-            char* _a_s_c_needle = colr_repr(needle); \
+            char* _a_s_c_repr = test_repr(s); \
+            char* _a_s_c_needle = test_repr(needle); \
             fail("String does not contain %s: %s", _a_s_c_needle, _a_s_c_repr); \
         } \
     } while (0)
@@ -651,13 +672,54 @@
 #define assert_str_empty(s) \
     do { \
         assert(s, "Empty string was actually NULL: " #s); \
-        char* _a_e_s_repr = colr_repr(s); \
+        char* _a_e_s_repr = test_repr(s); \
         if (s[0] != '\0') { \
             fail("String was not empty: " #s " == %s", _a_e_s_repr); \
         } \
         free(_a_e_s_repr); \
     } while (0)
 
+/*! \def assert_str_either
+    Assert that a string is equal with either of two other strings, with a nice
+    message with string reprs.
+
+    \pi s1  String to check against the other two values.
+    \pi s2  First string to compare against.
+    \pi s3  Second string to compare against.
+    \pi msg Message for failures.
+*/
+#define assert_str_either(s1, s2, s3) \
+    do { \
+        if ((s1 == NULL) && ((s2 == NULL) || (s3 == NULL))) { /* cppcheck-suppress literalWithCharPtrCompare */ \
+            /* String is NULL, and at least one other is NULL, so they are equal. */ \
+            (void)0; \
+        } else if ((s1 != NULL) && ((s2 == NULL) && (s3 == NULL))) { /* cppcheck-suppress literalWithCharPtrCompare */ \
+            /* String is not NULL, but both comparison strings were NULL. */ \
+            char* _a_s_e_s1_repr = colr_str_repr(s1); \
+            fail("String is not either:\n    %s\n  != NULL or NULL", _a_s_e_s1_repr); \
+            free(_a_s_e_s1_repr); \
+        } else if (((s2 != NULL) && (s3 != NULL)) && (s1 == NULL)) { /* cppcheck-suppress literalWithCharPtrCompare */ \
+            /* String is NULL, and neither comparison string is NULL. */ \
+            char* _a_s_e_s2_repr = colr_str_repr(s2); \
+            char* _a_s_e_s3_repr = colr_str_repr(s3); \
+            fail("String is not either:\n    NULL\n  != %s or %s", _a_s_e_s2_repr, _a_s_e_s3_repr); \
+            free(_a_s_e_s2_repr); \
+            free(_a_s_e_s3_repr); \
+        } else if ((strcmp(s1, s2) != 0) && (strcmp(s1, s3) != 0)) { \
+            char* _a_s_e_s1_repr = colr_str_repr(s1); \
+            char* _a_s_e_s2_repr = colr_str_repr(s2); \
+            char* _a_s_e_s3_repr = colr_str_repr(s3); \
+            fail( \
+                "String is not either:\n     %s\n  != %s or %s", \
+                _a_s_e_s1_repr, \
+                _a_s_e_s2_repr, \
+                _a_s_e_s3_repr \
+            ); \
+            free(_a_s_e_s1_repr); \
+            free(_a_s_e_s2_repr); \
+            free(_a_s_e_s3_repr); \
+        } \
+    } while (0)
 
 /*! \def assert_str_eq
     Assert that two strings are equal, with a nice message with string reprs.
@@ -708,8 +770,8 @@
         ColrHash _a_h_s_e_a = func(a); \
         ColrHash _a_h_s_e_b = func(b); \
         if (!(_a_h_s_e_a op _a_h_s_e_b)) { \
-            char* _a_h_s_e_repr_a = colr_repr(a); \
-            char* _a_h_s_e_repr_b = colr_repr(b); \
+            char* _a_h_s_e_repr_a = test_repr(a); \
+            char* _a_h_s_e_repr_b = test_repr(b); \
             fail( \
                 "%s: " #func "(%s) " #op " " #func "(%s)", \
                 msg, \
@@ -724,7 +786,7 @@
 #define assert_str_list_contains(lst, s) \
     do { \
         if (!colr_str_list_contains(lst, s)) { \
-            char* _a_s_l_c_repr = colr_repr(s); \
+            char* _a_s_l_c_repr = test_repr(s); \
             char* _a_s_l_l_repr = colr_str_list_repr(lst); \
             fail( \
                 #lst " does not contain: %s\n    List: %s", \
@@ -739,7 +801,7 @@
 #define assert_str_list_not_contains(lst, s) \
     do { \
         if (colr_str_list_contains(lst, s)) { \
-            char* _a_s_l_c_repr = colr_repr(s); \
+            char* _a_s_l_c_repr = test_repr(s); \
             char* _a_s_l_l_repr = colr_str_list_repr(lst); \
             fail( \
                 #lst " contains: %s\n    List: %s", \
