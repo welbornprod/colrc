@@ -5,7 +5,7 @@ int main(void) {
         You can join things by a plain string or a colorized string.
 
         For the pieces, the order/number of arguments does not matter.
-        colr_join() accepts ColorTexts, ColorArgs, and strings (char*).
+        colr_join() accepts ColorArgs, ColorResults, ColorTexts, and strings (char*).
     */
     char* colorized = colr_join(
         "\n",

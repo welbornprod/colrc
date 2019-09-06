@@ -830,16 +830,16 @@ void colr_append_reset(char *s) {
             If the char doesn't need an escape sequence, it is simply returned.
 
     \examplecodefor{colr_char_escape_char,.c}
-        char constantchar = colr_char_escape_char('\n');
-        assert(constantchar == 'n');
+    char constantchar = colr_char_escape_char('\n');
+    assert(constantchar == 'n');
 
-        char constantquote = colr_char_escape_char('"');
-        assert(constantquote == '"');
+    char constantquote = colr_char_escape_char('"');
+    assert(constantquote == '"');
 
-        // The actual escape sequence would need the backslash added to it:
-        char* escaped;
-        asprintf(&escaped, "\\%c", colr_char_escape_char('\t'));
-        free(escaped);
+    // The actual escape sequence would need the backslash added to it:
+    char* escaped;
+    asprintf(&escaped, "\\%c", colr_char_escape_char('\t'));
+    free(escaped);
     \endexamplecode
 */
 char colr_char_escape_char(const char c) {
@@ -1075,6 +1075,19 @@ char* colr_empty_str(void) {
                 \maybenullalloc
 
     \sa colr_str_ljust colr_str_rjust colr_term_size
+
+    \examplecodefor{colr_str_center,.c}
+    char* colorized = Colr_str("This.", fore(RED), back(WHITE));
+    char* justified = colr_str_center(colorized, ' ', 9);
+    free(colorized);
+    // The string still has codes, but only 4 spaces were added.
+    assert(colr_str_starts_with(justified, "  "));
+    assert(colr_str_ends_with(justified, "  "));
+    // It was "justified" to 9 characters long, but it is well over that.
+    assert(strlen(justified) > 9);
+    printf("'%s'\n", justified);
+    free(justified);
+    \endexamplecode
 */
 char* colr_str_center(const char* s, const char padchar, int width) {
     if (!s) return NULL;
@@ -1153,16 +1166,12 @@ size_t colr_str_char_count(const char* s, const char c) {
             doesn't contain any escape-codes.
 
     \examplecodefor{colr_str_code_len,.c}
-    #include "colr.h"
-
-    int main(void) {
-        char* s = Colr_str("Testing this out.", fore(RED), back(WHITE));
-        if (!s) return 1;
-        size_t code_cnt = colr_str_code_cnt(s);
-        assert(code_cnt == 3); // The reset code is also appended.
-        printf("Found codes: %zu\n", code_cnt);
-        free(s);
-    }
+    char* s = Colr_str("Testing this out.", fore(RED), back(WHITE));
+    if (!s) exit(1);
+    size_t code_cnt = colr_str_code_cnt(s);
+    assert(code_cnt == 3); // The reset code is also appended.
+    printf("Found codes: %zu\n", code_cnt);
+    free(s);
     \endexamplecode
 */
 size_t colr_str_code_cnt(const char* s) {
@@ -1203,16 +1212,12 @@ size_t colr_str_code_cnt(const char* s) {
             doesn't contain any escape-codes.
 
     \examplecodefor{colr_str_code_len,.c}
-    #include "colr.h"
-
-    int main(void) {
-        char* s = Colr_str("Testing this out.", fore(RED), back(WHITE));
-        if (!s) return 1;
-        size_t code_len = colr_str_code_len(s);
-        assert(code_len == 14); // The reset code is also appended.
-        printf("Found code chars: %zu\n", code_len);
-        free(s);
-    }
+    char* s = Colr_str("Testing this out.", fore(RED), back(WHITE));
+    if (!s) exit(1);
+    size_t code_len = colr_str_code_len(s);
+    assert(code_len == 14); // The reset code is also appended.
+    printf("Found code chars: %zu\n", code_len);
+    free(s);
     \endexamplecode
 */
 size_t colr_str_code_len(const char* s) {
@@ -1356,12 +1361,12 @@ bool colr_str_ends_with(const char* restrict str, const char* restrict suf) {
             Colr("Testing this out.", fore(RED), back(WHITE)),
             Colr("Again.", fore(RED), style(UNDERLINE))
         );
-        if (!s) return 1;
+        if (!s) return EXIT_FAILURE;
         char** code_list = colr_str_get_codes(s, false);
         free(s);
         if (!code_list) {
             fprintf(stderr, "No code found? Impossible!\n");
-            return 1;
+            return EXIT_FAILURE;
         }
         // Iterate over the code list.
         for (size_t i = 0; code_list[i]; i++) {
@@ -1620,19 +1625,16 @@ bool colr_str_list_contains(char** lst, const char* s) {
     \pi ps A pointer to a list of strings.
 
     \examplecodefor{colr_str_list_free,.c}
-    #include "colr.h"
-    int main(void) {
-        char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
-        if (!s) return 1;
-        // Call something that creates a list of strings on the heap.
-        char** code_list = colr_str_get_codes(s, false);
-        free(s);
-        if (!code_list) return 1;
-        // ... do something with the list of strings.
+    char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
+    if (!s) exit(1);
+    // Call something that creates a list of strings on the heap.
+    char** code_list = colr_str_get_codes(s, false);
+    free(s);
+    if (!code_list) exit(1);
+    // ... do something with the list of strings.
 
-        // And then free it:
-        colr_str_list_free(code_list);
-    }
+    // And then free it:
+    colr_str_list_free(code_list);
     \endexamplecode
 */
 void colr_str_list_free(char** ps) {
@@ -1678,6 +1680,18 @@ void colr_str_lower(char* s) {
                 \maybenullalloc
 
     \sa colr_str_center colr_str_rjust colr_term_size
+
+    \examplecodefor{colr_str_ljust,.c}
+    char* colorized = Colr_str("This.", fore(RED), back(WHITE));
+    char* justified = colr_str_ljust(colorized, ' ', 8);
+    free(colorized);
+    // The string still has codes, but only 3 spaces were added.
+    assert(colr_str_ends_with(justified, "   "));
+    // It was "justified" to 8 characters long, but it is well over that.
+    assert(strlen(justified) > 8);
+    printf("'%s'\n", justified);
+    free(justified);
+    \endexamplecode
 */
 char* colr_str_ljust(const char* s, const char padchar, int width) {
     if (!s) return NULL;
@@ -2076,6 +2090,18 @@ char* colr_str_repr(const char* s) {
                 \maybenullalloc
 
     \sa colr_str_center colr_str_ljust colr_term_size
+
+    \examplecodefor{colr_str_rjust,.c}
+    char* colorized = Colr_str("This.", fore(RED), back(WHITE));
+    char* justified = colr_str_rjust(colorized, ' ', 8);
+    free(colorized);
+    // The string still has codes, but only 3 spaces were added.
+    assert(colr_str_starts_with(justified, "   "));
+    // It was "justified" to 8 characters long, but it is well over that.
+    assert(strlen(justified) > 8);
+    printf("'%s'\n", justified);
+    free(justified);
+    \endexamplecode
 */
 char* colr_str_rjust(const char* s, const char padchar, int width) {
     if (!s) return NULL;
@@ -2122,6 +2148,12 @@ char* colr_str_rjust(const char* s, const char padchar, int width) {
 
     \return True if the string `s` starts with prefix.
     \return False if one of the strings is null, or the prefix isn't found.
+
+    \examplecodefor{colr_str_starts_with,.c}
+    char* s = "This is my string.";
+    assert(colr_str_starts_with(s, "This"));
+    assert(!colr_str_starts_with(s, "that"));
+    \endexamplecode
 */
 bool colr_str_starts_with(const char* restrict s, const char* restrict prefix) {
     if (!(s && prefix)) {
@@ -2155,6 +2187,18 @@ bool colr_str_starts_with(const char* restrict s, const char* restrict prefix) {
             \maybenullalloc
 
     \sa colr_str_noncode_len
+
+    \examplecodefor{colr_str_strip_codes,.c}
+    char* s = "\x1b[31mRed text.\x1b[0m";
+    printf("With codes: %s\n", s);
+    char* stripped = colr_str_strip_codes(s);
+    if (!stripped) exit(1);
+    assert(!colr_str_has_codes(stripped));
+    assert(strlen(stripped) == 9);
+    printf("Without codes: %s\n", stripped);
+    // Don't forget to free the string:
+    free(stripped);
+    \endexamplecode
 */
 char* colr_str_strip_codes(const char* s) {
     if (!s) return NULL;
@@ -2458,13 +2502,7 @@ bool _colr_is_last_arg(void* p) {
                 \maybenullalloc
 */
 char* _colr_join(void *joinerp, ...) {
-    // Argument list must have ColorArg/ColorText with NULL members at the end.
     if (!joinerp) {
-        // TODO: colr_join(NULL, a, b) should act like _colr(a, b)?
-        //       The _colr() would be implemented as _colr_join(NULL, ...).
-        //       It would reduce all of this code duplication.
-        //       Tests would need to be updated for the NULL case,
-        //       the *_size() functions may need to be updated too.
         return colr_empty_str();
     }
     va_list args;
@@ -2479,10 +2517,7 @@ char* _colr_join(void *joinerp, ...) {
     ColorArg* joiner_cargp = NULL;
     ColorResult* joiner_cresp = NULL;
     ColorText* joiner_ctextp = NULL;
-    char* piece;
-    ColorArg* cargp = NULL;
-    ColorResult* cresp = NULL;
-    ColorText* ctextp = NULL;
+
     bool needs_reset = false;
     if (ColorArg_is_ptr(joinerp)) {
         // It's a ColorArg.
@@ -2503,6 +2538,10 @@ char* _colr_join(void *joinerp, ...) {
         joiner = (char* )joinerp;
     }
     int count = 0;
+    ColorArg* cargp = NULL;
+    ColorResult* cresp = NULL;
+    ColorText* ctextp = NULL;
+    char* piece;
     void *arg = NULL;
     while_colr_va_arg(args, void*, arg) {
         if (!arg) continue;
@@ -2563,8 +2602,6 @@ char* _colr_join(void *joinerp, ...) {
     \sa _colr
 */
 size_t _colr_join_size(void *joinerp, va_list args) {
-    // Argument list must have ColorArg/ColorText with NULL members at the end.
-
     // No joiner, no strings. Empty string will be returned, so just "\0".
     if (!joinerp) return 1;
 
@@ -2605,6 +2642,7 @@ size_t _colr_join_size(void *joinerp, va_list args) {
         NULL
     };
     char* s = colr_join_array(joiner, words);
+    if (!s) exit(1);
     printf("%s\n", s);
     free(s);
 
@@ -2641,6 +2679,7 @@ char* colr_join_array(void* joinerp, void* ps) {
     // This only works for actual arrays, not malloc'd stuff.
     size_t arr_length = sizeof(words) / sizeof(words[0]);
     char* s = colr_join_arrayn(joiner, words, arr_length);
+    if (!s) exit(1);
     printf("%s\n", s);
     free(s);
 
@@ -2931,24 +2970,21 @@ bool ColorArg_eq(ColorArg a, ColorArg b) {
     \sa ColorArg
 
     \examplecodefor{ColorArg_example,.c}
-    #include "colr.h"
-    int main(void) {
-        ColorArg args[] = {
-            fore_arg(rgb(75, 25, 155)),
-            fore_arg(ext_hex("#ff00bb")),
-            back_arg(RED),
-            style_arg(UNDERLINE),
-            fore_arg("NOT_VALID"),
-            back_arg("NOT_VALID"),
-            style_arg("NOT_VALID")
-        };
-        size_t arg_len = sizeof(args) / sizeof(args[0]);
-        for (size_t i = 0; i < arg_len; i++) {
-            char* example = ColorArg_example(args[i], true);
-            if (!example) return 1;
-            printf("%s\n", example);
-            free(example);
-        }
+    ColorArg args[] = {
+        fore_arg(rgb(75, 25, 155)),
+        fore_arg(ext_hex("#ff00bb")),
+        back_arg(RED),
+        style_arg(UNDERLINE),
+        fore_arg("NOT_VALID"),
+        back_arg("NOT_VALID"),
+        style_arg("NOT_VALID")
+    };
+    size_t arg_len = sizeof(args) / sizeof(args[0]);
+    for (size_t i = 0; i < arg_len; i++) {
+        char* example = ColorArg_example(args[i], true);
+        if (!example) continue;
+        printf("%s\n", example);
+        free(example);
     }
     \endexamplecode
 */
@@ -3417,12 +3453,12 @@ ColorArg *ColorArg_to_ptr(ColorArg carg) {
             Colr("Testing this out.", fore(RED), back(WHITE)),
             Colr("Again.", fore(RED), style(UNDERLINE))
         );
-        if (!s) return 1;
+        if (!s) return EXIT_FAILURE;
         ColorArg** carg_list = ColorArgs_from_str(s, false);
         free(s);
         if (!carg_list) {
             fprintf(stderr, "No code found? Impossible!\n");
-            return 1;
+            return EXIT_FAILURE;
         }
         // Iterate over the ColorArg list.
         for (size_t i = 0; carg_list[i]; i++) {
@@ -3464,19 +3500,16 @@ ColorArg** ColorArgs_from_str(const char* s, bool unique) {
     \pi ps A pointer to a list of ColorArgs, where `NULL` is the last item.
 
     \examplecodefor{ColorArgs_list_free,.c}
-    #include "colr.h"
-    int main(void) {
-        char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
-        if (!s) return 1;
-        // Call something that creates a list of ColorArgs on the heap.
-        ColorArg** carg_list = ColorArgs_from_str(s, false);
-        free(s);
-        if (!carg_list) return 1;
-        // ... do something with the list of ColorArgs.
+    char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
+    if (!s) exit(1);
+    // Call something that creates a list of ColorArgs on the heap.
+    ColorArg** carg_list = ColorArgs_from_str(s, false);
+    free(s);
+    if (!carg_list) exit(1);
+    // ... do something with the list of ColorArgs.
 
-        // And then free it:
-        ColorArgs_list_free(carg_list);
-    }
+    // And then free it:
+    ColorArgs_list_free(carg_list);
     \endexamplecode
 */
 void ColorArgs_list_free(ColorArg** ps) {
@@ -3496,21 +3529,18 @@ void ColorArgs_list_free(ColorArg** ps) {
             fails.
 
     \examplecodefor{ColorArgs_list_repr,.c}
-    #include "colr.h"
-    int main(void) {
-        char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
-        if (!s) return 1;
-        // Call something that creates a list of ColorArgs on the heap.
-        ColorArg** carg_list = ColorArgs_from_str(s, false);
-        free(s);
-        if (!carg_list) return 1;
-        char* lst_repr = ColorArgs_list_repr(carg_list);
-        ColorArgs_list_free(carg_list);
-        if (!lst_repr) return 1;
-        printf("ColorArg carg_list[] = %s\n", lst_repr);
-        // And then free it:
-        free(lst_repr);
-    }
+    char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
+    if (!s) exit(1);
+    // Call something that creates a list of ColorArgs on the heap.
+    ColorArg** carg_list = ColorArgs_from_str(s, false);
+    free(s);
+    if (!carg_list) exit(1);
+    char* lst_repr = ColorArgs_list_repr(carg_list);
+    ColorArgs_list_free(carg_list);
+    if (!lst_repr) exit(1);
+    printf("ColorArg carg_list[] = %s\n", lst_repr);
+    // And then free it:
+    free(lst_repr);
     \endexamplecode
 */
 char* ColorArgs_list_repr(ColorArg** lst) {
@@ -3689,6 +3719,13 @@ char* ColorJustifyMethod_repr(ColorJustifyMethod meth) {
     return repr;
 }
 
+/*! Creates a ColorResult with `.result=NULL` and `.length=-1`, with the
+    appropriate struct marker.
+
+    \return An "empty" (initialized) ColorResult.
+
+    \sa ColorResult
+*/
 ColorResult ColorResult_empty(void) {
     return (ColorResult){
         .marker=COLORRESULT_MARKER,
@@ -3706,6 +3743,8 @@ ColorResult ColorResult_empty(void) {
     \pi a First ColorResult to compare.
     \pi b Second ColorResult to compare.
     \return `true` if they are equal, otherwise `false`.
+
+    \sa ColorResult
 */
 bool ColorResult_eq(ColorResult a, ColorResult b) {
     // Purposely doing pointer comparison here.
@@ -3715,12 +3754,27 @@ bool ColorResult_eq(ColorResult a, ColorResult b) {
     return colr_str_eq(a.result, b.result);
 }
 
+/*! Free allocated memory for a ColorResult and it's `.result` member.
+
+    \pi p A ColorResult with a `NULL` or heap-allocated `.result` member.
+
+    \sa ColorResult
+*/
 void ColorResult_free(ColorResult* p) {
     if (!p) return;
     free(p->result);
     free(p);
 }
 
+/*! Checks a void pointer to see if it contains a ColorResult struct.
+
+    \details The first member of a ColorResult is a marker.
+
+    \pi     p A void pointer to check.
+    \return `true` if the pointer is a ColorResult, otherwise `false`.
+
+    \sa ColorResult
+*/
 bool ColorResult_is_ptr(void* p) {
     if (!p) return false;
     if (!colr_check_marker(COLORRESULT_MARKER, p)) return false;
@@ -3735,6 +3789,8 @@ bool ColorResult_is_ptr(void* p) {
 
     \pi cres A ColorResult to calculate the length for.
     \return  The length of a ColorResult, possibly `0` if `.result` is `NULL`.
+
+    \sa ColorResult
 */
 size_t ColorResult_length(ColorResult cres) {
     if (!cres.result) return 0;
@@ -3742,6 +3798,13 @@ size_t ColorResult_length(ColorResult cres) {
     return strlen(cres.result) + 1;
 }
 
+/*! Initialize a new ColorResult with an allocated \string.
+
+    \pi s   An allocated string to use for the `.result` member.
+    \return An initialized ColorResult.
+
+    \sa ColorResult
+*/
 ColorResult ColorResult_new(char *s) {
     ColorResult cres = ColorResult_empty();
     cres.result = s;
@@ -3749,10 +3812,35 @@ ColorResult ColorResult_new(char *s) {
     return cres;
 }
 
+/*! Create a string representation for a ColorResult.
+
+    \details
+    This happens to be the same as `colr_str_repr(cres.result)` right now.
+
+    \pi cres A ColorResult to create the representation string for.
+    \return  An allocated string with the result.
+             \mustfree
+             \maybenullalloc
+
+    \sa ColorResult
+*/
 char* ColorResult_repr(ColorResult cres) {
     return colr_str_repr(cres.result);
 }
 
+/*! Allocate memory for a ColorResult, fill it, and return it.
+
+    \details
+    This ensure the appropriate struct marker is set, for use with Colr.
+
+    \pi cres A ColorResult to use.
+    \return  An allocated ColorResult.
+             \mustfree
+             \colrmightfree
+             \maybenullalloc
+
+    \sa ColorResult
+*/
 ColorResult* ColorResult_to_ptr(ColorResult cres) {
     ColorResult *p = malloc(sizeof(cres));
     if (!p) return NULL;
@@ -3761,6 +3849,20 @@ ColorResult* ColorResult_to_ptr(ColorResult cres) {
     return p;
 }
 
+/*! Convert a ColorResult into a \string.
+
+    \details
+    This simply returns the `.result` member right now. It is used for
+    compatibility with the colr_to_str() macro.
+
+    \pi cres A ColorResult to use.
+    \return  A stringified-version if this ColorResult, which happens to be
+             the `.result` member.
+             <em>If you free the result of this function, the original string
+             used to create the ColorResult will be lost</em>.
+
+    \sa ColorResult
+*/
 char* ColorResult_to_str(ColorResult cres) {
     return cres.result;
 }
@@ -3768,6 +3870,8 @@ char* ColorResult_to_str(ColorResult cres) {
 /*! Creates an "empty" ColorText with pointers set to `NULL`.
 
     \return An initialized ColorText.
+
+    \sa ColorText
 */
 ColorText ColorText_empty(void) {
     return (ColorText){
@@ -3848,6 +3952,8 @@ ColorText ColorText_from_values(char* text, ...) {
     \pi carg  The ColorArg to look for.
     \return   `true` if the `fore`, `back`, or `style` arg matches `carg`,
               otherwise `false`.
+
+    \sa ColorText
 */
 bool ColorText_has_arg(ColorText ctext, ColorArg carg) {
     return (
@@ -3862,6 +3968,8 @@ bool ColorText_has_arg(ColorText ctext, ColorArg carg) {
     \pi ctext A ColorText to check.
     \return   `true` if `.fore`, `.back`, or .`style` is set to a non-empty ColorArg,
               otherwise `false`.
+
+    \sa ColorText
 */
 bool ColorText_has_args(ColorText ctext) {
     return (
@@ -3889,6 +3997,7 @@ bool ColorText_is_empty(ColorText ctext) {
         ColorJustify_is_empty(ctext.just)
     );
 }
+
 /*! Checks a void pointer to see if it contains a ColorText struct.
 
     \details The first member of a ColorText is a marker.
@@ -3986,6 +4095,8 @@ char* ColorText_repr(ColorText ctext) {
     \pi cjust The ColorJustify struct to use.
 
     \return   The same pointer that was given as `ctext`.
+
+    \sa ColorText
 */
 ColorText* ColorText_set_just(ColorText* ctext, ColorJustify cjust) {
     if (!ctext) return ctext;
@@ -4116,6 +4227,8 @@ char* ColorText_to_str(ColorText ctext) {
     \pi a   The first ColorType to compare.
     \pi b   The second ColorType to compare.
     \return `true` if they are equal, otherwise `false`.
+
+    \sa ColorType
 */
 bool ColorType_eq(ColorType a, ColorType b) {
     return (a == b);
@@ -4142,9 +4255,9 @@ bool ColorType_eq(ColorType a, ColorType b) {
     int main(int argc, char** argv) {
         char* userarg;
         if (argc == 1) {
-            if (asprintf(&userarg, "%s", "123,54,25") < 1) return 1;
+            if (asprintf(&userarg, "%s", "123,54,25") < 1) return EXIT_FAILURE;
         } else {
-            if (asprintf(&userarg, "%s",  argv[1]) < 1) return 1;
+            if (asprintf(&userarg, "%s",  argv[1]) < 1) return EXIT_FAILURE;
         }
         ColorType type = ColorType_from_str(userarg);
         if (!ColorType_is_invalid(type)) {
@@ -4260,6 +4373,8 @@ char* ColorType_repr(ColorType type) {
     \return  An allocated string with the result.\n
              \mustfree
              \maybenullalloc
+
+    \sa ColorType
 */
 char* ColorType_to_str(ColorType type) {
     char* typestr = NULL;
@@ -4343,6 +4458,8 @@ bool ColorValue_eq(ColorValue a, ColorValue b) {
     \return  An allocated string with the result.\n
              \mustfree
              \maybenullalloc
+
+    \sa ColorValue
 */
 char* ColorValue_example(ColorValue cval) {
     char* valstr;
@@ -4883,6 +5000,8 @@ bool ColorValue_to_esc_s(char* dest, ArgType type, ColorValue cval) {
     \pi a   The first BasicValue to compare.
     \pi b   The second BasicValue to compare.
     \return `true` if they are equal, otherwise `false`.
+
+    \sa BasicValue
 */
 bool BasicValue_eq(BasicValue a, BasicValue b) {
     return (a == b);
@@ -4942,6 +5061,8 @@ BasicValue BasicValue_from_str(const char* arg) {
 
     \pi x   A BasicValue to check.
     \return `true` if the value is considered invalid, otherwise `false`.
+
+    \sa BasicValue
 */
 bool BasicValue_is_invalid(BasicValue x) {
     return ((x == BASIC_INVALID) || (x == BASIC_INVALID_RANGE));
@@ -4951,6 +5072,8 @@ bool BasicValue_is_invalid(BasicValue x) {
 
     \pi x   A BasicValue to check.
     \return `true` if the value is considered valid, otherwise `false`.
+
+    \sa BasicValue
 */
 bool BasicValue_is_valid(BasicValue x) {
     return ((x != BASIC_INVALID) && (x != BASIC_INVALID_RANGE));
@@ -5066,6 +5189,8 @@ int BasicValue_to_ansi(ArgType type, BasicValue bval) {
     \return  An allocated string with the result.\n
              \mustfree
              \maybenullalloc
+
+    \sa BasicValue
 */
 char* BasicValue_to_str(BasicValue bval) {
     char* name;
@@ -5087,6 +5212,8 @@ char* BasicValue_to_str(BasicValue bval) {
     \pi a   The first ExtendedValue to compare.
     \pi b   The second ExtendedValue to compare.
     \return `true` if they are equal, otherwise `false`.
+
+    \sa ExtendedValue
 */
 bool ExtendedValue_eq(ExtendedValue a, ExtendedValue b) {
     return (a == b);
@@ -5099,6 +5226,8 @@ bool ExtendedValue_eq(ExtendedValue a, ExtendedValue b) {
 
     \pi bval BasicValue to convert.
     \return  An ExtendedValue `0-15` on success, otherwise EXT_INVALID.
+
+    \sa ExtendedValue
 */
 int ExtendedValue_from_BasicValue(BasicValue bval) {
     if (BasicValue_is_invalid(bval)) return EXT_INVALID;
@@ -5316,6 +5445,8 @@ char* ExtendedValue_repr(int eval) {
 
     \pi x   A number to check.
     \return `true` if the value is considered invalid, otherwise `false`.
+
+    \sa ExtendedValue
 */
 bool ExtendedValue_is_invalid(int x) {
     return ((x < 0) || (x > 255));
@@ -5325,6 +5456,8 @@ bool ExtendedValue_is_invalid(int x) {
 
     \pi x   A number to check.
     \return `true` if the value is considered valid, otherwise `false`.
+
+    \sa ExtendedValue
 */
 bool ExtendedValue_is_valid(int x) {
     return ((x > -1) && (x < 256));
@@ -5385,6 +5518,8 @@ bool RGB_eq(RGB a, RGB b) {
 
     \pi bval A BasicValue to get the RGB value for.
     \return  An RGB value that matches the BasicValue's color.
+
+    \sa RGB
 */
 RGB RGB_from_BasicValue(BasicValue bval) {
     switch (bval) {
@@ -5442,6 +5577,8 @@ RGB RGB_from_BasicValue(BasicValue bval) {
 
     \pi eval An ExtendedValue to get the RGB value for.
     \return  An RGB value from `ext2rgb_map[]`.
+
+    \sa RGB
 */
 RGB RGB_from_ExtendedValue(ExtendedValue eval) {
     return ext2rgb_map[eval];
@@ -5673,6 +5810,8 @@ RGB RGB_inverted(RGB rgb) {
 
     \pi rgb The RGB value to convert.
     \return Either `rgb(1, 1, 1)` or `rgb(255, 255, 255)`.
+
+    \sa RGB
 */
 RGB RGB_monochrome(RGB rgb) {
     unsigned char avg = (rgb.red + rgb.green + rgb.blue) / 3;
@@ -5702,6 +5841,8 @@ char* RGB_to_hex(RGB rgb) {
     \return An allocated string in the form `"red;green;blue"`.\n
             \mustfree
             \maybenullalloc
+
+    \sa RGB
 */
 char* RGB_to_str(RGB rgb) {
     char* s;
@@ -5777,6 +5918,8 @@ char* RGB_repr(RGB rgb) {
     \pi a   The first StyleValue to compare.
     \pi b   The second StyleValue to compare.
     \return `true` if they are equal, otherwise `false`.
+
+    \sa StyleValue
 */
 bool StyleValue_eq(StyleValue a, StyleValue b) {
     return (a == b);
@@ -5834,6 +5977,8 @@ StyleValue StyleValue_from_str(const char* arg) {
 
     \pi x   A StyleValue to check.
     \return `true` if the value is considered invalid, otherwise `false`.
+
+    \sa StyleValue
 */
 bool StyleValue_is_invalid(StyleValue x) {
     return ((x == STYLE_INVALID) || (x == STYLE_INVALID_RANGE));
@@ -5843,6 +5988,8 @@ bool StyleValue_is_invalid(StyleValue x) {
 
     \pi x   A StyleValue to check.
     \return `true` if the value is considered valid, otherwise `false`.
+
+    \sa StyleValue
 */
 bool StyleValue_is_valid(StyleValue x) {
     return ((x != STYLE_INVALID) && (x != STYLE_INVALID_RANGE));
@@ -5854,6 +6001,8 @@ bool StyleValue_is_valid(StyleValue x) {
     \return  An allocated string with the result.\n
              \mustfree
              \maybenullalloc
+
+    \sa StyleValue
 */
 char* StyleValue_to_str(StyleValue sval) {
     char* name;
@@ -5935,6 +6084,8 @@ char* StyleValue_repr(StyleValue sval) {
     \return An allocated string with the result.\n
             \mustfree
             \maybenullalloc
+
+    \sa TermSize
 */
 char* TermSize_repr(TermSize ts) {
     char* repr;
@@ -6089,6 +6240,7 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
         strcat(out, mb_char);
         // Jump past the multibyte character for the next code.
         i += char_len;
+        // TODO: Add --spread, by writing multiple characters after the code.
     }
     strcat(out, CODE_RESET_ALL);
 

@@ -16,7 +16,9 @@ int main(void) {
         fore(RED),
         "This was styled by the previous ColorArg.\n",
         NC,
-        "This is normal because of the 'reset code' that came before it."
+        "This is normal because of the 'reset code' that came before it.\n",
+        // See the colr_join example for more about this:
+        Colr_join(Colr("This was joined", fore(RED)), "[", "]")
     );
 
     // Prints a colorized, joined, version of all the strings above.

@@ -195,7 +195,12 @@ for arg; do
 done
 ((do_memcheck)) && {
     wrapper="valgrind"
-    exe_args=("--show-leak-kinds=all" "--track-origins=yes" "--error-exitcode=1")
+    exe_args=(
+        "--leak-check=full"
+        "--show-leak-kinds=all"
+        "--track-origins=yes"
+        "--error-exitcode=1"
+    )
     ((do_quiet)) && exe_args+=("--quiet")
 }
 

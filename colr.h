@@ -586,6 +586,18 @@
 
     \return       An allocated ColorText.\n
                   \colrmightfree
+
+    \examplecodefor{Colr_center,.c}
+    char* justified = colr(Colr_center("This.", 9, fore(RED), back(WHITE)));
+    assert(justified);
+    // The string still has codes, but only 4 spaces were added.
+    assert(colr_str_starts_with(justified, "  "));
+    assert(colr_str_ends_with(justified, "  "));
+    // It was "justified" to 9 characters long, but it is well over that.
+    assert(strlen(justified) > 9);
+    printf("'%s'\n", justified);
+    free(justified);
+    \endexamplecode
 */
 #define Colr_center(text, justwidth, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
@@ -601,6 +613,17 @@
 
     \return       An allocated ColorText.\n
                   \colrmightfree
+
+    \examplecodefor{Colr_ljust,.c}
+    char* justified = colr(Colr_ljust("This.", 8, fore(RED), back(WHITE)));
+    assert(justified);
+    // The string still has codes, but only 3 spaces were added.
+    assert(colr_str_ends_with(justified, "   "));
+    // It was "justified" to 8 characters long, but it is well over that.
+    assert(strlen(justified) > 8);
+    printf("'%s'\n", justified);
+    free(justified);
+    \endexamplecode
 */
 #define Colr_ljust(text, justwidth, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
@@ -616,6 +639,18 @@
 
     \return       An allocated ColorText.\n
                   \colrmightfree
+
+    \examplecodefor{Colr_rjust,.c}
+    char* justified = colr(Colr_rjust("This.", 8, fore(RED), back(WHITE)));
+    assert(justified);
+    // The string still has codes, but only 3 spaces were added.
+    assert(colr_str_starts_with(justified, "   "));
+    // It was "justified" to 8 characters long, but it is well over that.
+    assert(strlen(justified) > 8);
+    printf("'%s'\n", justified);
+    free(justified);
+    \endexamplecode
+
 */
 #define Colr_rjust(text, justwidth, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
@@ -627,6 +662,8 @@
 
     \pi s   An allocated string.
     \return An allocated ColorResult.
+
+    \example ColorResult_example.c
 */
 #define ColrResult(s) ColorResult_to_ptr(ColorResult_new(s))
 
@@ -656,7 +693,8 @@
     for you, then you will have to call colr_to_str() on the structs and build
     or join the resulting strings yourself.
 
-    \pi ... One or more ColorArg pointers, ColorText pointers, or strings to join.
+    \pi ... One or more ColorArg pointers, ColorResult pointers, ColorText pointers,
+            or strings to join.
     \return An allocated string result.\n
             \mustfree
 
