@@ -61,11 +61,11 @@
 
 // ColrC uses GNU extensions.
 #ifndef __GNUC__
-    #error "ColrC uses GNU extensions that your compiler doesn't support.")
+    #error "ColrC uses GNU extensions that your compiler doesn't support."
 #endif
 // Without _Generic, ColrC is useless.
 #ifndef IS_C11
-    #error "ColrC cannot compile without C11+ generic selections (_Generic).")
+    #error "ColrC cannot compile without C11+ generic selections (_Generic)."
 #endif
 
 #include <assert.h>

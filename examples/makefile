@@ -10,7 +10,7 @@ CFLAGS=-Wall -Wextra -Wenum-compare -Wfloat-equal -Winline -Wlogical-op \
        -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 \
        -D_GNU_SOURCE \
        -std=c11
-CFLAGS+=-g3 -DDEBUG -DCOLR_DEBUG
+CFLAGS+=-gdwarf-4 -g3 -DDEBUG -DCOLR_DEBUG
 LIBS=-lm
 INCLUDES=-iquote../
 example_source:=$(wildcard *.c)

@@ -49,7 +49,7 @@ coverage:
 
 .PHONY: debug
 debug: tags
-debug: CFLAGS+=-g3 -DDEBUG -DCOLR_DEBUG
+debug: CFLAGS+=-gdwarf-4 -g3 -DDEBUG -DCOLR_DEBUG
 debug: $(binary)
 
 .PHONY: release
