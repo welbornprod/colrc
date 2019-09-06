@@ -1483,7 +1483,7 @@ bool colr_str_has_codes(const char* s) {
     [here](https://softwareengineering.stackexchange.com/a/145633).
 
     \pi s   The string to hash.
-    \return A \ColrHash value with the hash.
+    \return A ColrHash value with the hash.
     \retval 0 if \p s is `NULL`.
     \retval 5381 if \p s is an empty string.
 
@@ -1737,7 +1737,7 @@ char* colr_str_ljust(const char* s, const char padchar, int width) {
     \pi s      String to strip the character from.
     \pi length Length of \p s, the input string.
     \pi c      Character to strip. If set to `0`, all whitespace characters will
-               be used (`' '`, `'\n'`, `'\t'`, `'\v'`, `'\f'`, `'\r'`).
+               be used (' ', '@\n', '@\t', '@\v', '@\f', '@\r').
     \return    The number of \p c characters removed.
                May return `0` if \p s is `NULL`/empty, \p dest is `NULL`.
 */
@@ -1765,7 +1765,7 @@ size_t colr_str_lstrip(char* restrict dest, const char* restrict s, size_t lengt
 
     \pi s      String to strip the character from.
     \pi c      Character to strip. If set to `0`, all whitespace characters will
-               be used (`' '`, `'\n'`, `'\t'`).
+               be used (' ', '@\n', '@\t').
     \return    An allocated string with the result.
                May return `NULL` if \p s is `NULL`/empty.
                \mustfree
@@ -1777,6 +1777,7 @@ char* colr_str_lstrip_char(const char* s, const char c) {
     if (s[0] == '\0') return NULL;
 
     size_t length = strlen(s);
+    // TODO: while (*s++ == c) length--; ..with tests.
     char* dest = calloc(length + 1, sizeof(char));
     if (!dest) return NULL;
     colr_str_lstrip(dest, s, length, c);
@@ -1812,6 +1813,7 @@ char* colr_str_lstrip_chars(const char* restrict s, const char* restrict chars) 
     // The string may not even contain the `chars`. Worst case is the same
     // string, with the same length.
     size_t length = strlen(s);
+    // TODO: while (colr_char_in_str(*s++, chars) length--; ..with tests.
     char* result = calloc(length + 1, sizeof(char));
     size_t result_pos = 0;
     bool done_trimming = false;

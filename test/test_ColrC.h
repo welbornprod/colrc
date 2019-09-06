@@ -765,8 +765,6 @@
 #define assert_hash_neq(a, b) assert_fmt_op(a, !=, b, COLR_HASH_FMT, "Hashes are equal")
 #define assert_str_hash_eq(a, b) assert_str_hash_op_func(a, ==, b, colr_str_hash, "Hashes are not equal")
 #define assert_str_hash_neq(a, b) assert_str_hash_op_func(a, !=, b, colr_str_hash, "Hashes are equal")
-#define assert_str_hash_static_eq(a, b) assert_str_hash_op_func(a, ==, b, colr_str_hash_static, "Hashes are not equal")
-#define assert_str_hash_static_neq(a, b) assert_str_hash_op_func(a, !=, b, colr_str_hash_static, "Hashes are equal")
 #define assert_str_hash_op_func(a, op, b, func, msg) \
     do { \
         ColrHash _a_h_s_e_a = func(a); \

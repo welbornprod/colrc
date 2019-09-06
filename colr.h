@@ -561,22 +561,6 @@
 */
 #define Colr(text, ...) ColorText_to_ptr(ColorText_from_values(text, __VA_ARGS__, _ColrLastArg))
 
-/*! \def Colr_str
-    Create an allocated string directly from Colr() arguments.
-
-    \details
-    This is a wrapper around `colr(Colr(text, ...))`, which will automatically
-    `free()` the ColorText, and return a string that you are responsible for.
-
-    \pi text String to colorize/style.
-    \pi ...  No more than 3 ColorArg pointers for fore, back, and style in any order.
-
-    \return An allocated string with the result.\n
-            \mustfree
-            \maybenullalloc
-*/
-#define Colr_str(text, ...) colr(Colr(text, __VA_ARGS__))
-
 /*! \def Colr_center
     Sets the JustifyMethod for a ColorText while allocating it.
 
@@ -603,6 +587,26 @@
         Colr(text, __VA_ARGS__), \
         (ColorJustify){.method=JUST_CENTER, .width=justwidth, .padchar=' '} \
     )
+
+/*! \def Colr_join
+    Joins Colr objects and strings, exactly like colr_join(), but returns
+    an allocated ColorResult that the \colrmacros will automatically `free()`
+    for you.
+
+    \pi joiner What to put between the other arguments.
+               ColorArg pointer, ColorText pointer, or string.
+    \pi ...    Other arguments to join, with \p joiner between them.
+               ColorArg pointers, ColorText pointers, or strings, in any order.
+    \return    An allocated ColorResult.\n
+               \mustfree
+               \maybenullalloc
+               \colrmightfree
+
+    \sa ColorResult colr_join colr Colr
+
+    \example ColorResult_example.c
+*/
+#define Colr_join(joiner, ...) ColrResult(colr_join(joiner, __VA_ARGS__))
 
 /*! \def Colr_ljust
     Sets the JustifyMethod for a ColorText while allocating it.
@@ -657,13 +661,29 @@
         (ColorJustify){.method=JUST_RIGHT, .width=justwidth, .padchar=' '} \
     )
 
-/*! Wraps an allocated string in a ColorResult, which marks it as "freeable" in
+/*! \def Colr_str
+    Create an allocated string directly from Colr() arguments.
+
+    \details
+    This is a wrapper around `colr(Colr(text, ...))`, which will automatically
+    `free()` the ColorText, and return a string that you are responsible for.
+
+    \pi text String to colorize/style.
+    \pi ...  No more than 3 ColorArg pointers for fore, back, and style in any order.
+
+    \return An allocated string with the result.\n
+            \mustfree
+            \maybenullalloc
+*/
+#define Colr_str(text, ...) colr(Colr(text, __VA_ARGS__))
+
+
+/*! \def ColrResult
+    Wraps an allocated string in a ColorResult, which marks it as "freeable" in
     the colr macros.
 
     \pi s   An allocated string.
     \return An allocated ColorResult.
-
-    \example ColorResult_example.c
 */
 #define ColrResult(s) ColorResult_to_ptr(ColorResult_new(s))
 
@@ -879,8 +899,6 @@
 */
 #define colr_join(joiner, ...) _colr_join(joiner, __VA_ARGS__, _ColrLastArg)
 
-#define Colr_join(joiner, ...) ColrResult(colr_join(joiner, __VA_ARGS__))
-
 #ifndef DOXYGEN_SKIP
 // These are just some stringification macros.
 // The first one is the typical stringify macro.
@@ -1045,14 +1063,6 @@
     \return `1` if \p s1 is equal to \p s2 or \p s3, otherwise `0`.
 */
 #define colr_str_either(s1, s2, s3) (colr_str_eq(s1, s2) || colr_str_eq(s1, s3))
-
-#define colr_str_hash_static(s) \
-    __extension__ ({ \
-        char* _c_s_s = s; \
-        ColrHash _c_s_hash = COLR_HASH_SEED; \
-        for (int c; (c = *_c_s_s); _c_s_s++) _c_s_hash = ((_c_s_hash << 5) + _c_s_hash) + c; \
-        _c_s_hash; \
-    })
 
 /*! \def colr_to_str
     Calls the \<type\>to_str functions for the supported types.
