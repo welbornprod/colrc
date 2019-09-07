@@ -38,7 +38,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 anim_frames = Frames.dots_orbit.as_rainbow()
 
 # Pattern to find a function-like macro line.
-macro_pat = re.compile(r'#define ([\w_]+)([ \t]+)?\(')
+macro_pat = re.compile(r'#define ([\w_]+)([ \t]+)?\([^\(]')
 
 colr_auto_disable()
 
