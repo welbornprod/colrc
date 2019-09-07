@@ -11,6 +11,7 @@ import os
 import re
 import subprocess
 import sys
+from collections import UserString
 
 from colr import (
     AnimatedProgress,
@@ -36,10 +37,13 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 
 anim_frames = Frames.dots_orbit.as_rainbow()
 
+# Pattern to find a function-like macro line.
+macro_pat = re.compile(r'#define ([\w_]+)([ \t]+)?\(')
+
 colr_auto_disable()
 
 NAME = 'ColrC - Usage Stats'
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -53,6 +57,10 @@ COLRC_FILES = tuple(
 TOOL_FILES = tuple(
     os.path.join(COLRC_DIR, s)
     for s in ('colr_tool.h', 'colr_tool.c')
+)
+MACRO_FILES = tuple(
+    os.path.join(COLRC_DIR, s)
+    for s in ('colr.h', 'colr_tool.h')
 )
 TEST_DIR = os.path.join(COLRC_DIR, 'test')
 TEST_FILES = tuple(
@@ -82,42 +90,74 @@ CPPCHECK_ARGS.extend(TOOL_FILES)
 USAGESTR = f"""{VERSIONSTR}
     Usage:
         {SCRIPT} [-h | -v]
-        {SCRIPT} [-D] [-a] [-d] [-f | -r] [-t] [PATTERN]
+        {SCRIPT} [-D] [-M | -m] -N [PATTERN]
+        {SCRIPT} [-D] [-a] [-d] [-M | -m] [-f | -r] [-t] [PATTERN]
 
     Options:
-        PATTERN        : Only show names matching this regex/text pattern.
-        -a,--all       : Show everything cppcheck thinks is unused.
-        -D,--debug     : Show more info while running.
-        -d,--testdeps  : Functions with tests, or in test files are not unused.
-        -f,--full      : Show full info.
-        -h,--help      : Show this help message.
-        -r,--raw       : Show raw info.
-        -t,--untested  : Show untested functions.
-        -v,--version   : Show version.
+        PATTERN          : Only show names matching this regex/text pattern.
+        -a,--all         : Show everything cppcheck thinks is unused.
+        -D,--debug       : Show more info while running.
+        -d,--testdeps    : Functions with tests, or in tests are not unused.
+        -f,--full        : Show full info.
+        -h,--help        : Show this help message.
+        -M,--onlymacros  : Show all macro names that are available.
+        -m,--macros      : Check all function-like macros.
+        -N,--listnames   : Show all function names reported by cppcheck, or
+                           macro names if -m or -M is used.
+        -r,--raw         : Show raw info.
+        -t,--untested    : Show untested functions.
+        -v,--version     : Show version.
 """
+
+
+def rgb(r, g, b):
+    """ This simply allows my editor to trigger the css color-picker,
+        by wrapping the r,g, and b values in a css-like rgb color.
+    """
+    return r, g, b
+
 
 CFile = Preset(fore='cyan')
 CName = Preset(fore='blue')
+CMacro = Preset(fore='cornflowerblue')
+CTestdep = Preset(fore=rgb(255, 128, 64))
+CMacroTestdep = Preset(fore=rgb(255, 255, 70))
+CUntested = Preset(fore=rgb(200, 23, 0), style='bright')
+CMacroUntested = Preset(fore=rgb(0, 162, 231), style='bright')
+CUnused = Preset(fore=rgb(200, 23, 0))
+CMacroUnused = Preset(fore=rgb(0, 162, 231))
 CNum = Preset(fore='blue', style='bright')
-CTestdep = Preset(fore=(255, 128, 64))
 CTotal = Preset(fore='yellow')
-CUntested = Preset(fore='red', style='bright')
-CUnused = Preset(fore='red')
 
 
 def main(argd):
     """ Main entry point, expects docopt arg dict as argd. """
-    names = get_cppcheck_names(pat=try_repat(argd['PATTERN']))
+    pat = try_repat(argd['PATTERN'])
+    if argd['--onlymacros']:
+        names = get_macro_names(pat=pat)
+    else:
+        names = get_cppcheck_names(pat=pat)
+        if not names:
+            print_err('No unused names reported by cppcheck.')
+            return 1
+        if argd['--macros']:
+            names.extend(get_macro_names(pat=pat))
     if not names:
-        print_err('No unused names reported by cppcheck.')
+        print_err('No names to use.')
         return 1
+
+    if argd['--listnames']:
+        return print_names(names)
+
     filepaths = []
     filepaths.extend(COLRC_FILES)
     filepaths.extend(TOOL_FILES)
     filepaths.extend(TEST_FILES)
     filepaths.extend(EXAMPLE_FILES)
     info = check_files(filepaths, names)
+    info = filter_used_macros(info)
     if not argd['--all']:
+        # cppcheck has a lot of false positives, do some more filtering.
         info = filter_used(
             info,
             untested=argd['--untested'],
@@ -132,10 +172,17 @@ def main(argd):
     if not argd['--raw']:
         namelen = len(info)
         plural = 'function' if namelen == 1 else 'functions'
+        if argd['--onlymacros']:
+            plural = 'macro' if namelen == 1 else 'macros'
+        elif argd['--macros']:
+            plural = 'function/macro' if namelen == 1 else 'functions/macros'
         method = 'unused'
         if argd['--all']:
             method = 'unused'
-            plural = f'{plural} (according to cppcheck)'
+            if argd['--onlymacros']:
+                pass
+            else:
+                plural = f'{plural} (some were reported by cppcheck)'
         elif argd['--untested']:
             method = 'untested'
         elif argd['--testdeps']:
@@ -162,16 +209,17 @@ def check_file(filepath, names):
                 if stripped.startswith('//'):
                     continue
                 for name in names:
-                    if name not in line:
+                    namestr = name.data
+                    if namestr not in line:
                         continue
-                    presubpat = re.compile(f'[\\w_]{name}')
-                    if name not in presubpat.sub('', line):
+                    presubpat = re.compile(f'[\\w_]{namestr}')
+                    if namestr not in presubpat.sub('', line):
                         continue
-                    sufsubpat = re.compile(f'{name}[\\w_]')
-                    if name not in sufsubpat.sub('', line):
+                    sufsubpat = re.compile(f'{namestr}[\\w_]')
+                    if namestr not in sufsubpat.sub('', line):
                         continue
                     counts.setdefault(name, {'count': 0, 'lines': []})
-                    counts[name]['count'] += line.count(name)
+                    counts[name]['count'] += line.count(namestr)
                     counts[name]['lines'].append(line)
     except EnvironmentError as ex:
         print_err(f'Cannot read file: {filepath}\n{ex}')
@@ -236,6 +284,29 @@ def filter_used(info, untested=False, test_deps=False):
     return keep
 
 
+def filter_used_macros(info):
+    keep = {}
+    for name, nameinfo in info.items():
+        if not isinstance(name, MacroName):
+            keep[name] = nameinfo
+            continue
+        if is_unused(nameinfo):
+            keep[name] = nameinfo
+            continue
+    return keep
+
+
+def format_name(name, nameinfo):
+    if is_test_dep(nameinfo):
+        return name.fmt_testdep()
+    elif is_untested(nameinfo):
+        return name.fmt_untested()
+    elif is_unused(nameinfo):
+        return name.fmt_unused()
+
+    return C(name)
+
+
 def get_cppcheck_names(pat=None):
     cmd = ['cppcheck']
     cmd.extend(CPPCHECK_ARGS)
@@ -261,7 +332,31 @@ def get_cppcheck_names(pat=None):
             total += 1
             if total % 10 == 0:
                 prog.text = f'Running cppcheck (names: {total})'
-            names.append(name)
+            names.append(FunctionName(name))
+    return names
+
+
+def get_file_macros(filepath):
+    try:
+        with open(filepath, 'r') as f:
+            for line in f:
+                match = macro_pat.search(line)
+                if match is None:
+                    continue
+                yield match.groups()[0]
+    except FileNotFoundError:
+        print_err(f'File not found: {filepath}')
+    except EnvironmentError as ex:
+        print_err(f'Can\'t read file: {filepath}\n{ex}')
+
+
+def get_macro_names(pat=None):
+    names = []
+    for filepath in MACRO_FILES:
+        for name in get_file_macros(filepath):
+            if (pat is not None) and (pat.search(name) is None):
+                continue
+            names.append(MacroName(name))
     return names
 
 
@@ -282,6 +377,10 @@ def is_unused(nameinfo):
     elif (tool_cnt < 3) and (tool_cnt and not colr_cnt):
         return True
     return False
+
+
+def is_used(nameinfo):
+    return not is_unused(nameinfo)
 
 
 def is_test_dep(nameinfo):
@@ -316,7 +415,8 @@ def print_full(info):
     for name in sorted(info):
         nameinfo = info[name]
         total = nameinfo['total']
-        print(f'{CName(name):<30}: total: {CTotal(total)} ')
+        marker = '*' if isinstance(name, MacroName) else ''
+        print(f'{C(name):<30}{marker}: total: {CTotal(total)} ')
         for filepath in sorted(nameinfo['files']):
             fileinfo = nameinfo['files'][filepath]
             filecnt = fileinfo['count']
@@ -325,6 +425,12 @@ def print_full(info):
             for line in fileinfo['lines']:
                 print(f'{" " * 30}{highlight_line(line.strip())}')
     return 1 if info else 0
+
+
+def print_names(names):
+    for name in sorted(names):
+        print(f'{C(name)}')
+    return 0 if names else 1
 
 
 def print_raw(info):
@@ -352,14 +458,7 @@ def print_simple(info):
 
     for name in sorted(info):
         nameinfo = info[name]
-        if is_test_dep(nameinfo):
-            namefmt = CTestdep(name)
-        elif is_untested(nameinfo):
-            namefmt = CUntested(name)
-        elif is_unused(nameinfo):
-            namefmt = CUnused(name)
-        else:
-            namefmt = CName(name)
+        namefmt = format_name(name, nameinfo)
         print(C(' ').join(
             namefmt.rjust(30),
             fmt_lbl('total', nameinfo['total']),
@@ -396,6 +495,34 @@ class InvalidArg(ValueError):
         if self.msg:
             return f'Invalid argument, {self.msg}'
         return 'Invalid argument!'
+
+
+class FunctionName(UserString):
+    def __colr__(self):
+        return CName(self.data)
+
+    def fmt_testdep(self):
+        return CTestdep(self)
+
+    def fmt_untested(self):
+        return CUntested(self)
+
+    def fmt_unused(self):
+        return CUnused(self)
+
+
+class MacroName(UserString):
+    def __colr__(self):
+        return CMacro(self.data)
+
+    def fmt_testdep(self):
+        return CMacroTestdep(self)
+
+    def fmt_untested(self):
+        return CMacroUntested(self)
+
+    def fmt_unused(self):
+        return CMacroUnused(self)
 
 
 if __name__ == '__main__':
