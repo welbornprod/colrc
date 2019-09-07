@@ -593,21 +593,32 @@
 
 #define assert_size_op(a, op, b, msg) \
     do { \
-        if (!(a op b)) { \
-            fail("%s: (" #a ") %zu " #op " (" #b ") %zu", msg, a, b); \
+        size_t _a_s_o_a = a; \
+        size_t _a_s_o_b = b; \
+        if (!(_a_s_o_a op _a_s_o_b)) { \
+            fail("%s: (" #a ") %zu " #op " (" #b ") %zu", msg, _a_s_o_a, _a_s_o_b); \
         }\
     } while (0)
 
 #define assert_size_op_func(a, op, b, func, msg) \
     do { \
-        if (!(a op b)) { \
-            fail("%s: " #func "(" #a ") %zu " #op " " #func "(" #b ") %zu", msg, a, b); \
+        size_t _a_s_o_a = a; \
+        size_t _a_s_o_b = b; \
+        if (!(_a_s_o_a op _a_s_o_b)) { \
+            fail( \
+                "%s: " #func "(" #a ") %zu " #op " " #func "(" #b ") %zu", \
+                msg, \
+                _a_s_o_a, \
+                _a_s_o_b \
+            ); \
         }\
     } while (0)
 
 #define assert_size_op_full(a, op,  b, colrobj, msg) \
     do { \
-        if (!(a op b)) { \
+        size_t _a_s_o_a = a; \
+        size_t _a_s_o_b = b; \
+        if (!(_a_s_o_a op _a_s_o_b)) { \
             char* _a_s_op_f_repr = test_repr(colrobj); \
             char* _a_s_op_f_str = colr_to_str(colrobj); \
             char* _a_s_op_f_strrepr = test_repr(_a_s_op_f_str); \
@@ -615,8 +626,8 @@
             fail( \
                 "%s: (" #a ") %zu " #op " (" #b ") %zu\n      Repr: %s\n    String: %s", \
                 msg, \
-                (size_t) a, \
-                (size_t) b, \
+                _a_s_o_a, \
+                _a_s_o_b, \
                 _a_s_op_f_repr, \
                 _a_s_op_f_strrepr \
             ); \
@@ -627,13 +638,15 @@
 
 #define assert_size_op_repr(a, op, b, colrobj, msg) \
     do { \
-        if (!(a op b)) { \
+        size_t _a_s_o_a = a; \
+        size_t _a_s_o_b = b; \
+        if (!(_a_s_o_a op _a_s_o_b)) { \
             char* _a_s_op_r_repr = colr_repr(colrobj); \
             fail( \
                 "%s: (" #a ") %zu " #op " (" #b ") %zu\n      Repr: %s", \
                 msg, \
-                (size_t) a, \
-                (size_t) b, \
+                _a_s_o_a, \
+                _a_s_o_b, \
                 _a_s_op_r_repr \
             ); \
             free(_a_s_op_r_repr); \
@@ -642,13 +655,15 @@
 
 #define assert_size_op_str(a, op, b, colrobj, msg) \
     do { \
-        if (!(a op b)) { \
+        size_t _a_s_o_a = a; \
+        size_t _a_s_o_b = b; \
+        if (!(_a_s_o_a op _a_s_o_b)) { \
             char* _a_s_op_s_str = colr_to_str(colrobj); \
             fail( \
                 "%s: (" #a ") %zu " #op " (" #b ") %zu\n    String: %s", \
                 msg, \
-                (size_t) a, \
-                (size_t) b, \
+                _a_s_o_a, \
+                _a_s_o_b, \
                 _a_s_op_s_str \
             ); \
             free(_a_s_op_s_str); \

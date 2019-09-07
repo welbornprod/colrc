@@ -98,7 +98,7 @@ subdesc(colr_char_in_str) {
         };
         for_each(tests, i) {
             asserteq(
-                colr_char_in_str(tests[i].c, tests[i].s),
+                colr_char_in_str(tests[i].s, tests[i].c),
                 tests[i].expected,
                 "Known char was not detected."
             );
@@ -403,7 +403,70 @@ subdesc(colr_str_char_count) {
             {"\nspecial\nchars\n\n", '\n', 4},
         };
         for_each(tests, i) {
-            asserteq(colr_str_char_count(tests[i].input, tests[i].c), tests[i].expected);
+            assert_size_eq_repr(
+                colr_str_char_count(tests[i].input, tests[i].c),
+                tests[i].expected,
+                tests[i].input
+            );
+        }
+    }
+}
+// colr_str_char_lcount
+subdesc(colr_str_char_lcount) {
+    it("counts starting characters") {
+        struct {
+            char* input;
+            char c;
+            size_t expected;
+        } tests[] = {
+            {NULL, 'X', 0},
+            {"X", 0, 0},
+            {NULL, 0, 0},
+            {"", 'X', 0},
+            {"X", 'X', 1},
+            {"before XX", 'X', 0},
+            {"XX after", 'X', 2},
+            {"in the XXX middle", 'X', 0},
+            {"\nspecial\nchars\n\n", '\n', 1},
+            {"    test", ' ', 4},
+        };
+        for_each(tests, i) {
+            assert_size_eq_repr(
+                colr_str_char_lcount(tests[i].input, tests[i].c),
+                tests[i].expected,
+                tests[i].input
+            );
+        }
+    }
+}
+// colr_str_chars_lcount
+subdesc(colr_str_chars_lcount) {
+    it("counts starting characters") {
+        struct {
+            char* input;
+            char* chars;
+            size_t expected;
+        } tests[] = {
+            {NULL, "X", 0},
+            {"X", "", 0},
+            {NULL, "", 0},
+            {"", "X", 0},
+            {"X", "X", 1},
+            {"before XX", "X", 0},
+            {"XX after", "XX", 2},
+            {"in the XXX middle", "X", 0},
+            {"\nspecial\nchars\n\n", "\n", 1},
+            {"    test", " ", 4},
+            {"cba test", "abc", 3},
+            {" \n\t\vtest", "\n\t\v ", 4},
+            {"  \n\n\t\t\v\vtest", "\n\t\v ", 8},
+        };
+        for_each(tests, i) {
+            assert_size_eq_repr(
+                colr_str_chars_lcount(tests[i].input, tests[i].chars),
+                tests[i].expected,
+                tests[i].input
+            );
         }
     }
 }
@@ -428,14 +491,14 @@ subdesc(colr_str_code_cnt) {
             assert_size_eq_repr(colr_str_code_cnt(s), tests[i].expected, s);
             free(s);
         }
-        asserteq(colr_str_code_cnt(NULL), 0);
-        asserteq(colr_str_code_cnt(""), 0);
+        assert_size_eq(colr_str_code_cnt(NULL), 0);
+        assert_size_eq(colr_str_code_cnt(""), 0);
         // Overflow the current_code buffer.
         // 1 extra char.
-        asserteq(colr_str_code_cnt("\x1b[38;2;255;255;2550m"), 0);
+        assert_size_eq(colr_str_code_cnt("\x1b[38;2;255;255;2550m"), 0);
         // Many extra chars.
         char* waytoolong = "\x1b[38;2;255;255;2550101010101010101010101010101m";
-        asserteq(colr_str_code_cnt(waytoolong), 0);
+        assert_size_eq(colr_str_code_cnt(waytoolong), 0);
     }
 }
 // colr_str_code_len
@@ -478,10 +541,10 @@ subdesc(colr_str_code_len) {
         }
         // Overflow the current_code buffer.
         // 1 extra char.
-        asserteq(colr_str_code_len("\x1b[38;2;255;255;2550m"), 0);
+        assert_size_eq(colr_str_code_len("\x1b[38;2;255;255;2550m"), 0);
         // Many extra chars.
         char* waytoolong = "\x1b[38;2;255;255;2550101010101010101010101010101m";
-        asserteq(colr_str_code_len(waytoolong), 0);
+        assert_size_eq(colr_str_code_len(waytoolong), 0);
 
     }
 }

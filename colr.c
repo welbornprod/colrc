@@ -869,7 +869,7 @@ char colr_char_escape_char(const char c) {
 
     \return `true` if \p c is found in \p s, otherwise `false`.
 */
-bool colr_char_in_str(const char c, const char* s) {
+bool colr_char_in_str(const char* s, const char c) {
     size_t length = strlen(s);
     for (size_t i = 0; i < length; i++) {
         if (s[i] == c) return true;
@@ -1140,7 +1140,7 @@ char* colr_str_center(const char* s, const char padchar, int width) {
     Returns `0` if `s` is `NULL`, or `c` is `'\0'`.
 
     \pi s The string to examine.
-          \mustnullin
+          \mustnull
     \pi c The character to count.
           \mustnotzero
 
@@ -1155,6 +1155,54 @@ size_t colr_str_char_count(const char* s, const char c) {
     while (s[i]) {
         if (s[i++] == c) total++;
     }
+    return total;
+}
+
+/*! Counts the number of characters (`c`) that are found at the beginning of a
+    \string (`s`).
+
+    \details
+    Returns `0` if \p s is `NULL`, \p c is `'\0'`, or the string doesn't start
+    with \p c.
+
+    \pi s The string to examine.
+          \mustnull
+    \pi c The character to count.
+          \mustnotzero
+
+    \return The number of times \p c occurs at the start of \p s.
+*/
+size_t colr_str_char_lcount(const char* s, const char c) {
+    if (!(s && c)) return 0;
+    if (s[0] == '\0') return 0;
+
+    size_t i = 0;
+    size_t total = 0;
+    while (s[i++] == c) total++;
+    return total;
+}
+
+/*! Counts the number of characters that are found at the beginning of a
+    \string (`s`), where the character can be any of \p chars.
+
+    \details
+    Returns `0` if \p s is `NULL`/empty, \p chars is `NULL`/empty, or the
+    string doesn't start with any of the characters in \p chars.
+
+    \pi s The string to examine.
+          \mustnull
+    \pi c The characters to count, in any order.
+          \mustnotzero
+
+    \return The number of times a character in \p chars occurs at the start of \p s.
+*/
+size_t colr_str_chars_lcount(const char* restrict s, const char* restrict chars) {
+    if (!(s && chars)) return 0;
+    if ((s[0] == '\0') || (chars[0] == '\0')) return 0;
+
+    size_t i = 0;
+    size_t total = 0;
+    while (colr_char_in_str(chars, s[i++])) total++;
     return total;
 }
 
@@ -1777,9 +1825,10 @@ char* colr_str_lstrip_char(const char* s, const char c) {
     if (s[0] == '\0') return NULL;
 
     size_t length = strlen(s);
-    // TODO: while (*s++ == c) length--; ..with tests.
-    char* dest = calloc(length + 1, sizeof(char));
+    size_t finallen = length - colr_str_char_lcount(s, c);
+    char* dest = calloc(finallen + 1, sizeof(char));
     if (!dest) return NULL;
+    if (finallen == 1) return dest;
     colr_str_lstrip(dest, s, length, c);
     return dest;
 }
@@ -1813,12 +1862,14 @@ char* colr_str_lstrip_chars(const char* restrict s, const char* restrict chars) 
     // The string may not even contain the `chars`. Worst case is the same
     // string, with the same length.
     size_t length = strlen(s);
-    // TODO: while (colr_char_in_str(*s++, chars) length--; ..with tests.
-    char* result = calloc(length + 1, sizeof(char));
+    size_t finallen = length - colr_str_chars_lcount(s, chars);
+    char* result = calloc(finallen + 1, sizeof(char));
+    if (!result) return NULL;
+    if (finallen == 1) return result;
     size_t result_pos = 0;
     bool done_trimming = false;
     for (size_t i = 0; i < length; i++) {
-        if ((!done_trimming) && colr_char_in_str(s[i], chars)) {
+        if ((!done_trimming) && colr_char_in_str(chars, s[i])) {
             continue;
         } else {
             // First non-`chars` character. We're done.

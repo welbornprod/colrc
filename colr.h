@@ -1860,7 +1860,7 @@ static const struct _ColrLastArg_s* const _ColrLastArg = &_ColrLastArgValue;
 void colr_append_reset(char* s);
 
 char colr_char_escape_char(const char c);
-bool colr_char_in_str(const char c, const char* s);
+bool colr_char_in_str(const char* s, const char c);
 bool colr_char_is_code_end(const char c);
 char* colr_char_repr(char x);
 bool colr_char_should_escape(const char c);
@@ -1870,6 +1870,8 @@ char* colr_empty_str(void);
 bool colr_supports_rgb(void);
 
 size_t colr_str_char_count(const char* s, const char c);
+size_t colr_str_char_lcount(const char* s, const char c);
+size_t colr_str_chars_lcount(const char* restrict s, const char* restrict chars);
 char* colr_str_center(const char* s, const char padchar, int width);
 size_t colr_str_code_cnt(const char* s);
 size_t colr_str_code_len(const char* s);
