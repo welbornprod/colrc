@@ -43,7 +43,7 @@ macro_pat = re.compile(r'#define ([\w_]+)([ \t]+)?\([^\(]')
 colr_auto_disable()
 
 NAME = 'ColrC - Usage Stats'
-VERSION = '0.0.2'
+VERSION = '0.0.3'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -90,18 +90,23 @@ CPPCHECK_ARGS.extend(TOOL_FILES)
 USAGESTR = f"""{VERSIONSTR}
     Usage:
         {SCRIPT} [-h | -v]
-        {SCRIPT} [-D] [-M | -m] -N [PATTERN]
-        {SCRIPT} [-D] [-a] [-d] [-M | -m] [-f | -r] [-t] [PATTERN]
+        {SCRIPT} [-D] -l
+        {SCRIPT} [-D] [-F | -M] -N [PATTERN]
+        {SCRIPT} [-D] [-F | -M] (-E | -e) [-f | -r] [PATTERN]
+        {SCRIPT} [-D] [-a] [-d] [-F | -M] [-f | -r] [-t] [PATTERN]
 
     Options:
         PATTERN          : Only show names matching this regex/text pattern.
         -a,--all         : Show everything cppcheck thinks is unused.
         -D,--debug       : Show more info while running.
         -d,--testdeps    : Functions with tests, or in tests are not unused.
+        -E,--noexamples  : Show anything not used in the examples.
+        -e,--examples    : Show anything used in the examples.
+        -F,--onlyfuncs   : Use only functions, not function-like macros.
         -f,--full        : Show full info.
         -h,--help        : Show this help message.
-        -M,--onlymacros  : Show all macro names that are available.
-        -m,--macros      : Check all function-like macros.
+        -l,--legend      : Print a color-code legend.
+        -M,--onlymacros  : Use only function-like macros.
         -N,--listnames   : Show all function names reported by cppcheck, or
                            macro names if -m or -M is used.
         -r,--raw         : Show raw info.
@@ -129,19 +134,38 @@ CMacroUnused = Preset(fore=rgb(0, 162, 231))
 CNum = Preset(fore='blue', style='bright')
 CTotal = Preset(fore='yellow')
 
+legend = {
+    'func': {
+        'Function': CName,
+        'Function Test Depencency': CTestdep,
+        'Unused/Untested Function': CUntested,
+        'Unused Function': CUnused,
+    },
+    'macro': {
+        'Macro': CMacro,
+        'Macro Test Dependency': CMacroTestdep,
+        'Unused/Untested Macro': CMacroUntested,
+        'Unused Macro': CMacroUnused,
+    },
+}
+
 
 def main(argd):
     """ Main entry point, expects docopt arg dict as argd. """
+    if argd['--legend']:
+        return print_legend()
+
     pat = try_repat(argd['PATTERN'])
     if argd['--onlymacros']:
         names = get_macro_names(pat=pat)
+    elif argd['--onlyfuncs']:
+        names = get_cppcheck_names(pat=pat)
     else:
         names = get_cppcheck_names(pat=pat)
         if not names:
             print_err('No unused names reported by cppcheck.')
             return 1
-        if argd['--macros']:
-            names.extend(get_macro_names(pat=pat))
+        names.extend(get_macro_names(pat=pat))
     if not names:
         print_err('No names to use.')
         return 1
@@ -156,6 +180,9 @@ def main(argd):
     filepaths.extend(EXAMPLE_FILES)
     info = check_files(filepaths, names)
     info = filter_used_macros(info)
+    if argd['--examples'] or argd['--noexamples']:
+        info = filter_examples(info, with_examples=argd['--examples'])
+
     if not argd['--all']:
         # cppcheck has a lot of false positives, do some more filtering.
         info = filter_used(
@@ -170,24 +197,7 @@ def main(argd):
     else:
         ret = print_simple(info)
     if not argd['--raw']:
-        namelen = len(info)
-        plural = 'function' if namelen == 1 else 'functions'
-        if argd['--onlymacros']:
-            plural = 'macro' if namelen == 1 else 'macros'
-        elif argd['--macros']:
-            plural = 'function/macro' if namelen == 1 else 'functions/macros'
-        method = 'unused'
-        if argd['--all']:
-            method = 'unused'
-            if argd['--onlymacros']:
-                pass
-            else:
-                plural = f'{plural} (some were reported by cppcheck)'
-        elif argd['--untested']:
-            method = 'untested'
-        elif argd['--testdeps']:
-            method = 'unused test dependencies'
-        print(f'\nFound {CNum(namelen)} possibly {method} {plural}.')
+        print_footer(argd, info)
 
     return ret
 
@@ -266,6 +276,20 @@ def check_files(filepaths, names):
             elif filename.startswith('colr'):
                 counts[name]['colr_cnt'] += filecount
     return counts
+
+
+def filter_examples(info, with_examples=True):
+    keep = {}
+    for name in sorted(info):
+        nameinfo = info[name]
+        if with_examples:
+            if is_example(nameinfo):
+                keep[name] = nameinfo
+                continue
+        elif not is_example(nameinfo):
+            keep[name] = nameinfo
+            continue
+    return keep
 
 
 def filter_used(info, untested=False, test_deps=False):
@@ -365,6 +389,10 @@ def highlight_line(line):
     return highlight(line, pyg_lexer, pyg_fmter).strip()
 
 
+def is_example(nameinfo):
+    return nameinfo['example_cnt'] > 0
+
+
 def is_untested(nameinfo):
     return not nameinfo['test_cnt']
 
@@ -411,6 +439,30 @@ def print_err(*args, **kwargs):
     print(msg, **kwargs)
 
 
+def print_footer(argd, info):
+    namelen = len(info)
+    if argd['--onlymacros']:
+        plural = 'macro' if namelen == 1 else 'macros'
+    elif argd['--onlyfuncs']:
+        plural = 'function' if namelen == 1 else 'functions'
+    else:
+        plural = 'function/macro' if namelen == 1 else 'functions/macros'
+    method = 'unused'
+    if argd['--all']:
+        method = 'unused'
+        if not argd['--onlymacros']:
+            plural = f'{plural} (some reported by cppcheck)'
+    elif argd['--untested']:
+        method = 'untested'
+    elif argd['--testdeps']:
+        method = 'unused test dependencies'
+    if argd['--examples']:
+        plural = f'{plural} with examples'
+    elif argd['--noexamples']:
+        plural = f'{plural} without examples'
+    print(f'\nFound {CNum(namelen)} possibly {method} {plural}.')
+
+
 def print_full(info):
     for name in sorted(info):
         nameinfo = info[name]
@@ -425,6 +477,15 @@ def print_full(info):
             for line in fileinfo['lines']:
                 print(f'{" " * 30}{highlight_line(line.strip())}')
     return 1 if info else 0
+
+
+def print_legend():
+    print('Current Color Code:')
+    for nametype in sorted(legend):
+        for desc in sorted(legend[nametype]):
+            cpreset = legend[nametype][desc]
+            print(f'    {cpreset(desc)}')
+    return 0
 
 
 def print_names(names):
