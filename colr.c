@@ -6328,8 +6328,9 @@ RGB rainbow_step(double freq, size_t offset) {
                 return res;
             }
     */
-    double redval = sin(freq * offset + 0) * 127 + 128;
-    double greenval = sin(freq * offset + 2 * M_PI / 3) * 127 + 128;
-    double blueval = sin(freq * offset + 4 * M_PI / 3) * 127 + 128;
+    double base = freq * offset;
+    double redval = sin(base + 0) * 127 + 128;
+    double greenval = (sin(base + ((2 * M_PI) / 3)) * 127) + 128;
+    double blueval = (sin(base + ((4 * M_PI) / 3)) * 127) + 128;
     return rgb(redval, greenval, blueval);
 }
