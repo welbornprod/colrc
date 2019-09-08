@@ -4,7 +4,7 @@
 # This was created to make the Makefile a little easier to understand/write.
 # -Christopher Welborn 07-13-2019
 appname="ColrC - Test Runner"
-appversion="0.0.4"
+appversion="0.0.5"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 appdir="${apppath%/*}"
@@ -275,19 +275,24 @@ function run_colrc_colors {
     declare -A colrc_arg_inputs
     colrc_arg_inputs=(
         ["basic colorization"]="red white underline"
-        ["back rainbow"]="reset rainbow"
-        ["fore rainbow"]="rainbow"
+        ["back rainbow"]="reset rainbow -s bright"
+        ["fore rainbow"]="rainbow -s bright"
+        ["--rainbow fore"]="-R -s bright"
+        ["--rainbow back"]="-f white -R -s bright"
+        ["--rainbow fore color"]="-f black -R -s bright"
+        ["--rainbow back color"]="-b white -R -s bright"
     )
     declare -a colrc_args
     local inputarg argdesc
     for inputarg in "${colrc_inputs[@]}"; do
         for argdesc in "${!colrc_arg_inputs[@]}"; do
-            colrc_args=("$inputarg" ${colrc_arg_inputs[$argdesc]})
+            colrc_args=("${inputarg}" ${colrc_arg_inputs[$argdesc]})
             if [[ "$inputarg" == "-" ]]; then
-                echo "Testing colrc stdin on $run_mode mode." | \
+                echo -n "Testing colrc stdin on $run_mode mode: $argdesc" | \
                     run_cmd "${colrc_cmd[@]}" "${colrc_args[@]}" || \
                         fail_colrc_mode "stdin basic colorization" "$run_mode" "${colrc_cmd[@]}" "${colrc_args[@]}"
             else
+                colrc_args[0]="${colrc_args[0]}: $argdesc"
                 run_cmd "${colrc_cmd[@]}" "${colrc_args[@]}" || \
                     fail_colrc_mode "basic colorization" "$run_mode" "${colrc_cmd[@]}" "${colrc_args[@]}"
             fi
@@ -311,7 +316,7 @@ function run_colrc_examples {
         ["basic-colors"]="--basic"
         ["256-colors"]="--256"
         ["known-names"]="--names"
-        ["rainbow"]="--rainbow"
+        ["rainbow"]="--rainbowize"
         ["rgb-colors"]="--rgb"
     )
     local argdesc

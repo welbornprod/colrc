@@ -17,6 +17,44 @@ replace_str_display="$py_cmd $(realpath --relative-to="$appdir" "$replace_str_fi
     exit 1
 }
 
+function add_nonflag_arg {
+    # Modify the global targets/replacements arrays, based on current state
+    # and the current "mode" of operation.
+    local arg=$1
+    [[ -n "$arg" ]] || fail "Missing argument for add_nonflag_arg()!"
+    [[ "$arg" =~ $escape_pat ]] && {
+        debug "Sending escaped arg: $arg"
+    }
+    if ((do_str_repl)) || ((${#targets[@]} == 0)); then
+        targets+=("$arg")
+        debug "Adding first target: $arg"
+    elif ((${#replacements[@]} == 0)); then
+        replacements+=("$arg")
+        debug "Adding first replacement: $arg"
+    elif ((${#targets[@]} > ${#replacements[@]})); then
+        replacements+=("$arg")
+        debug "Adding next replacement: $arg"
+    else
+        targets+=("$arg")
+        debug "Adding next target: $arg"
+    fi
+}
+
+function debug {
+    ((debug_mode)) || return 0
+    # shellcheck disable=SC2059
+    # ..i know shellcheck, it's a wrapper. I can do this.
+    printf "$@" 1>&2
+    printf "\n" 1>&2
+}
+
+function debugn {
+    ((debug_mode)) || return 0
+    # shellcheck disable=SC2059
+    # ..i know shellcheck, it's a wrapper. I can do this.
+    printf "$@" 1>&2
+}
+
 function echo_err {
     # Echo to stderr.
     echo -e "$@" 1>&2
@@ -47,6 +85,7 @@ function print_usage {
     Options:
         REPL            : Replacement for the thing.
         TARGET          : Thing to replace.
+        -D,--debug      : Show some more info while running.
         -h,--help       : Show this message.
         -s,--substring  : Replace \`str\` with \`repl\` in all targets.
         -v,--version    : Show $appname version and exit.
@@ -59,9 +98,14 @@ function print_usage {
 
 declare -a targets replacements
 do_str_repl=0
+debug_mode=0
+escape_pat='\\-.+'
 
 for arg; do
     case "$arg" in
+        "-D" | "--debug")
+            debug_mode=1
+            ;;
         "-h" | "--help")
             print_usage ""
             exit 0
@@ -77,15 +121,7 @@ for arg; do
             fail_usage "Unknown flag argument: $arg"
             ;;
         *)
-            if ((do_str_repl)) || ((${#targets[@]} == 0)); then
-                targets+=("$arg")
-            elif ((${#replacements[@]} == 0)); then
-                replacements+=("$arg")
-            elif ((${#targets[@]} > ${#replacements[@]})); then
-                replacements+=("$arg")
-            else
-                targets+=("$arg")
-            fi
+            add_nonflag_arg "$arg"
     esac
 done
 
@@ -104,6 +140,7 @@ if ((do_str_repl)); then
 fi
 
 ((${#targets[@]} == ${#replacements[@]})) || fail "Need matching replacement for every target."
+((debug_mode)) && replace_str_cmd+=("--debug")
 # Run replacestr for all target/repl pairs.
 let i=0
 for target in "${targets[@]}"; do

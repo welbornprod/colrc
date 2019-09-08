@@ -27,7 +27,7 @@ debug_err = debugprinter.debug_err
 colr_auto_disable()
 
 NAME = 'Replace Strings'
-VERSION = '0.1.2'
+VERSION = '0.1.3'
 VERSIONSTR = '{} v. {}'.format(NAME, VERSION)
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -142,7 +142,7 @@ def main(argd):
         return rewrite_files(
             argd['FILE'],
             pat,
-            argd['REPL'],
+            parse_repl(argd['REPL']),
             view_first=argd['--view'],
             silent_empty=argd['--refactor'],
             diff=argd['--refactor'],
@@ -165,7 +165,7 @@ def main(argd):
     rf = ReplaceFile(
         infile,
         pat,
-        argd['REPL'],
+        parse_repl(argd['REPL']),
     )
     if argd['--view'] and (not rf.confirm_lines()):
         return 1
@@ -398,6 +398,12 @@ def parse_repat(s, ignore_case=True, allow_empty=False, pat_for=None):
         if allow_empty:
             return None
         raise InvalidArg('no pattern given.')
+    if s.startswith('\\') and s.lstrip('\\').startswith('-'):
+        debug('Handling escaped argument pattern: {}'.format(s))
+        s = s.lstrip('\\')
+        debug('Converted to: {}'.format(s), align=True)
+
+    debug('Compiling: {}'.format(s))
     try:
         p = re.compile(s, flags=re.IGNORECASE if ignore_case else 0)
     except re.error as ex:
@@ -408,6 +414,14 @@ def parse_repat(s, ignore_case=True, allow_empty=False, pat_for=None):
                 err=ex,
             ))
     return p
+
+
+def parse_repl(s):
+    if s.startswith('\\') and s.lstrip('\\').startswith('-'):
+        debug('Handling escaped arg: {}'.format(s))
+        s = s.lstrip('\\')
+        debug('Converted to: {}'.format(s), align=True)
+    return s
 
 
 def print_err(*args, **kwargs):

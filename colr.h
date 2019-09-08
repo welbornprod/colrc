@@ -38,7 +38,7 @@
 #endif
 
 //! Current version for ColrC.
-#define COLR_VERSION "0.3.3"
+#define COLR_VERSION "0.3.4"
 
 #ifndef DOXYGEN_SKIP
 /*! \def IS_C11

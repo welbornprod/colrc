@@ -35,6 +35,11 @@
 #define NAME "ColrC"
 #define VERSION COLR_VERSION
 
+#define CT_DEFAULT_FREQ 0.1l
+#define CT_MIN_FREQ 0.0l
+#define CT_MAX_FREQ 1.0l
+#define CT_DEFAULT_OFFSET 3
+
 //! Short-hand for (x ? "true" : "false")
 #define bool_str(x) (x ? "true" : "false")
 
@@ -169,6 +174,8 @@ bool ColrOpts_set_text(ColrOpts* opts);
 bool dir_exists(const char* dirpath);
 bool file_exists(const char* filepath);
 int list_codes(ColrOpts* opts);
+int parse_arg_char(char** argv, const char* long_name, const char c, ColrOpts* opts);
+int parse_arg_long(const char* long_name, ColrOpts* opts);
 int parse_args(int argc, char** argv, ColrOpts* opts);
 bool parse_double_arg(const char* s, double* value);
 bool parse_int_arg(const char* s, int* value);

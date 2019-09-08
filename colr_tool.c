@@ -139,8 +139,8 @@ ColrOpts ColrOpts_new(void) {
         .rainbow_fore=false,
         .rainbow_back=false,
         .rainbow_term=false,
-        .rainbow_freq=0.1,
-        .rainbow_offset=3,
+        .rainbow_freq=CT_DEFAULT_FREQ,
+        .rainbow_offset=CT_DEFAULT_OFFSET,
         .auto_disable=false,
         .is_disabled=false,
         .list_codes=false,
@@ -347,10 +347,205 @@ int list_codes(ColrOpts* opts) {
     return EXIT_SUCCESS;
 }
 
+int parse_arg_char(char** argv, const char* long_name, const char c, ColrOpts* opts) {
+    int argval_just;
+    double argval_freq;
+    size_t argval_offset;
+
+    switch (c) {
+        case 0:
+            return parse_arg_long(long_name, opts);
+            break;
+        case 'a':
+            opts->auto_disable = true;
+            break;
+        case 'b':
+            if (opts->back) {
+                // Happens when --rainbow is used.
+                printferr("BACK was set with --rainbow.\n");
+                return EXIT_FAILURE;
+            }
+            if (colr_str_either(optarg, "rainbow", "rainbowterm")) {
+                opts->rainbow_term = colr_str_eq(optarg, "rainbowterm");
+                opts->rainbow_back = true;
+                opts->back = ColorArg_to_ptr(ColorArg_empty());
+            } else  {
+                opts->back = back(optarg);
+                if (!validate_color_arg(*(opts->back), optarg)) return EXIT_FAILURE;
+            }
+            break;
+        case 'c':
+            if (opts->just.method != JUST_NONE) {
+                printferr("Justification was already set with: %s\n", just_arg_str(opts->just));
+                return EXIT_FAILURE;
+            }
+            if (!parse_int_arg(optarg, &argval_just)) {
+                printferr("Invalid number for --center: %s\n", optarg);
+                return EXIT_FAILURE;
+            }
+            opts->just.method = JUST_CENTER;
+            opts->just.width = argval_just;
+            break;
+        case 'e':
+            opts->out_stream = stderr;
+            break;
+        case 'F':
+            if (colr_str_eq(optarg, "-")) {
+                // Another way to read stdin data, with --file -.
+                opts->text = "-";
+            } else {
+                if (!file_exists(optarg)) {
+                    printferr("File does not exist: %s\n", optarg);
+                    return EXIT_FAILURE;
+                }
+                opts->filepath = optarg;
+            }
+            break;
+        case 'f':
+            if (opts->fore) {
+                // Happens when --rainbow is used.
+                printferr("FORE was set with --rainbow.\n");
+                return EXIT_FAILURE;
+            }
+            if (colr_str_either(optarg, "rainbow", "rainbowterm")) {
+                opts->rainbow_term = colr_str_eq(optarg, "rainbowterm");
+                opts->rainbow_fore = true;
+                opts->fore = ColorArg_to_ptr(ColorArg_empty());
+            } else  {
+                opts->fore = fore(optarg);
+                if (!validate_color_arg(*(opts->fore), optarg)) return EXIT_FAILURE;
+            }
+            break;
+        case 'h':
+            print_usage_full();
+            return EXIT_SUCCESS;
+        case 'l':
+            if (opts->just.method != JUST_NONE) {
+                printferr("Justification was already set with: %s\n", just_arg_str(opts->just));
+                return EXIT_FAILURE;
+            }
+            if (!parse_int_arg(optarg, &argval_just)) {
+                printferr("Invalid number for --ljust: %s\n", optarg);
+                return EXIT_FAILURE;
+            }
+            opts->just.method = JUST_LEFT;
+            opts->just.width = argval_just;
+            break;
+        case 'o':
+            if (!parse_size_arg(optarg, &argval_offset)) {
+                printferr("Invalid value for --offset: %s\n", optarg);
+                return EXIT_FAILURE;
+            }
+            opts->rainbow_offset = argval_offset;
+            break;
+        case 'q':
+            if (!parse_double_arg(optarg, &argval_freq)) {
+                printferr("Invalid value for --frequency: %s\n", optarg);
+                return EXIT_FAILURE;
+            }
+            // Clamp the value, because it produces ugly results.
+            if (argval_freq < CT_MIN_FREQ) {
+                argval_freq = CT_MIN_FREQ;
+            } else if (argval_freq > CT_MAX_FREQ) {
+                argval_freq = CT_MAX_FREQ;
+            }
+            opts->rainbow_freq = argval_freq;
+            break;
+        case 'R':
+            if (!opts->fore)  {
+                opts->rainbow_fore = true;
+                opts->fore = ColorArg_to_ptr(ColorArg_empty());
+            } else if (!opts->back) {
+                opts->rainbow_back = true;
+                opts->back = ColorArg_to_ptr(ColorArg_empty());
+            } else {
+                printferr("FORE and BACK are already set, can't use --rainbow.\n");
+                return EXIT_FAILURE;
+            }
+            break;
+        case 'r':
+            if (opts->just.method != JUST_NONE) {
+                printferr("Justification was already set with: %s\n", just_arg_str(opts->just));
+                return EXIT_FAILURE;
+            }
+            if (!parse_int_arg(optarg, &argval_just)) {
+                printferr("Invalid number for --rjust: %s\n", optarg);
+                return EXIT_FAILURE;
+            }
+            opts->just.method = JUST_RIGHT;
+            opts->just.width = argval_just;
+            break;
+        case 's':
+            opts->style = style(optarg);
+            if (!validate_color_arg(*(opts->style), optarg)) return EXIT_FAILURE;
+            break;
+        case 't':
+            opts->translate_code = true;
+            break;
+        case 'u':
+            opts->list_codes = true;
+            opts->list_unique_codes = true;
+            break;
+        case 'v':
+            print_version();
+            return EXIT_SUCCESS;
+        case 'x':
+            opts->strip_codes = true;
+            break;
+        case 'z':
+            opts->list_codes = true;
+            break;
+        case '?':
+            print_usage_errmsg("Unknown argument: -%c", optopt);
+            return EXIT_FAILURE;
+        case ':':
+            print_usage_errmsg("Missing value for: %s", argv[optind - 1]);
+            return EXIT_FAILURE;
+        default:
+            print_usage_errmsg("Unknown option!: %c\n", c);
+            return EXIT_FAILURE;
+    }
+    // The argument was okay.
+    return -1;
+}
+
+int parse_arg_long(const char* long_name, ColrOpts* opts) {
+    if (colr_str_eq(long_name, "basic")) {
+        return print_basic(opts, false);
+    } else if (colr_str_eq(long_name, "256")) {
+        return print_256(opts, false);
+    } else if (colr_str_eq(long_name, "names")) {
+        return print_names(opts, false);
+    } else if (colr_str_eq(long_name, "rainbow")) {
+        return print_rainbow(opts, false);
+    } else if (colr_str_eq(long_name, "rgb")) {
+        return print_rgb(opts, false, false);
+    } else if (colr_str_eq(long_name, "rgbterm")) {
+        return print_rgb(opts, false, true);
+    } else if (colr_str_eq(long_name, "basicbg")) {
+        return print_basic(opts, true);
+    } else if (colr_str_eq(long_name, "256bg")) {
+        return print_256(opts, true);
+    } else if (colr_str_eq(long_name, "namesrgb")) {
+        return print_names(opts, true);
+    } else if (colr_str_eq(long_name, "rainbowbg")) {
+        return print_rainbow(opts, true);
+    } else if (colr_str_eq(long_name, "rgbbg")) {
+        return print_rgb(opts, true, false);
+    } else if (colr_str_eq(long_name, "rgbtermbg")) {
+        return print_rgb(opts, true, true);
+    }
+    // If I didn't handle every long-option case something is very wrong.
+    printferr(
+        "Developer Error: Unhandled long-only option!: %s\n",
+        long_name
+    );
+    return EXIT_FAILURE;
+}
 /*! Parse user arguments into a ColrOpts struct.
 
     \details
-    This handles long-only options like --basic, --rainbow, and intializes
+    This handles long-only options like --basic, --rainbowize, and intializes
     the ColrOpts with usable (possibly empty) ColorArgs for fore, back,
     and style. It also handles reading stdin, or the file argument, and sets
     `.text` to the correct content to be colorized.
@@ -377,6 +572,7 @@ int parse_args(int argc, char** argv, ColrOpts* opts) {
         {"ljust", required_argument, 0, 'l'},
         {"rjust", required_argument, 0, 'r'},
         {"center", required_argument, 0, 'c'},
+        {"rainbow", no_argument, 0, 'R'},
         // Commands
         {"listcodes", no_argument, 0, 'z'},
         {"stripcodes", no_argument, 0, 'x'},
@@ -403,183 +599,22 @@ int parse_args(int argc, char** argv, ColrOpts* opts) {
         {"rgbtermbg", no_argument, 0, 0},
         {0, 0, 0, 0}
     };
-
     while (1) {
         int c;
         int option_index = 0;
         c = getopt_long(
             argc,
             argv,
-            ":aehtuvxzb:c:F:f:l:o:q:r:s:",
+            ":aehRtuvxzb:c:F:f:l:o:q:r:s:",
             long_options,
             &option_index
         );
         if (c == -1) break;
 
-        int argval_just;
-        double argval_freq;
-        size_t argval_offset;
-
-        switch (c) {
-            case 0:
-                if (colr_str_eq(long_options[option_index].name, "basic")) {
-                    return print_basic(opts, false);
-                } else if (colr_str_eq(long_options[option_index].name, "256")) {
-                    return print_256(opts, false);
-                } else if (colr_str_eq(long_options[option_index].name, "names")) {
-                    return print_names(opts, false);
-                } else if (colr_str_eq(long_options[option_index].name, "rainbow")) {
-                    return print_rainbow(opts, false);
-                } else if (colr_str_eq(long_options[option_index].name, "rgb")) {
-                    return print_rgb(opts, false, false);
-                } else if (colr_str_eq(long_options[option_index].name, "rgbterm")) {
-                    return print_rgb(opts, false, true);
-                } else if (colr_str_eq(long_options[option_index].name, "basicbg")) {
-                    return print_basic(opts, true);
-                } else if (colr_str_eq(long_options[option_index].name, "256bg")) {
-                    return print_256(opts, true);
-                } else if (colr_str_eq(long_options[option_index].name, "namesrgb")) {
-                    return print_names(opts, true);
-                } else if (colr_str_eq(long_options[option_index].name, "rainbowbg")) {
-                    return print_rainbow(opts, true);
-                } else if (colr_str_eq(long_options[option_index].name, "rgbbg")) {
-                    return print_rgb(opts, true, false);
-                } else if (colr_str_eq(long_options[option_index].name, "rgbtermbg")) {
-                    return print_rgb(opts, true, true);
-                } else {
-                    printferr(
-                        "Developer Error: Unhandled long-only option!: %s\n",
-                        long_options[option_index].name
-                    );
-                    return EXIT_FAILURE;
-                }
-                break;
-            case 'a':
-                opts->auto_disable = true;
-                break;
-            case 'b':
-                if (colr_str_either(optarg, "rainbow", "rainbowterm")) {
-                    opts->rainbow_term = colr_str_eq(optarg, "rainbowterm");
-                    opts->rainbow_back = true;
-                    opts->back = ColorArg_to_ptr(ColorArg_empty());
-                } else  {
-                    opts->back = back(optarg);
-                    if (!validate_color_arg(*(opts->back), optarg)) return EXIT_FAILURE;
-                }
-                break;
-            case 'c':
-                if (opts->just.method != JUST_NONE) {
-                    printferr("Justification was already set with: %s\n", just_arg_str(opts->just));
-                    return EXIT_FAILURE;
-                }
-                if (!parse_int_arg(optarg, &argval_just)) {
-                    printferr("Invalid number for --center: %s\n", optarg);
-                    return EXIT_FAILURE;
-                }
-                opts->just.method = JUST_CENTER;
-                opts->just.width = argval_just;
-                break;
-            case 'e':
-                opts->out_stream = stderr;
-                break;
-            case 'F':
-                if (colr_str_eq(optarg, "-")) {
-                    // Another way to read stdin data, with --file -.
-                    opts->text = "-";
-                } else {
-                    if (!file_exists(optarg)) {
-                        printferr("File does not exist: %s\n", optarg);
-                        return EXIT_FAILURE;
-                    }
-                    opts->filepath = optarg;
-                }
-                break;
-            case 'f':
-                if (colr_str_either(optarg, "rainbow", "rainbowterm")) {
-                    opts->rainbow_term = colr_str_eq(optarg, "rainbowterm");
-                    opts->rainbow_fore = true;
-                    opts->fore = ColorArg_to_ptr(ColorArg_empty());
-                } else  {
-                    opts->fore = fore(optarg);
-                    if (!validate_color_arg(*(opts->fore), optarg)) return EXIT_FAILURE;
-                }
-                break;
-            case 'h':
-                print_usage_full();
-                return EXIT_SUCCESS;
-            case 'l':
-                if (opts->just.method != JUST_NONE) {
-                    printferr("Justification was already set with: %s\n", just_arg_str(opts->just));
-                    return EXIT_FAILURE;
-                }
-                if (!parse_int_arg(optarg, &argval_just)) {
-                    printferr("Invalid number for --ljust: %s\n", optarg);
-                    return EXIT_FAILURE;
-                }
-                opts->just.method = JUST_LEFT;
-                opts->just.width = argval_just;
-                break;
-            case 'o':
-                if (!parse_size_arg(optarg, &argval_offset)) {
-                    printferr("Invalid value for --offset: %s\n", optarg);
-                    return EXIT_FAILURE;
-                }
-                opts->rainbow_offset = argval_offset;
-                break;
-            case 'q':
-                if (!parse_double_arg(optarg, &argval_freq)) {
-                    printferr("Invalid value for --frequency: %s\n", optarg);
-                    return EXIT_FAILURE;
-                }
-                // Clamp the value, because it produces ugly results.
-                if (argval_freq < 0.1) {
-                    argval_freq = 0.1;
-                } else if (argval_freq > 1.0) {
-                    argval_freq = 1.0;
-                }
-                opts->rainbow_freq = argval_freq;
-                break;
-            case 'r':
-                if (opts->just.method != JUST_NONE) {
-                    printferr("Justification was already set with: %s\n", just_arg_str(opts->just));
-                    return EXIT_FAILURE;
-                }
-                if (!parse_int_arg(optarg, &argval_just)) {
-                    printferr("Invalid number for --rjust: %s\n", optarg);
-                    return EXIT_FAILURE;
-                }
-                opts->just.method = JUST_RIGHT;
-                opts->just.width = argval_just;
-                break;
-            case 's':
-                opts->style = style(optarg);
-                if (!validate_color_arg(*(opts->style), optarg)) return EXIT_FAILURE;
-                break;
-            case 't':
-                opts->translate_code = true;
-                break;
-            case 'u':
-                opts->list_codes = true;
-                opts->list_unique_codes = true;
-                break;
-            case 'v':
-                print_version();
-                return EXIT_SUCCESS;
-            case 'x':
-                opts->strip_codes = true;
-                break;
-            case 'z':
-                opts->list_codes = true;
-                break;
-            case '?':
-                print_usage_errmsg("Unknown argument: -%c", optopt);
-                return EXIT_FAILURE;
-            case ':':
-                print_usage_errmsg("Missing value for: %s", argv[optind - 1]);
-                return EXIT_FAILURE;
-            default:
-                print_usage_errmsg("Unknown option!: %c\n", c);
-                return EXIT_FAILURE;
+        int ret = parse_arg_char(argv, long_options[option_index].name, c, opts);
+        if (ret > -1) {
+            // Bad argument, or other failure.
+            return ret;
         }
     }
     // Remaining non-option arguments.
@@ -845,9 +880,13 @@ int print_rainbow(ColrOpts* opts, bool do_back) {
     char text[] = "This is a demo of the rainbow function.";
     char* rainbowtxt;
     if (do_back) {
-        rainbowtxt = colr_supports_rgb() ? rainbow_bg(text, 0.1, 3) : rainbow_bg_term(text, 0.1, 3);
+        rainbowtxt = colr_supports_rgb() ?
+            rainbow_bg(text, CT_DEFAULT_FREQ, CT_DEFAULT_OFFSET) :
+            rainbow_bg_term(text, CT_DEFAULT_FREQ, CT_DEFAULT_OFFSET);
     } else {
-        rainbowtxt = colr_supports_rgb() ? rainbow_fg(text, 0.1, 3) : rainbow_fg_term(text, 0.1, 3);
+        rainbowtxt = colr_supports_rgb() ?
+            rainbow_fg(text, CT_DEFAULT_FREQ, CT_DEFAULT_OFFSET) :
+            rainbow_fg_term(text, CT_DEFAULT_FREQ, CT_DEFAULT_OFFSET);
     }
     char* textfmt = colr(
         do_back ? fore(BLACK) : back(RESET),
@@ -918,11 +957,11 @@ int print_usage(const char* reason) {
     printf("%s v. %s\n\
     Usage:\n\
         colr -h | -v\n\
-        colr --basic | --256 | --names | --rainbow | --rgb | --rgbterm\n\
+        colr --basic | --256 | --names | --rainbowize | --rgb | --rgbterm\n\
         colr (-t | -x | -z [-u]) [-a] [TEXT]\n\
-        colr [TEXT] [FORE | -f color] [BACK | -b color] [STYLE | -s style]\n\
+        colr [TEXT] [-R] [FORE | -f color] [BACK | -b color] [STYLE | -s style]\n\
              [-a] [-c num | -l num | -r num] [-o num] [-q num]\n\
-        colr [-F file] [FORE | -f color] [BACK | -b color] [STYLE | -s style]\n\
+        colr [-F file] [-R] [FORE | -f color] [BACK | -b color] [STYLE | -s style]\n\
              [-a] [-c num | -l num | -r num] [-o num] [-q num]\n\
     ", NAME, VERSION);
     return EXIT_SUCCESS;
@@ -941,7 +980,7 @@ int print_usage_full() {
 "        --names[rgb]         : Print extra extended/rgb names and colors.\n",
 "                               If 'rgb' is appended to the argument, RGB colors\n",
 "                               will be used.\n",
-"        --rainbow[bg]        : Print a rainbow example.\n",
+"        --rainbowize[bg]     : Print a rainbow example.\n",
 "        --rgb[bg]            : Print some rgb codes.\n",
 "        --rgbterm[bg]        : Print some 256-compatible rgb codes.\n",
 "\n",
@@ -975,12 +1014,15 @@ int print_usage_full() {
 "                                  This will \"shift\" the starting color of the\n",
 "                                  rainbow.\n",
 "                                  Values must be 0 or positive.\n",
-"                                  Default: 3\n",
+"                                  Default: " colr_macro_str(CT_DEFAULT_OFFSET) "\n",
 "        -q num,--frequency num  : Frequency when \"rainbow\" is used as a fore/back color.\n",
 "                                  Higher numbers cause more contrast.\n",
 "                                  Lower numbers cause \"smoother\" gradients.\n",
-"                                  Values can be: 0.1-1.0\n",
-"                                  Default: 0.1\n",
+"                                  Values can be: " colr_macro_str(CT_MIN_FREQ) "-" colr_macro_str(CT_MAX_FREQ) "\n",
+"                                  Default: " colr_macro_str(CT_DEFAULT_FREQ) "\n",
+"        -R,--rainbow            : Same as -f rainbow or -b rainbow, depending\n",
+"                                  on whichever one hasn't been set.\n",
+"                                  This is for Colr.py compatibility.\n",
 "        -r num,--rjust num      : Right-justify the resulting text using the specified width.\n",
 "                                  If \"0\" is given, the terminal-width will be used.\n",
 "        -s val,--style val      : Specify the style explicitly, in any order.\n",
