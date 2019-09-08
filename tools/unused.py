@@ -64,10 +64,16 @@ MACRO_FILES = tuple(
     for s in ('colr.h', 'colr_tool.h')
 )
 TEST_DIR = os.path.join(COLRC_DIR, 'test')
+IGNORE_TEST_FILES = ('snow', )
 TEST_FILES = tuple(
     os.path.join(TEST_DIR, s)
     for s in os.listdir(TEST_DIR)
-    if s.endswith(('.h', '.c'))
+    if s.endswith(('.h', '.c')) and (not s.startswith(IGNORE_TEST_FILES))
+)
+TEST_MACRO_FILES = tuple(
+    os.path.join(TEST_DIR, s)
+    for s in os.listdir(TEST_DIR)
+    if s.endswith('.h') and (not s.startswith(IGNORE_TEST_FILES))
 )
 EXAMPLE_DIR = os.path.join(COLRC_DIR, 'examples')
 EXAMPLE_FILES = tuple(
@@ -85,20 +91,19 @@ CPPCHECK_ARGS = [
 ]
 if os.path.exists(SUPPRESS_FILE):
     CPPCHECK_ARGS.append(f'--suppressions-list={SUPPRESS_FILE}')
-CPPCHECK_ARGS.extend(COLRC_FILES)
-CPPCHECK_ARGS.extend(TOOL_FILES)
 
 USAGESTR = f"""{VERSIONSTR}
     Usage:
         {SCRIPT} [-h | -v]
-        {SCRIPT} [-D] -l
-        {SCRIPT} [-D] -s PATTERN
-        {SCRIPT} [-D] [-F | -M] -N [PATTERN]
-        {SCRIPT} [-D] [-F | -M] (-E | -e) [-f | -r] [PATTERN]
-        {SCRIPT} [-D] [-a] [-d] [-F | -M] [-f | -r] [-t] [PATTERN]
+        {SCRIPT} [-D] [-T] -l
+        {SCRIPT} [-D] [-T] -s PATTERNS...
+        {SCRIPT} [-D] [-T] [-F | -M] -N [PATTERN]
+        {SCRIPT} [-D] [-T] [-F | -M] (-E | -e) [-f | -n | -r] [PATTERN]
+        {SCRIPT} [-D] [-T] [-a] [-d] [-F | -M] [-f | -n | -r] [-t] [PATTERN]
 
     Options:
         PATTERN          : Only show names matching this regex/text pattern.
+        PATTERNS         : One or more patterns to send to the search command.
         -a,--all         : Show everything cppcheck thinks is unused.
         -D,--debug       : Show more info while running.
         -d,--testdeps    : Functions with tests, or in tests are not unused.
@@ -110,9 +115,11 @@ USAGESTR = f"""{VERSIONSTR}
         -l,--legend      : Print a color-code legend.
         -M,--onlymacros  : Use only function-like macros.
         -N,--listnames   : Show all function names reported by cppcheck, or
-                           macro names if -m or -M is used.
+                           macro names unless -F is used.
+        -n,--names       : Show just the names in the final report.
         -r,--raw         : Show raw info.
         -s,--search      : Use `ag` to search for symbols in the project.
+        -T,--checktests  : Gather info about the tests, not the project.
         -t,--untested    : Show untested functions.
         -v,--version     : Show version.
 """
@@ -158,19 +165,19 @@ def main(argd):
     if argd['--legend']:
         return print_legend()
     elif argd['--search']:
-        return search(argd['PATTERN'])
+        return search(argd['PATTERNS'])
 
     pat = try_repat(argd['PATTERN'])
     if argd['--onlymacros']:
-        names = get_macro_names(pat=pat)
+        names = get_macro_names(pat=pat, use_tests=argd['--checktests'])
     elif argd['--onlyfuncs']:
-        names = get_cppcheck_names(pat=pat)
+        names = get_cppcheck_names(pat=pat, use_tests=argd['--checktests'])
         if not names:
             print_err('No unused functions reported by cppcheck.')
             return 1
     else:
-        names = get_cppcheck_names(pat=pat)
-        names.extend(get_macro_names(pat=pat))
+        names = get_cppcheck_names(pat=pat, use_tests=argd['--checktests'])
+        names.extend(get_macro_names(pat=pat, use_tests=argd['--checktests']))
     if not names:
         print_err('No names to use.')
         return 1
@@ -179,16 +186,20 @@ def main(argd):
         return print_names(names)
 
     filepaths = []
-    filepaths.extend(COLRC_FILES)
-    filepaths.extend(TOOL_FILES)
-    filepaths.extend(TEST_FILES)
-    filepaths.extend(EXAMPLE_FILES)
+    if argd['--checktests']:
+        filepaths.extend(TEST_FILES)
+    else:
+        filepaths.extend(COLRC_FILES)
+        filepaths.extend(TOOL_FILES)
+        filepaths.extend(TEST_FILES)
+        filepaths.extend(EXAMPLE_FILES)
     info = check_files(filepaths, names)
-    info = filter_used_macros(info)
     if argd['--examples'] or argd['--noexamples']:
         info = filter_examples(info, with_examples=argd['--examples'])
 
     if not argd['--all']:
+        # all macro names are gathered, not all of them are unused.
+        info = filter_used_macros(info)
         # cppcheck has a lot of false positives, do some more filtering.
         info = filter_used(
             info,
@@ -197,11 +208,13 @@ def main(argd):
         )
     if argd['--full']:
         ret = print_full(info)
+    elif argd['--names']:
+        ret = print_names(sorted(info))
     elif argd['--raw']:
         ret = print_raw(info)
     else:
         ret = print_simple(info)
-    if not argd['--raw']:
+    if not (argd['--raw'] or argd['--names']):
         print_footer(argd, info)
 
     return ret
@@ -288,10 +301,10 @@ def filter_examples(info, with_examples=True):
     for name in sorted(info):
         nameinfo = info[name]
         if with_examples:
-            if is_example(nameinfo):
+            if is_example(name, nameinfo):
                 keep[name] = nameinfo
                 continue
-        elif not is_example(nameinfo):
+        elif not is_example(name, nameinfo):
             keep[name] = nameinfo
             continue
     return keep
@@ -301,11 +314,11 @@ def filter_used(info, untested=False, test_deps=False):
     keep = {}
     for name, nameinfo in info.items():
         if untested:
-            if is_untested(nameinfo):
+            if is_untested(name, nameinfo):
                 keep[name] = nameinfo
             continue
-        if is_unused(nameinfo):
-            if test_deps and not is_test_dep(nameinfo):
+        if is_unused(name, nameinfo):
+            if test_deps and not is_test_dep(name, nameinfo):
                 continue
             keep[name] = nameinfo
             continue
@@ -318,27 +331,37 @@ def filter_used_macros(info):
     for name, nameinfo in info.items():
         if not isinstance(name, MacroName):
             keep[name] = nameinfo
+            debug(f'Not a macro: {name}')
             continue
-        if is_unused(nameinfo):
+        if is_unused(name, nameinfo):
             keep[name] = nameinfo
+            debug(f'Unused Macro: {name}')
             continue
+    debug(f'Filtered used macros: {len(info) - len(keep)}/{len(info)}')
     return keep
 
 
 def format_name(name, nameinfo):
-    if is_test_dep(nameinfo):
+    if is_test_dep(name, nameinfo):
         return name.fmt_testdep()
-    elif is_untested(nameinfo):
+    elif is_untested(name, nameinfo):
         return name.fmt_untested()
-    elif is_unused(nameinfo):
+    elif is_unused(name, nameinfo):
         return name.fmt_unused()
 
     return C(name)
 
 
-def get_cppcheck_names(pat=None):
+def get_cppcheck_names(pat=None, use_tests=False):
     cmd = ['cppcheck']
     cmd.extend(CPPCHECK_ARGS)
+    if use_tests:
+        cmd.extend(TEST_FILES)
+        cls = TestFunctionName
+    else:
+        cmd.extend(COLRC_FILES)
+        cmd.extend(TOOL_FILES)
+        cls = FunctionName
     debug(f'Running: {" ".join(cmd)}')
     proc = ProcessOutput(cmd)
     names = []
@@ -361,11 +384,12 @@ def get_cppcheck_names(pat=None):
             total += 1
             if total % 10 == 0:
                 prog.text = f'Running cppcheck (names: {total})'
-            names.append(FunctionName(name))
+            names.append(cls(name))
     return names
 
 
 def get_file_macros(filepath):
+    total = 0
     try:
         with open(filepath, 'r') as f:
             for line in f:
@@ -373,19 +397,22 @@ def get_file_macros(filepath):
                 if match is None:
                     continue
                 yield match.groups()[0]
+                total += 1
+        debug(f'Macros found: {total} - {filepath}')
     except FileNotFoundError:
         print_err(f'File not found: {filepath}')
     except EnvironmentError as ex:
         print_err(f'Can\'t read file: {filepath}\n{ex}')
 
 
-def get_macro_names(pat=None):
+def get_macro_names(pat=None, use_tests=False):
+    cls = TestMacroName if use_tests else MacroName
     names = []
-    for filepath in MACRO_FILES:
+    for filepath in TEST_MACRO_FILES if use_tests else MACRO_FILES:
         for name in get_file_macros(filepath):
             if (pat is not None) and (pat.search(name) is None):
                 continue
-            names.append(MacroName(name))
+            names.append(cls(name))
     return names
 
 
@@ -394,15 +421,24 @@ def highlight_code(line, lexer=lexer_c):
     return highlight(line, lexer, fmter_256).strip()
 
 
-def is_example(nameinfo):
+def is_example(name, nameinfo):
     return nameinfo['example_cnt'] > 0
 
 
-def is_untested(nameinfo):
+def is_untested(name, nameinfo):
+    if isinstance(name, TestFunctionName):
+        return nameinfo['test_cnt'] < 3
+    elif isinstance(name, TestMacroName):
+        return nameinfo['test_cnt'] < 2
     return not nameinfo['test_cnt']
 
 
-def is_unused(nameinfo):
+def is_unused(name, nameinfo):
+    if isinstance(name, TestFunctionName):
+        return nameinfo['test_cnt'] < 3
+    elif isinstance(name, TestMacroName):
+        return nameinfo['test_cnt'] < 2
+
     colr_cnt = nameinfo['colr_cnt']
     tool_cnt = nameinfo['tool_cnt']
     if (colr_cnt < 3) and (colr_cnt and not tool_cnt):
@@ -412,11 +448,11 @@ def is_unused(nameinfo):
     return False
 
 
-def is_used(nameinfo):
-    return not is_unused(nameinfo)
+def is_used(name, nameinfo):
+    return not is_unused(name, nameinfo)
 
 
-def is_test_dep(nameinfo):
+def is_test_dep(name, nameinfo):
     return nameinfo['test_cnt'] > 2
 
 
@@ -539,7 +575,7 @@ def print_simple(info):
         nameinfo = info[name]
         namefmt = format_name(name, nameinfo)
         print(C(' ').join(
-            namefmt.rjust(30),
+            namefmt.ljust(30),
             fmt_lbl('total', nameinfo['total']),
             fmt_lbl('colr', nameinfo['colr_cnt']),
             fmt_lbl('tool', nameinfo['tool_cnt']),
@@ -550,8 +586,9 @@ def print_simple(info):
     return 1 if info else 0
 
 
-def search(pattern):
+def search(patterns):
     """ Run `ag --cc <pattern> <project_dir>`. """
+    pattern = '|'.join(f'({s}\\b)' for s in patterns)
     cmd = ['ag', '--cc', pattern, COLRC_DIR]
     debug(f'Running: {" ".join(cmd)}')
     return subprocess.check_call(cmd)
@@ -611,6 +648,10 @@ class FunctionName(Name):
         return CUnused(self)
 
 
+class TestFunctionName(FunctionName):
+    pass
+
+
 class MacroName(Name):
     def __colr__(self):
         return CMacro(self.data)
@@ -623,6 +664,10 @@ class MacroName(Name):
 
     def fmt_unused(self):
         return CMacroUnused(self)
+
+
+class TestMacroName(MacroName):
+    pass
 
 
 if __name__ == '__main__':
