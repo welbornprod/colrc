@@ -32,8 +32,9 @@ debugprinter.enable(('-D' in sys.argv) or ('--debug' in sys.argv))
 debug = debugprinter.debug
 debug_err = debugprinter.debug_err
 
-pyg_lexer = get_lexer_by_name('c')
-pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
+lexer_c = get_lexer_by_name('c')
+lexer_json = get_lexer_by_name('js')
+fmter_256 = Terminal256Formatter(bg='dark', style='monokai')
 
 anim_frames = Frames.dots_orbit.as_rainbow()
 
@@ -91,6 +92,7 @@ USAGESTR = f"""{VERSIONSTR}
     Usage:
         {SCRIPT} [-h | -v]
         {SCRIPT} [-D] -l
+        {SCRIPT} [-D] -s PATTERN
         {SCRIPT} [-D] [-F | -M] -N [PATTERN]
         {SCRIPT} [-D] [-F | -M] (-E | -e) [-f | -r] [PATTERN]
         {SCRIPT} [-D] [-a] [-d] [-F | -M] [-f | -r] [-t] [PATTERN]
@@ -110,6 +112,7 @@ USAGESTR = f"""{VERSIONSTR}
         -N,--listnames   : Show all function names reported by cppcheck, or
                            macro names if -m or -M is used.
         -r,--raw         : Show raw info.
+        -s,--search      : Use `ag` to search for symbols in the project.
         -t,--untested    : Show untested functions.
         -v,--version     : Show version.
 """
@@ -123,14 +126,14 @@ def rgb(r, g, b):
 
 
 CFile = Preset(fore='cyan')
-CName = Preset(fore='blue')
-CMacro = Preset(fore='cornflowerblue')
+CName = Preset(fore=rgb(77, 88, 237))
+CMacro = Preset(fore=rgb(100, 149, 237))
 CTestdep = Preset(fore=rgb(255, 128, 64))
-CMacroTestdep = Preset(fore=rgb(255, 255, 70))
-CUntested = Preset(fore=rgb(200, 23, 0), style='bright')
-CMacroUntested = Preset(fore=rgb(0, 162, 231), style='bright')
-CUnused = Preset(fore=rgb(200, 23, 0))
-CMacroUnused = Preset(fore=rgb(0, 162, 231))
+CMacroTestdep = Preset(fore=rgb(246, 112, 255))
+CUntested = Preset(fore=rgb(200, 66, 66), style='bright')
+CMacroUntested = Preset(fore=rgb(141, 92, 200), style='bright')
+CUnused = Preset(fore=rgb(200, 93, 93))
+CMacroUnused = Preset(fore=rgb(141, 92, 200))
 CNum = Preset(fore='blue', style='bright')
 CTotal = Preset(fore='yellow')
 
@@ -154,17 +157,19 @@ def main(argd):
     """ Main entry point, expects docopt arg dict as argd. """
     if argd['--legend']:
         return print_legend()
+    elif argd['--search']:
+        return search(argd['PATTERN'])
 
     pat = try_repat(argd['PATTERN'])
     if argd['--onlymacros']:
         names = get_macro_names(pat=pat)
     elif argd['--onlyfuncs']:
         names = get_cppcheck_names(pat=pat)
+        if not names:
+            print_err('No unused functions reported by cppcheck.')
+            return 1
     else:
         names = get_cppcheck_names(pat=pat)
-        if not names:
-            print_err('No unused names reported by cppcheck.')
-            return 1
         names.extend(get_macro_names(pat=pat))
     if not names:
         print_err('No names to use.')
@@ -384,9 +389,9 @@ def get_macro_names(pat=None):
     return names
 
 
-def highlight_line(line):
+def highlight_code(line, lexer=lexer_c):
     """ Highlight a C code snippet using pygments. """
-    return highlight(line, pyg_lexer, pyg_fmter).strip()
+    return highlight(line, lexer, fmter_256).strip()
 
 
 def is_example(nameinfo):
@@ -464,18 +469,18 @@ def print_footer(argd, info):
 
 
 def print_full(info):
+    colwidth = 30
     for name in sorted(info):
         nameinfo = info[name]
         total = nameinfo['total']
-        marker = '*' if isinstance(name, MacroName) else ''
-        print(f'{C(name):<30}{marker}: total: {CTotal(total)} ')
+        print(f'{C(name):<{colwidth}}  {CTotal(total)} ')
         for filepath in sorted(nameinfo['files']):
             fileinfo = nameinfo['files'][filepath]
             filecnt = fileinfo['count']
             filename = os.path.split(filepath)[-1]
-            print(f'    {CFile(filename):<26}: {CNum(filecnt)}')
+            print(f'    {CFile(filename):>{colwidth - 4}}: {CNum(filecnt)}')
             for line in fileinfo['lines']:
-                print(f'{" " * 30}{highlight_line(line.strip())}')
+                print(f'{" " * colwidth}{highlight_code(line.strip())}')
     return 1 if info else 0
 
 
@@ -495,7 +500,20 @@ def print_names(names):
 
 
 def print_raw(info):
-    print(json.dumps(info, sort_keys=True, indent=4))
+    rawjson = json.dumps(
+        {str(k): v for k, v in info.items()},
+        sort_keys=True,
+        indent=4
+    )
+    if sys.stdout.isatty():
+        infostr = highlight_code(
+            rawjson,
+            lexer=lexer_json,
+        )
+    else:
+        infostr = rawjson
+
+    print(infostr)
     return 1 if info else 0
 
 
@@ -532,6 +550,13 @@ def print_simple(info):
     return 1 if info else 0
 
 
+def search(pattern):
+    """ Run `ag --cc <pattern> <project_dir>`. """
+    cmd = ['ag', '--cc', pattern, COLRC_DIR]
+    debug(f'Running: {" ".join(cmd)}')
+    return subprocess.check_call(cmd)
+
+
 def try_repat(s):
     """ Try compiling a regex pattern.
         If None is passed, None is returned.
@@ -558,7 +583,21 @@ class InvalidArg(ValueError):
         return 'Invalid argument!'
 
 
-class FunctionName(UserString):
+class Name(UserString):
+    def __colr__(self):
+        return C(self.data)
+
+    def fmt_testdep(self):
+        raise NotImplementedError('This method should be overridden.')
+
+    def fmt_untested(self):
+        raise NotImplementedError('This method should be overridden.')
+
+    def fmt_unused(self):
+        raise NotImplementedError('This method should be overridden.')
+
+
+class FunctionName(Name):
     def __colr__(self):
         return CName(self.data)
 
@@ -572,7 +611,7 @@ class FunctionName(UserString):
         return CUnused(self)
 
 
-class MacroName(UserString):
+class MacroName(Name):
     def __colr__(self):
         return CMacro(self.data)
 
