@@ -93,4 +93,12 @@ subdesc(RGB_from_str) {
         }
     }
 }
+subdesc(RGB_repr) {
+    it("creates a repr") {
+        char* repr = RGB_repr(rgb(34, 26, 47));
+        assert_not_null(repr);
+        assert_str_starts_with(repr, "RGB");
+        free(repr);
+    }
+}
 }

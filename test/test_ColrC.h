@@ -399,6 +399,28 @@
         val \
     )
 
+#define assert_hash_eq(a, b) assert_fmt_op(a, ==, b, COLR_HASH_FMT, "Hashes are not equal")
+#define assert_hash_neq(a, b) assert_fmt_op(a, !=, b, COLR_HASH_FMT, "Hashes are equal")
+#define assert_str_hash_eq(a, b) assert_str_hash_op_func(a, ==, b, colr_str_hash, "Hashes are not equal")
+#define assert_str_hash_neq(a, b) assert_str_hash_op_func(a, !=, b, colr_str_hash, "Hashes are equal")
+#define assert_str_hash_op_func(a, op, b, func, msg) \
+    do { \
+        ColrHash _a_h_s_e_a = func(a); \
+        ColrHash _a_h_s_e_b = func(b); \
+        if (!(_a_h_s_e_a op _a_h_s_e_b)) { \
+            char* _a_h_s_e_repr_a = test_repr(a); \
+            char* _a_h_s_e_repr_b = test_repr(b); \
+            fail( \
+                "%s: " #func "(%s) " #op " " #func "(%s)", \
+                msg, \
+                _a_h_s_e_repr_a, \
+                _a_h_s_e_repr_b \
+            ); \
+            free(_a_h_s_e_repr_a); \
+            free(_a_h_s_e_repr_b); \
+        } \
+    } while (0)
+
 #define assert_int_eq(a, b) \
     assert_fmt_op(a, ==, b, "%d", "Integers are not equal")
 #define assert_int_eq_repr(a, b, colrobj) \
@@ -670,7 +692,12 @@
         }\
     } while (0)
 
+/*! \def assert_str_contains
+    Ensure a string contains another substring.
 
+    \pi s      The string to search.
+    \pi needle The substring to look for.
+*/
 #define assert_str_contains(s, needle) \
     do { \
         assert_not_null(s); \
@@ -681,6 +708,8 @@
             char* _a_s_c_repr = test_repr(s); \
             char* _a_s_c_needle = test_repr(needle); \
             fail("String does not contain %s: %s", _a_s_c_needle, _a_s_c_repr); \
+            free(_a_s_c_repr); \
+            free(_a_s_c_needle); \
         } \
     } while (0)
 
@@ -776,32 +805,11 @@
         } \
     } while (0)
 
-#define assert_hash_eq(a, b) assert_fmt_op(a, ==, b, COLR_HASH_FMT, "Hashes are not equal")
-#define assert_hash_neq(a, b) assert_fmt_op(a, !=, b, COLR_HASH_FMT, "Hashes are equal")
-#define assert_str_hash_eq(a, b) assert_str_hash_op_func(a, ==, b, colr_str_hash, "Hashes are not equal")
-#define assert_str_hash_neq(a, b) assert_str_hash_op_func(a, !=, b, colr_str_hash, "Hashes are equal")
-#define assert_str_hash_op_func(a, op, b, func, msg) \
-    do { \
-        ColrHash _a_h_s_e_a = func(a); \
-        ColrHash _a_h_s_e_b = func(b); \
-        if (!(_a_h_s_e_a op _a_h_s_e_b)) { \
-            char* _a_h_s_e_repr_a = test_repr(a); \
-            char* _a_h_s_e_repr_b = test_repr(b); \
-            fail( \
-                "%s: " #func "(%s) " #op " " #func "(%s)", \
-                msg, \
-                _a_h_s_e_repr_a, \
-                _a_h_s_e_repr_b \
-            ); \
-            free(_a_h_s_e_repr_a); \
-            free(_a_h_s_e_repr_b); \
-        } \
-    } while (0)
 
 #define assert_str_list_contains(lst, s) \
     do { \
         if (!colr_str_list_contains(lst, s)) { \
-            char* _a_s_l_c_repr = test_repr(s); \
+            char* _a_s_l_c_repr = colr_repr(s); \
             char* _a_s_l_l_repr = colr_str_list_repr(lst); \
             fail( \
                 #lst " does not contain: %s\n    List: %s", \
@@ -816,7 +824,7 @@
 #define assert_str_list_not_contains(lst, s) \
     do { \
         if (colr_str_list_contains(lst, s)) { \
-            char* _a_s_l_c_repr = test_repr(s); \
+            char* _a_s_l_c_repr = colr_repr(s); \
             char* _a_s_l_l_repr = colr_str_list_repr(lst); \
             fail( \
                 #lst " contains: %s\n    List: %s", \
@@ -836,6 +844,7 @@
         } \
     } while (0)
 
+// TODO: These should be covered already with assert_size_eq_repr().
 #define assert_str_list_size_eq_repr(a, b, lst) \
     assert_str_list_size_op_repr(a, ==, b, lst, "List sizes are not equal")
 
@@ -852,6 +861,27 @@
             ); \
             free(_a_s_op_r_repr); \
         }\
+    } while (0)
+
+/*! \def assert_str_starts_with
+    Ensure a string starts with a certain prefix.
+
+    \pi s      The string to check.
+    \pi prefix The prefix to look for.
+*/
+#define assert_str_starts_with(s, prefix) \
+    do { \
+        assert_not_null(s); \
+        assert_not_null(prefix); \
+        assert_str_not_empty(s); \
+        assert_str_not_empty(prefix); \
+        if (!colr_str_starts_with(s, prefix)) { \
+            char* _a_s_s_repr = test_repr(s); \
+            char* _a_s_s_prefix = test_repr(prefix); \
+            fail("String does not start with %s: %s", _a_s_s_prefix, _a_s_s_repr); \
+            free(_a_s_s_repr); \
+            free(_a_s_s_prefix); \
+        } \
     } while (0)
 
 /*! Use stack ColorArg pointers to allocate and fill a list of ColorArg pointers.
@@ -987,16 +1017,6 @@
         RGB: RGB_repr, \
         TermSize: TermSize_repr \
     )(x)
-
-/*! Kinda like colr_str_repr, but nothing is escaped.
-    If the string is NULL, then "NULL" is returned.
-    If the string is empty, then "\"\"" is returned.
-    Otherwise, the string itself is returned.
-
-    \pi s   The string to get the repr for.
-    \return Either the string, "NULL", or "\"\"".
-*/
-#define test_str_repr(s) (s ? ((s[0] == '\0') ? "\"\"" : s) : "NULL")
 
 size_t ColorArgs_list_len(ColorArg** lst);
 char* ColorArgs_list_repr(ColorArg** lst);
