@@ -519,7 +519,7 @@ int parse_arg_long(const char* long_name, ColrOpts* opts) {
         return print_256(opts, false);
     } else if (colr_str_eq(long_name, "names")) {
         return print_names(opts, false);
-    } else if (colr_str_eq(long_name, "rainbow")) {
+    } else if (colr_str_eq(long_name, "rainbowize")) {
         return print_rainbow(opts, false);
     } else if (colr_str_eq(long_name, "rgb")) {
         return print_rgb(opts, false, false);
@@ -531,7 +531,7 @@ int parse_arg_long(const char* long_name, ColrOpts* opts) {
         return print_256(opts, true);
     } else if (colr_str_eq(long_name, "namesrgb")) {
         return print_names(opts, true);
-    } else if (colr_str_eq(long_name, "rainbowbg")) {
+    } else if (colr_str_eq(long_name, "rainbowizebg")) {
         return print_rainbow(opts, true);
     } else if (colr_str_eq(long_name, "rgbbg")) {
         return print_rgb(opts, true, false);
@@ -594,8 +594,8 @@ int parse_args(int argc, char** argv, ColrOpts* opts) {
         {"256bg", no_argument, 0, 0},
         {"names", no_argument, 0, 0},
         {"namesrgb", no_argument, 0, 0},
-        {"rainbow", no_argument, 0, 0},
-        {"rainbowbg", no_argument, 0, 0},
+        {"rainbowize", no_argument, 0, 0},
+        {"rainbowizebg", no_argument, 0, 0},
         {"rgb", no_argument, 0, 0},
         {"rgbbg", no_argument, 0, 0},
         {"rgbterm", no_argument, 0, 0},

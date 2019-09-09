@@ -1828,6 +1828,7 @@ char* colr_str_lstrip_char(const char* s, const char c) {
     size_t finallen = length - colr_str_char_lcount(s, c);
     char* dest = calloc(finallen + 1, sizeof(char));
     if (!dest) return NULL;
+    // All characters were removed? Return the empty string.
     if (finallen == 1) return dest;
     colr_str_lstrip(dest, s, length, c);
     return dest;
@@ -1865,6 +1866,7 @@ char* colr_str_lstrip_chars(const char* restrict s, const char* restrict chars) 
     size_t finallen = length - colr_str_chars_lcount(s, chars);
     char* result = calloc(finallen + 1, sizeof(char));
     if (!result) return NULL;
+    // All characters were removed? Return the empty string.
     if (finallen == 1) return result;
     size_t result_pos = 0;
     bool done_trimming = false;
@@ -2553,16 +2555,19 @@ bool _colr_is_last_arg(void* p) {
                 This allows easy part-colored messages.\n
                 \mustfree
                 \maybenullalloc
+                Also, `NULL` will be returned if \p joinerp is `NULL`.
 */
 char* _colr_join(void *joinerp, ...) {
     if (!joinerp) {
-        return colr_empty_str();
+        return NULL;
     }
     va_list args;
     va_start(args, joinerp);
     va_list argcopy;
     va_copy(argcopy, args);
     size_t length = _colr_join_size(joinerp, argcopy);
+    if (length < 2) return NULL;
+
     va_end(argcopy);
 
     char* final = calloc(length, sizeof(char));
@@ -2590,6 +2595,8 @@ char* _colr_join(void *joinerp, ...) {
         // It's a string, or it better be anyway.
         joiner = (char* )joinerp;
     }
+    if (!joiner) return NULL;
+
     int count = 0;
     ColorArg* cargp = NULL;
     ColorResult* cresp = NULL;
@@ -2623,6 +2630,7 @@ char* _colr_join(void *joinerp, ...) {
             // It better be a string.
             piece = (char* )arg;
         }
+        if (!piece) continue;
         if (count++) strcat(final, joiner);
         strcat(final, piece);
 
@@ -2631,6 +2639,10 @@ char* _colr_join(void *joinerp, ...) {
         else if (cresp) ColorResult_free(cresp);
     }
     va_end(args);
+    if (!count) {
+        // All pieces were NULL/empty, just act like strdup(joiner).
+        strcat(final, joiner);
+    }
     if (joiner_cargp || joiner_ctextp) {
         free(joiner);
     } else if (joiner_cresp) {
@@ -2655,11 +2667,13 @@ char* _colr_join(void *joinerp, ...) {
     \sa _colr
 */
 size_t _colr_join_size(void *joinerp, va_list args) {
-    // No joiner, no strings. Empty string will be returned, so just "\0".
-    if (!joinerp) return 1;
+    // No joiner, no strings. NULL will be returned.
+    if (!joinerp) return 0;
 
-    size_t length = 1;
+    size_t length = 0;
     size_t joiner_len = _colr_ptr_length(joinerp);
+    if (joiner_len < 1) return 0;
+
     bool need_join = false;
     void *arg = NULL;
     while_colr_va_arg(args, void*, arg) {
@@ -2721,6 +2735,7 @@ char* colr_join_array(void* joinerp, void* ps) {
     \return     An allocated string with the result.\n
                 \mustfree
                 \maybenullalloc
+                If any parameter is `NULL`, `NULL` is returned.
 
     \examplecodefor{colr_join_arrayn,.c}
     char* joiner = " [and] ";
@@ -2742,9 +2757,9 @@ char* colr_join_array(void* joinerp, void* ps) {
     \sa colr colr_join
 */
 char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
-    if (!(joinerp && ps && count)) return colr_empty_str();
+    if (!(joinerp && ps && count)) return NULL;
     size_t length = _colr_join_arrayn_size(joinerp, ps, count);
-    if (length == 1) return colr_empty_str();
+    if (length < 2) return NULL;
     ColorArg* joiner_cargp = NULL;
     ColorResult* joiner_cresp = NULL;
     ColorText* joiner_ctextp = NULL;
@@ -2762,6 +2777,7 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
         // Better be a string!
         joiner = joinerp;
     }
+    if (!joiner) return NULL;
     bool do_reset = (joiner_cargp || joiner_ctextp);
 
     char* final = calloc(length, sizeof(char));
@@ -2800,6 +2816,10 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
             strcat(final, sps[i++]);
         }
     }
+    if (final[0] == '\0') {
+        // All pieces were NULL/empty. Act like strdup(joiner).
+        strcat(final, joiner);
+    }
     if (joiner_cargp || joiner_ctextp) free(joiner);
     if (do_reset) colr_append_reset(final);
     return final;
@@ -2817,9 +2837,8 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
                 The array must have `NULL` as the last item if \p count is
                 greater than the total number of items.
     \pi count   Total number of items in the array.
-    \return     An allocated string with the result.\n
-                \mustfree
-                \maybenullalloc
+    \return     The number of bytes needed to allocate the result of
+                colr_join_arrayn(), possibly `0`.
 
     \sa colr colr_join colr_join_array
 */
@@ -2827,7 +2846,7 @@ size_t _colr_join_arrayn_size(void* joinerp, void* ps, size_t count) {
     if (!(joinerp && ps && count)) return 0;
     size_t length = 0;
     size_t joiner_len = _colr_ptr_length(joinerp);
-    if (joiner_len < 2) return 1;
+    if (joiner_len < 2) return 0;
     length += joiner_len;
 
     size_t i = 0;
@@ -2888,6 +2907,7 @@ size_t _colr_join_array_length(void* ps) {
             (`strlen() + 1` for strings).
 */
 size_t _colr_ptr_length(void* p) {
+    if (!p) return 0;
     size_t length = 0;
     if (ColorArg_is_ptr(p)) {
         // It's a ColorArg.
@@ -3428,13 +3448,15 @@ char* ColorArg_repr(ColorArg carg) {
     You must still free the empty string.
 
     \pi carg ColorArg to get the ArgType and ColorValue from.
-    \return Allocated string for the escape code.\n
-            \mustfree
+    \return  Allocated string for the escape code.\n
+             \mustfree
+             If the ColorArg is considered "empty", or the ColorValue is invalid,
+             then `NULL` is returned.
 
     \sa ColorArg
 */
 char* ColorArg_to_esc(ColorArg carg) {
-    if (ColorArg_is_empty(carg)) return colr_empty_str();
+    if (ColorArg_is_empty(carg)) return NULL;
     return ColorValue_to_esc(carg.type, carg.value);
 }
 
@@ -3847,8 +3869,9 @@ bool ColorResult_is_ptr(void* p) {
 */
 size_t ColorResult_length(ColorResult cres) {
     if (!cres.result) return 0;
-    if (cres.length > (size_t)-1) return cres.length;
-    return strlen(cres.result) + 1;
+    if (cres.length > 0) return cres.length;
+    cres.length = strlen(cres.result) + 1;
+    return cres.length;
 }
 
 /*! Initialize a new ColorResult with an allocated \string.
@@ -3861,7 +3884,7 @@ size_t ColorResult_length(ColorResult cres) {
 ColorResult ColorResult_new(char *s) {
     ColorResult cres = ColorResult_empty();
     cres.result = s;
-    cres.length = s ? (strlen(s) + 1) : ((size_t)-1);
+    cres.length = s ? (strlen(s) + 1) : 0;
     return cres;
 }
 
@@ -4225,29 +4248,36 @@ ColorText* ColorText_to_ptr(ColorText ctext) {
     \return   An allocated string with text/escape-codes.\n
               \mustfree
               \maybenullalloc
+              If the ColorText has a `NULL` `.text` member, `NULL` is returned.
 
     \sa ColorText
 */
 char* ColorText_to_str(ColorText ctext) {
     // No text? No string.
-    if (!ctext.text) return colr_empty_str();
+    if (!ctext.text) return NULL;
     // Make room for any fore/back/style code combo plus the reset_all code.
     char* final = calloc(ColorText_length(ctext), sizeof(char));
     bool do_reset = (ctext.style || ctext.fore || ctext.back);
     if (ctext.style && !ColorArg_is_empty(*(ctext.style))) {
         char* stylecode = ColorArg_to_esc(*(ctext.style));
-        strcat(final, stylecode);
-        free(stylecode);
+        if (stylecode) {
+            strcat(final, stylecode);
+            free(stylecode);
+        }
     }
     if (ctext.fore && !ColorArg_is_empty(*(ctext.fore))) {
         char* forecode = ColorArg_to_esc(*(ctext.fore));
-        strcat(final, forecode);
-        free(forecode);
+        if (forecode) {
+            strcat(final, forecode);
+            free(forecode);
+        }
     }
     if (ctext.back && !ColorArg_is_empty(*(ctext.back))) {
         char* backcode = ColorArg_to_esc(*(ctext.back));
-        strcat(final, backcode);
-        free(backcode);
+        if (backcode) {
+            strcat(final, backcode);
+            free(backcode);
+        }
     }
     strcat(final, ctext.text);
     if (do_reset) colr_append_reset(final);
@@ -4910,7 +4940,7 @@ char* ColorValue_to_esc(ArgType type, ColorValue cval) {
                     format_style(codes, cval.style);
                     return codes;
                 default:
-                    return colr_empty_str();
+                    return NULL;
                 }
         case BACK:
             switch (cval.type) {
@@ -4932,7 +4962,7 @@ char* ColorValue_to_esc(ArgType type, ColorValue cval) {
                     format_style(codes, cval.style);
                     return codes;
                 default:
-                    return colr_empty_str();
+                    return NULL;
                 }
         case STYLE:
             switch (cval.type) {
@@ -4955,12 +4985,12 @@ char* ColorValue_to_esc(ArgType type, ColorValue cval) {
                     format_fg_RGB(codes, cval.rgb);
                     return codes;
                 default:
-                    return colr_empty_str();
+                    return NULL;
             }
         default:
-            return colr_empty_str();
+            return NULL;
     }
-    return colr_empty_str();
+    return NULL;
 }
 
 /*! Converts a ColorValue into an escape code \string and fills the destination

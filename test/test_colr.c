@@ -76,8 +76,7 @@ subdesc(colr) {
 subdesc(colr_join) {
     it("handles NULL") {
         char* result = colr_join(NULL, "this", "that");
-        assert_str_empty(result);
-        free(result);
+        assert_null(result);
     }
     it("handles sentinel value") {
         char* s = _colr_join("", "test", "this", _ColrLastArg);
