@@ -381,7 +381,7 @@ subdesc(ColorArg_to_esc) {
             ColorArg carg;
             char* expected;
         } tests[] = {
-            {ColorArg_from_str(FORE, "NOTACOLOR"), ""},
+            {ColorArg_from_str(FORE, "NOTACOLOR"), NULL},
             {fore_arg(WHITE), "\x1b[37m"},
             {fore_arg(XWHITE), "\x1b[38;5;7m"},
             {style_arg(BRIGHT), "\x1b[1m"},
@@ -389,8 +389,9 @@ subdesc(ColorArg_to_esc) {
         };
         for_each(tests, i) {
             char* s = ColorArg_to_esc(tests[i].carg);
-            if (tests[i].expected[0] == '\0') {
-                assert_str_empty(s);
+            if (!tests[i].expected) {
+                assert_null(s);
+                continue;
             } else {
                 assert(colr_str_is_codes(s));
             }

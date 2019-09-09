@@ -60,12 +60,13 @@ subdesc(ColorResult_length) {
             ColorResult* cres;
             size_t expected;
         } tests[] = {
-            {Colr_join(NULL, "[", "]"), 1},
-            {Colr_join("test", NULL), 1},
+            {Colr_join(NULL, "[", "]"), 0},
+            {Colr_join("test", NULL), 5},
             {Colr_join("test", "[", "]"), 7},
         };
         for_each(tests, i) {
             size_t length = ColorResult_length(*tests[i].cres);
+            assert_size_eq_repr(length, tests[i].cres->length, *tests[i].cres);
             assert_size_eq_repr(length, tests[i].expected, *tests[i].cres);
             ColorResult_free(tests[i].cres);
         }

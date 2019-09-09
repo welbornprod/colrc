@@ -13,8 +13,7 @@ subdesc(ColorText_empty) {
         ColorText empty = ColorText_empty();
         assert(ColorText_is_empty(empty));
         char* s = ColorText_to_str(empty);
-        assert_str_empty(s);
-        free(s);
+        assert_null(s);
     }
 }
 subdesc(ColorText_free) {
@@ -228,8 +227,7 @@ subdesc(ColorText_to_str) {
     it("creates colorized strings") {
         ColorText empty = ColorText_empty();
         char* emptystr = ColorText_to_str(empty);
-        assert_str_empty(emptystr);
-        free(emptystr);
+        assert_null(emptystr);
 
         ColorText ctext = ColorText_from_values("test", _ColrLastArg);
         char* nocodes = ColorText_to_str(ctext);

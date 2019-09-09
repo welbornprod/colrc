@@ -238,7 +238,7 @@ subdesc(ColorValue_to_esc) {
             ColorValue cval;
             char* expected;
         } tests[] = {
-            {FORE, ColorValue_from_str("NOTACOLOR"), ""},
+            {FORE, ColorValue_from_str("NOTACOLOR"), NULL},
             {FORE, color_val(basic), "\x1b[37m"},
             {FORE, color_val(extended), "\x1b[38;5;7m"},
             {STYLE, color_val(style), "\x1b[1m"},
@@ -246,6 +246,10 @@ subdesc(ColorValue_to_esc) {
         };
         for_each(tests, i) {
             char* s = ColorValue_to_esc(tests[i].type, tests[i].cval);
+            if (!tests[i].expected) {
+                assert_null(s);
+                continue;
+            }
             assert_str_eq(s, tests[i].expected, "Failed to create escape-code.");
             free(s);
         }
