@@ -99,6 +99,14 @@
 
 //! Convenience definition, because this is used a lot.
 #define CODE_RESET_ALL "\x1b[0m"
+//! Convenience definition for resetting the back color.
+#define CODE_RESET_BACK "\x1b[49m"
+//! Convenience definition for resetting the fore color.
+#define CODE_RESET_FORE "\x1b[39m"
+//! Convenience definition for resetting the back color.
+#define WCODE_RESET_BACK L"\x1b[49m"
+//! Convenience definition for resetting the fore color.
+#define WCODE_RESET_FORE L"\x1b[39m"
 //! Convenience definition for wide chars.
 #define WCODE_RESET_ALL L"\x1b[0m"
 //! Short-hand for CODE_RESET_ALL, stands for "No Color".

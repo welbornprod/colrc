@@ -35,7 +35,6 @@ int main(int argc, char* argv[]) {
 
     ColorText* ctext = NULL;
     // Rainbowize the text arg.
-    // TODO: Let ColorText/colr handle "rainbow" as an official color name.
     if (opts.rainbow_fore || opts.rainbow_back) {
         ctext = rainbowize(&opts);
     } else {
@@ -69,7 +68,11 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
     fprintf(opts.out_stream, "%s", text);
-    if (!colr_str_ends_with(text, "\n" CODE_RESET_ALL)) {
+    bool has_newline = (
+        colr_str_ends_with(text, "\n") ||
+        colr_str_ends_with(text, "\n" CODE_RESET_ALL)
+    );
+    if (!has_newline) {
         fprintf(opts.out_stream, "\n");
     }
 

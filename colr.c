@@ -6274,6 +6274,17 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
     // There is an RGB code for every multibyte character in the string.
     // The entire original string, plus an rgb code for every multibyte char.
     size_t total_size = byte_len + (CODE_RGB_LEN * mb_len);
+    // If we're doing a back-rainbow, we'll need to fix the newlines.
+    // I don't like comparing function pointers to detect this, but it's the
+    // fastest/easiest way right now.
+    bool append_reset_nl = (
+        (fmter == format_bg_RGB) ||
+        (fmter == format_bg_RGB_term)
+    );
+    if (append_reset_nl) {
+        // There is also a reset code prepended before every newline.
+        total_size += CODE_RESET_LEN * colr_str_char_count(s, '\n');
+    }
     char* out = calloc(total_size, sizeof(char));
     if (!out) return NULL;
 
@@ -6290,12 +6301,23 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
         // Write the multibyte char at (s + i), the length is char_len.
         // Basically copying the string from (s + i) through (s + i + char_len).
         snprintf(mb_char, char_len + 1, "%s", s + i);
+        if (append_reset_nl && (mb_char[0] == '\n')) {
+            // Prepend the reset code *before* newlines for back-rainbows.
+            // NOTE: Some terminals won't colorize '\t' like they will a space.
+            //       '\n\t' looks different than '\n '. I could try to account
+            //       for that case, and not append the reset, but it would
+            //       probably make things look worse. The style wouldn't be
+            //       reset at all, and leave long lines of background color.
+            //       For now, just know that '\t' is special when doing
+            //       background-colors, and it's not my fault.
+            strcat(out, CODE_RESET_BACK);
+        }
         strcat(out, mb_char);
         // Jump past the multibyte character for the next code.
         i += char_len;
         // TODO: Add --spread, by writing multiple characters after the code.
     }
-    strcat(out, CODE_RESET_ALL);
+    colr_append_reset(out);
 
     return out;
 }
