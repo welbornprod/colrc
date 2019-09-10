@@ -76,6 +76,7 @@
 #include <math.h>
 #include <limits.h> // Used for asprintf return checking.
 #include <locale.h> // Not used in colr.c, but necessary for users of rainbow stuff.
+#include <printf.h> // For register_printf_specifier.
 #include <stdarg.h> // Variadic functions and `va_list`.
 #include <stdbool.h>
 #include <stdint.h> // marker integers for colr structs
