@@ -360,7 +360,7 @@ subdesc(colr_str_center) {
 
         };
         for_each(tests, i) {
-            char* result = colr_str_center(tests[i].s, tests[i].padchar, tests[i].width);
+            char* result = colr_str_center(tests[i].s, tests[i].width, tests[i].padchar);
             if (!result) {
                 if (!tests[i].expected) {
                     // Expected null.
@@ -915,7 +915,7 @@ subdesc(colr_str_ljust) {
 
         };
         for_each(tests, i) {
-            char* result = colr_str_ljust(tests[i].s, tests[i].padchar, tests[i].width);
+            char* result = colr_str_ljust(tests[i].s, tests[i].width, tests[i].padchar);
             if (!result) {
                 if (!tests[i].expected) {
                     // Expected null.
@@ -1291,7 +1291,7 @@ subdesc(colr_str_rjust) {
 
         };
         for_each(tests, i) {
-            char* result = colr_str_rjust(tests[i].s, tests[i].padchar, tests[i].width);
+            char* result = colr_str_rjust(tests[i].s, tests[i].width, tests[i].padchar);
             if (!result) {
                 if (!tests[i].expected) {
                     // Expected null.

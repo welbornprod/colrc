@@ -17,3 +17,4 @@ libcolr.so
 cppcheck_report
 colrc-*.*.*
 snippet.last.*
+snippet.colr.*.c

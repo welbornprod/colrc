@@ -85,10 +85,12 @@
 #include <string.h> // strcat
 #include <sys/ioctl.h> //  For `struct winsize` and the `ioctl()` call to use it.
 #include <unistd.h> // isatty
+#include <wchar.h>
 /* This is only enabled for development. */
 #if defined(DEBUG) && defined(COLR_DEBUG)
     #include "dbug.h"
 #endif
+
 /* Tell gcc to ignore unused macros. */
 #pragma GCC diagnostic ignored "-Wunused-macros"
 /* Tell gcc to ignore clang pragmas, for linting. */
@@ -570,8 +572,23 @@
 */
 #define Colr(text, ...) ColorText_to_ptr(ColorText_from_values(text, __VA_ARGS__, _ColrLastArg))
 
+/*! \def Colr_cat
+    Like colr(), but returns an allocated ColorResult that the \colrmacros
+    will automatically `free()`.
+
+    \pi ... Arguments for colr(), to concatenate.
+    \return An allocated ColorResult with all arguments joined together.\n
+            \mustfree
+            \maybenullalloc
+            \colrmightfree
+*/
+#define Colr_cat(...) ColorResult_to_ptr(ColorResult_new(colr(__VA_ARGS__)))
+
 /*! \def Colr_center
     Sets the JustifyMethod for a ColorText while allocating it.
+
+    \details
+    This is like Colr_center_char(), except is uses space as the default character.
 
     \pi text      Text to colorize.
     \pi justwidth Width for justification.
@@ -597,15 +614,45 @@
         (ColorJustify){.method=JUST_CENTER, .width=justwidth, .padchar=' '} \
     )
 
+/*! \def Colr_center_char
+    Sets the JustifyMethod for a ColorText while allocating it.
+
+    \pi text      Text to colorize.
+    \pi justwidth Width for justification.
+    \pi c         The character to pad with.
+    \pi ...       Fore, back, or style ColorArgs for Colr().
+
+    \return       An allocated ColorText.\n
+                  \colrmightfree
+
+    \sa Colr_center
+
+    \examplecodefor{Colr_center_char,.c}
+    char* justified = colr(Colr_center_char("This.", 8, ' ', fore(RED), back(WHITE)));
+    assert(justified);
+    // The string still has codes, but only 3 spaces were added.
+    assert(colr_str_ends_with(justified, "   "));
+    // It was "justified" to 8 characters long, but it is well over that.
+    assert(strlen(justified) > 8);
+    printf("'%s'\n", justified);
+    free(justified);
+    \endexamplecode
+*/
+#define Colr_center_char(text, justwidth, c, ...) ColorText_set_just( \
+        Colr(text, __VA_ARGS__), \
+        (ColorJustify){.method=JUST_CENTER, .width=justwidth, .padchar=c} \
+    )
+
 /*! \def Colr_join
     Joins Colr objects and strings, exactly like colr_join(), but returns
     an allocated ColorResult that the \colrmacros will automatically `free()`
     for you.
 
     \pi joiner What to put between the other arguments.
-               ColorArg pointer, ColorText pointer, or string.
+               ColorArg pointer, ColorResult pointer, ColorText pointer, or string.
     \pi ...    Other arguments to join, with \p joiner between them.
-               ColorArg pointers, ColorText pointers, or strings, in any order.
+               ColorArg pointers, ColorResult pointers, ColorText pointers,
+               or strings, in any order.
     \return    An allocated ColorResult.\n
                \mustfree
                \maybenullalloc
@@ -619,6 +666,9 @@
 
 /*! \def Colr_ljust
     Sets the JustifyMethod for a ColorText while allocating it.
+
+    \details
+    This is like Colr_ljust_char(), except is uses space as the default character.
 
     \pi text      Text to colorize.
     \pi justwidth Width for justification.
@@ -643,8 +693,40 @@
         (ColorJustify){.method=JUST_LEFT, .width=justwidth, .padchar=' '} \
     )
 
+/*! \def Colr_ljust_char
+    Sets the JustifyMethod for a ColorText while allocating it.
+
+    \pi text      Text to colorize.
+    \pi justwidth Width for justification.
+    \pi c         The character to pad with.
+    \pi ...       Fore, back, or style ColorArgs for Colr().
+
+    \return       An allocated ColorText.\n
+                  \colrmightfree
+
+    \sa Colr_ljust
+
+    \examplecodefor{Colr_ljust_char,.c}
+    char* justified = colr(Colr_ljust_char("This.", 8, ' ', fore(RED), back(WHITE)));
+    assert(justified);
+    // The string still has codes, but only 3 spaces were added.
+    assert(colr_str_ends_with(justified, "   "));
+    // It was "justified" to 8 characters long, but it is well over that.
+    assert(strlen(justified) > 8);
+    printf("'%s'\n", justified);
+    free(justified);
+    \endexamplecode
+*/
+#define Colr_ljust_char(text, justwidth, c, ...) ColorText_set_just( \
+        Colr(text, __VA_ARGS__), \
+        (ColorJustify){.method=JUST_LEFT, .width=justwidth, .padchar=c} \
+    )
+
 /*! \def Colr_rjust
     Sets the JustifyMethod for a ColorText while allocating it.
+
+    \details
+    This is like Colr_rjust_char(), except is uses space as the default character.
 
     \pi text      Text to colorize.
     \pi justwidth Width for justification.
@@ -668,6 +750,35 @@
 #define Colr_rjust(text, justwidth, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
         (ColorJustify){.method=JUST_RIGHT, .width=justwidth, .padchar=' '} \
+    )
+
+/*! \def Colr_rjust_char
+    Sets the JustifyMethod for a ColorText while allocating it.
+
+    \pi text      Text to colorize.
+    \pi justwidth Width for justification.
+    \pi c         The character to pad with.
+    \pi ...       Fore, back, or style ColorArgs for Colr().
+
+    \return       An allocated ColorText.\n
+                  \colrmightfree
+
+    \sa Colr_rjust
+
+    \examplecodefor{Colr_rjust_char,.c}
+    char* justified = colr(Colr_rjust_char("This.", 8, ' ', fore(RED), back(WHITE)));
+    assert(justified);
+    // The string still has codes, but only 3 spaces were added.
+    assert(colr_str_ends_with(justified, "   "));
+    // It was "justified" to 8 characters long, but it is well over that.
+    assert(strlen(justified) > 8);
+    printf("'%s'\n", justified);
+    free(justified);
+    \endexamplecode
+*/
+#define Colr_rjust_char(text, justwidth, c, ...) ColorText_set_just( \
+        Colr(text, __VA_ARGS__), \
+        (ColorJustify){.method=JUST_RIGHT, .width=justwidth, .padchar=c} \
     )
 
 /*! \def Colr_str
@@ -1881,7 +1992,7 @@ bool colr_supports_rgb(void);
 size_t colr_str_char_count(const char* s, const char c);
 size_t colr_str_char_lcount(const char* s, const char c);
 size_t colr_str_chars_lcount(const char* restrict s, const char* restrict chars);
-char* colr_str_center(const char* s, const char padchar, int width);
+char* colr_str_center(const char* s, int width, const char padchar);
 size_t colr_str_code_cnt(const char* s);
 size_t colr_str_code_len(const char* s);
 char* colr_str_copy(char* restrict dest, const char* restrict src, size_t length);
@@ -1894,7 +2005,7 @@ bool colr_str_is_codes(const char* s);
 bool colr_str_is_digits(const char* s);
 bool colr_str_list_contains(char** lst, const char* s);
 void colr_str_list_free(char** ps);
-char* colr_str_ljust(const char* s, const char padchar, int width);
+char* colr_str_ljust(const char* s, int width, const char padchar);
 void colr_str_lower(char* s);
 size_t colr_str_lstrip(char* restrict dest, const char* restrict s, size_t length, const char c);
 char* colr_str_lstrip_char(const char* s, const char c);
@@ -1906,7 +2017,7 @@ char* colr_str_replace_ColorArg(char* restrict s, const char* restrict target, C
 char* colr_str_replace_ColorResult(char* restrict s, const char* restrict target, ColorResult* repl);
 char* colr_str_replace_ColorText(char* restrict s, const char* restrict target, ColorText* repl);
 char* colr_str_repr(const char* s);
-char* colr_str_rjust(const char* s, const char padchar, int width);
+char* colr_str_rjust(const char* s, int width, const char padchar);
 bool colr_str_starts_with(const char* restrict s, const char* restrict prefix);
 char* colr_str_strip_codes(const char* s);
 char* colr_str_to_lower(const char* s);

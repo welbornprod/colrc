@@ -1089,7 +1089,7 @@ char* colr_empty_str(void) {
     free(justified);
     \endexamplecode
 */
-char* colr_str_center(const char* s, const char padchar, int width) {
+char* colr_str_center(const char* s, int width, const char padchar) {
     if (!s) return NULL;
     char pad = padchar == '\0' ? ' ' : padchar;
     size_t length = strlen(s);
@@ -1741,7 +1741,7 @@ void colr_str_lower(char* s) {
     free(justified);
     \endexamplecode
 */
-char* colr_str_ljust(const char* s, const char padchar, int width) {
+char* colr_str_ljust(const char* s, int width, const char padchar) {
     if (!s) return NULL;
     char pad = padchar == '\0' ? ' ' : padchar;
     size_t length = strlen(s);
@@ -2158,7 +2158,7 @@ char* colr_str_repr(const char* s) {
     free(justified);
     \endexamplecode
 */
-char* colr_str_rjust(const char* s, const char padchar, int width) {
+char* colr_str_rjust(const char* s, int width, const char padchar) {
     if (!s) return NULL;
     char pad = padchar == '\0' ? ' ' : padchar;
     size_t length = strlen(s);
@@ -4287,15 +4287,15 @@ char* ColorText_to_str(ColorText ctext) {
         case JUST_NONE:
             break;
         case JUST_LEFT:
-            justified = colr_str_ljust(final, ctext.just.padchar, ctext.just.width);
+            justified = colr_str_ljust(final, ctext.just.width, ctext.just.padchar);
             free(final);
             return justified;
         case JUST_RIGHT:
-            justified = colr_str_rjust(final, ctext.just.padchar, ctext.just.width);
+            justified = colr_str_rjust(final, ctext.just.width, ctext.just.padchar);
             free(final);
             return justified;
         case JUST_CENTER:
-            justified = colr_str_center(final, ctext.just.padchar, ctext.just.width);
+            justified = colr_str_center(final, ctext.just.width, ctext.just.padchar);
             free(final);
             return justified;
     }
