@@ -1062,6 +1062,119 @@ char* colr_empty_str(void) {
     return s;
 }
 
+/*! Handles printing with printf for Colr objects.
+
+    \details
+    This function matches the required `typedef` in `printf.h` (`printf_function`),
+    for handling a custom printf format char with `register_printf_specifier`.
+
+    \pi fp   FILE pointer for output.
+    \pi info Info from printf about how to format the argument.
+    \pi args Argument list (with only 1 argument), containing a ColorArg,
+             ColorResult, ColorText, or \string to format.
+    \return  The number of characters written.
+*/
+int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *const *args) {
+    (void)info; // UNUSED
+    void* p = *(void**)args[0];
+    char* s = NULL;
+    ColorArg* cargp = NULL;
+    ColorResult* cresp = NULL;
+    ColorText* ctextp = NULL;
+    if (ColorArg_is_ptr(p)) {
+        cargp = p;
+        s = ColorArg_to_esc(*cargp);
+        ColorArg_free(cargp);
+    } else if (ColorText_is_ptr(p)) {
+        ctextp = p;
+        s = ColorText_to_str(*ctextp);
+        ColorText_free(ctextp);
+    } else if (ColorResult_is_ptr(p)) {
+        cresp = p;
+        s = ColorResult_to_str(*cresp);
+    } else {
+        // Better be a string.
+        s = (char*)p;
+    }
+    if (!s) return 1;
+    if (info->alt) {
+        // Alternate-form (#), no codes.
+        char* stripped = colr_str_strip_codes(s);
+        // If I couldn't allocate for the stripped version, use the original.
+        // Worse things than that are about to happen anyway.
+        if (stripped) {
+            free(s);
+            s = stripped;
+        }
+
+    }
+    char* justified = NULL;
+    if (info->width) {
+        // TODO: Use wchar_t in justification funcs to forward `info->pad` to it.
+        //       I'm not sure how this is used from printf though.
+        int pad = info->pad ? wctob(info->pad) : ' ';
+        if (pad == EOF) pad = ' ';
+        if (info->left) {
+            justified = colr_str_ljust(s, info->width, pad);
+        } else if (info->space) {
+            justified = colr_str_center(s, info->width, pad);
+        } else {
+            justified = colr_str_rjust(s, info->width, pad);
+        }
+        if (justified) {
+            if (cargp || ctextp) free(s);
+            if (cresp) ColorResult_free(cresp);
+            s = justified;
+        } else {
+            // Can't allocate for justified text.
+            return 1;
+        }
+    }
+    fprintf(fp, "%s", s);
+    size_t length = strlen(s);
+    if (cargp || ctextp || justified) free(s);
+    if (cresp) ColorResult_free(cresp);
+
+    return length;
+}
+
+/*! Handles the arg count/size for the Colr printf handler.
+
+    \details
+    This function matches the required `typedef` in `printf.h` (`printf_arginfo_size_function`)
+    for handling a custom printf format char with `register_printf_specifier`.
+
+    \pi info     Info from printf about how to format the argument.
+    \pi n        Number of arguments for the format char. Not used in Colr.
+    \po argtypes Type of arguments being handled, from an `enum` defined in `printf`.
+                 Colr uses/sets one argument, a `PA_POINTER` type.
+    \po sz       Size of the arguments. Not used in Colr.
+*/
+int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, int *sz) {
+    (void)info; // UNUSED
+    (void)sz; // UNUSED
+     if (n > 0)
+     {
+          argtypes[0] = PA_POINTER;
+     }
+     return 1;
+}
+
+/*! Registers COLR_FMT_CHAR to handle Colr objects in the printf-family
+    functions.
+
+    \details
+    This function only needs to be called once. `register_printf_specifier` is only called
+    the first time this function is called.
+*/
+void colr_printf_register(void) {
+    static bool is_registered = false;
+    if (is_registered) return;
+    // Do the actual registering, if not done already.
+    register_printf_specifier(COLR_FMT_CHAR, colr_printf_handler, colr_printf_info);
+    is_registered = true;
+}
+
 /*! Center-justifies a \string, ignoring escape codes when measuring the width.
 
     \pi s       The string to justify.\n
