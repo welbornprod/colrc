@@ -1169,6 +1169,29 @@ int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, in
     \details
     This function only needs to be called once. `register_printf_specifier` is only called
     the first time this function is called.
+
+    \examplecodefor{colr_printf_register,.c}
+    #include "colr.h"
+
+    // These are needed if you have certain warnings enabled.
+    #pragma clang diagnostic ignored "-Winvalid-format-specifier"
+    #pragma GCC diagnostic ignored "-Wformat="
+    #pragma GCC diagnostic ignored "-Wformat-extra-args"
+
+    int main(void) {
+        colr_printf_register();
+        printf("A colr object: %R\n", Colr("Hello", fore(RED)));
+
+        char* colorized = NULL;
+        asprintf(
+            &colorized,
+            "I made this: %R",
+            Colr("No, I made this.", style(UNDERLINE))
+        );
+        puts(colorized);
+        free(colorized);
+    }
+    \endexamplecode
 */
 void colr_printf_register(void) {
     static bool is_registered = false;
@@ -1194,7 +1217,7 @@ void colr_printf_register(void) {
 
     \examplecodefor{colr_str_center,.c}
     char* colorized = Colr_str("This.", fore(RED), back(WHITE));
-    char* justified = colr_str_center(colorized, ' ', 9);
+    char* justified = colr_str_center(colorized, 9, ' ');
     free(colorized);
     // The string still has codes, but only 4 spaces were added.
     assert(colr_str_starts_with(justified, "  "));
@@ -1848,7 +1871,7 @@ void colr_str_lower(char* s) {
 
     \examplecodefor{colr_str_ljust,.c}
     char* colorized = Colr_str("This.", fore(RED), back(WHITE));
-    char* justified = colr_str_ljust(colorized, ' ', 8);
+    char* justified = colr_str_ljust(colorized, 8, ' ');
     free(colorized);
     // The string still has codes, but only 3 spaces were added.
     assert(colr_str_ends_with(justified, "   "));
@@ -2265,7 +2288,7 @@ char* colr_str_repr(const char* s) {
 
     \examplecodefor{colr_str_rjust,.c}
     char* colorized = Colr_str("This.", fore(RED), back(WHITE));
-    char* justified = colr_str_rjust(colorized, ' ', 8);
+    char* justified = colr_str_rjust(colorized, 8, ' ');
     free(colorized);
     // The string still has codes, but only 3 spaces were added.
     assert(colr_str_starts_with(justified, "   "));

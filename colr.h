@@ -633,8 +633,9 @@
     \examplecodefor{Colr_center_char,.c}
     char* justified = colr_cat(Colr_center_char("This.", 8, ' ', fore(RED), back(WHITE)));
     assert(justified);
-    // The string still has codes, but only 3 spaces were added.
-    assert(colr_str_ends_with(justified, "   "));
+    // The string still has codes, but only 2 spaces were prepended, and 1 appended.
+    assert(colr_str_starts_with(justified, "  "));
+    assert(colr_str_ends_with(justified, " "));
     // It was "justified" to 8 characters long, but it is well over that.
     assert(strlen(justified) > 8);
     printf("'%s'\n", justified);
@@ -772,7 +773,7 @@
     char* justified = colr_cat(Colr_rjust_char("This.", 8, ' ', fore(RED), back(WHITE)));
     assert(justified);
     // The string still has codes, but only 3 spaces were added.
-    assert(colr_str_ends_with(justified, "   "));
+    assert(colr_str_starts_with(justified, "   "));
     // It was "justified" to 8 characters long, but it is well over that.
     assert(strlen(justified) > 8);
     printf("'%s'\n", justified);
