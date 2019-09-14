@@ -66,7 +66,7 @@ Here is a table of the most common usage examples:
 
 Name           | Example
 :------------- | :-----------------
-\ref colr      | \ref colr_example.c
+\ref colr_cat  | \ref colr_cat_example.c
 \ref colr_join | \ref colr_join_example.c
 \ref Colr      | \ref Colr_example.c
 \ref fore      | \ref fore_example.c

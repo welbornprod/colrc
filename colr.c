@@ -1145,18 +1145,21 @@ int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *co
     for handling a custom printf format char with `register_printf_specifier`.
 
     \pi info     Info from printf about how to format the argument.
-    \pi n        Number of arguments for the format char. Not used in Colr.
+    \pi n        Number of arguments for the format char.
     \po argtypes Type of arguments being handled, from an `enum` defined in `printf`.
                  Colr uses/sets one argument, a `PA_POINTER` type.
     \po sz       Size of the arguments. Not used in Colr.
+    \return      The number of argument types set in \p argtypes.
 */
 int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, int *sz) {
-    (void)info; // UNUSED
-    (void)sz; // UNUSED
+    (void)info; // Unused.
+    (void)sz; // Unused.
      if (n > 0)
      {
+          // Only setting one argument for Colr.
           argtypes[0] = PA_POINTER;
      }
+     // Only using one argument for Colr.
      return 1;
 }
 
@@ -1302,12 +1305,13 @@ size_t colr_str_char_lcount(const char* s, const char c) {
     Returns `0` if \p s is `NULL`/empty, \p chars is `NULL`/empty, or the
     string doesn't start with any of the characters in \p chars.
 
-    \pi s The string to examine.
-          \mustnull
-    \pi c The characters to count, in any order.
-          \mustnotzero
+    \pi s     The string to examine.
+              \mustnull
+    \pi chars The characters to count, in any order.
+              \mustnotzero
 
-    \return The number of times a character in \p chars occurs at the start of \p s.
+    \return   The number of times a character in \p chars occurs at the start
+              of \p s.
 */
 size_t colr_str_chars_lcount(const char* restrict s, const char* restrict chars) {
     if (!(s && chars)) return 0;

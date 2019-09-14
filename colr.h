@@ -810,7 +810,7 @@
 */
 #define ColrResult(s) ColorResult_to_ptr(ColorResult_new(s))
 
-/*! \def colr
+/*! \def colr_cat
     Join ColorArg pointers, ColorResult pointers, ColorText pointers, and
     strings into one long string.
 
@@ -843,7 +843,7 @@
 
     \sa Colr
 
-    \example colr_example.c
+    \example colr_cat_example.c
 */
 #define colr_cat(...) _colr_join("", __VA_ARGS__, _ColrLastArg)
 
@@ -1044,7 +1044,7 @@
 #define colr_max(a, b) (a > b ? a : b)
 
 /*! \def colr_print
-    Create a string from a colr_cat() call, print it (without a newline), and free it.
+    Create a string from a colr_cat() call, print it to stdout (without a newline), and free it.
 
     \p ... Arguments for colr_cat().
 
@@ -1058,6 +1058,18 @@
     } while (0)
 
 
+/*! \def colr_printf_macro
+    Calls one of the printf-family functions, with format warnings disabled
+    for the call, and returns the result.
+
+    \details
+    This function also ensures that colr_printf_register() is called, which
+    ensures that register_printf_specifier() is called one time.
+
+    \pi func The standard printf function to call, with a return type of `int`.
+    \pi ...  Arguments for the printf function.
+    \return  Same as `func(...)`.
+*/
 #define colr_printf_macro(func, ...) \
     __extension__({ \
         _Pragma("GCC diagnostic push"); \
@@ -1066,9 +1078,10 @@
         _Pragma("clang diagnostic push"); \
         _Pragma("clang diagnostic ignored \"-Wformat-invalid-specifier\""); \
         colr_printf_register(); \
-        func(__VA_ARGS__); \
+        int _c_p_m_ret = func(__VA_ARGS__); \
         _Pragma("clang diagnostic pop"); \
         _Pragma("GCC diagnostic pop"); \
+        _c_p_m_ret; \
     })
 
 /*! \def colr_printf
@@ -1080,6 +1093,8 @@
 
     \pi ... Arguments for `printf`.
     \return Same as `printf`.
+
+    \example colr_printf_example.c
 */
 #define colr_printf(...) colr_printf_macro(printf, __VA_ARGS__)
 
