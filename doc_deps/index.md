@@ -52,7 +52,7 @@ colr.c | Where ColrC is implemented. This must be compiled/linked with your prog
 \anchor example-usage
 ## Example Usage
 
-You use colr(), colr_join(), and Colr(), along with fore(), back(), and style()
+You use colr_cat(), colr_join(), and Colr(), along with fore(), back(), and style()
 to build colorized strings. There are some print-related functions, for quick
 building/printing of colorized strings (colr_puts() and colr_print()).
 

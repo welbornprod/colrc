@@ -10,30 +10,30 @@ describe(colr) {
 // colr
 subdesc(colr) {
     it("handles NULL") {
-        char* s = colr(NULL, "that");
+        char* s = colr_cat(NULL, "that");
         assert_str_eq(s, "that", "Should act like strdup() with a NULL argument.");
         free(s);
-        char* s2 = colr("this", NULL);
+        char* s2 = colr_cat("this", NULL);
         assert_str_eq(s2, "this", "Should act like strdup() with a NULL argument.");
         free(s2);
-        char* s3 = colr("this", NULL, "that");
+        char* s3 = colr_cat("this", NULL, "that");
         assert_str_eq(s3, "thisthat", "Should act like strdup()/strcat() with a NULL argument.");
         free(s3);
-        char* s4 = colr("", NULL);
+        char* s4 = colr_cat("", NULL);
         assert_str_empty(s4);
         free(s4);
-        char* s5 = colr(NULL, NULL);
+        char* s5 = colr_cat(NULL, NULL);
         assert_not_null(s5);
         assert_str_empty(s5);
         free(s5);
     }
     it("joins strings") {
-        char* s = colr("this", "that", "the other");
+        char* s = colr_cat("this", "that", "the other");
         assert_str_eq(s, "thisthatthe other", "Failed to join strings");
         free(s);
     }
     it("joins ColorArgs") {
-        char* s = colr(
+        char* s = colr_cat(
             fore(RED),
             back(XWHITE),
             fore(rgb(255, 255, 255))
@@ -46,7 +46,7 @@ subdesc(colr) {
         free(s);
     }
     it("joins ColorResults") {
-        char* s = colr(
+        char* s = colr_cat(
             Colr_join("this", "[", "]"),
             Colr_join("that", "[", "]"),
             Colr_join("the other", "[", "]")
@@ -59,7 +59,7 @@ subdesc(colr) {
         free(s);
     }
     it("joins ColorTexts") {
-        char* s = colr(
+        char* s = colr_cat(
             Colr("this", fore(RED)),
             Colr("that", back(XWHITE)),
             Colr("the other", fore(rgb(255, 255, 255)))

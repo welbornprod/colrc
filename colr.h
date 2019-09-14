@@ -14,7 +14,7 @@
     // Use ColrC functions/macros/etc.
 
     int main(void) {
-        char* colorized = colr(
+        char* colorized = colr_cat(
             "This is ",
             Colr("ColrC", fore(BLUE), style(BRIGHT)),
             " and it tries to make things ",
@@ -286,7 +286,7 @@
 
 
 /*! \def back
-    Create a back color suitable for use with the colr() and Colr() macros.
+    Create a back color suitable for use with the colr_cat() and Colr() macros.
 
 
     \details
@@ -559,11 +559,11 @@
 
 /*! \def Colr
     Returns a heap-allocated ColorText struct that can be used by itself,
-    or with the colr() macro.
+    or with the colr_cat() macro.
 
     \details
     You must `free()` the resulting ColorText struct using ColorText_free(),
-    unless you pass it to colr(), which will `free()` it for you.
+    unless you pass it to colr_cat(), which will `free()` it for you.
 
     \pi text String to colorize/style.
     \pi ...  No more than 3 ColorArg pointers for fore, back, and style in any order.
@@ -576,16 +576,16 @@
 #define Colr(text, ...) ColorText_to_ptr(ColorText_from_values(text, __VA_ARGS__, _ColrLastArg))
 
 /*! \def Colr_cat
-    Like colr(), but returns an allocated ColorResult that the \colrmacros
+    Like colr_cat(), but returns an allocated ColorResult that the \colrmacros
     will automatically `free()`.
 
-    \pi ... Arguments for colr(), to concatenate.
+    \pi ... Arguments for colr_cat(), to concatenate.
     \return An allocated ColorResult with all arguments joined together.\n
             \mustfree
             \maybenullalloc
             \colrmightfree
 */
-#define Colr_cat(...) ColorResult_to_ptr(ColorResult_new(colr(__VA_ARGS__)))
+#define Colr_cat(...) ColorResult_to_ptr(ColorResult_new(colr_cat(__VA_ARGS__)))
 
 /*! \def Colr_center
     Sets the JustifyMethod for a ColorText while allocating it.
@@ -601,7 +601,7 @@
                   \colrmightfree
 
     \examplecodefor{Colr_center,.c}
-    char* justified = colr(Colr_center("This.", 9, fore(RED), back(WHITE)));
+    char* justified = colr_cat(Colr_center("This.", 9, fore(RED), back(WHITE)));
     assert(justified);
     // The string still has codes, but only 4 spaces were added.
     assert(colr_str_starts_with(justified, "  "));
@@ -631,7 +631,7 @@
     \sa Colr_center
 
     \examplecodefor{Colr_center_char,.c}
-    char* justified = colr(Colr_center_char("This.", 8, ' ', fore(RED), back(WHITE)));
+    char* justified = colr_cat(Colr_center_char("This.", 8, ' ', fore(RED), back(WHITE)));
     assert(justified);
     // The string still has codes, but only 3 spaces were added.
     assert(colr_str_ends_with(justified, "   "));
@@ -681,7 +681,7 @@
                   \colrmightfree
 
     \examplecodefor{Colr_ljust,.c}
-    char* justified = colr(Colr_ljust("This.", 8, fore(RED), back(WHITE)));
+    char* justified = colr_cat(Colr_ljust("This.", 8, fore(RED), back(WHITE)));
     assert(justified);
     // The string still has codes, but only 3 spaces were added.
     assert(colr_str_ends_with(justified, "   "));
@@ -710,7 +710,7 @@
     \sa Colr_ljust
 
     \examplecodefor{Colr_ljust_char,.c}
-    char* justified = colr(Colr_ljust_char("This.", 8, ' ', fore(RED), back(WHITE)));
+    char* justified = colr_cat(Colr_ljust_char("This.", 8, ' ', fore(RED), back(WHITE)));
     assert(justified);
     // The string still has codes, but only 3 spaces were added.
     assert(colr_str_ends_with(justified, "   "));
@@ -739,7 +739,7 @@
                   \colrmightfree
 
     \examplecodefor{Colr_rjust,.c}
-    char* justified = colr(Colr_rjust("This.", 8, fore(RED), back(WHITE)));
+    char* justified = colr_cat(Colr_rjust("This.", 8, fore(RED), back(WHITE)));
     assert(justified);
     // The string still has codes, but only 3 spaces were added.
     assert(colr_str_starts_with(justified, "   "));
@@ -769,7 +769,7 @@
     \sa Colr_rjust
 
     \examplecodefor{Colr_rjust_char,.c}
-    char* justified = colr(Colr_rjust_char("This.", 8, ' ', fore(RED), back(WHITE)));
+    char* justified = colr_cat(Colr_rjust_char("This.", 8, ' ', fore(RED), back(WHITE)));
     assert(justified);
     // The string still has codes, but only 3 spaces were added.
     assert(colr_str_ends_with(justified, "   "));
@@ -788,7 +788,7 @@
     Create an allocated string directly from Colr() arguments.
 
     \details
-    This is a wrapper around `colr(Colr(text, ...))`, which will automatically
+    This is a wrapper around `colr_cat(Colr(text, ...))`, which will automatically
     `free()` the ColorText, and return a string that you are responsible for.
 
     \pi text String to colorize/style.
@@ -798,7 +798,7 @@
             \mustfree
             \maybenullalloc
 */
-#define Colr_str(text, ...) colr(Colr(text, __VA_ARGS__))
+#define Colr_str(text, ...) colr_cat(Colr(text, __VA_ARGS__))
 
 
 /*! \def ColrResult
@@ -816,16 +816,16 @@
 
     \details
     To build the ColorArg pointers, it is better to use the fore(), back(),
-    and style() macros. The ColorArgs are heap allocated, but colr() will
+    and style() macros. The ColorArgs are heap allocated, but colr_cat() will
     free() them for you.
 
     \details
     To build the ColorText pointers, it is better to use the Colr() macro,
     along with the fore(), back(), and style() macros. The ColorTexts are
-    heap allocated, but colr() will free() them for you.
+    heap allocated, but colr_cat() will free() them for you.
 
     \details
-    You can use ColrResult() to wrap any <em>allocated</em> string and colr()
+    You can use ColrResult() to wrap any <em>allocated</em> string and colr_cat()
     will free it for you. Do not wrap static/stack-allocated strings. It will
     result in an "invalid free".
     The result of Colr_join() is an allocated ColorResult, like ColrResult()
@@ -845,7 +845,7 @@
 
     \example colr_example.c
 */
-#define colr(...) _colr_join("", __VA_ARGS__, _ColrLastArg)
+#define colr_cat(...) _colr_join("", __VA_ARGS__, _ColrLastArg)
 
 /*! \def colr_alloc_len
     Return the number of bytes needed to allocate an escape code string based
@@ -1044,14 +1044,14 @@
 #define colr_max(a, b) (a > b ? a : b)
 
 /*! \def colr_print
-    Create a string from a colr() call, print it (without a newline), and free it.
+    Create a string from a colr_cat() call, print it (without a newline), and free it.
 
-    \p ... Arguments for colr().
+    \p ... Arguments for colr_cat().
 
 */
 #define colr_print(...) \
     do { \
-        char* _c_p_s = colr(__VA_ARGS__); \
+        char* _c_p_s = colr_cat(__VA_ARGS__); \
         if (!_c_p_s) break; \
         printf("%s", _c_p_s); \
         colr_free(_c_p_s); \
@@ -1136,15 +1136,15 @@
 #define colr_asprintf(...) colr_printf_macro(asprintf, __VA_ARGS__)
 
 /*! \def colr_puts
-    Create a string from a colr() call, print it (with a newline), and free it.
+    Create a string from a colr_cat() call, print it (with a newline), and free it.
 
-    \p ... Arguments for colr().
+    \p ... Arguments for colr_cat().
 
     \example simple_example.c
 */
 #define colr_puts(...) \
     do { \
-        char* _c_p_s = colr(__VA_ARGS__); \
+        char* _c_p_s = colr_cat(__VA_ARGS__); \
         if (!_c_p_s) break; \
         puts(_c_p_s); \
         colr_free(_c_p_s); \
@@ -1394,7 +1394,7 @@
 #define ext_RGB(rgbval) ExtendedValue_from_RGB(rgbval)
 
 /*! \def fore
-    Create a fore color suitable for use with the colr() and Colr() macros.
+    Create a fore color suitable for use with the colr_cat() and Colr() macros.
 
 
     \details
@@ -1547,7 +1547,7 @@
 #define rgb(r, g, b) ((RGB){.red=r, .green=g, .blue=b})
 
 /*! \def style
-    Create a style suitable for use with the colr() and Colr() macros.
+    Create a style suitable for use with the colr_cat() and Colr() macros.
 
     \details
     This macro accepts strings (style names) and StyleValues.
@@ -1665,7 +1665,7 @@
         if ((r % 100 == 0) && (g % 100 == 0) && (b % 100 == 0)) {
             RGB val = rgb(r, g, b);
             char* repr = colr_repr(val);
-            char* s = colr(fore(val), repr);
+            char* s = colr_cat(fore(val), repr);
             printf("Found RGB: %s\n", s);
             free(repr);
             free(s);

@@ -1518,7 +1518,7 @@ bool colr_str_ends_with(const char* restrict str, const char* restrict suf) {
     #include <stdio.h>
     #include "colr.h"
     int main(void) {
-        char* s = colr(
+        char* s = colr_cat(
             Colr("Testing this out.", fore(RED), back(WHITE)),
             Colr("Again.", fore(RED), style(UNDERLINE))
         );
@@ -2653,7 +2653,7 @@ bool _colr_is_last_arg(void* p) {
 
     \details
     This will free() any ColorArgs and ColorTexts that are passed in. It is
-    backing the colr() macro, and enables easy throwaway color values.
+    backing the colr_cat() macro, and enables easy throwaway color values.
 
     \details
     Any plain strings that are passed in are left alone. It is up to the caller
@@ -2775,7 +2775,7 @@ char* _colr_join(void *joinerp, ...) {
     \pi joinerp The joiner (any ColorArg, ColorText, or string).
     \pi args    A `va_list` with zero or more ColorArgs, ColorTexts, or strings to join.
 
-    \return     The length (in bytes) needed to allocate a string built with _colr().
+    \return     The length (in bytes) needed to allocate a string built with _colr_cat().
 
     \sa _colr
 */
@@ -3027,7 +3027,7 @@ size_t _colr_ptr_length(void* p) {
         ColorArg* cargp = p;
         length = ColorArg_length(*cargp);
         // Gonna need a reset to close this code if a plain string follows it
-        // in the _colr() function arguments.
+        // in the _colr_cat() function arguments.
         length += CODE_RESET_LEN;
     } else if (ColorResult_is_ptr(p)) {
         ColorResult* cresp = p;
@@ -3637,7 +3637,7 @@ ColorArg *ColorArg_to_ptr(ColorArg carg) {
     #include "colr.h"
 
     int main(void) {
-        char* s = colr(
+        char* s = colr_cat(
             Colr("Testing this out.", fore(RED), back(WHITE)),
             Colr("Again.", fore(RED), style(UNDERLINE))
         );
@@ -5919,7 +5919,7 @@ RGB RGB_from_hex_default(const char* hexstr, RGB default_value) {
     RGB rgbval;
     int ret = RGB_from_str("123,0,234", &rgbval);
     if (ret == 0) {
-        char* s = colr(Colr("Test", fore(rgbval)));
+        char* s = colr_cat(Colr("Test", fore(rgbval)));
         printf("%s\n", s);
         free(s);
     }

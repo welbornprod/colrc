@@ -2,7 +2,7 @@
 
 int main(void) {
     // Basic colors:
-    char* s = colr(
+    char* s = colr_cat(
         fore(RED),
         "This is a test",
         fore(BLUE),
@@ -12,7 +12,7 @@ int main(void) {
     free(s);
 
     // Color names:
-    char* n = colr(
+    char* n = colr_cat(
         fore("red"),
         "This is red."
     );
@@ -20,12 +20,12 @@ int main(void) {
     free(n);
 
     // Extended (256) colors:
-    char* e = colr(fore(ext(35)), "Extended colors.");
+    char* e = colr_cat(fore(ext(35)), "Extended colors.");
     printf("%s\n", e);
     free(e);
 
     // RGB (True Color) colors:
-    char* r = colr(fore(rgb(35, 0, 155)), "RGB");
+    char* r = colr_cat(fore(rgb(35, 0, 155)), "RGB");
     printf("%s\n", r);
     free(r);
 
@@ -33,7 +33,7 @@ int main(void) {
         Colr() accepts a fore() as one of it's arguments.
         The order does not matter.
     */
-    char* mystr = colr(
+    char* mystr = colr_cat(
         Colr("This is red.", fore(RED)),
         Colr("This is also red.", back("white"), fore("red")),
         "This is not.\n"

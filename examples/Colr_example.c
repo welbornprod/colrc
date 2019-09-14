@@ -3,9 +3,9 @@
 int main(void) {
     /*
         Colr() is for styling one piece of text.
-        When combined with the colr() macro it allows you to seperate colors/styles.
+        When combined with the colr_cat() macro it allows you to seperate colors/styles.
     */
-    char* colorized = colr(
+    char* colorized = colr_cat(
         Colr("America ", fore(RED)),
         Colr("the ", fore(WHITE)),
         Colr("beautiful", fore(BLUE)),
@@ -24,7 +24,7 @@ int main(void) {
         There are three justification macros that make it easy to create
         ColorText's with center, left, or right-justified text.
     */
-    char* just = colr(
+    char* just = colr_cat(
         Colr_center("This is centered.", 80, fore("lightblue")),
         "\n",
         Colr_ljust("This is on the left.", 38, fore(ext_hex("ff2525"))),

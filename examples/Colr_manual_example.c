@@ -21,9 +21,9 @@ int main(void) {
 
     // Another way to do that would be:
     ColorText* piece = Colr("Just another string", back(ext(255)), fore(ext(0)));
-    char *text_str = colr(piece);
+    char *text_str = colr_cat(piece);
     printf("%s\n", text_str);
-    // The ColorText `piece` is gone. `colr()` called `free()` on it.
+    // The ColorText `piece` is gone. `colr_cat()` called `free()` on it.
     // Still, we need to free the result.
     free(text_str);
 }

@@ -4,7 +4,7 @@ int main(void) {
     /*
         Styles can be given as a StyleValue, or a style name (see style_names).
     */
-    char* s = colr(
+    char* s = colr_cat(
         style("bright"), "This is a test ",
         style(UNDERLINE), "and only a test."
     );
@@ -15,7 +15,7 @@ int main(void) {
         Colr accepts a style() as one of it's arguments.
         The order does not matter.
     */
-    char* mystr = colr(
+    char* mystr = colr_cat(
         Colr("THIS IS BOLD.\n", style(BRIGHT)),
         "This is not."
     );
