@@ -1135,146 +1135,145 @@ size_t colr_mb_len(const char* s, size_t length) {
     return total;
 }
 
-#ifdef COLR_PRINTF
-    /*! Handles printing with printf for Colr objects.
+/*! Handles printing with printf for Colr objects.
 
-        \details
-        This function matches the required `typedef` in `printf.h` (`printf_function`),
-        for handling a custom printf format char with `register_printf_specifier`.
+    \details
+    This function matches the required `typedef` in `printf.h` (`printf_function`),
+    for handling a custom printf format char with `register_printf_specifier`.
 
-        \pi fp   FILE pointer for output.
-        \pi info Info from printf about how to format the argument.
-        \pi args Argument list (with only 1 argument), containing a ColorArg,
-                 ColorResult, ColorText, or \string to format.
-        \return  The number of characters written.
-    */
-    int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *const *args) {
-        (void)info; // Unused.
-        void* p = *(void**)args[0];
-        char* s = NULL;
-        ColorArg* cargp = NULL;
-        ColorResult* cresp = NULL;
-        ColorText* ctextp = NULL;
-        if (ColorArg_is_ptr(p)) {
-            cargp = p;
-            s = ColorArg_to_esc(*cargp);
-            ColorArg_free(cargp);
-        } else if (ColorText_is_ptr(p)) {
-            ctextp = p;
-            s = ColorText_to_str(*ctextp);
-            ColorText_free(ctextp);
-        } else if (ColorResult_is_ptr(p)) {
-            cresp = p;
-            s = ColorResult_to_str(*cresp);
+    \pi fp   FILE pointer for output.
+    \pi info Info from printf about how to format the argument.
+    \pi args Argument list (with only 1 argument), containing a ColorArg,
+             ColorResult, ColorText, or \string to format.
+    \return  The number of characters written.
+*/
+int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *const *args) {
+    (void)info; // Unused.
+    void* p = *(void**)args[0];
+    char* s = NULL;
+    ColorArg* cargp = NULL;
+    ColorResult* cresp = NULL;
+    ColorText* ctextp = NULL;
+    if (ColorArg_is_ptr(p)) {
+        cargp = p;
+        s = ColorArg_to_esc(*cargp);
+        ColorArg_free(cargp);
+    } else if (ColorText_is_ptr(p)) {
+        ctextp = p;
+        s = ColorText_to_str(*ctextp);
+        ColorText_free(ctextp);
+    } else if (ColorResult_is_ptr(p)) {
+        cresp = p;
+        s = ColorResult_to_str(*cresp);
+    } else {
+        // Better be a string.
+        s = (char*)p;
+    }
+    if (!s) return 1;
+    if (info->alt) {
+        // Alternate-form (#), no codes.
+        char* stripped = colr_str_strip_codes(s);
+        // If I couldn't allocate for the stripped version, use the original.
+        // Worse things than that are about to happen anyway.
+        if (stripped) {
+            free(s);
+            s = stripped;
+        }
+
+    }
+    char* justified = NULL;
+    if (info->width) {
+        // TODO: Use wchar_t in justification funcs to forward `info->pad` to it.
+        //       I'm not sure how this is used from printf though.
+        int pad = info->pad ? wctob(info->pad) : ' ';
+        if (pad == EOF) pad = ' ';
+        if (info->left) {
+            justified = colr_str_ljust(s, info->width, pad);
+        } else if (info->space) {
+            justified = colr_str_center(s, info->width, pad);
         } else {
-            // Better be a string.
-            s = (char*)p;
+            justified = colr_str_rjust(s, info->width, pad);
         }
-        if (!s) return 1;
-        if (info->alt) {
-            // Alternate-form (#), no codes.
-            char* stripped = colr_str_strip_codes(s);
-            // If I couldn't allocate for the stripped version, use the original.
-            // Worse things than that are about to happen anyway.
-            if (stripped) {
-                free(s);
-                s = stripped;
-            }
-
+        if (justified) {
+            if (cargp || ctextp) free(s);
+            if (cresp) ColorResult_free(cresp);
+            s = justified;
+        } else {
+            // Can't allocate for justified text.
+            return 1;
         }
-        char* justified = NULL;
-        if (info->width) {
-            // TODO: Use wchar_t in justification funcs to forward `info->pad` to it.
-            //       I'm not sure how this is used from printf though.
-            int pad = info->pad ? wctob(info->pad) : ' ';
-            if (pad == EOF) pad = ' ';
-            if (info->left) {
-                justified = colr_str_ljust(s, info->width, pad);
-            } else if (info->space) {
-                justified = colr_str_center(s, info->width, pad);
-            } else {
-                justified = colr_str_rjust(s, info->width, pad);
-            }
-            if (justified) {
-                if (cargp || ctextp) free(s);
-                if (cresp) ColorResult_free(cresp);
-                s = justified;
-            } else {
-                // Can't allocate for justified text.
-                return 1;
-            }
-        }
-        fprintf(fp, "%s", s);
-        size_t length = strlen(s);
-        if (cargp || ctextp || justified) free(s);
-        if (cresp) ColorResult_free(cresp);
-
-        return length;
     }
+    fprintf(fp, "%s", s);
+    size_t length = strlen(s);
+    if (cargp || ctextp || justified) free(s);
+    if (cresp) ColorResult_free(cresp);
 
-    /*! Handles the arg count/size for the Colr printf handler.
+    return length;
+}
 
-        \details
-        This function matches the required `typedef` in `printf.h` (`printf_arginfo_size_function`)
-        for handling a custom printf format char with `register_printf_specifier`.
+/*! Handles the arg count/size for the Colr printf handler.
 
-        \pi info     Info from printf about how to format the argument.
-        \pi n        Number of arguments for the format char.
-        \po argtypes Type of arguments being handled, from an `enum` defined in `printf`.
-                     Colr uses/sets one argument, a `PA_POINTER` type.
-        \po sz       Size of the arguments. Not used in Colr.
-        \return      The number of argument types set in \p argtypes.
-    */
-    int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, int *sz) {
-        (void)info; // Unused.
-        (void)sz; // Unused.
-         if (n > 0)
-         {
-              // Only setting one argument for Colr.
-              argtypes[0] = PA_POINTER;
-         }
-         // Only using one argument for Colr.
-         return 1;
+    \details
+    This function matches the required `typedef` in `printf.h` (`printf_arginfo_size_function`)
+    for handling a custom printf format char with `register_printf_specifier`.
+
+    \pi info     Info from printf about how to format the argument.
+    \pi n        Number of arguments for the format char.
+    \po argtypes Type of arguments being handled, from an `enum` defined in `printf`.
+                 Colr uses/sets one argument, a `PA_POINTER` type.
+    \po sz       Size of the arguments. Not used in Colr.
+    \return      The number of argument types set in \p argtypes.
+*/
+int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, int *sz) {
+    (void)info; // Unused.
+    (void)sz; // Unused.
+     if (n > 0)
+     {
+          // Only setting one argument for Colr.
+          argtypes[0] = PA_POINTER;
+     }
+     // Only using one argument for Colr.
+     return 1;
+}
+
+/*! Registers COLR_FMT_CHAR to handle Colr objects in the printf-family
+    functions.
+
+    \details
+    This function only needs to be called once and `register_printf_specifier`
+    is only called the first time this function is called.
+
+    \examplecodefor{colr_printf_register,.c}
+    #include "colr.h"
+
+    // These are needed if you have certain warnings enabled.
+    #pragma clang diagnostic ignored "-Winvalid-format-specifier"
+    #pragma GCC diagnostic ignored "-Wformat="
+    #pragma GCC diagnostic ignored "-Wformat-extra-args"
+
+    int main(void) {
+        colr_printf_register();
+        printf("A colr object: %R\n", Colr("Hello", fore(RED)));
+
+        char* colorized = NULL;
+        asprintf(
+            &colorized,
+            "I made this: %R",
+            Colr("No, I made this.", style(UNDERLINE))
+        );
+        puts(colorized);
+        free(colorized);
     }
+    \endexamplecode
+*/
+void colr_printf_register(void) {
+    static bool is_registered = false;
+    if (is_registered) return;
+    // Do the actual registering, if not done already.
+    register_printf_specifier(COLR_FMT_CHAR, colr_printf_handler, colr_printf_info);
+    is_registered = true;
+}
 
-    /*! Registers COLR_FMT to handle Colr objects in the printf-family
-        functions.
-
-        \details
-        This function only needs to be called once and `register_printf_specifier`
-        is only called the first time this function is called.
-
-        \examplecodefor{colr_printf_register,.c}
-        #include "colr.h"
-
-        // These are needed if you have certain warnings enabled.
-        #pragma clang diagnostic ignored "-Winvalid-format-specifier"
-        #pragma GCC diagnostic ignored "-Wformat="
-        #pragma GCC diagnostic ignored "-Wformat-extra-args"
-
-        int main(void) {
-            colr_printf_register();
-            printf("A colr object: %R\n", Colr("Hello", fore(RED)));
-
-            char* colorized = NULL;
-            asprintf(
-                &colorized,
-                "I made this: %R",
-                Colr("No, I made this.", style(UNDERLINE))
-            );
-            puts(colorized);
-            free(colorized);
-        }
-        \endexamplecode
-    */
-    void colr_printf_register(void) {
-        static bool is_registered = false;
-        if (is_registered) return;
-        // Do the actual registering, if not done already.
-        register_printf_specifier(COLR_FMT, colr_printf_handler, colr_printf_info);
-        is_registered = true;
-    }
-#endif // COLR_PRINTF
 
 /*! Sets the locale to `(LC_ALL, "")` if it hasn't already been set.
     \details
@@ -3181,6 +3180,54 @@ size_t _colr_ptr_length(void* p) {
         length = strlen((char* )p) + 1;
     }
     return length;
+}
+
+/*! Determine what kind of pointer is being passed, and call the appropriate
+    \<type\>_repr function to obtain an allocated string representation.
+
+    \pi p   A ColorArg pointer, ColorResult pointer, ColorText pointer, or string.
+    \return An allocated string with the result.\n
+            \mustfree
+            \maybenullalloc
+*/
+char* _colr_ptr_repr(void* p) {
+    if (!p) return NULL;
+    if (ColorArg_is_ptr(p)) {
+        ColorArg* cargp = p;
+        return ColorArg_repr(*cargp);
+    } else if (ColorResult_is_ptr(p)) {
+        ColorResult* cresp = p;
+        return ColorResult_repr(*cresp);
+    } else if (ColorText_is_ptr(p)) {
+        ColorText* ctextp = p;
+        return ColorText_repr(*ctextp);
+    }
+    // Better be a string.
+    return colr_str_repr((char*)p);
+}
+
+/*! Determine what kind of pointer is being passed, and call the appropriate
+    \<type\>_to_str function to obtain an allocated string.
+
+    \pi p   A ColorArg pointer, ColorResult pointer, ColorText pointer, or string.
+    \return An allocated string with the result.\n
+            \mustfree
+            \maybenullalloc
+*/
+char* _colr_ptr_to_str(void* p) {
+    if (!p) return NULL;
+    if (ColorArg_is_ptr(p)) {
+        ColorArg* cargp = p;
+        return ColorArg_to_esc(*cargp);
+    } else if (ColorResult_is_ptr(p)) {
+        ColorResult* cresp = p;
+        return ColorResult_to_str(*cresp);
+    } else if (ColorText_is_ptr(p)) {
+        ColorText* ctextp = p;
+        return ColorText_to_str(*ctextp);
+    }
+    // Better be a string.
+    return strdup((char*)p);
 }
 
 /*! Compares two ArgTypes.

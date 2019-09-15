@@ -90,10 +90,6 @@
 #if defined(DEBUG) && defined(COLR_DEBUG)
     #include "dbug.h"
 #endif
-#if defined(printf_function) && defined(printf_arginfo_size_function)
-    #define COLR_PRINTF
-#endif
-
 /* Tell gcc to ignore unused macros. */
 #pragma GCC diagnostic ignored "-Wunused-macros"
 /* Tell gcc to ignore clang pragmas, for linting. */
@@ -216,7 +212,9 @@
 #define COLR_HASH_SEED 5381
 
 //! Character used in printf format strings for Colr objects.
-#define COLR_FMT 'R'
+#define COLR_FMT_CHAR 'R'
+//! Format character string suitable for use in the printf-family of functions.
+#define COLR_FMT "R"
 
 /*! Alias for COLOR_INVALID.
     \details
@@ -574,9 +572,26 @@
     \return An allocated ColorText.\n
             \colrmightfree
 
+    \sa Colra
+
     \example Colr_example.c
 */
 #define Colr(text, ...) ColorText_to_ptr(ColorText_from_values(text, __VA_ARGS__, _ColrLastArg))
+
+/*! \def Colra
+    Returns an initialized stack-allocated ColorText.
+
+    \details
+    This cannot be passed to the \colrmacros.
+
+    \pi text String to colorize/style.
+    \pi ...  No more than 3 ColorArg pointers for fore, back, and style in any order.
+
+    \return An initialized ColorText.
+
+    \sa Colr
+*/
+#define Colra(text, ...) ColorText_from_values(text, __VA_ARGS__, _ColrLastArg)
 
 /*! \def Colr_cat
     Like colr_cat(), but returns an allocated ColorResult that the \colrmacros
@@ -1036,6 +1051,25 @@
 */
 #define colr_join(joiner, ...) _colr_join(joiner, __VA_ARGS__, _ColrLastArg)
 
+/*! \def colr_length
+    Calls the \<type\>_length functions for the supported types.
+
+    \details
+    If a `void` pointer is given, _colr_ptr_length() is called on it to
+    determine the length.
+
+    \pi x A supported type to build a string from.
+*/
+#define colr_length(x) \
+    _Generic( \
+        (x), \
+        ColorArg: ColorArg_length, \
+        ColorResult: ColorResult_length, \
+        ColorText: ColorText_length, \
+        ColorValue: ColorValue_length, \
+        void*: _colr_ptr_length \
+    )(x)
+
 #ifndef DOXYGEN_SKIP
 // These are just some stringification macros.
 // The first one is the typical stringify macro.
@@ -1071,99 +1105,99 @@
         colr_free(_c_p_s); \
     } while (0)
 
-#ifdef COLR_PRINTF
-    /*! \def colr_printf_macro
-        Calls one of the printf-family functions, with format warnings disabled
-        for the call, and returns the result.
 
-        \details
-        This function also ensures that colr_printf_register() is called, which
-        ensures that register_printf_specifier() is called one time.
+/*! \def colr_printf_macro
+    Calls one of the printf-family functions, with format warnings disabled
+    for the call, and returns the result.
 
-        \pi func The standard printf function to call, with a return type of `int`.
-        \pi ...  Arguments for the printf function.
-        \return  Same as `func(...)`.
-    */
-    #define colr_printf_macro(func, ...) \
-        __extension__({ \
-            _Pragma("GCC diagnostic push"); \
-            _Pragma("GCC diagnostic ignored \"-Wformat=\""); \
-            _Pragma("GCC diagnostic ignored \"-Wformat-extra-args\""); \
-            _Pragma("clang diagnostic push"); \
-            _Pragma("clang diagnostic ignored \"-Wformat-invalid-specifier\""); \
-            colr_printf_register(); \
-            int _c_p_m_ret = func(__VA_ARGS__); \
-            _Pragma("clang diagnostic pop"); \
-            _Pragma("GCC diagnostic pop"); \
-            _c_p_m_ret; \
-        })
+    \details
+    This function also ensures that colr_printf_register() is called, which
+    ensures that register_printf_specifier() is called one time.
 
-    /*! \def colr_printf
-        Ensure colr_printf_register() has been called, and then call `printf`.
+    \pi func The standard printf function to call, with a return type of `int`.
+    \pi ...  Arguments for the printf function.
+    \return  Same as `func(...)`.
+*/
+#define colr_printf_macro(func, ...) \
+    __extension__({ \
+        _Pragma("GCC diagnostic push"); \
+        _Pragma("GCC diagnostic ignored \"-Wformat=\""); \
+        _Pragma("GCC diagnostic ignored \"-Wformat-extra-args\""); \
+        _Pragma("clang diagnostic push"); \
+        _Pragma("clang diagnostic ignored \"-Wformat-invalid-specifier\""); \
+        colr_printf_register(); \
+        int _c_p_m_ret = func(__VA_ARGS__); \
+        _Pragma("clang diagnostic pop"); \
+        _Pragma("GCC diagnostic pop"); \
+        _c_p_m_ret; \
+    })
 
-        \details
-        Will call `free()` on any ColorArg pointer, ColorResult pointer,
-        ColorText pointer, or the strings created by them.
+/*! \def colr_printf
+    Ensure colr_printf_register() has been called, and then call `printf`.
 
-        \pi ... Arguments for `printf`.
-        \return Same as `printf`.
+    \details
+    Will call `free()` on any ColorArg pointer, ColorResult pointer,
+    ColorText pointer, or the strings created by them.
 
-        \example colr_printf_example.c
-    */
-    #define colr_printf(...) colr_printf_macro(printf, __VA_ARGS__)
+    \pi ... Arguments for `printf`.
+    \return Same as `printf`.
 
-    /*! \def colr_fprintf
-        Ensure colr_printf_register() has been called, and then call `fprintf`.
+    \example colr_printf_example.c
+*/
+#define colr_printf(...) colr_printf_macro(printf, __VA_ARGS__)
 
-        \details
-        Will call `free()` on any ColorArg pointer, ColorResult pointer,
-        ColorText pointer, or the strings created by them.
+/*! \def colr_fprintf
+    Ensure colr_printf_register() has been called, and then call `fprintf`.
 
-        \pi ... Arguments for `fprintf`.\n
-                \colrmightfree
-        \return Same as `fprintf`.
-    */
-    #define colr_fprintf(...) colr_printf_macro(fprintf, __VA_ARGS__)
+    \details
+    Will call `free()` on any ColorArg pointer, ColorResult pointer,
+    ColorText pointer, or the strings created by them.
 
-    /*! \def colr_sprintf
-        Ensure colr_printf_register() has been called, and then call `sprintf`.
+    \pi ... Arguments for `fprintf`.\n
+            \colrmightfree
+    \return Same as `fprintf`.
+*/
+#define colr_fprintf(...) colr_printf_macro(fprintf, __VA_ARGS__)
 
-        \details
-        Will call `free()` on any ColorArg pointer, ColorResult pointer,
-        ColorText pointer, or the strings created by them.
+/*! \def colr_sprintf
+    Ensure colr_printf_register() has been called, and then call `sprintf`.
 
-        \pi ... Arguments for `sprintf`.\n
-                \colrmightfree
-        \return Same as `sprintf`.
-    */
-    #define colr_sprintf(...) colr_printf_macro(sprintf, __VA_ARGS__)
+    \details
+    Will call `free()` on any ColorArg pointer, ColorResult pointer,
+    ColorText pointer, or the strings created by them.
 
-    /*! \def colr_snprintf
-        Ensure colr_printf_register() has been called, and then call `snprintf`.
+    \pi ... Arguments for `sprintf`.\n
+            \colrmightfree
+    \return Same as `sprintf`.
+*/
+#define colr_sprintf(...) colr_printf_macro(sprintf, __VA_ARGS__)
 
-        \details
-        Will call `free()` on any ColorArg pointer, ColorResult pointer,
-        ColorText pointer, or the strings created by them.
+/*! \def colr_snprintf
+    Ensure colr_printf_register() has been called, and then call `snprintf`.
 
-        \pi ... Arguments for `snprintf`.\n
-                \colrmightfree
-        \return Same as `snprintf`.
-    */
-    #define colr_snprintf(...) colr_printf_macro(snprintf, __VA_ARGS__)
+    \details
+    Will call `free()` on any ColorArg pointer, ColorResult pointer,
+    ColorText pointer, or the strings created by them.
 
-    /*! \def colr_asprintf
-        Ensure colr_printf_register() has been called, and then call `asprintf`.
+    \pi ... Arguments for `snprintf`.\n
+            \colrmightfree
+    \return Same as `snprintf`.
+*/
+#define colr_snprintf(...) colr_printf_macro(snprintf, __VA_ARGS__)
 
-        \details
-        Will call `free()` on any ColorArg pointer, ColorResult pointer,
-        ColorText pointer, or the strings created by them.
+/*! \def colr_asprintf
+    Ensure colr_printf_register() has been called, and then call `asprintf`.
 
-        \pi ... Arguments for `asprintf`.\n
-                \colrmightfree
-        \return Same as `asprintf`.
-    */
-    #define colr_asprintf(...) colr_printf_macro(asprintf, __VA_ARGS__)
-#endif // COLR_PRINTF
+    \details
+    Will call `free()` on any ColorArg pointer, ColorResult pointer,
+    ColorText pointer, or the strings created by them.
+
+    \pi ... Arguments for `asprintf`.\n
+            \colrmightfree
+    \return Same as `asprintf`.
+*/
+#define colr_asprintf(...) colr_printf_macro(asprintf, __VA_ARGS__)
+
 
 /*! \def colr_puts
     Create a string from a colr_cat() call, print it (with a newline), and free it.
@@ -1268,7 +1302,8 @@
         const char*: colr_str_repr, \
         char*: colr_str_repr, \
         const char: colr_char_repr, \
-        char: colr_char_repr \
+        char: colr_char_repr, \
+        void*: _colr_ptr_repr \
     )(x)
 
 
@@ -1296,9 +1331,15 @@
 #define colr_str_either(s1, s2, s3) (colr_str_eq(s1, s2) || colr_str_eq(s1, s3))
 
 /*! \def colr_to_str
-    Calls the \<type\>to_str functions for the supported types.
+    Calls the \<type\>_to_str functions for the supported types.
 
-    \pi x A supported type to build a string from.
+    \details
+    If a string is given, it is duplicated like `strdup()`.
+
+    \pi x   A supported type to build a string from.
+    \return An allocated string from the type's `*_to_str()` function.\n
+            \mustfree
+            \maybenullalloc
 */
 #define colr_to_str(x) \
     _Generic( \
@@ -1312,7 +1353,8 @@
         ColorValue: ColorValue_to_esc, \
         ExtendedValue: ExtendedValue_to_str, \
         StyleValue: StyleValue_to_str, \
-        RGB: RGB_to_str \
+        RGB: RGB_to_str, \
+        void*: _colr_ptr_to_str \
     )(x)
 
 #ifndef DOXYGEN_SKIP
@@ -2099,11 +2141,11 @@ bool colr_char_should_escape(const char c);
 bool colr_check_marker(uint32_t marker, void* p);
 char* colr_empty_str(void);
 size_t colr_mb_len(const char* s, size_t length);
-#ifdef COLR_PRINTF
-    int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *const *args);
-    int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, int *sz);
-    void colr_printf_register(void);
-#endif
+
+int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *const *args);
+int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, int *sz);
+void colr_printf_register(void);
+
 bool colr_set_locale(void);
 bool colr_supports_rgb(void);
 
@@ -2192,6 +2234,8 @@ void _colr_free(void* p);
 */
 bool _colr_is_last_arg(void* p);
 size_t _colr_ptr_length(void* p);
+char* _colr_ptr_repr(void* p);
+char* _colr_ptr_to_str(void* p);
 
 /*! \internal
     The multi-type variadiac function behind the colr_join() macro.

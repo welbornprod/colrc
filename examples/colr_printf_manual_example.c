@@ -17,7 +17,7 @@ int main(void) {
         you must call colr_printf_register() at some point before calling
         the printf functions.
 
-        This will register a new format specifier, COLR_FMT, to be used
+        This will register a new format specifier, COLR_FMT_CHAR, to be used
         with printf and friends.
     */
     colr_printf_register();

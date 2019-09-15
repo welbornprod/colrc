@@ -805,6 +805,53 @@
         } \
     } while (0)
 
+/*! \def assert_str_eq_repr
+    Assert that two strings are equal, with a nice message with string reprs.
+
+    \pi s1  First string to compare.
+    \pi s2  Second string to compare.
+    \pi msg Message for failures.
+*/
+#define assert_str_eq_repr(s1, s2, colrobj) \
+    do { \
+        char* _a_s_e_repr = colr_repr(colrobj); \
+        if (s1 == NULL && s2 == NULL) { /* cppcheck-suppress literalWithCharPtrCompare */ \
+            /* Both are NULL, so they are equal. */ \
+            (void)0; \
+        } else if (s1 != NULL && s2 == NULL) { /* cppcheck-suppress literalWithCharPtrCompare */ \
+            char* _a_s_e_s1_repr = colr_str_repr(s1); \
+            fail( \
+                "Strings are not equal:\n    %s\n  != NULL\n      Repr: %s", \
+                _a_s_e_s1_repr, \
+                _a_s_e_repr \
+            ); \
+            free(_a_s_e_repr); \
+            free(_a_s_e_s1_repr); \
+        } else if (s2 != NULL && s1 == NULL) { /* cppcheck-suppress literalWithCharPtrCompare */ \
+            char* _a_s_e_s2_repr = colr_str_repr(s2); \
+            fail( \
+                "Strings are not equal:\n    NULL\n  != %s\n      Repr: %s", \
+                _a_s_e_s2_repr, \
+                _a_s_e_repr \
+            ); \
+            free(_a_s_e_repr); \
+            free(_a_s_e_s2_repr); \
+        } else if (strcmp(s1, s2) != 0) { \
+            char* _a_s_e_s1_repr = colr_str_repr(s1); \
+            char* _a_s_e_s2_repr = colr_str_repr(s2); \
+            fail( \
+                "Strings are not equal:\n     %s\n  != %s\n      Repr: %s", \
+                _a_s_e_s1_repr, \
+                _a_s_e_s2_repr, \
+                _a_s_e_repr \
+            ); \
+            free(_a_s_e_repr); \
+            free(_a_s_e_s1_repr); \
+            free(_a_s_e_s2_repr); \
+        } \
+    } while (0)
+
+
 
 #define assert_str_list_contains(lst, s) \
     do { \
@@ -900,6 +947,7 @@
         } \
         lstname[_ca_l_f_len - 1] = NULL; \
     } while (0)
+
 
 /*! Default message in colr test macros with a `msg...` parameter.
 
