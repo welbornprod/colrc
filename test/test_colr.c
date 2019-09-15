@@ -72,6 +72,59 @@ subdesc(colr) {
         free(s);
     }
 } // subdesc(colr)
+subdesc(colr_asprintf) {
+    it("handles colr objects") {
+        struct {
+            void* obj;
+            char* original;
+        } tests[] = {
+            {
+                Colr("This is a string.", fore(RED), style(UNDERLINE)),
+                "This is a string."
+            },
+            {fore(RED), NULL},
+            {back(WHITE), NULL},
+            {
+                Colr_join("-", Colr("this", fore(BLUE)), Colr("that", style(BRIGHT))),
+                "this-that"
+            },
+        };
+        for_each(tests, i) {
+            char* to_str = NULL;
+            if (ColorArg_is_ptr(tests[i].obj)) {
+                ColorArg* copiedp = tests[i].obj;
+                ColorArg copied = *copiedp;
+                to_str = colr_to_str(copied);
+            } else if (ColorResult_is_ptr(tests[i].obj)) {
+                ColorResult* copiedp = tests[i].obj;
+                copiedp = ColrResult(strdup(ColorResult_to_str(*copiedp)));
+                ColorResult copied = *copiedp;
+                to_str = strdup(colr_to_str(copied));
+                colr_free(copiedp);
+           } else if (ColorText_is_ptr(tests[i].obj)) {
+                ColorText* copiedp = tests[i].obj;
+                ColorText copied = *copiedp;
+                to_str = colr_to_str(copied);
+            } else {
+                fail("Did not detect pointer type, and that is unforgivable.");
+            }
+            char* mystring = NULL;
+            colr_asprintf(&mystring, "%" COLR_FMT, tests[i].obj);
+            assert(colr_str_has_codes(mystring));
+            assert_str_eq(mystring, to_str, "Printf output doesn't match to_str");
+            free(to_str);
+            char* stripped = colr_str_strip_codes(mystring);
+            free(mystring);
+            if (tests[i].original) {
+                assert_str_eq(stripped, tests[i].original, "Stripped output doesn't match the input");
+            } else {
+                assert_str_empty(stripped);
+            }
+            free(stripped);
+        }
+
+    }
+}
 // colr_join
 subdesc(colr_join) {
     it("handles NULL") {
@@ -617,7 +670,8 @@ subdesc(colr_snprintf) {
                 copiedp = ColrResult(strdup(ColorResult_to_str(*copiedp)));
                 ColorResult copied = *copiedp;
                 color_len = colr_length(copied);
-                to_str = colr_to_str(copied);
+                to_str = strdup(colr_to_str(copied));
+                colr_free(copiedp);
            } else if (ColorText_is_ptr(tests[i].obj)) {
                 ColorText* copiedp = tests[i].obj;
                 ColorText copied = *copiedp;
