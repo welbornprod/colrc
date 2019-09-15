@@ -360,7 +360,7 @@ subdesc(colr_str_center) {
 
         };
         for_each(tests, i) {
-            char* result = colr_str_center(tests[i].s, tests[i].padchar, tests[i].width);
+            char* result = colr_str_center(tests[i].s, tests[i].width, tests[i].padchar);
             if (!result) {
                 if (!tests[i].expected) {
                     // Expected null.
@@ -640,7 +640,7 @@ subdesc(colr_str_get_codes) {
         );
         colr_str_list_free(code_list_unique);
 
-        char* s = colr(
+        char* s = colr_cat(
             fore(RED),
             back(WHITE),
             style(BRIGHT),
@@ -654,7 +654,7 @@ subdesc(colr_str_get_codes) {
         code_list_unique = colr_str_get_codes(s, true);;
         free(s);
         assert_not_null(code_list);
-        // A reset code is appended when calling colr() with ColorArgs.
+        // A reset code is appended when calling colr_cat() with ColorArgs.
         // So it's +1 for whatever items you see.
         assert_str_list_size_eq_repr(
             colr_str_list_len(code_list),
@@ -668,7 +668,7 @@ subdesc(colr_str_get_codes) {
         colr_str_list_free(code_list);
 
         assert_not_null(code_list_unique);
-        // A reset code is appended when calling colr() with ColorArgs.
+        // A reset code is appended when calling colr_cat() with ColorArgs.
         // So it's +1 for whatever *unique* items you see.
        assert_str_list_size_eq_repr(
             colr_str_list_len(code_list_unique),
@@ -706,7 +706,7 @@ subdesc(colr_str_has_codes) {
         };
         size_t args_len = array_length(args);
         for (size_t i = 0; i < args_len; i++) {
-            char* s = colr("This prefix.", args[i], "This suffix.");
+            char* s = colr_cat("This prefix.", args[i], "This suffix.");
             assert(colr_str_has_codes(s));
             free(s);
         }
@@ -915,7 +915,7 @@ subdesc(colr_str_ljust) {
 
         };
         for_each(tests, i) {
-            char* result = colr_str_ljust(tests[i].s, tests[i].padchar, tests[i].width);
+            char* result = colr_str_ljust(tests[i].s, tests[i].width, tests[i].padchar);
             if (!result) {
                 if (!tests[i].expected) {
                     // Expected null.
@@ -1291,7 +1291,7 @@ subdesc(colr_str_rjust) {
 
         };
         for_each(tests, i) {
-            char* result = colr_str_rjust(tests[i].s, tests[i].padchar, tests[i].width);
+            char* result = colr_str_rjust(tests[i].s, tests[i].width, tests[i].padchar);
             if (!result) {
                 if (!tests[i].expected) {
                     // Expected null.

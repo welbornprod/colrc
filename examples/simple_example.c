@@ -22,12 +22,12 @@ int main(int argc, char** argv) {
         " can be mixed in any order."
     );
 
-    // Create a string, using colr(), instead of colr_puts() or colr_print().
-    char* mystr = colr(Colr("Don't want to print this.", style(UNDERLINE)));
+    // Create a string, using colr_cat(), instead of colr_puts() or colr_print().
+    char* mystr = colr_cat(Colr("Don't want to print this.", style(UNDERLINE)));
     printf("\nNow I do: %s\n", mystr);
     free(mystr);
 
-    // Create a ColorText, on the heap, for use with colr(), colr_print(),
+    // Create a ColorText, on the heap, for use with colr_cat(), colr_print(),
     // or colr_puts().
     ColorText* ctext = NULL;
     if (argc == 1) {
@@ -35,8 +35,8 @@ int main(int argc, char** argv) {
     } else {
         ctext = Colr(argv[1], fore(GREEN));
     }
-    char* userstr = colr("Argument: ", ctext);
+    char* userstr = colr_cat("Argument: ", ctext);
     puts(userstr);
-    // colr() already called ColorText_free(ctext).
+    // colr_cat() already called ColorText_free(ctext).
     free(userstr);
 }

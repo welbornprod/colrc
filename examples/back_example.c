@@ -2,7 +2,7 @@
 
 int main(void) {
     // Basic colors:
-    char* s = colr(
+    char* s = colr_cat(
         fore(BLACK),
         back(RED), "This is a test",
         back(BLUE), " and only a test."
@@ -12,7 +12,7 @@ int main(void) {
     free(s);
 
     // Color names:
-    char* n = colr(
+    char* n = colr_cat(
         back("blue"),
         fore("white"),
         "This is blue."
@@ -22,19 +22,19 @@ int main(void) {
     free(n);
 
     // Extended (256) colors:
-    char* e = colr(fore(ext(0)), back(ext(35)), "Extended colors.\n");
+    char* e = colr_cat(fore(ext(0)), back(ext(35)), "Extended colors.\n");
     if (!e) return 1;
     printf("%s", e);
     free(e);
 
     // RGB (True Color) colors:
-    char* r = colr(back(rgb(35, 0, 155)), "RGB");
+    char* r = colr_cat(back(rgb(35, 0, 155)), "RGB");
     if (!r) return 1;
     printf("%s\n", r);
     free(r);
 
     // Hex (RGB style) colors:
-    char* h = colr(
+    char* h = colr_cat(
         back("#ff0000"), "Hex RGB\n",
         back(hex("fff")), fore(hex("000000")), "Hex macro RGB\n",
         back(hex_or("NOTHEX", rgb(255, 255, 255))), "Using default for bad hex str"
@@ -44,7 +44,7 @@ int main(void) {
     free(h);
 
     // Hex (Closest ExtendedValue) colors:
-    char* he = colr(
+    char* he = colr_cat(
         back(ext_hex("ff0000")), "Closest ExtendedValue Hex\n",
         back(ext_hex_or("NOTAHEX", ext(255))), "Using default for bad hex str"
     );
@@ -56,7 +56,7 @@ int main(void) {
         Colr() accepts a back() as one of it's arguments.
         The order does not matter.
     */
-    char* colorized = colr(
+    char* colorized = colr_cat(
         Colr("This is red.\n", back(RED)),
         Colr("This is also red.\n", fore("white"), back("red")),
         "This is not."

@@ -6,7 +6,7 @@
     and debugging purposes.
 
     Example Usage:
-        ./tools/snippet.py 'char* s = colr(fore(BLUE), "Okay."); print(s);'
+        ./tools/snippet.py 'char* s = colr_cat(fore(BLUE), "Okay."); print(s);'
 
     To run examples found in the source code:
         ./tools/snippet.py -E

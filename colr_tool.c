@@ -12,6 +12,9 @@
 
 int main(int argc, char* argv[]) {
     // Needed for str_to_wide(), and wide_to_str(), and the rainbow() funcs.
+    // TODO: look at uselocale(), maybe it can be used in _rainbow() instead
+    //       of asking the user to call setlocale(). If it returns a locale,
+    //       then use it. If it doesn't, call setlocale() one time. Maybe?
     setlocale(LC_ALL, "");
     ColrOpts opts = ColrOpts_new();
     int parse_ret = parse_args(argc, argv, &opts);
@@ -740,13 +743,13 @@ int print_256(ColrOpts* opts, bool do_back) {
         snprintf(num, 4, "%03d", i);
         carg = do_back ? back(ext(i)) : fore(ext(i));
         if (i < 16) {
-            text = colr(carg, num);
+            text = colr_cat(carg, num);
             fprintf(opts->out_stream, "%s ", text);
             if ((i == 7) || (i == 15)) fprintf(opts->out_stream, "\n");
             free(text);
         } else {
             // Print the number as is.
-            text = colr(carg, num);
+            text = colr_cat(carg, num);
             fprintf(opts->out_stream, "%s ", text);
             free(text);
             // Print the other 5 in the group.
@@ -755,7 +758,7 @@ int print_256(ColrOpts* opts, bool do_back) {
                 j = j + 36;
                 snprintf(num, 4, "%03d", j);
                 carg = do_back ? back(ext(j)) : fore(ext(j));
-                text = colr(carg, num);
+                text = colr_cat(carg, num);
                 fprintf(opts->out_stream, "%s ", text);
                 free(text);
             }
@@ -766,7 +769,7 @@ int print_256(ColrOpts* opts, bool do_back) {
     for (int i = 232; i < 256; i++) {
         snprintf(num, 4, "%03d", i);
         carg = do_back ? back(ext(i)) : fore(ext(i));
-        text = colr(carg, num);
+        text = colr_cat(carg, num);
         fprintf(opts->out_stream, "%s ", text);
         free(text);
     }
@@ -789,9 +792,9 @@ int print_basic(ColrOpts* opts, bool do_back) {
         BasicValue otherval = colr_str_ends_with(name, "black") ? WHITE : BLACK;
         asprintf_or_return(1, &namefmt, "%-14s", name);
         if (do_back) {
-            text = colr(back(val), fore(otherval), namefmt);
+            text = colr_cat(back(val), fore(otherval), namefmt);
         } else {
-            text = colr(fore(val), back(otherval), namefmt);
+            text = colr_cat(fore(val), back(otherval), namefmt);
         }
         fprintf(opts->out_stream, "%s", text);
         free(namefmt);
@@ -831,7 +834,7 @@ void print_name(ColrOpts* opts, size_t index, bool do_rgb) {
     RGB foreval = RGB_inverted(RGB_monochrome(item.rgb));
     ExtendedValue forevalext = foreval.red > 128 ? XWHITE : XBLACK;
     // Use RGB if requested.
-    char* block = colr(
+    char* block = colr_cat(
         Colr(
             numblock,
             do_rgb ?
@@ -891,7 +894,7 @@ int print_rainbow(ColrOpts* opts, bool do_back) {
             rainbow_fg(text, CT_DEFAULT_FREQ, CT_DEFAULT_OFFSET) :
             rainbow_fg_term(text, CT_DEFAULT_FREQ, CT_DEFAULT_OFFSET);
     }
-    char* textfmt = colr(
+    char* textfmt = colr_cat(
         do_back ? fore(BLACK) : back(RESET),
         do_back ? style(BRIGHT) : style(NORMAL),
         rainbowtxt
@@ -920,9 +923,9 @@ int print_rgb(ColrOpts* opts, bool do_back, bool term_rgb) {
                     num = ExtendedValue_to_str(extval);
                     ExtendedValue otherval = do_back ? XWHITE : XBLACK;
                     if (do_back) {
-                        text = colr(back(extval), fore(otherval), num);
+                        text = colr_cat(back(extval), fore(otherval), num);
                     } else {
-                        text = colr(fore(extval), back(otherval), num);
+                        text = colr_cat(fore(extval), back(otherval), num);
                     }
                 } else {
                     // Make the rgb text.
@@ -930,9 +933,9 @@ int print_rgb(ColrOpts* opts, bool do_back, bool term_rgb) {
                     // Colorize it.
                     RGB othervals = do_back ? (RGB){255, 255, 255} : (RGB){0, 0, 0};
                     if (do_back) {
-                        text = colr(back(vals), fore(othervals), num);
+                        text = colr_cat(back(vals), fore(othervals), num);
                     } else {
-                        text = colr(fore(vals), back(othervals), num);
+                        text = colr_cat(fore(vals), back(othervals), num);
                     }
                 }
                 free(num);

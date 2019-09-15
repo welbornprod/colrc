@@ -12,7 +12,7 @@ int main(void) {
     // But if you *have to*, ColrResult will help you.
     // This example wouldn't need ColrResult if you used Colr_join instead,
     // which returns an allocated ColorResult itself.
-    char* joined = colr(
+    char* joined = colr_cat(
         ColrResult(colr_join(
             ColrResult(colr_join(
                 ": ",
@@ -42,7 +42,7 @@ int main(void) {
     // Your string is still good:
     printf("%s\n", mine);
 
-    char* appended = colr(colorized, "...still here.");
+    char* appended = colr_cat(colorized, "...still here.");
     if (!appended) return EXIT_FAILURE;
     printf("%s\n", appended);
     // The Colr-allocated string is still good:
@@ -72,7 +72,7 @@ int main(void) {
     ColorResult* result = Colr_join(
         "\n",
         Colr("This is a line.", fore(ext_rgb(255, 128, 128))),
-        ColrResult(colr(
+        ColrResult(colr_cat(
             Colr("This is another", style(UNDERLINE)),
             "."
         )),

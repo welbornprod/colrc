@@ -51,7 +51,7 @@ colr.c | Where ColrC is implemented. This must be compiled/linked with your prog
 
 ## Example Usage
 
-You use colr(), colr_join(), and Colr(), along with fore(), back(), and style()
+You use colr_cat(), colr_join(), and Colr(), along with fore(), back(), and style()
 to build colorized strings. There are some print-related functions, for quick
 building/printing of colorized strings (colr_puts() and colr_print()).
 
@@ -80,12 +80,12 @@ int main(int argc, char** argv) {
         " can be mixed in any order."
     );
 
-    // Create a string, using colr(), instead of colr_puts() or colr_print().
-    char* mystr = colr(Colr("Don't want to print this.", style(UNDERLINE)));
+    // Create a string, using colr_cat(), instead of colr_puts() or colr_print().
+    char* mystr = colr_cat(Colr("Don't want to print this.", style(UNDERLINE)));
     printf("\nNow I do: %s\n", mystr);
     free(mystr);
 
-    // Create a ColorText, on the heap, for use with colr(), colr_print(),
+    // Create a ColorText, on the heap, for use with colr_cat(), colr_print(),
     // or colr_puts().
     ColorText* ctext = NULL;
     if (argc == 1) {
@@ -93,9 +93,9 @@ int main(int argc, char** argv) {
     } else {
         ctext = Colr(argv[1], fore(GREEN));
     }
-    char* userstr = colr("Argument: ", ctext);
+    char* userstr = colr_cat("Argument: ", ctext);
     puts(userstr);
-    // colr() already called ColorText_free(ctext).
+    // colr_cat() already called ColorText_free(ctext).
     free(userstr);
 }
 ```
@@ -108,7 +108,7 @@ Here is a table of the most common usage examples:
 
 Name           | Example
 :------------- | :-----------------
-colr      | [colr_example.c](examples/colr_example.c)
+colr_cat  | [colr_cat_example.c](examples/colr_cat_example.c)
 colr_join | [colr_join_example.c](examples/colr_join_example.c)
 Colr      | [Colr_example.c](examples/Colr_example.c)
 fore      | [fore_example.c](examples/fore_example.c)

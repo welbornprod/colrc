@@ -870,8 +870,7 @@ char colr_char_escape_char(const char c) {
     \return `true` if \p c is found in \p s, otherwise `false`.
 */
 bool colr_char_in_str(const char* s, const char c) {
-    size_t length = strlen(s);
-    for (size_t i = 0; i < length; i++) {
+    for (size_t i = 0; s[i]; i++) {
         if (s[i] == c) return true;
     }
     return false;
@@ -1062,13 +1061,152 @@ char* colr_empty_str(void) {
     return s;
 }
 
+/*! Handles printing with printf for Colr objects.
+
+    \details
+    This function matches the required `typedef` in `printf.h` (`printf_function`),
+    for handling a custom printf format char with `register_printf_specifier`.
+
+    \pi fp   FILE pointer for output.
+    \pi info Info from printf about how to format the argument.
+    \pi args Argument list (with only 1 argument), containing a ColorArg,
+             ColorResult, ColorText, or \string to format.
+    \return  The number of characters written.
+*/
+int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *const *args) {
+    (void)info; // Unused.
+    void* p = *(void**)args[0];
+    char* s = NULL;
+    ColorArg* cargp = NULL;
+    ColorResult* cresp = NULL;
+    ColorText* ctextp = NULL;
+    if (ColorArg_is_ptr(p)) {
+        cargp = p;
+        s = ColorArg_to_esc(*cargp);
+        ColorArg_free(cargp);
+    } else if (ColorText_is_ptr(p)) {
+        ctextp = p;
+        s = ColorText_to_str(*ctextp);
+        ColorText_free(ctextp);
+    } else if (ColorResult_is_ptr(p)) {
+        cresp = p;
+        s = ColorResult_to_str(*cresp);
+    } else {
+        // Better be a string.
+        s = (char*)p;
+    }
+    if (!s) return 1;
+    if (info->alt) {
+        // Alternate-form (#), no codes.
+        char* stripped = colr_str_strip_codes(s);
+        // If I couldn't allocate for the stripped version, use the original.
+        // Worse things than that are about to happen anyway.
+        if (stripped) {
+            free(s);
+            s = stripped;
+        }
+
+    }
+    char* justified = NULL;
+    if (info->width) {
+        // TODO: Use wchar_t in justification funcs to forward `info->pad` to it.
+        //       I'm not sure how this is used from printf though.
+        int pad = info->pad ? wctob(info->pad) : ' ';
+        if (pad == EOF) pad = ' ';
+        if (info->left) {
+            justified = colr_str_ljust(s, info->width, pad);
+        } else if (info->space) {
+            justified = colr_str_center(s, info->width, pad);
+        } else {
+            justified = colr_str_rjust(s, info->width, pad);
+        }
+        if (justified) {
+            if (cargp || ctextp) free(s);
+            if (cresp) ColorResult_free(cresp);
+            s = justified;
+        } else {
+            // Can't allocate for justified text.
+            return 1;
+        }
+    }
+    fprintf(fp, "%s", s);
+    size_t length = strlen(s);
+    if (cargp || ctextp || justified) free(s);
+    if (cresp) ColorResult_free(cresp);
+
+    return length;
+}
+
+/*! Handles the arg count/size for the Colr printf handler.
+
+    \details
+    This function matches the required `typedef` in `printf.h` (`printf_arginfo_size_function`)
+    for handling a custom printf format char with `register_printf_specifier`.
+
+    \pi info     Info from printf about how to format the argument.
+    \pi n        Number of arguments for the format char.
+    \po argtypes Type of arguments being handled, from an `enum` defined in `printf`.
+                 Colr uses/sets one argument, a `PA_POINTER` type.
+    \po sz       Size of the arguments. Not used in Colr.
+    \return      The number of argument types set in \p argtypes.
+*/
+int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, int *sz) {
+    (void)info; // Unused.
+    (void)sz; // Unused.
+     if (n > 0)
+     {
+          // Only setting one argument for Colr.
+          argtypes[0] = PA_POINTER;
+     }
+     // Only using one argument for Colr.
+     return 1;
+}
+
+/*! Registers COLR_FMT_CHAR to handle Colr objects in the printf-family
+    functions.
+
+    \details
+    This function only needs to be called once and `register_printf_specifier`
+    is only called the first time this function is called.
+
+    \examplecodefor{colr_printf_register,.c}
+    #include "colr.h"
+
+    // These are needed if you have certain warnings enabled.
+    #pragma clang diagnostic ignored "-Winvalid-format-specifier"
+    #pragma GCC diagnostic ignored "-Wformat="
+    #pragma GCC diagnostic ignored "-Wformat-extra-args"
+
+    int main(void) {
+        colr_printf_register();
+        printf("A colr object: %R\n", Colr("Hello", fore(RED)));
+
+        char* colorized = NULL;
+        asprintf(
+            &colorized,
+            "I made this: %R",
+            Colr("No, I made this.", style(UNDERLINE))
+        );
+        puts(colorized);
+        free(colorized);
+    }
+    \endexamplecode
+*/
+void colr_printf_register(void) {
+    static bool is_registered = false;
+    if (is_registered) return;
+    // Do the actual registering, if not done already.
+    register_printf_specifier(COLR_FMT_CHAR, colr_printf_handler, colr_printf_info);
+    is_registered = true;
+}
+
 /*! Center-justifies a \string, ignoring escape codes when measuring the width.
 
     \pi s       The string to justify.\n
                 \mustnullin
-    \pi padchar The character to pad with. If '0', then `' '` is used.
     \pi width   The overall width for the resulting string.\n
                 If set to '0', the terminal width will be used from colr_term_size().
+    \pi padchar The character to pad with. If '0', then `' '` is used.
 
     \return     An allocated string with the result.\n
                 \mustfree
@@ -1078,7 +1216,7 @@ char* colr_empty_str(void) {
 
     \examplecodefor{colr_str_center,.c}
     char* colorized = Colr_str("This.", fore(RED), back(WHITE));
-    char* justified = colr_str_center(colorized, ' ', 9);
+    char* justified = colr_str_center(colorized, 9, ' ');
     free(colorized);
     // The string still has codes, but only 4 spaces were added.
     assert(colr_str_starts_with(justified, "  "));
@@ -1089,7 +1227,7 @@ char* colr_empty_str(void) {
     free(justified);
     \endexamplecode
 */
-char* colr_str_center(const char* s, const char padchar, int width) {
+char* colr_str_center(const char* s, int width, const char padchar) {
     if (!s) return NULL;
     char pad = padchar == '\0' ? ' ' : padchar;
     size_t length = strlen(s);
@@ -1189,12 +1327,13 @@ size_t colr_str_char_lcount(const char* s, const char c) {
     Returns `0` if \p s is `NULL`/empty, \p chars is `NULL`/empty, or the
     string doesn't start with any of the characters in \p chars.
 
-    \pi s The string to examine.
-          \mustnull
-    \pi c The characters to count, in any order.
-          \mustnotzero
+    \pi s     The string to examine.
+              \mustnull
+    \pi chars The characters to count, in any order.
+              \mustnotzero
 
-    \return The number of times a character in \p chars occurs at the start of \p s.
+    \return   The number of times a character in \p chars occurs at the start
+              of \p s.
 */
 size_t colr_str_chars_lcount(const char* restrict s, const char* restrict chars) {
     if (!(s && chars)) return 0;
@@ -1405,7 +1544,7 @@ bool colr_str_ends_with(const char* restrict str, const char* restrict suf) {
     #include <stdio.h>
     #include "colr.h"
     int main(void) {
-        char* s = colr(
+        char* s = colr_cat(
             Colr("Testing this out.", fore(RED), back(WHITE)),
             Colr("Again.", fore(RED), style(UNDERLINE))
         );
@@ -1693,35 +1832,14 @@ void colr_str_list_free(char** ps) {
     free(ps);
 }
 
-/*! Converts a \string into lower case in place.
-    \details
-    \mustnullin
-
-    \details
-    If `s` is `NULL`, nothing is done.
-
-    \pi s The input string to convert to lower case.
-*/
-void colr_str_lower(char* s) {
-    if (!s) return;
-    size_t i = 0;
-    while (s[i]) {
-        char c = tolower(s[i]);
-        s[i] = c;
-        i++;
-    }
-    // This works for empty strings too.
-    if (s[i] != '\0') s[i] = '\0';
-}
-
 
 /*! Left-justifies a \string, ignoring escape codes when measuring the width.
 
     \pi s       The string to justify.\n
                 \mustnullin
-    \pi padchar The character to pad with. If '0', then `' '` is used.
     \pi width   The overall width for the resulting string.\n
                 If set to '0', the terminal width will be used from colr_term_size().
+    \pi padchar The character to pad with. If '0', then `' '` is used.
 
     \return     An allocated string with the result, or `NULL` if \p s is `NULL`.\n
                 \mustfree
@@ -1731,7 +1849,7 @@ void colr_str_lower(char* s) {
 
     \examplecodefor{colr_str_ljust,.c}
     char* colorized = Colr_str("This.", fore(RED), back(WHITE));
-    char* justified = colr_str_ljust(colorized, ' ', 8);
+    char* justified = colr_str_ljust(colorized, 8, ' ');
     free(colorized);
     // The string still has codes, but only 3 spaces were added.
     assert(colr_str_ends_with(justified, "   "));
@@ -1741,7 +1859,7 @@ void colr_str_lower(char* s) {
     free(justified);
     \endexamplecode
 */
-char* colr_str_ljust(const char* s, const char padchar, int width) {
+char* colr_str_ljust(const char* s, int width, const char padchar) {
     if (!s) return NULL;
     char pad = padchar == '\0' ? ' ' : padchar;
     size_t length = strlen(s);
@@ -1774,6 +1892,28 @@ char* colr_str_ljust(const char* s, const char padchar, int width) {
     }
     return start;
 }
+
+/*! Converts a \string into lower case in place.
+    \details
+    \mustnullin
+
+    \details
+    If `s` is `NULL`, nothing is done.
+
+    \pi s The input string to convert to lower case.
+*/
+void colr_str_lower(char* s) {
+    if (!s) return;
+    size_t i = 0;
+    while (s[i]) {
+        char c = tolower(s[i]);
+        s[i] = c;
+        i++;
+    }
+    // This works for empty strings too.
+    if (s[i] != '\0') s[i] = '\0';
+}
+
 
 /*! Strip a leading character from a \string, filling another \string with the
     result.
@@ -2136,9 +2276,9 @@ char* colr_str_repr(const char* s) {
 
     \pi s       The string to justify.\n
                 \mustnullin
-    \pi padchar The character to pad with. If '0', then `' '` is used.
     \pi width   The overall width for the resulting string.\n
                 If set to '0', the terminal width will be used from colr_term_size().
+    \pi padchar The character to pad with. If '0', then `' '` is used.
 
     \return     An allocated string with the result, or `NULL` if \p s is `NULL`.\n
                 \mustfree
@@ -2148,7 +2288,7 @@ char* colr_str_repr(const char* s) {
 
     \examplecodefor{colr_str_rjust,.c}
     char* colorized = Colr_str("This.", fore(RED), back(WHITE));
-    char* justified = colr_str_rjust(colorized, ' ', 8);
+    char* justified = colr_str_rjust(colorized, 8, ' ');
     free(colorized);
     // The string still has codes, but only 3 spaces were added.
     assert(colr_str_starts_with(justified, "   "));
@@ -2158,7 +2298,7 @@ char* colr_str_repr(const char* s) {
     free(justified);
     \endexamplecode
 */
-char* colr_str_rjust(const char* s, const char padchar, int width) {
+char* colr_str_rjust(const char* s, int width, const char padchar) {
     if (!s) return NULL;
     char pad = padchar == '\0' ? ' ' : padchar;
     size_t length = strlen(s);
@@ -2540,7 +2680,7 @@ bool _colr_is_last_arg(void* p) {
 
     \details
     This will free() any ColorArgs and ColorTexts that are passed in. It is
-    backing the colr() macro, and enables easy throwaway color values.
+    backing the colr_cat() macro, and enables easy throwaway color values.
 
     \details
     Any plain strings that are passed in are left alone. It is up to the caller
@@ -2662,7 +2802,7 @@ char* _colr_join(void *joinerp, ...) {
     \pi joinerp The joiner (any ColorArg, ColorText, or string).
     \pi args    A `va_list` with zero or more ColorArgs, ColorTexts, or strings to join.
 
-    \return     The length (in bytes) needed to allocate a string built with _colr().
+    \return     The length (in bytes) needed to allocate a string built with _colr_cat().
 
     \sa _colr
 */
@@ -2914,7 +3054,7 @@ size_t _colr_ptr_length(void* p) {
         ColorArg* cargp = p;
         length = ColorArg_length(*cargp);
         // Gonna need a reset to close this code if a plain string follows it
-        // in the _colr() function arguments.
+        // in the _colr_cat() function arguments.
         length += CODE_RESET_LEN;
     } else if (ColorResult_is_ptr(p)) {
         ColorResult* cresp = p;
@@ -3524,7 +3664,7 @@ ColorArg *ColorArg_to_ptr(ColorArg carg) {
     #include "colr.h"
 
     int main(void) {
-        char* s = colr(
+        char* s = colr_cat(
             Colr("Testing this out.", fore(RED), back(WHITE)),
             Colr("Again.", fore(RED), style(UNDERLINE))
         );
@@ -4287,15 +4427,15 @@ char* ColorText_to_str(ColorText ctext) {
         case JUST_NONE:
             break;
         case JUST_LEFT:
-            justified = colr_str_ljust(final, ctext.just.padchar, ctext.just.width);
+            justified = colr_str_ljust(final, ctext.just.width, ctext.just.padchar);
             free(final);
             return justified;
         case JUST_RIGHT:
-            justified = colr_str_rjust(final, ctext.just.padchar, ctext.just.width);
+            justified = colr_str_rjust(final, ctext.just.width, ctext.just.padchar);
             free(final);
             return justified;
         case JUST_CENTER:
-            justified = colr_str_center(final, ctext.just.padchar, ctext.just.width);
+            justified = colr_str_center(final, ctext.just.width, ctext.just.padchar);
             free(final);
             return justified;
     }
@@ -5806,7 +5946,7 @@ RGB RGB_from_hex_default(const char* hexstr, RGB default_value) {
     RGB rgbval;
     int ret = RGB_from_str("123,0,234", &rgbval);
     if (ret == 0) {
-        char* s = colr(Colr("Test", fore(rgbval)));
+        char* s = colr_cat(Colr("Test", fore(rgbval)));
         printf("%s\n", s);
         free(s);
     }

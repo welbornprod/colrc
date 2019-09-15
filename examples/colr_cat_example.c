@@ -2,15 +2,15 @@
 
 int main(void) {
     /*
-        You can build your strings with colr().
+        You can build your strings with colr_cat().
         Using a Colr (ColorText), or sprinkling fore(), back(), and style() calls,
         you can build multi-color strings and only worry about allocating/freeing
         the text.
 
         The order/number of arguments does not matter.
-        colr() accepts ColorTexts, ColorArgs, and strings (char*).
+        colr_cat() accepts ColorTexts, ColorArgs, and strings (char*).
     */
-    char *colorized = colr(
+    char *colorized = colr_cat(
         "This is plain.\n",
         Colr("This is styled.\n", fore(rgb(255, 0, 155))),
         fore(RED),
@@ -32,7 +32,7 @@ int main(void) {
     char *allocated;
     asprintf(&allocated, "\nThis is my string #%d\n", 1);
 
-    char *colored = colr(
+    char *colored = colr_cat(
         Colr(allocated, fore(ext(255)), style(UNDERLINE)),
         "This one should not be free'd though.\n"
     );

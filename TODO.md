@@ -1,11 +1,8 @@
 # ColrC Todo List
 
 ## Features
-[ ] Use `NULL` instead of an allocated empty string for invalid values.
-    I thought the empty-string thing was a good idea, but it just creates
-    two possible error-values because if allocation fails the functions
-    are gonna return `NULL` anyway. It would be better to just return `NULL`
-    for invalid values *and* failed allocations.
+[ ] colr_str_replace_re(), replace a regex pattern with a string, ColorArg,
+    ColorResult, or ColorText.
 
 ## Missing Features From Colr.py
 Some features from Colr.py will never be found in ColrC. Colr depends on

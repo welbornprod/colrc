@@ -14,7 +14,7 @@
     // Use ColrC functions/macros/etc.
 
     int main(void) {
-        char* colorized = colr(
+        char* colorized = colr_cat(
             "This is ",
             Colr("ColrC", fore(BLUE), style(BRIGHT)),
             " and it tries to make things ",
@@ -76,6 +76,7 @@
 #include <math.h>
 #include <limits.h> // Used for asprintf return checking.
 #include <locale.h> // Not used in colr.c, but necessary for users of rainbow stuff.
+#include <printf.h> // For register_printf_specifier.
 #include <stdarg.h> // Variadic functions and `va_list`.
 #include <stdbool.h>
 #include <stdint.h> // marker integers for colr structs
@@ -84,10 +85,12 @@
 #include <string.h> // strcat
 #include <sys/ioctl.h> //  For `struct winsize` and the `ioctl()` call to use it.
 #include <unistd.h> // isatty
+#include <wchar.h>
 /* This is only enabled for development. */
 #if defined(DEBUG) && defined(COLR_DEBUG)
     #include "dbug.h"
 #endif
+
 /* Tell gcc to ignore unused macros. */
 #pragma GCC diagnostic ignored "-Wunused-macros"
 /* Tell gcc to ignore clang pragmas, for linting. */
@@ -209,6 +212,9 @@
 //! Seed value for colr_str_hash().
 #define COLR_HASH_SEED 5381
 
+//! Character used in printf format strings for Colr objects.
+#define COLR_FMT_CHAR 'R'
+
 /*! Alias for COLOR_INVALID.
     \details
     All color values share an _INVALID member with the same value, so:
@@ -280,7 +286,7 @@
 
 
 /*! \def back
-    Create a back color suitable for use with the colr() and Colr() macros.
+    Create a back color suitable for use with the colr_cat() and Colr() macros.
 
 
     \details
@@ -553,11 +559,11 @@
 
 /*! \def Colr
     Returns a heap-allocated ColorText struct that can be used by itself,
-    or with the colr() macro.
+    or with the colr_cat() macro.
 
     \details
     You must `free()` the resulting ColorText struct using ColorText_free(),
-    unless you pass it to colr(), which will `free()` it for you.
+    unless you pass it to colr_cat(), which will `free()` it for you.
 
     \pi text String to colorize/style.
     \pi ...  No more than 3 ColorArg pointers for fore, back, and style in any order.
@@ -569,8 +575,23 @@
 */
 #define Colr(text, ...) ColorText_to_ptr(ColorText_from_values(text, __VA_ARGS__, _ColrLastArg))
 
+/*! \def Colr_cat
+    Like colr_cat(), but returns an allocated ColorResult that the \colrmacros
+    will automatically `free()`.
+
+    \pi ... Arguments for colr_cat(), to concatenate.
+    \return An allocated ColorResult with all arguments joined together.\n
+            \mustfree
+            \maybenullalloc
+            \colrmightfree
+*/
+#define Colr_cat(...) ColorResult_to_ptr(ColorResult_new(colr_cat(__VA_ARGS__)))
+
 /*! \def Colr_center
     Sets the JustifyMethod for a ColorText while allocating it.
+
+    \details
+    This is like Colr_center_char(), except is uses space as the default character.
 
     \pi text      Text to colorize.
     \pi justwidth Width for justification.
@@ -580,7 +601,7 @@
                   \colrmightfree
 
     \examplecodefor{Colr_center,.c}
-    char* justified = colr(Colr_center("This.", 9, fore(RED), back(WHITE)));
+    char* justified = colr_cat(Colr_center("This.", 9, fore(RED), back(WHITE)));
     assert(justified);
     // The string still has codes, but only 4 spaces were added.
     assert(colr_str_starts_with(justified, "  "));
@@ -596,15 +617,46 @@
         (ColorJustify){.method=JUST_CENTER, .width=justwidth, .padchar=' '} \
     )
 
+/*! \def Colr_center_char
+    Sets the JustifyMethod for a ColorText while allocating it.
+
+    \pi text      Text to colorize.
+    \pi justwidth Width for justification.
+    \pi c         The character to pad with.
+    \pi ...       Fore, back, or style ColorArgs for Colr().
+
+    \return       An allocated ColorText.\n
+                  \colrmightfree
+
+    \sa Colr_center
+
+    \examplecodefor{Colr_center_char,.c}
+    char* justified = colr_cat(Colr_center_char("This.", 8, ' ', fore(RED), back(WHITE)));
+    assert(justified);
+    // The string still has codes, but only 2 spaces were prepended, and 1 appended.
+    assert(colr_str_starts_with(justified, "  "));
+    assert(colr_str_ends_with(justified, " "));
+    // It was "justified" to 8 characters long, but it is well over that.
+    assert(strlen(justified) > 8);
+    printf("'%s'\n", justified);
+    free(justified);
+    \endexamplecode
+*/
+#define Colr_center_char(text, justwidth, c, ...) ColorText_set_just( \
+        Colr(text, __VA_ARGS__), \
+        (ColorJustify){.method=JUST_CENTER, .width=justwidth, .padchar=c} \
+    )
+
 /*! \def Colr_join
     Joins Colr objects and strings, exactly like colr_join(), but returns
     an allocated ColorResult that the \colrmacros will automatically `free()`
     for you.
 
     \pi joiner What to put between the other arguments.
-               ColorArg pointer, ColorText pointer, or string.
+               ColorArg pointer, ColorResult pointer, ColorText pointer, or string.
     \pi ...    Other arguments to join, with \p joiner between them.
-               ColorArg pointers, ColorText pointers, or strings, in any order.
+               ColorArg pointers, ColorResult pointers, ColorText pointers,
+               or strings, in any order.
     \return    An allocated ColorResult.\n
                \mustfree
                \maybenullalloc
@@ -619,6 +671,9 @@
 /*! \def Colr_ljust
     Sets the JustifyMethod for a ColorText while allocating it.
 
+    \details
+    This is like Colr_ljust_char(), except is uses space as the default character.
+
     \pi text      Text to colorize.
     \pi justwidth Width for justification.
     \pi ...       Fore, back, or style ColorArgs for Colr().
@@ -627,7 +682,7 @@
                   \colrmightfree
 
     \examplecodefor{Colr_ljust,.c}
-    char* justified = colr(Colr_ljust("This.", 8, fore(RED), back(WHITE)));
+    char* justified = colr_cat(Colr_ljust("This.", 8, fore(RED), back(WHITE)));
     assert(justified);
     // The string still has codes, but only 3 spaces were added.
     assert(colr_str_ends_with(justified, "   "));
@@ -642,8 +697,40 @@
         (ColorJustify){.method=JUST_LEFT, .width=justwidth, .padchar=' '} \
     )
 
+/*! \def Colr_ljust_char
+    Sets the JustifyMethod for a ColorText while allocating it.
+
+    \pi text      Text to colorize.
+    \pi justwidth Width for justification.
+    \pi c         The character to pad with.
+    \pi ...       Fore, back, or style ColorArgs for Colr().
+
+    \return       An allocated ColorText.\n
+                  \colrmightfree
+
+    \sa Colr_ljust
+
+    \examplecodefor{Colr_ljust_char,.c}
+    char* justified = colr_cat(Colr_ljust_char("This.", 8, ' ', fore(RED), back(WHITE)));
+    assert(justified);
+    // The string still has codes, but only 3 spaces were added.
+    assert(colr_str_ends_with(justified, "   "));
+    // It was "justified" to 8 characters long, but it is well over that.
+    assert(strlen(justified) > 8);
+    printf("'%s'\n", justified);
+    free(justified);
+    \endexamplecode
+*/
+#define Colr_ljust_char(text, justwidth, c, ...) ColorText_set_just( \
+        Colr(text, __VA_ARGS__), \
+        (ColorJustify){.method=JUST_LEFT, .width=justwidth, .padchar=c} \
+    )
+
 /*! \def Colr_rjust
     Sets the JustifyMethod for a ColorText while allocating it.
+
+    \details
+    This is like Colr_rjust_char(), except is uses space as the default character.
 
     \pi text      Text to colorize.
     \pi justwidth Width for justification.
@@ -653,7 +740,7 @@
                   \colrmightfree
 
     \examplecodefor{Colr_rjust,.c}
-    char* justified = colr(Colr_rjust("This.", 8, fore(RED), back(WHITE)));
+    char* justified = colr_cat(Colr_rjust("This.", 8, fore(RED), back(WHITE)));
     assert(justified);
     // The string still has codes, but only 3 spaces were added.
     assert(colr_str_starts_with(justified, "   "));
@@ -669,11 +756,40 @@
         (ColorJustify){.method=JUST_RIGHT, .width=justwidth, .padchar=' '} \
     )
 
+/*! \def Colr_rjust_char
+    Sets the JustifyMethod for a ColorText while allocating it.
+
+    \pi text      Text to colorize.
+    \pi justwidth Width for justification.
+    \pi c         The character to pad with.
+    \pi ...       Fore, back, or style ColorArgs for Colr().
+
+    \return       An allocated ColorText.\n
+                  \colrmightfree
+
+    \sa Colr_rjust
+
+    \examplecodefor{Colr_rjust_char,.c}
+    char* justified = colr_cat(Colr_rjust_char("This.", 8, ' ', fore(RED), back(WHITE)));
+    assert(justified);
+    // The string still has codes, but only 3 spaces were added.
+    assert(colr_str_starts_with(justified, "   "));
+    // It was "justified" to 8 characters long, but it is well over that.
+    assert(strlen(justified) > 8);
+    printf("'%s'\n", justified);
+    free(justified);
+    \endexamplecode
+*/
+#define Colr_rjust_char(text, justwidth, c, ...) ColorText_set_just( \
+        Colr(text, __VA_ARGS__), \
+        (ColorJustify){.method=JUST_RIGHT, .width=justwidth, .padchar=c} \
+    )
+
 /*! \def Colr_str
     Create an allocated string directly from Colr() arguments.
 
     \details
-    This is a wrapper around `colr(Colr(text, ...))`, which will automatically
+    This is a wrapper around `colr_cat(Colr(text, ...))`, which will automatically
     `free()` the ColorText, and return a string that you are responsible for.
 
     \pi text String to colorize/style.
@@ -683,7 +799,7 @@
             \mustfree
             \maybenullalloc
 */
-#define Colr_str(text, ...) colr(Colr(text, __VA_ARGS__))
+#define Colr_str(text, ...) colr_cat(Colr(text, __VA_ARGS__))
 
 
 /*! \def ColrResult
@@ -695,22 +811,22 @@
 */
 #define ColrResult(s) ColorResult_to_ptr(ColorResult_new(s))
 
-/*! \def colr
+/*! \def colr_cat
     Join ColorArg pointers, ColorResult pointers, ColorText pointers, and
     strings into one long string.
 
     \details
     To build the ColorArg pointers, it is better to use the fore(), back(),
-    and style() macros. The ColorArgs are heap allocated, but colr() will
+    and style() macros. The ColorArgs are heap allocated, but colr_cat() will
     free() them for you.
 
     \details
     To build the ColorText pointers, it is better to use the Colr() macro,
     along with the fore(), back(), and style() macros. The ColorTexts are
-    heap allocated, but colr() will free() them for you.
+    heap allocated, but colr_cat() will free() them for you.
 
     \details
-    You can use ColrResult() to wrap any <em>allocated</em> string and colr()
+    You can use ColrResult() to wrap any <em>allocated</em> string and colr_cat()
     will free it for you. Do not wrap static/stack-allocated strings. It will
     result in an "invalid free".
     The result of Colr_join() is an allocated ColorResult, like ColrResult()
@@ -728,9 +844,9 @@
 
     \sa Colr
 
-    \example colr_example.c
+    \example colr_cat_example.c
 */
-#define colr(...) _colr_join("", __VA_ARGS__, _ColrLastArg)
+#define colr_cat(...) _colr_join("", __VA_ARGS__, _ColrLastArg)
 
 /*! \def colr_alloc_len
     Return the number of bytes needed to allocate an escape code string based
@@ -929,29 +1045,122 @@
 #define colr_max(a, b) (a > b ? a : b)
 
 /*! \def colr_print
-    Create a string from a colr() call, print it (without a newline), and free it.
+    Create a string from a colr_cat() call, print it to stdout (without a newline), and free it.
 
-    \p ... Arguments for colr().
+    \p ... Arguments for colr_cat().
 
 */
 #define colr_print(...) \
     do { \
-        char* _c_p_s = colr(__VA_ARGS__); \
+        char* _c_p_s = colr_cat(__VA_ARGS__); \
         if (!_c_p_s) break; \
         printf("%s", _c_p_s); \
         colr_free(_c_p_s); \
     } while (0)
 
-/*! \def colr_puts
-    Create a string from a colr() call, print it (with a newline), and free it.
 
-    \p ... Arguments for colr().
+/*! \def colr_printf_macro
+    Calls one of the printf-family functions, with format warnings disabled
+    for the call, and returns the result.
+
+    \details
+    This function also ensures that colr_printf_register() is called, which
+    ensures that register_printf_specifier() is called one time.
+
+    \pi func The standard printf function to call, with a return type of `int`.
+    \pi ...  Arguments for the printf function.
+    \return  Same as `func(...)`.
+*/
+#define colr_printf_macro(func, ...) \
+    __extension__({ \
+        _Pragma("GCC diagnostic push"); \
+        _Pragma("GCC diagnostic ignored \"-Wformat=\""); \
+        _Pragma("GCC diagnostic ignored \"-Wformat-extra-args\""); \
+        _Pragma("clang diagnostic push"); \
+        _Pragma("clang diagnostic ignored \"-Wformat-invalid-specifier\""); \
+        colr_printf_register(); \
+        int _c_p_m_ret = func(__VA_ARGS__); \
+        _Pragma("clang diagnostic pop"); \
+        _Pragma("GCC diagnostic pop"); \
+        _c_p_m_ret; \
+    })
+
+/*! \def colr_printf
+    Ensure colr_printf_register() has been called, and then call `printf`.
+
+    \details
+    Will call `free()` on any ColorArg pointer, ColorResult pointer,
+    ColorText pointer, or the strings created by them.
+
+    \pi ... Arguments for `printf`.
+    \return Same as `printf`.
+
+    \example colr_printf_example.c
+*/
+#define colr_printf(...) colr_printf_macro(printf, __VA_ARGS__)
+
+/*! \def colr_fprintf
+    Ensure colr_printf_register() has been called, and then call `fprintf`.
+
+    \details
+    Will call `free()` on any ColorArg pointer, ColorResult pointer,
+    ColorText pointer, or the strings created by them.
+
+    \pi ... Arguments for `fprintf`.\n
+            \colrmightfree
+    \return Same as `fprintf`.
+*/
+#define colr_fprintf(...) colr_printf_macro(fprintf, __VA_ARGS__)
+
+/*! \def colr_sprintf
+    Ensure colr_printf_register() has been called, and then call `sprintf`.
+
+    \details
+    Will call `free()` on any ColorArg pointer, ColorResult pointer,
+    ColorText pointer, or the strings created by them.
+
+    \pi ... Arguments for `sprintf`.\n
+            \colrmightfree
+    \return Same as `sprintf`.
+*/
+#define colr_sprintf(...) colr_printf_macro(sprintf, __VA_ARGS__)
+
+/*! \def colr_snprintf
+    Ensure colr_printf_register() has been called, and then call `snprintf`.
+
+    \details
+    Will call `free()` on any ColorArg pointer, ColorResult pointer,
+    ColorText pointer, or the strings created by them.
+
+    \pi ... Arguments for `snprintf`.\n
+            \colrmightfree
+    \return Same as `snprintf`.
+*/
+#define colr_snprintf(...) colr_printf_macro(snprintf, __VA_ARGS__)
+
+/*! \def colr_asprintf
+    Ensure colr_printf_register() has been called, and then call `asprintf`.
+
+    \details
+    Will call `free()` on any ColorArg pointer, ColorResult pointer,
+    ColorText pointer, or the strings created by them.
+
+    \pi ... Arguments for `asprintf`.\n
+            \colrmightfree
+    \return Same as `asprintf`.
+*/
+#define colr_asprintf(...) colr_printf_macro(asprintf, __VA_ARGS__)
+
+/*! \def colr_puts
+    Create a string from a colr_cat() call, print it (with a newline), and free it.
+
+    \p ... Arguments for colr_cat().
 
     \example simple_example.c
 */
 #define colr_puts(...) \
     do { \
-        char* _c_p_s = colr(__VA_ARGS__); \
+        char* _c_p_s = colr_cat(__VA_ARGS__); \
         if (!_c_p_s) break; \
         puts(_c_p_s); \
         colr_free(_c_p_s); \
@@ -1201,7 +1410,7 @@
 #define ext_RGB(rgbval) ExtendedValue_from_RGB(rgbval)
 
 /*! \def fore
-    Create a fore color suitable for use with the colr() and Colr() macros.
+    Create a fore color suitable for use with the colr_cat() and Colr() macros.
 
 
     \details
@@ -1354,7 +1563,7 @@
 #define rgb(r, g, b) ((RGB){.red=r, .green=g, .blue=b})
 
 /*! \def style
-    Create a style suitable for use with the colr() and Colr() macros.
+    Create a style suitable for use with the colr_cat() and Colr() macros.
 
     \details
     This macro accepts strings (style names) and StyleValues.
@@ -1472,7 +1681,7 @@
         if ((r % 100 == 0) && (g % 100 == 0) && (b % 100 == 0)) {
             RGB val = rgb(r, g, b);
             char* repr = colr_repr(val);
-            char* s = colr(fore(val), repr);
+            char* s = colr_cat(fore(val), repr);
             printf("Found RGB: %s\n", s);
             free(repr);
             free(s);
@@ -1875,12 +2084,15 @@ bool colr_char_should_escape(const char c);
 
 bool colr_check_marker(uint32_t marker, void* p);
 char* colr_empty_str(void);
+int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *const *args);
+int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, int *sz);
+void colr_printf_register(void);
 bool colr_supports_rgb(void);
 
 size_t colr_str_char_count(const char* s, const char c);
 size_t colr_str_char_lcount(const char* s, const char c);
 size_t colr_str_chars_lcount(const char* restrict s, const char* restrict chars);
-char* colr_str_center(const char* s, const char padchar, int width);
+char* colr_str_center(const char* s, int width, const char padchar);
 size_t colr_str_code_cnt(const char* s);
 size_t colr_str_code_len(const char* s);
 char* colr_str_copy(char* restrict dest, const char* restrict src, size_t length);
@@ -1893,7 +2105,7 @@ bool colr_str_is_codes(const char* s);
 bool colr_str_is_digits(const char* s);
 bool colr_str_list_contains(char** lst, const char* s);
 void colr_str_list_free(char** ps);
-char* colr_str_ljust(const char* s, const char padchar, int width);
+char* colr_str_ljust(const char* s, int width, const char padchar);
 void colr_str_lower(char* s);
 size_t colr_str_lstrip(char* restrict dest, const char* restrict s, size_t length, const char c);
 char* colr_str_lstrip_char(const char* s, const char c);
@@ -1905,7 +2117,7 @@ char* colr_str_replace_ColorArg(char* restrict s, const char* restrict target, C
 char* colr_str_replace_ColorResult(char* restrict s, const char* restrict target, ColorResult* repl);
 char* colr_str_replace_ColorText(char* restrict s, const char* restrict target, ColorText* repl);
 char* colr_str_repr(const char* s);
-char* colr_str_rjust(const char* s, const char padchar, int width);
+char* colr_str_rjust(const char* s, int width, const char padchar);
 bool colr_str_starts_with(const char* restrict s, const char* restrict prefix);
 char* colr_str_strip_codes(const char* s);
 char* colr_str_to_lower(const char* s);
