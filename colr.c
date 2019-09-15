@@ -870,8 +870,7 @@ char colr_char_escape_char(const char c) {
     \return `true` if \p c is found in \p s, otherwise `false`.
 */
 bool colr_char_in_str(const char* s, const char c) {
-    size_t length = strlen(s);
-    for (size_t i = 0; i < length; i++) {
+    for (size_t i = 0; s[i]; i++) {
         if (s[i] == c) return true;
     }
     return false;
@@ -1075,7 +1074,7 @@ char* colr_empty_str(void) {
     \return  The number of characters written.
 */
 int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *const *args) {
-    (void)info; // UNUSED
+    (void)info; // Unused.
     void* p = *(void**)args[0];
     char* s = NULL;
     ColorArg* cargp = NULL;
@@ -1167,8 +1166,8 @@ int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, in
     functions.
 
     \details
-    This function only needs to be called once. `register_printf_specifier` is only called
-    the first time this function is called.
+    This function only needs to be called once and `register_printf_specifier`
+    is only called the first time this function is called.
 
     \examplecodefor{colr_printf_register,.c}
     #include "colr.h"
@@ -1205,9 +1204,9 @@ void colr_printf_register(void) {
 
     \pi s       The string to justify.\n
                 \mustnullin
-    \pi padchar The character to pad with. If '0', then `' '` is used.
     \pi width   The overall width for the resulting string.\n
                 If set to '0', the terminal width will be used from colr_term_size().
+    \pi padchar The character to pad with. If '0', then `' '` is used.
 
     \return     An allocated string with the result.\n
                 \mustfree
@@ -1833,35 +1832,14 @@ void colr_str_list_free(char** ps) {
     free(ps);
 }
 
-/*! Converts a \string into lower case in place.
-    \details
-    \mustnullin
-
-    \details
-    If `s` is `NULL`, nothing is done.
-
-    \pi s The input string to convert to lower case.
-*/
-void colr_str_lower(char* s) {
-    if (!s) return;
-    size_t i = 0;
-    while (s[i]) {
-        char c = tolower(s[i]);
-        s[i] = c;
-        i++;
-    }
-    // This works for empty strings too.
-    if (s[i] != '\0') s[i] = '\0';
-}
-
 
 /*! Left-justifies a \string, ignoring escape codes when measuring the width.
 
     \pi s       The string to justify.\n
                 \mustnullin
-    \pi padchar The character to pad with. If '0', then `' '` is used.
     \pi width   The overall width for the resulting string.\n
                 If set to '0', the terminal width will be used from colr_term_size().
+    \pi padchar The character to pad with. If '0', then `' '` is used.
 
     \return     An allocated string with the result, or `NULL` if \p s is `NULL`.\n
                 \mustfree
@@ -1914,6 +1892,28 @@ char* colr_str_ljust(const char* s, int width, const char padchar) {
     }
     return start;
 }
+
+/*! Converts a \string into lower case in place.
+    \details
+    \mustnullin
+
+    \details
+    If `s` is `NULL`, nothing is done.
+
+    \pi s The input string to convert to lower case.
+*/
+void colr_str_lower(char* s) {
+    if (!s) return;
+    size_t i = 0;
+    while (s[i]) {
+        char c = tolower(s[i]);
+        s[i] = c;
+        i++;
+    }
+    // This works for empty strings too.
+    if (s[i] != '\0') s[i] = '\0';
+}
+
 
 /*! Strip a leading character from a \string, filling another \string with the
     result.
@@ -2276,9 +2276,9 @@ char* colr_str_repr(const char* s) {
 
     \pi s       The string to justify.\n
                 \mustnullin
-    \pi padchar The character to pad with. If '0', then `' '` is used.
     \pi width   The overall width for the resulting string.\n
                 If set to '0', the terminal width will be used from colr_term_size().
+    \pi padchar The character to pad with. If '0', then `' '` is used.
 
     \return     An allocated string with the result, or `NULL` if \p s is `NULL`.\n
                 \mustfree
