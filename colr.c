@@ -1061,6 +1061,62 @@ char* colr_empty_str(void) {
     return s;
 }
 
+/*! Like `mblen`, except it will return the length of the next N multibyte
+    characters (`length`).
+
+    /details
+    `mblen(s, n) == colr_mblen(s, n, 1)`
+
+    \pi s      The string to check.
+    \pi sz     Number of bytes to inspect for each call to `mblen`.
+    \pi length Number of multibyte characters to get the length for.
+    \return    The number of bytes parsed in \p s to get at least \p length
+               multi-byte characters.
+
+    \sa colr_str_mb_len
+
+    \examplecodefor{colr_mb_len,.c}
+    #include "colr.h"
+    int main(void) {
+        // setlocale is needed when dealing with multi-byte functions.
+        setlocale(LC_ALL, "");
+        // There are 4 multi-byte characters in the string.
+        // There are multiple bytes making up each characters, probably 3 each,
+        // which makes the byte-length 12.
+        char* s = "１３３７";
+        // Calling colr_mb_len(s, 1) is like calling mblen().
+        size_t first_len = colr_mb_len(s, 1);
+        assert(first_len == (size_t)mblen(s, MB_LEN_MAX));
+
+        size_t first_two_len = colr_mb_len(s, 2);
+        // This assertion doesn't hold for ALL characters, but it should hold
+        // for these, because they are all FULLWIDTH DIGIT chars.
+        assert(first_two_len == (first_len * 2));
+
+        // Skip about 6 bytes, to get past the first 2
+        char* skip2 = s + first_two_len;
+        assert(strcmp(skip2, "３７") == 0);
+    }
+
+    \endexamplecode
+*/
+size_t colr_mb_len(const char* s, size_t length) {
+    if ((!s) || (s[0] == '\0')) return -1;
+    if (length < 1) return -1;
+    mbstate_t st = {0};
+    if (length == 1) return mbrlen(s, MB_LEN_MAX, &st);
+    size_t total = 0;
+    while (length--) {
+        size_t char_len = mbrlen(s, MB_LEN_MAX, &st);
+        if ((char_len == (size_t)-1) || (char_len == (size_t)-2)) {
+            // Invalid multibyte (-1), or incomplete multibyte (-2).
+            return total ? total : char_len;
+        }
+        total += char_len;
+    }
+    return total;
+}
+
 /*! Handles printing with printf for Colr objects.
 
     \details
@@ -2030,13 +2086,30 @@ char* colr_str_lstrip_chars(const char* restrict s, const char* restrict chars) 
     \pi s The string to get the length of.
     \return The number of characters, single and multi-byte, or `0` if \p s is
             `NULL`, empty, or has invalid multibyte sequences.
+
+    \sa colr_mb_len
+
+    \examplecodefor{colr_str_mb_len,.c}
+    #include "colr.h"
+    int main(void) {
+        // setlocale is needed when dealing with multi-byte functions.
+        setlocale(LC_ALL, "");
+        char* s = "１３３７";
+        // There are 4 multi-byte characters in the string.
+        assert(colr_str_mb_len(s) == 4);
+        // There are multiple bytes making up each characters, probably 3 each,
+        // which makes the byte-length 12.
+        assert(strlen(s) > 4);
+    }
+    \endexamplecode
 */
 size_t colr_str_mb_len(const char* s) {
     if ((!s) || (s[0] == '\0')) return 0;
     int i = 0;
     int next_len = 0;
     size_t total = 0;
-    while ((next_len = mblen(s + i, MB_LEN_MAX))) {
+    mbstate_t st = {0};
+    while ((next_len = mbrlen(s + i, MB_LEN_MAX, &st))) {
         if (next_len < 0) {
             #if defined(COLR_DEBUG) && !defined(COLR_TEST)
                 // Make sure this is a no-op when not explicitly requesting

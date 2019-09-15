@@ -2084,6 +2084,7 @@ bool colr_char_should_escape(const char c);
 
 bool colr_check_marker(uint32_t marker, void* p);
 char* colr_empty_str(void);
+size_t colr_mb_len(const char* s, size_t length);
 int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *const *args);
 int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, int *sz);
 void colr_printf_register(void);
