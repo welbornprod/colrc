@@ -4,13 +4,6 @@
 [ ] colr_str_replace_re(), replace a regex pattern with a string, ColorArg,
     ColorResult, or ColorText.
 
-## Missing Features From Colr.py
-Some features from Colr.py will never be found in ColrC. Colr depends on
-method chaining to implement a lot of features. I'd like to at least be able
-to match the colr-tool features, which I think is possible.
-
-[ ] --spread, for rainbow spread (same rgb code for several chars).
-
 ## Tests
 [ ] Should have %100 coverage.
     [ ] Tests for '*_example' functions.

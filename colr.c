@@ -1061,143 +1061,240 @@ char* colr_empty_str(void) {
     return s;
 }
 
-/*! Handles printing with printf for Colr objects.
+/*! Like `mbrlen`, except it will return the length of the next N (`length`)
+    multibyte characters in bytes.
 
-    \details
-    This function matches the required `typedef` in `printf.h` (`printf_function`),
-    for handling a custom printf format char with `register_printf_specifier`.
+    /details
+    Unlike colr_str_mb_len(), which returns the number of multibyte characters,
+    this function will return the number of bytes that make up the next
+    number (`length`) of multibyte characters.
 
-    \pi fp   FILE pointer for output.
-    \pi info Info from printf about how to format the argument.
-    \pi args Argument list (with only 1 argument), containing a ColorArg,
-             ColorResult, ColorText, or \string to format.
-    \return  The number of characters written.
-*/
-int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *const *args) {
-    (void)info; // Unused.
-    void* p = *(void**)args[0];
-    char* s = NULL;
-    ColorArg* cargp = NULL;
-    ColorResult* cresp = NULL;
-    ColorText* ctextp = NULL;
-    if (ColorArg_is_ptr(p)) {
-        cargp = p;
-        s = ColorArg_to_esc(*cargp);
-        ColorArg_free(cargp);
-    } else if (ColorText_is_ptr(p)) {
-        ctextp = p;
-        s = ColorText_to_str(*ctextp);
-        ColorText_free(ctextp);
-    } else if (ColorResult_is_ptr(p)) {
-        cresp = p;
-        s = ColorResult_to_str(*cresp);
-    } else {
-        // Better be a string.
-        s = (char*)p;
-    }
-    if (!s) return 1;
-    if (info->alt) {
-        // Alternate-form (#), no codes.
-        char* stripped = colr_str_strip_codes(s);
-        // If I couldn't allocate for the stripped version, use the original.
-        // Worse things than that are about to happen anyway.
-        if (stripped) {
-            free(s);
-            s = stripped;
-        }
+    \pi s              The string to check.
+    \pi length         Number of multibyte characters to get the length for.
+    \return            The number of bytes parsed in \p s to get at least \p
+                       length multibyte characters.
+    \retval 0          if \p s is `NULL`/empty, or `length` is `0`.
+    \retval (size_t)-1 if an invalid multibyte sequence is found at the start
+                       of \p s.
 
-    }
-    char* justified = NULL;
-    if (info->width) {
-        // TODO: Use wchar_t in justification funcs to forward `info->pad` to it.
-        //       I'm not sure how this is used from printf though.
-        int pad = info->pad ? wctob(info->pad) : ' ';
-        if (pad == EOF) pad = ' ';
-        if (info->left) {
-            justified = colr_str_ljust(s, info->width, pad);
-        } else if (info->space) {
-            justified = colr_str_center(s, info->width, pad);
-        } else {
-            justified = colr_str_rjust(s, info->width, pad);
-        }
-        if (justified) {
-            if (cargp || ctextp) free(s);
-            if (cresp) ColorResult_free(cresp);
-            s = justified;
-        } else {
-            // Can't allocate for justified text.
-            return 1;
-        }
-    }
-    fprintf(fp, "%s", s);
-    size_t length = strlen(s);
-    if (cargp || ctextp || justified) free(s);
-    if (cresp) ColorResult_free(cresp);
+    \sa colr_str_mb_len colr_is_valid_mblen
 
-    return length;
-}
-
-/*! Handles the arg count/size for the Colr printf handler.
-
-    \details
-    This function matches the required `typedef` in `printf.h` (`printf_arginfo_size_function`)
-    for handling a custom printf format char with `register_printf_specifier`.
-
-    \pi info     Info from printf about how to format the argument.
-    \pi n        Number of arguments for the format char.
-    \po argtypes Type of arguments being handled, from an `enum` defined in `printf`.
-                 Colr uses/sets one argument, a `PA_POINTER` type.
-    \po sz       Size of the arguments. Not used in Colr.
-    \return      The number of argument types set in \p argtypes.
-*/
-int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, int *sz) {
-    (void)info; // Unused.
-    (void)sz; // Unused.
-     if (n > 0)
-     {
-          // Only setting one argument for Colr.
-          argtypes[0] = PA_POINTER;
-     }
-     // Only using one argument for Colr.
-     return 1;
-}
-
-/*! Registers COLR_FMT_CHAR to handle Colr objects in the printf-family
-    functions.
-
-    \details
-    This function only needs to be called once and `register_printf_specifier`
-    is only called the first time this function is called.
-
-    \examplecodefor{colr_printf_register,.c}
+    \examplecodefor{colr_mb_len,.c}
     #include "colr.h"
-
-    // These are needed if you have certain warnings enabled.
-    #pragma clang diagnostic ignored "-Winvalid-format-specifier"
-    #pragma GCC diagnostic ignored "-Wformat="
-    #pragma GCC diagnostic ignored "-Wformat-extra-args"
-
     int main(void) {
-        colr_printf_register();
-        printf("A colr object: %R\n", Colr("Hello", fore(RED)));
+        // There are 4 multibyte characters in the string.
+        // There are multiple bytes making up each characters, probably 3 each,
+        // which makes the byte-length 12.
+        char* s = "１３３７";
 
-        char* colorized = NULL;
-        asprintf(
-            &colorized,
-            "I made this: %R",
-            Colr("No, I made this.", style(UNDERLINE))
-        );
-        puts(colorized);
-        free(colorized);
+        // Calling colr_mb_len(s, 1) is like calling mbrlen().
+        size_t first_len = colr_mb_len(s, 1);
+        mbstate_t st;
+        memset(&st, 0, sizeof(mbstate_t));
+        assert(first_len == (size_t)mbrlen(s, MB_LEN_MAX, &st));
+
+        size_t first_two_len = colr_mb_len(s, 2);
+        // This assertion doesn't hold for ALL characters, but it should hold
+        // for these, because they are all FULLWIDTH DIGIT chars.
+        assert(first_two_len == (first_len * 2));
+
+        // Skip about 6 bytes, to get past the first 2
+        char* skip2 = s + first_two_len;
+        assert(strcmp(skip2, "３７") == 0);
+
+        // There are only about 7 bytes (6 + 1 for the null).
+        // Calling colr_mb_len with a `length` that is too large is okay.
+        size_t length = colr_mb_len(skip2, 100);
+        assert(length == strlen(skip2));
+        size_t charlength = colr_str_mb_len(skip2);
+        printf("\"%s\" contains %lu bytes for %lu chars.\n", skip2, length, charlength);
+
+        // This should always hold true, even though it is useless:
+        assert(colr_mb_len(s, strlen(s)) == strlen(s));
+
     }
+
     \endexamplecode
 */
-void colr_printf_register(void) {
-    static bool is_registered = false;
-    if (is_registered) return;
-    // Do the actual registering, if not done already.
-    register_printf_specifier(COLR_FMT_CHAR, colr_printf_handler, colr_printf_info);
-    is_registered = true;
+size_t colr_mb_len(const char* s, size_t length) {
+    if ((!s) || (s[0] == '\0')) return 0;
+    if (length < 1) return 0;
+    colr_set_locale();
+    mbstate_t st;
+    memset(&st, 0, sizeof(mbstate_t));
+    if (length == 1) return mbrlen(s, MB_LEN_MAX, &st);
+    size_t total = 0;
+    while (s[total] && length--) {
+        size_t char_len = mbrlen(s, MB_LEN_MAX, &st);
+        if (!colr_is_valid_mblen(char_len)) {
+            // Invalid multibyte (-1), or incomplete multibyte (-2).
+            return char_len;
+        }
+        total += char_len;
+    }
+    return total;
+}
+
+#ifdef COLR_PRINTF
+    /*! Handles printing with printf for Colr objects.
+
+        \details
+        This function matches the required `typedef` in `printf.h` (`printf_function`),
+        for handling a custom printf format char with `register_printf_specifier`.
+
+        \pi fp   FILE pointer for output.
+        \pi info Info from printf about how to format the argument.
+        \pi args Argument list (with only 1 argument), containing a ColorArg,
+                 ColorResult, ColorText, or \string to format.
+        \return  The number of characters written.
+    */
+    int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *const *args) {
+        (void)info; // Unused.
+        void* p = *(void**)args[0];
+        char* s = NULL;
+        ColorArg* cargp = NULL;
+        ColorResult* cresp = NULL;
+        ColorText* ctextp = NULL;
+        if (ColorArg_is_ptr(p)) {
+            cargp = p;
+            s = ColorArg_to_esc(*cargp);
+            ColorArg_free(cargp);
+        } else if (ColorText_is_ptr(p)) {
+            ctextp = p;
+            s = ColorText_to_str(*ctextp);
+            ColorText_free(ctextp);
+        } else if (ColorResult_is_ptr(p)) {
+            cresp = p;
+            s = ColorResult_to_str(*cresp);
+        } else {
+            // Better be a string.
+            s = (char*)p;
+        }
+        if (!s) return 1;
+        if (info->alt) {
+            // Alternate-form (#), no codes.
+            char* stripped = colr_str_strip_codes(s);
+            // If I couldn't allocate for the stripped version, use the original.
+            // Worse things than that are about to happen anyway.
+            if (stripped) {
+                free(s);
+                s = stripped;
+            }
+
+        }
+        char* justified = NULL;
+        if (info->width) {
+            // TODO: Use wchar_t in justification funcs to forward `info->pad` to it.
+            //       I'm not sure how this is used from printf though.
+            int pad = info->pad ? wctob(info->pad) : ' ';
+            if (pad == EOF) pad = ' ';
+            if (info->left) {
+                justified = colr_str_ljust(s, info->width, pad);
+            } else if (info->space) {
+                justified = colr_str_center(s, info->width, pad);
+            } else {
+                justified = colr_str_rjust(s, info->width, pad);
+            }
+            if (justified) {
+                if (cargp || ctextp) free(s);
+                if (cresp) ColorResult_free(cresp);
+                s = justified;
+            } else {
+                // Can't allocate for justified text.
+                return 1;
+            }
+        }
+        fprintf(fp, "%s", s);
+        size_t length = strlen(s);
+        if (cargp || ctextp || justified) free(s);
+        if (cresp) ColorResult_free(cresp);
+
+        return length;
+    }
+
+    /*! Handles the arg count/size for the Colr printf handler.
+
+        \details
+        This function matches the required `typedef` in `printf.h` (`printf_arginfo_size_function`)
+        for handling a custom printf format char with `register_printf_specifier`.
+
+        \pi info     Info from printf about how to format the argument.
+        \pi n        Number of arguments for the format char.
+        \po argtypes Type of arguments being handled, from an `enum` defined in `printf`.
+                     Colr uses/sets one argument, a `PA_POINTER` type.
+        \po sz       Size of the arguments. Not used in Colr.
+        \return      The number of argument types set in \p argtypes.
+    */
+    int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, int *sz) {
+        (void)info; // Unused.
+        (void)sz; // Unused.
+         if (n > 0)
+         {
+              // Only setting one argument for Colr.
+              argtypes[0] = PA_POINTER;
+         }
+         // Only using one argument for Colr.
+         return 1;
+    }
+
+    /*! Registers COLR_FMT to handle Colr objects in the printf-family
+        functions.
+
+        \details
+        This function only needs to be called once and `register_printf_specifier`
+        is only called the first time this function is called.
+
+        \examplecodefor{colr_printf_register,.c}
+        #include "colr.h"
+
+        // These are needed if you have certain warnings enabled.
+        #pragma clang diagnostic ignored "-Winvalid-format-specifier"
+        #pragma GCC diagnostic ignored "-Wformat="
+        #pragma GCC diagnostic ignored "-Wformat-extra-args"
+
+        int main(void) {
+            colr_printf_register();
+            printf("A colr object: %R\n", Colr("Hello", fore(RED)));
+
+            char* colorized = NULL;
+            asprintf(
+                &colorized,
+                "I made this: %R",
+                Colr("No, I made this.", style(UNDERLINE))
+            );
+            puts(colorized);
+            free(colorized);
+        }
+        \endexamplecode
+    */
+    void colr_printf_register(void) {
+        static bool is_registered = false;
+        if (is_registered) return;
+        // Do the actual registering, if not done already.
+        register_printf_specifier(COLR_FMT, colr_printf_handler, colr_printf_info);
+        is_registered = true;
+    }
+#endif // COLR_PRINTF
+
+/*! Sets the locale to `(LC_ALL, "")` if it hasn't already been set.
+    \details
+    This is used for functions dealing with multibyte strings.
+
+    \return `true` if the locale had to be set, `false` if it was already set.
+*/
+bool colr_set_locale(void) {
+    static bool checked = false;
+    // Calling this function more than once is not going to do anything.
+    if (checked) return false;
+    checked = true;
+    locale_t current = uselocale(0);
+    if (current == LC_GLOBAL_LOCALE) {
+        // Not set yet, set it.
+        setlocale(LC_ALL, "");
+        return checked;
+    }
+    // Locale already set.
+    return false;
 }
 
 /*! Center-justifies a \string, ignoring escape codes when measuring the width.
@@ -2025,18 +2122,35 @@ char* colr_str_lstrip_chars(const char* restrict s, const char* restrict chars) 
 
 
 /*! Returns the number of characters in a \string, taking into account possibly
-    multi-byte characters.
+    multibyte characters.
 
     \pi s The string to get the length of.
-    \return The number of characters, single and multi-byte, or `0` if \p s is
+    \return The number of characters, single and multibyte, or `0` if \p s is
             `NULL`, empty, or has invalid multibyte sequences.
+
+    \sa colr_mb_len
+
+    \examplecodefor{colr_str_mb_len,.c}
+    #include "colr.h"
+    int main(void) {
+        char* s = "１３３７";
+        // There are 4 multibyte characters in the string.
+        assert(colr_str_mb_len(s) == 4);
+        // There are multiple bytes making up each characters, probably 3 each,
+        // which makes the byte-length 12.
+        assert(strlen(s) > 4);
+    }
+    \endexamplecode
 */
 size_t colr_str_mb_len(const char* s) {
     if ((!s) || (s[0] == '\0')) return 0;
+    colr_set_locale();
     int i = 0;
     int next_len = 0;
     size_t total = 0;
-    while ((next_len = mblen(s + i, MB_LEN_MAX))) {
+    mbstate_t st;
+    memset(&st, 0, sizeof(mbstate_t));
+    while ((next_len = mbrlen(s + i, MB_LEN_MAX, &st))) {
         if (next_len < 0) {
             #if defined(COLR_DEBUG) && !defined(COLR_TEST)
                 // Make sure this is a no-op when not explicitly requesting
@@ -6326,9 +6440,9 @@ char* TermSize_repr(TermSize ts) {
 
     \details
     This prepends a color code to every character in the string.
-    Multi-byte characters are handled properly by checking `mblen()`, and
+    Multi-byte characters are handled properly by checking colr_mb_len(), and
     copying the bytes to the resulting string without codes between the
-    multi-byte characters.
+    multibyte characters.
 
     \details
     The `CODE_RESET_ALL` code is appended to the result.
@@ -6337,12 +6451,13 @@ char* TermSize_repr(TermSize ts) {
                \mustnullin
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
+    \pi spread Number of characters per color.
     \return    The allocated/formatted string on success.\n
                \mustfree
                \maybenullalloc
 */
-char* rainbow_bg(const char* s, double freq, size_t offset) {
-    return _rainbow(format_bg_RGB, s, freq, offset);
+char* rainbow_bg(const char* s, double freq, size_t offset, size_t spread) {
+    return _rainbow(format_bg_RGB, s, freq, offset, spread);
 }
 
 /*! This is exactly like rainbow_bg(), except it uses colors that are
@@ -6350,9 +6465,9 @@ char* rainbow_bg(const char* s, double freq, size_t offset) {
 
     \details
     This prepends a color code to every character in the string.
-    Multi-byte characters are handled properly by checking `mblen()`, and
+    Multi-byte characters are handled properly by checking colr_mb_len(), and
     copying the bytes to the resulting string without codes between the
-    multi-byte characters.
+    multibyte characters.
 
     \details
     The `CODE_RESET_ALL` code is appended to the result.
@@ -6361,21 +6476,22 @@ char* rainbow_bg(const char* s, double freq, size_t offset) {
                \mustnullin
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
+    \pi spread Number of characters per color.
     \return    The allocated/formatted string on success.\n
                \mustfree
                \maybenullalloc
 */
-char* rainbow_bg_term(const char* s, double freq, size_t offset) {
-    return _rainbow(format_bg_RGB_term, s, freq, offset);
+char* rainbow_bg_term(const char* s, double freq, size_t offset, size_t spread) {
+    return _rainbow(format_bg_RGB_term, s, freq, offset, spread);
 }
 
 /*! Rainbow-ize some text using rgb fore colors, lolcat style.
 
     \details
     This prepends a color code to every character in the string.
-    Multi-byte characters are handled properly by checking `mblen()`, and
+    Multi-byte characters are handled properly by checking colr_mb_len(), and
     copying the bytes to the resulting string without codes between the
-    multi-byte characters.
+    multibyte characters.
 
     \details
     The `CODE_RESET_ALL` code is appended to the result.
@@ -6384,12 +6500,13 @@ char* rainbow_bg_term(const char* s, double freq, size_t offset) {
                \mustnullin
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
+    \pi spread Number of characters per color.
     \return    The allocated/formatted string on success.\n
                \mustfree
                \maybenullalloc
 */
-char* rainbow_fg(const char* s, double freq, size_t offset) {
-    return _rainbow(format_fg_RGB, s, freq, offset);
+char* rainbow_fg(const char* s, double freq, size_t offset, size_t spread) {
+    return _rainbow(format_fg_RGB, s, freq, offset, spread);
 }
 
 /*! This is exactly like rainbow_fg(), except it uses colors that are
@@ -6397,9 +6514,9 @@ char* rainbow_fg(const char* s, double freq, size_t offset) {
 
     \details
     This prepends a color code to every character in the string.
-    Multi-byte characters are handled properly by checking `mblen()`, and
+    Multi-byte characters are handled properly by checking colr_mb_len(), and
     copying the bytes to the resulting string without codes between the
-    multi-byte characters.
+    multibyte characters.
 
     \details
     The `CODE_RESET_ALL` code is appended to the result.
@@ -6408,15 +6525,16 @@ char* rainbow_fg(const char* s, double freq, size_t offset) {
                \mustnullin
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
+    \pi spread Number of characters per color.
     \return    The allocated/formatted string on success.\n
                \mustfree
                \maybenullalloc
 */
-char* rainbow_fg_term(const char* s, double freq, size_t offset) {
-    return _rainbow(format_fg_RGB_term, s, freq, offset);
+char* rainbow_fg_term(const char* s, double freq, size_t offset, size_t spread) {
+    return _rainbow(format_fg_RGB_term, s, freq, offset, spread);
 }
 
-/*! Handles multi-byte character \string conversion and character iteration for
+/*! Handles multibyte character \string conversion and character iteration for
     all of the rainbow_ functions.
 
     \pi fmter  A formatter function (RGB_fmter) that can create escape codes
@@ -6425,17 +6543,18 @@ char* rainbow_fg_term(const char* s, double freq, size_t offset) {
                \mustnullin
     \pi freq   The "tightness" for colors.
     \pi offset The starting offset into the rainbow.
-
+    \pi spread Number of characters per color.
     \return    An allocated \string with the result.\n
                \mustfree
                \maybenullalloc
 */
-char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
+char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset, size_t spread) {
     if (!s) {
         return NULL;
     }
     if (!offset) offset = 3;
     if (freq < 0.1) freq = 0.1;
+    if (spread < 1) spread = 1;
 
     size_t byte_len = strlen(s);
     size_t mb_len = colr_str_mb_len(s);
@@ -6459,12 +6578,12 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
     if (!out) return NULL;
 
     char codes[CODE_RGB_LEN];
-    // Enough room for one (possibly multi-byte) character.
+    // Enough room for one (possibly multibyte) character.
     char mb_char[MB_LEN_MAX + 1];
-    // Iterate over each multi-byte character.
+    // Iterate over each multibyte character.
     size_t i = 0;
-    int char_len = 0;
-    while ((char_len = mblen(s + i, MB_LEN_MAX))) {
+    size_t char_len = 0;
+    while ((char_len = colr_mb_len(s + i, spread)) && colr_is_valid_mblen(char_len)) {
         // Add a rainbow code to the output.
         fmter(codes, rainbow_step(freq, offset + i));
         strcat(out, codes);
@@ -6485,7 +6604,6 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
         strcat(out, mb_char);
         // Jump past the multibyte character for the next code.
         i += char_len;
-        // TODO: Add --spread, by writing multiple characters after the code.
     }
     colr_append_reset(out);
 

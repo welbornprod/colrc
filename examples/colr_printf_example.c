@@ -2,7 +2,7 @@
 
 int main(void) {
     /*
-        colr_printf registers a new format specifier, COLR_FMT_CHAR, to be used
+        colr_printf registers a new format specifier, COLR_FMT, to be used
         with printf. colr_printf acts like printf when called, except Colr
         object pointers can be passed directly, and their resources will be
         free()'d automatically.
