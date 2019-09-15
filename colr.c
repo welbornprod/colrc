@@ -1065,7 +1065,9 @@ char* colr_empty_str(void) {
     characters (`length`).
 
     /details
-    `mblen(s, n) == colr_mblen(s, n, 1)`
+    Unlike colr_str_mb_len(), which returns the number of multi-byte characters,
+    this function will return the number of bytes that make up the next `length`
+    number of multi-byte characters.
 
     \pi s      The string to check.
     \pi sz     Number of bytes to inspect for each call to `mblen`.
@@ -1084,6 +1086,7 @@ char* colr_empty_str(void) {
         // There are multiple bytes making up each characters, probably 3 each,
         // which makes the byte-length 12.
         char* s = "１３３７";
+
         // Calling colr_mb_len(s, 1) is like calling mblen().
         size_t first_len = colr_mb_len(s, 1);
         assert(first_len == (size_t)mblen(s, MB_LEN_MAX));
@@ -1096,6 +1099,14 @@ char* colr_empty_str(void) {
         // Skip about 6 bytes, to get past the first 2
         char* skip2 = s + first_two_len;
         assert(strcmp(skip2, "３７") == 0);
+
+        // There are only about 7 bytes (6 + 1 for the null).
+        // Calling colr_mb_len with a `length` that is too large is okay.
+        size_t length = colr_mb_len(skip2, 100);
+        assert(length == strlen(skip2));
+        size_t charlength = colr_str_mb_len(skip2);
+        printf("\"%s\" contains %lu bytes for %lu chars.\n", skip2, length, charlength);
+
     }
 
     \endexamplecode
@@ -1106,9 +1117,9 @@ size_t colr_mb_len(const char* s, size_t length) {
     mbstate_t st = {0};
     if (length == 1) return mbrlen(s, MB_LEN_MAX, &st);
     size_t total = 0;
-    while (length--) {
+    while (s[total] && length--) {
         size_t char_len = mbrlen(s, MB_LEN_MAX, &st);
-        if ((char_len == (size_t)-1) || (char_len == (size_t)-2)) {
+        if ((!char_len) || (char_len == (size_t)-1) || (char_len == (size_t)-2)) {
             // Invalid multibyte (-1), or incomplete multibyte (-2).
             return total ? total : char_len;
         }
@@ -6414,8 +6425,8 @@ char* TermSize_repr(TermSize ts) {
                \mustfree
                \maybenullalloc
 */
-char* rainbow_bg(const char* s, double freq, size_t offset) {
-    return _rainbow(format_bg_RGB, s, freq, offset);
+char* rainbow_bg(const char* s, double freq, size_t offset, size_t spread) {
+    return _rainbow(format_bg_RGB, s, freq, offset, spread);
 }
 
 /*! This is exactly like rainbow_bg(), except it uses colors that are
@@ -6438,8 +6449,8 @@ char* rainbow_bg(const char* s, double freq, size_t offset) {
                \mustfree
                \maybenullalloc
 */
-char* rainbow_bg_term(const char* s, double freq, size_t offset) {
-    return _rainbow(format_bg_RGB_term, s, freq, offset);
+char* rainbow_bg_term(const char* s, double freq, size_t offset, size_t spread) {
+    return _rainbow(format_bg_RGB_term, s, freq, offset, spread);
 }
 
 /*! Rainbow-ize some text using rgb fore colors, lolcat style.
@@ -6461,8 +6472,8 @@ char* rainbow_bg_term(const char* s, double freq, size_t offset) {
                \mustfree
                \maybenullalloc
 */
-char* rainbow_fg(const char* s, double freq, size_t offset) {
-    return _rainbow(format_fg_RGB, s, freq, offset);
+char* rainbow_fg(const char* s, double freq, size_t offset, size_t spread) {
+    return _rainbow(format_fg_RGB, s, freq, offset, spread);
 }
 
 /*! This is exactly like rainbow_fg(), except it uses colors that are
@@ -6485,8 +6496,8 @@ char* rainbow_fg(const char* s, double freq, size_t offset) {
                \mustfree
                \maybenullalloc
 */
-char* rainbow_fg_term(const char* s, double freq, size_t offset) {
-    return _rainbow(format_fg_RGB_term, s, freq, offset);
+char* rainbow_fg_term(const char* s, double freq, size_t offset, size_t spread) {
+    return _rainbow(format_fg_RGB_term, s, freq, offset, spread);
 }
 
 /*! Handles multi-byte character \string conversion and character iteration for
@@ -6503,12 +6514,13 @@ char* rainbow_fg_term(const char* s, double freq, size_t offset) {
                \mustfree
                \maybenullalloc
 */
-char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
+char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset, size_t spread) {
     if (!s) {
         return NULL;
     }
     if (!offset) offset = 3;
     if (freq < 0.1) freq = 0.1;
+    if (spread < 1) spread = 1;
 
     size_t byte_len = strlen(s);
     size_t mb_len = colr_str_mb_len(s);
@@ -6536,8 +6548,8 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
     char mb_char[MB_LEN_MAX + 1];
     // Iterate over each multi-byte character.
     size_t i = 0;
-    int char_len = 0;
-    while ((char_len = mblen(s + i, MB_LEN_MAX))) {
+    size_t char_len = 0;
+    while ((char_len = colr_mb_len(s + i, spread)) && colr_is_valid_mblen(char_len)) {
         // Add a rainbow code to the output.
         fmter(codes, rainbow_step(freq, offset + i));
         strcat(out, codes);
@@ -6558,7 +6570,6 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset) {
         strcat(out, mb_char);
         // Jump past the multibyte character for the next code.
         i += char_len;
-        // TODO: Add --spread, by writing multiple characters after the code.
     }
     colr_append_reset(out);
 

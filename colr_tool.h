@@ -35,10 +35,16 @@
 #define NAME "ColrC"
 #define VERSION COLR_VERSION
 
+//! Default frequency for rainbowize.
 #define CT_DEFAULT_FREQ 0.1l
+//! Minimum frequency allowed for rainbowize.
 #define CT_MIN_FREQ 0.0l
+//! Maximum frequency allowed for rainbowize.
 #define CT_MAX_FREQ 1.0l
+//! Default starting offset for rainbowize.
 #define CT_DEFAULT_OFFSET 3
+//! Default 'spread' for rainbowize (width for each rainbow color).
+#define CT_DEFAULT_SPREAD 1
 
 //! Short-hand for (x ? "true" : "false")
 #define bool_str(x) (x ? "true" : "false")
@@ -151,6 +157,7 @@ typedef struct ColrOpts_s {
     bool rainbow_term;
     double rainbow_freq;
     size_t rainbow_offset;
+    size_t rainbow_spread;
     // Non-colorizing options.
     bool auto_disable;
     bool is_disabled;

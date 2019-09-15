@@ -147,6 +147,7 @@ ColrOpts ColrOpts_new(void) {
         .rainbow_term=false,
         .rainbow_freq=CT_DEFAULT_FREQ,
         .rainbow_offset=CT_DEFAULT_OFFSET,
+        .rainbow_spread=CT_DEFAULT_SPREAD,
         .auto_disable=false,
         .is_disabled=false,
         .list_codes=false,
@@ -191,6 +192,7 @@ char* ColrOpts_repr(ColrOpts opts) {
     .rainbow_term=%s,\n\
     .rainbow_freq=%lf,\n\
     .rainbow_offset=%lu,\n\
+    .rainbow_spread=%lu,\n\
     .auto_disable=%s,\n\
     .is_disabled=%s,\n\
     .list_codes=%s,\n\
@@ -212,6 +214,7 @@ char* ColrOpts_repr(ColrOpts opts) {
         bool_str(opts.rainbow_term),
         opts.rainbow_freq,
         opts.rainbow_offset,
+        opts.rainbow_spread,
         bool_str(opts.auto_disable),
         bool_str(opts.is_disabled),
         bool_str(opts.list_codes),
@@ -357,6 +360,7 @@ int parse_arg_char(char** argv, const char* long_name, const char c, ColrOpts* o
     int argval_just;
     double argval_freq;
     size_t argval_offset;
+    size_t argval_spread;
 
     switch (c) {
         case 0:
@@ -495,6 +499,14 @@ int parse_arg_char(char** argv, const char* long_name, const char c, ColrOpts* o
         case 'v':
             print_version();
             return EXIT_SUCCESS;
+        case 'w':
+            if (!parse_size_arg(optarg, &argval_spread)) {
+                printferr("Invalid value for --spread: %s\n", optarg);
+                return EXIT_FAILURE;
+            }
+            opts->rainbow_spread = argval_spread;
+            break;
+
         case 'x':
             opts->strip_codes = true;
             break;
@@ -590,6 +602,7 @@ int parse_args(int argc, char** argv, ColrOpts* opts) {
         // Rainbow options.
         {"frequency", required_argument, 0, 'q'},
         {"offset", required_argument, 0, 'o'},
+        {"spread", required_argument, 0, 'w'},
         // Example Commands.
         {"basic", no_argument, 0, 0 },
         {"basicbg", no_argument, 0, 0 },
@@ -611,7 +624,7 @@ int parse_args(int argc, char** argv, ColrOpts* opts) {
         c = getopt_long(
             argc,
             argv,
-            ":aehRtuvxzb:c:F:f:l:o:q:r:s:",
+            ":aehRtuvxzb:c:F:f:l:o:q:r:s:w:",
             long_options,
             &option_index
         );
@@ -887,12 +900,12 @@ int print_rainbow(ColrOpts* opts, bool do_back) {
     char* rainbowtxt;
     if (do_back) {
         rainbowtxt = colr_supports_rgb() ?
-            rainbow_bg(text, CT_DEFAULT_FREQ, CT_DEFAULT_OFFSET) :
-            rainbow_bg_term(text, CT_DEFAULT_FREQ, CT_DEFAULT_OFFSET);
+            rainbow_bg(text, CT_DEFAULT_FREQ, CT_DEFAULT_OFFSET, CT_DEFAULT_SPREAD) :
+            rainbow_bg_term(text, CT_DEFAULT_FREQ, CT_DEFAULT_OFFSET, CT_DEFAULT_SPREAD);
     } else {
         rainbowtxt = colr_supports_rgb() ?
-            rainbow_fg(text, CT_DEFAULT_FREQ, CT_DEFAULT_OFFSET) :
-            rainbow_fg_term(text, CT_DEFAULT_FREQ, CT_DEFAULT_OFFSET);
+            rainbow_fg(text, CT_DEFAULT_FREQ, CT_DEFAULT_OFFSET, CT_DEFAULT_SPREAD) :
+            rainbow_fg_term(text, CT_DEFAULT_FREQ, CT_DEFAULT_OFFSET, CT_DEFAULT_SPREAD);
     }
     char* textfmt = colr_cat(
         do_back ? fore(BLACK) : back(RESET),
@@ -1079,7 +1092,12 @@ ColorText* rainbowize(ColrOpts* opts) {
             (opts->rainbow_fore ? rainbow_fg_term : rainbow_bg_term) :
             (opts->rainbow_fore ? rainbow_fg : rainbow_bg)
     );
-    char* rainbowized = func(opts->text, opts->rainbow_freq, opts->rainbow_offset);
+    char* rainbowized = func(
+        opts->text,
+        opts->rainbow_freq,
+        opts->rainbow_offset,
+        opts->rainbow_spread
+    );
     if (!rainbowized) return NULL;
     // Text was allocated from stdin input, it's safe to free.
     if (opts->free_text) {

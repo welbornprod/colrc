@@ -975,6 +975,8 @@
         ColorValue: ColorValue_is_valid \
     )(x)
 
+#define colr_is_valid_mblen(x) ((x) && ((x) != (size_t)-1) && ((x) != (size_t)-2))
+
 /*! \def colr_istr_either
     Convenience macro for `!strcasecmp(s1, s2) || !strcasecmp(s1, s3)`.
 
@@ -2148,17 +2150,17 @@ void format_style(char* out, StyleValue style);
 typedef void (*RGB_fmter)(char* out, RGB rgb);
 /*! A function type that knows how to create rainbowized text.
 */
-typedef char* (*rainbow_creator)(const char* s, double freq, size_t offset);
+typedef char* (*rainbow_creator)(const char* s, double freq, size_t offset, size_t spread);
 
-char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset);
+char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset, size_t spread);
 /*! \internal
     Rainbow-related functions.
     \endinternal
 */
-char* rainbow_fg(const char* s, double freq, size_t offset);
-char* rainbow_fg_term(const char* s, double freq, size_t offset);
-char* rainbow_bg(const char* s, double freq, size_t offset);
-char* rainbow_bg_term(const char* s, double freq, size_t offset);
+char* rainbow_fg(const char* s, double freq, size_t offset, size_t spread);
+char* rainbow_fg_term(const char* s, double freq, size_t offset, size_t spread);
+char* rainbow_bg(const char* s, double freq, size_t offset, size_t spread);
+char* rainbow_bg_term(const char* s, double freq, size_t offset, size_t spread);
 RGB rainbow_step(double freq, size_t offset);
 
 /*! \internal
