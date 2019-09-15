@@ -90,6 +90,16 @@ EXAMPLE_PATTERNS       = *.c
 EXAMPLE_RECURSIVE      = YES
 IMAGE_PATH             =
 REFERENCED_BY_RELATION = YES
+# Preprocessing settings -----------------------------------------------------
+ENABLE_PREPROCESSING   = YES
+PREDEFINED             = DEBUG=1 \
+                         _GNU_SOURCE=1 \
+                         DOXYGEN_SKIP=1 \
+                         COLR_PRINTF=1
+
+# Graph settings -------------------------------------------------------------
+DOT_FONTNAME           = Arial
+INCLUDE_GRAPH          = NO
 # Html settings --------------------------------------------------------------
 HTML_OUTPUT            = html
 HTML_FILE_EXTENSION    = .html
@@ -113,12 +123,3 @@ USE_PDFLATEX           = YES
 # Man page settings ----------------------------------------------------------
 MAN_OUTPUT             = man
 MAN_LINKS              = NO
-# Preprocessing settings -----------------------------------------------------
-ENABLE_PREPROCESSING   = YES
-PREDEFINED             = DEBUG=1 \
-                         _GNU_SOURCE=1 \
-                         DOXYGEN_SKIP=1
-
-# Graph settings -------------------------------------------------------------
-DOT_FONTNAME           = Arial
-INCLUDE_GRAPH          = NO

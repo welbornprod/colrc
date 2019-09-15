@@ -11,11 +11,6 @@
 
 
 int main(int argc, char* argv[]) {
-    // Needed for str_to_wide(), and wide_to_str(), and the rainbow() funcs.
-    // TODO: look at uselocale(), maybe it can be used in _rainbow() instead
-    //       of asking the user to call setlocale(). If it returns a locale,
-    //       then use it. If it doesn't, call setlocale() one time. Maybe?
-    setlocale(LC_ALL, "");
     ColrOpts opts = ColrOpts_new();
     int parse_ret = parse_args(argc, argv, &opts);
     // print_opts_repr(opts);

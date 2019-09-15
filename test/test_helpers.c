@@ -310,6 +310,60 @@ subdesc(TermSize) {
         free(repr);
     }
 }
+// colr_mb_len
+subdesc(colr_mb_len) {
+    it("handles NULL") {
+        size_t widths[] = {
+            1,
+            2,
+            100
+        };
+        for_each(widths, i) {
+            assert_size_eq(colr_mb_len(NULL, widths[i]), 0);
+            assert_size_eq(colr_mb_len("", widths[i]), 0);
+        }
+    }
+    it("detects invalid multibyte strings") {
+        char* invalid_strs[] = {
+            // This is a utf16-encoded "Test\n".
+            "\xff\xfeT\x00e\x00s\x00t\x00\n\x00",
+        };
+        for_each(invalid_strs, i) {
+            assert_size_eq_repr(colr_mb_len(invalid_strs[i], 1), -1, invalid_strs[i]);
+        }
+    }
+    it("returns a byte count for multibyte chars") {
+        struct {
+            char* s;
+            size_t char_len;
+            size_t expected;
+        } tests[] = {
+            {"１３３７", 1, 3},
+            {"１３３７", 2, 6},
+            {"１３３７", 3, 9},
+            {"１３３７", 4, 12},
+            // A char_len that is too large is okay. It's basically strlen().
+            {"１３３７", 100, 12},
+            // Calling colr_mb_len on an ascii string is like calling strlen().
+            {"test", 1, 1},
+            {"test", 2, 2},
+            {"test", 3, 3},
+            {"test", 4, 4},
+            {"test", 100, 4},
+        };
+        for_each(tests, i) {
+            size_t byte_len = colr_mb_len(tests[i].s, tests[i].char_len);
+            assert_size_eq_repr(byte_len, tests[i].expected, tests[i].s);
+        }
+
+        char* s = "No multibyte characters.";
+        assert_size_eq_repr(
+            colr_mb_len(s, strlen(s)),
+            strlen(s),
+            s
+        );
+    }
+}
 // colr_str_center
 subdesc(colr_str_center) {
     it("center-justifies non-escape-code strings") {
@@ -1064,7 +1118,7 @@ subdesc(colr_str_lstrip_chars) {
 }
 // colr_str_mb_len
 subdesc(colr_str_mb_len) {
-    it("counts single an multi-byte chars") {
+    it("counts single an multibyte chars") {
         struct {
             char* s;
             size_t expected;
