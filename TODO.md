@@ -15,7 +15,6 @@
         [ ] Tests for `ExtendedValue_to_str`.
     [ ] Tests for StyleValue (not fully covered).
     [ ] Tests for ColorText with justification (with ColorJustify member set).
-        [ ] Tests for `ColorText_length` with justification.
         [ ] Tests for `ColorText_set_just`.
         [ ] Tests for `ColorText_to_str` with justification.
     [ ] Tests for RGB (more tests, covering all functions)

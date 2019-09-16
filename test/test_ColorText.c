@@ -181,7 +181,22 @@ subdesc(ColorText_repr) {
 }
 subdesc(ColorText_set_just) {
     it("sets the justification method") {
-
+        char* teststr = "test";
+        ColorText ctext = Colra(teststr, NULL);
+        struct {
+            ColorJustify just;
+            char* expected;
+        } tests[] = {
+            {ColorJustify_new(JUST_LEFT, 8, ' '), "test    "},
+            {ColorJustify_new(JUST_RIGHT, 8, ' '), "    test"},
+            {ColorJustify_new(JUST_CENTER, 8, ' '), "  test  "},
+        };
+        for_each(tests, i) {
+            ColorText_set_just(&ctext, tests[i].just);
+            char* resultstr = colr_to_str(ctext);
+            assert_str_eq_repr(resultstr, tests[i].expected, ctext);
+            free(resultstr);
+        }
     }
 }
 subdesc(ColorText_set_values) {
