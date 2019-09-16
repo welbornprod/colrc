@@ -56,7 +56,7 @@ subdesc(ColorText_has_arg) {
         assert_ColorText_missing_arg(ctext, forearg);
         assert_ColorText_missing_arg(ctext, backarg);
         assert_ColorText_missing_arg(ctext, stylearg);
-        ctext = ColorText_from_values("test", &forearg, &backarg, &stylearg, _ColrLastArg);
+        ctext = Colra("test", &forearg, &backarg, &stylearg);
         assert_ColorText_has_arg(ctext, forearg);
         assert_ColorText_has_arg(ctext, backarg);
         assert_ColorText_has_arg(ctext, stylearg);
@@ -116,30 +116,30 @@ subdesc(ColorText_length) {
             size_t expected;
         } tests[] = {
             {
-                ColorText_from_values("test", _ColrLastArg),
+                Colra("test", NULL),
                 slength
             },
             {
-                ColorText_from_values("test", &forearg, _ColrLastArg),
+                Colra("test", &forearg),
                 slength + CODE_LEN + CODE_RESET_LEN
             },
             {
-                ColorText_from_values("test", &backarg, _ColrLastArg),
+                Colra("test", &backarg),
                 slength + CODE_LEN + CODE_RESET_LEN
             },
             {
                 // The RESET_ALL style comes before "test", so it is appended
                 // again.
-                ColorText_from_values("test", &stylearg, _ColrLastArg),
+                Colra("test", &stylearg),
                 slength + STYLE_LEN + CODE_RESET_LEN
             },
             {
-                ColorText_from_values("test", &forearg, &backarg, _ColrLastArg),
+                Colra("test", &forearg, &backarg),
                 slength + (CODE_LEN * 2) + CODE_RESET_LEN
             },
             {
                 // Again, the RESET_ALL comes before "test", so it is appended.
-                ColorText_from_values("test", &forearg, &backarg, &stylearg, _ColrLastArg),
+                Colra("test", &forearg, &backarg, &stylearg),
                 slength + (CODE_LEN * 2) + STYLE_LEN + CODE_RESET_LEN
             },
         };
@@ -229,7 +229,7 @@ subdesc(ColorText_to_str) {
         char* emptystr = ColorText_to_str(empty);
         assert_null(emptystr);
 
-        ColorText ctext = ColorText_from_values("test", _ColrLastArg);
+        ColorText ctext = Colra("test", NULL);
         char* nocodes = ColorText_to_str(ctext);
         assert_str_eq(nocodes, "test", "Should be a simple string!");
         free(nocodes);
