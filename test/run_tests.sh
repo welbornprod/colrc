@@ -622,5 +622,7 @@ else
 fi
 
 printf "\nRunning: %s\n" "${cmd[*]}"
-"${cmd[@]}"
+# This environment variable has to be set until I figure out how to let
+# libasan know about the register_printf_specifier() call for colr_printf stuff.
+ASAN_OPTIONS="check_printf=0" "${cmd[@]}"
 exit
