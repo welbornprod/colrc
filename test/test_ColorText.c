@@ -233,9 +233,10 @@ subdesc(ColorText_set_values) {
 }
 subdesc(ColorText_to_ptr) {
     it("allocates a ColorText") {
-        ColorText* ctext = Colr("test", fore(RED));
-        assert(ColorText_is_ptr(ctext));
-        ColorText_free(ctext);
+        ColorText ctext = Colra("test", fore(RED));
+        ColorText* ctextp = ColorText_to_ptr(ctext);
+        assert(ColorText_is_ptr(ctextp));
+        ColorText_free(ctextp);
     }
 }
 subdesc(ColorText_to_str) {
