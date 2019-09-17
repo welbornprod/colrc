@@ -73,6 +73,54 @@ subdesc(colr) {
     }
 } // subdesc(colr)
 subdesc(colr_asprintf) {
+    it("handles alternate form") {
+        char* mystring = NULL;
+        colr_asprintf(&mystring, "%" COLR_FMT, Colr("Test", fore(RED)));
+        assert_not_null(mystring);
+        assert(colr_str_has_codes(mystring));
+        free(mystring);
+        // Now do the same thing, using the "alternate form".
+        colr_asprintf(&mystring, "%#" COLR_FMT, Colr("Test", fore(RED)));
+        assert_not_null(mystring);
+        // Should not contain escape codes.
+        assert(!colr_str_has_codes(mystring));
+        free(mystring);
+    }
+    it("handles justification") {
+        // center
+        char* mycenter = NULL;
+        colr_asprintf(&mycenter, "% 8" COLR_FMT, Colr("test", fore(RED)));
+        assert_not_null(mycenter);
+        assert_str_starts_with(mycenter, "  ");
+        assert_str_ends_with(mycenter, "  ");
+        free(mycenter);
+
+        // left
+        char* myleft = NULL;
+        colr_asprintf(&myleft, "%-8" COLR_FMT, Colr("test", fore(RED)));
+        assert_not_null(myleft);
+        assert_str_ends_with(myleft, "    ");
+        free(myleft);
+        // right
+        char* myright = NULL;
+        colr_asprintf(&myright, "%8" COLR_FMT, Colr("test", fore(RED)));
+        assert_not_null(myright);
+        assert_str_starts_with(myright, "    ");
+        free(myright);
+    }
+    it("handles strings") {
+        char* tests[] = {
+            "test",
+            "this thing",
+            "\nout\n",
+        };
+        for_each(tests, i) {
+            char* mystring = NULL;
+            colr_asprintf(&mystring, "%" COLR_FMT, tests[i]);
+            assert_str_eq(mystring, tests[i], "Printf malformed a plain string.");
+            free(mystring);
+        }
+    }
     it("handles colr objects") {
         struct {
             void* obj;
@@ -355,6 +403,31 @@ subdesc(colr_join) {
 } // subdesc(colr_join)
 // colr_join_array
 subdesc(colr_join_array) {
+    it("handles NULL") {
+        char* j = "joiner";
+        char* null_words[] = {NULL, NULL, NULL, NULL};
+        char* s = colr_join_array(j, null_words);
+        assert_null(s);
+
+        char* empty_words[] = {"", "", NULL};
+        s = colr_join_array(j, empty_words);
+        assert_str_eq(s, "joiner", "Empty string lists should be like strdup(joiner)");
+        free(s);
+    }
+    it("handles empty objects") {
+        char* j = "joiner";
+        ColorArg** cargs = NULL;
+        ColorArgs_list_fill(
+            cargs,
+            ColorArg_to_ptr(ColorArg_empty()),
+            ColorArg_to_ptr(ColorArg_empty()),
+            ColorArg_to_ptr(ColorArg_empty())
+        );
+        char* s = colr_join_array(j, cargs);
+        ColorArgs_list_free(cargs);
+        assert_str_eq(s, "joiner", "Empty arg lists should be like strdup(joiner)");
+        free(s);
+    }
     // string arrays
     it("joins string arrays by strings") {
         char* j = "-";
@@ -368,7 +441,7 @@ subdesc(colr_join_array) {
         assert_str_eq(
             s,
             "this-that-the other",
-            "Failed to join strings by a string."
+            "Failed to join strings by a string"
         );
         free(s);
     }
@@ -384,7 +457,7 @@ subdesc(colr_join_array) {
         assert_str_eq(
             s,
             "this\x1b[31mthat\x1b[31mthe other\x1b[0m",
-            "Failed to join strings by a ColorArg."
+            "Failed to join strings by a ColorArg"
         );
         colr_free(cargp);
         free(s);
@@ -401,7 +474,7 @@ subdesc(colr_join_array) {
         assert_str_eq(
             s,
             "this[X]that[X]the other",
-            "Failed to join strings by a ColorResult."
+            "Failed to join strings by a ColorResult"
         );
         colr_free(cresp);
         free(s);
@@ -418,7 +491,7 @@ subdesc(colr_join_array) {
         assert_str_eq(
             s,
             "this\x1b[31mX\x1b[0mthat\x1b[31mX\x1b[0mthe other\x1b[0m",
-            "Failed to join strings by a ColorText."
+            "Failed to join strings by a ColorText"
         );
         colr_free(ctextp);
         free(s);
@@ -436,7 +509,7 @@ subdesc(colr_join_array) {
         assert_str_eq(
             s,
             "\x1b[31m-\x1b[38;5;7m-\x1b[38;2;255;255;255m\x1b[0m",
-            "Failed to join ColorArgs by a string."
+            "Failed to join ColorArgs by a string"
         );
         free(s);
         for_not_null(cargs, i) colr_free(cargs[i]);
@@ -453,7 +526,7 @@ subdesc(colr_join_array) {
         assert_str_eq(
             s,
             "\x1b[31m\x1b[31m\x1b[38;5;7m\x1b[31m\x1b[38;2;255;255;255m\x1b[0m",
-            "Failed to join ColorArgs by a ColorArg."
+            "Failed to join ColorArgs by a ColorArg"
         );
         colr_free(cargp);
         for_not_null(cargs, i) colr_free(cargs[i]);
@@ -471,7 +544,7 @@ subdesc(colr_join_array) {
         assert_str_eq(
             s,
             "\x1b[31m[X]\x1b[38;5;7m[X]\x1b[38;2;255;255;255m\x1b[0m",
-            "Failed to join ColorArgs by a ColorResult."
+            "Failed to join ColorArgs by a ColorResult"
         );
         colr_free(cresp);
         for_not_null(cargs, i) colr_free(cargs[i]);
@@ -489,7 +562,7 @@ subdesc(colr_join_array) {
         assert_str_eq(
             s,
             "\x1b[31m\x1b[31mX\x1b[0m\x1b[38;5;7m\x1b[31mX\x1b[0m\x1b[38;2;255;255;255m\x1b[0m",
-            "Failed to join ColorArgs by a ColorText."
+            "Failed to join ColorArgs by a ColorText"
         );
         colr_free(ctextp);
         for_not_null(cargs, i) colr_free(cargs[i]);
@@ -508,7 +581,7 @@ subdesc(colr_join_array) {
         assert_str_eq(
             s,
             "[X]-<X>-(X)",
-            "Failed to join ColorResults by a string."
+            "Failed to join ColorResults by a string"
         );
         free(s);
         for_not_null(cress, i) colr_free(cress[i]);
@@ -525,7 +598,7 @@ subdesc(colr_join_array) {
         assert_str_eq(
             s,
             "[A]\x1b[31m[B]\x1b[31m[C]\x1b[0m",
-            "Failed to join ColorResults by a ColorArg."
+            "Failed to join ColorResults by a ColorArg"
         );
         colr_free(cargp);
         for_not_null(cress, i) colr_free(cress[i]);
@@ -543,7 +616,7 @@ subdesc(colr_join_array) {
         assert_str_eq(
             s,
             "[A][X][B][X][C]",
-            "Failed to join ColorResults by a ColorResult."
+            "Failed to join ColorResults by a ColorResult"
         );
         colr_free(cresp);
         for_not_null(cress, i) colr_free(cress[i]);
@@ -561,7 +634,7 @@ subdesc(colr_join_array) {
         assert_str_eq(
             s,
             "[A]\x1b[31mX\x1b[0m[B]\x1b[31mX\x1b[0m[C]\x1b[0m",
-            "Failed to join ColorResults by a ColorText."
+            "Failed to join ColorResults by a ColorText"
         );
         colr_free(ctextp);
         for_not_null(cress, i) colr_free(cress[i]);
@@ -580,7 +653,7 @@ subdesc(colr_join_array) {
         assert_str_eq(
             s,
             "\x1b[31mX\x1b[0m-\x1b[38;5;7mX\x1b[0m-\x1b[38;2;255;255;255mX\x1b[0m",
-            "Failed to join ColorTexts by a string."
+            "Failed to join ColorTexts by a string"
         );
         free(s);
         for_not_null(ctexts, i) colr_free(ctexts[i]);
@@ -597,7 +670,7 @@ subdesc(colr_join_array) {
         assert_str_eq(
             s,
             "\x1b[31mA\x1b[0m\x1b[31m\x1b[38;5;7mB\x1b[0m\x1b[31m\x1b[38;2;255;255;255mC\x1b[0m",
-            "Failed to join ColorTexts by a ColorArg."
+            "Failed to join ColorTexts by a ColorArg"
         );
         colr_free(cargp);
         for_not_null(ctexts, i) colr_free(ctexts[i]);
@@ -615,7 +688,7 @@ subdesc(colr_join_array) {
         assert_str_eq(
             s,
             "\x1b[31mA\x1b[0m[X]\x1b[38;5;7mB\x1b[0m[X]\x1b[38;2;255;255;255mC\x1b[0m",
-            "Failed to join ColorTexts by a ColorResult."
+            "Failed to join ColorTexts by a ColorResult"
         );
         colr_free(cresp);
         for_not_null(ctexts, i) colr_free(ctexts[i]);
@@ -633,7 +706,7 @@ subdesc(colr_join_array) {
         assert_str_eq(
             s,
             "\x1b[31mA\x1b[0m\x1b[31mX\x1b[0m\x1b[38;5;7mB\x1b[0m\x1b[31mX\x1b[0m\x1b[38;2;255;255;255mC\x1b[0m",
-            "Failed to join ColorTexts by a ColorText."
+            "Failed to join ColorTexts by a ColorText"
         );
         colr_free(ctextp);
         for_not_null(ctexts, i) colr_free(ctexts[i]);
@@ -641,6 +714,47 @@ subdesc(colr_join_array) {
     }
 }
 subdesc(colr_snprintf) {
+    it("handles alternate form") {
+        char* s = "Test";
+        size_t length = CODE_ANY_LEN + strlen(s);
+        char mystring[length + 1];
+        colr_snprintf(mystring, length + 1, "%" COLR_FMT, Colr(s, fore(RED)));
+        assert_not_null(mystring);
+        assert(colr_str_has_codes(mystring));
+        // Now do the same thing, using the "alternate form".
+        colr_snprintf(mystring, length + 1, "%#" COLR_FMT, Colr(s, fore(RED)));
+        assert_not_null(mystring);
+        // Should not contain escape codes.
+        assert(!colr_str_has_codes(mystring));
+    }
+    it("handles justification") {
+        ColorText* ctext = Colr("test", fore(RED));
+        size_t length = ColorText_length(*ctext) + 8;
+        colr_free(ctext);
+        char mystring[length];
+        // left
+        colr_snprintf(mystring, length, "%-8" COLR_FMT, Colr("test", fore(RED)));
+        assert_str_ends_with(mystring, "    ");
+        // right
+        colr_snprintf(mystring, length, "%8" COLR_FMT, Colr("test", fore(RED)));
+        assert_str_starts_with(mystring, "    ");
+        // center
+        colr_snprintf(mystring, length, "% 8" COLR_FMT, Colr("test", fore(RED)));
+        assert_str_starts_with(mystring, "  ");
+        assert_str_ends_with(mystring, "  ");
+    }
+    it("handles strings") {
+        char* tests[] = {
+            "test",
+            "this thing",
+            "\nout\n",
+        };
+        for_each(tests, i) {
+            char mystring[25];
+            colr_snprintf(mystring, strlen(tests[i]) + 1, "%" COLR_FMT, tests[i]);
+            assert_str_eq(mystring, tests[i], "Printf malformed a plain string");
+        }
+    }
     it("handles colr objects") {
         struct {
             void* obj;

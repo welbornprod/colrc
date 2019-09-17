@@ -134,6 +134,12 @@ subdesc(ColorArg_from_RGB) {
     }
 }
 subdesc(ColorArg_from_esc) {
+    it("handles invalid esc-codes") {
+        ColorArg carg = ColorArg_from_esc("\x1b[xm");
+        assert_is_invalid(carg);
+        assert_colr_eq_repr(carg.type, ARGTYPE_NONE, carg);
+        assert_colr_eq_repr(carg.value.type, TYPE_INVALID, carg);
+    }
     it("creates ColorArgs from basic esc-codes") {
         for_len(basic_names_len, i) {
             BasicValue bval = basic_names[i].value;
@@ -148,7 +154,6 @@ subdesc(ColorArg_from_esc) {
             assert_is_valid(carg);
             assert_colr_eq_repr(carg.type, BACK, codes);
             assert_colr_eq_repr(carg.value.basic, bval, codes);
-
         }
     }
     it("creates ColorArgs from ext esc-codes") {
@@ -401,6 +406,12 @@ subdesc(ColorArg_to_esc) {
     }
 }
 subdesc(ColorArg_to_esc_s) {
+    it("handles empty ColorArgs") {
+        ColorArg carg = ColorArg_empty();
+        char empty[CODE_ANY_LEN];
+        assert(!ColorArg_to_esc_s(empty, carg));
+        assert_str_empty(empty);
+    }
     it("fills with escape codes") {
         struct {
             ColorArg carg;

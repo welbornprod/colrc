@@ -324,12 +324,24 @@ subdesc(colr_mb_len) {
         }
     }
     it("detects invalid multibyte strings") {
-        char* invalid_strs[] = {
+        struct {
+            char* s;
+            size_t length;
+            size_t expected;
+        } tests[] = {
+            // Some invalid utf-8 strings:
+            {"\xc3\x28", 2, -1},
+            {"\xe2\x28\xa1", 2, -1},
+            {"\xf0\x28\x8c\x28", 2, -1},
             // This is a utf16-encoded "Test\n".
-            "\xff\xfeT\x00e\x00s\x00t\x00\n\x00",
+            {"\xff\xfeT\x00e\x00s\x00t\x00\n\x00", 1, -1},
         };
-        for_each(invalid_strs, i) {
-            assert_size_eq_repr(colr_mb_len(invalid_strs[i], 1), -1, invalid_strs[i]);
+        for_each(tests, i) {
+            assert_size_eq_repr(
+                colr_mb_len(tests[i].s, tests[i].length),
+                tests[i].expected,
+                tests[i].s
+            );
         }
     }
     it("returns a byte count for multibyte chars") {
@@ -366,6 +378,18 @@ subdesc(colr_mb_len) {
 }
 // colr_str_center
 subdesc(colr_str_center) {
+    it("handles terminal width") {
+        // Terminal width test.
+        TermSize ts = colr_term_size();
+        char* result = colr_str_center("test", 0, ' ');
+        assert_not_null(result);
+        assert_str_not_empty(result);
+        assert(colr_str_starts_with(result, "  "));
+        assert(colr_str_ends_with(result, "  "));
+        assert_str_contains(result, "test");
+        assert_size_eq(strlen(result), ts.columns);
+        free(result);
+    }
     it("center-justifies non-escape-code strings") {
         struct {
             char* s;
@@ -427,15 +451,6 @@ subdesc(colr_str_center) {
             assert_str_eq(result, tests[i].expected, "colr_str_center() failed");
             free(result);
         }
-        // For terminal-width, all I can do is make sure it doesn't crash.
-        // Unless I can mock the ioctl somehow, but I'm not ready to do that.
-        char* result = colr_str_center("test", ' ', 0);
-        assert_not_null(result);
-        assert_str_not_empty(result);
-        assert(colr_str_starts_with(result, "  "));
-        assert(colr_str_ends_with(result, "  "));
-        assert_str_contains(result, "test");
-        free(result);
     }
 }
 // colr_str_char_count
@@ -933,6 +948,17 @@ subdesc(colr_str_list_free) {
 }
 // colr_str_ljust
 subdesc(colr_str_ljust) {
+    it("handles terminal width") {
+        // Terminal width test.
+        TermSize ts = colr_term_size();
+        char* result = colr_str_ljust("test", 0, ' ');
+        assert_not_null(result);
+        assert_str_not_empty(result);
+        assert(colr_str_ends_with(result, "  "));
+        assert_str_contains(result, "test");
+        assert_size_eq(strlen(result), ts.columns);
+        free(result);
+    }
     it("left-justifies non-escape-code strings") {
         struct {
             char* s;
@@ -982,14 +1008,6 @@ subdesc(colr_str_ljust) {
             assert_str_eq(result, tests[i].expected, "colr_str_ljust failed to justify.");
             free(result);
         }
-        // For terminal-width, all I can do is make sure it doesn't crash.
-        // Unless I can mock the ioctl somehow, but I'm not ready to do that.
-        char* result = colr_str_ljust("test", ' ', 0);
-        assert_not_null(result);
-        assert_str_not_empty(result);
-        assert(colr_str_ends_with(result, "  "));
-        assert_str_contains(result, "test");
-        free(result);
     }
 }
 // colr_str_lower
@@ -1309,6 +1327,17 @@ subdesc(colr_str_replace) {
 }
 // colr_str_rjust.
 subdesc(colr_str_rjust) {
+    it("handles terminal width") {
+        // Terminal width test.
+        TermSize ts = colr_term_size();
+        char* result = colr_str_rjust("test", 0, ' ');
+        assert_not_null(result);
+        assert_str_not_empty(result);
+        assert(colr_str_starts_with(result, "  "));
+        assert_str_contains(result, "test");
+        assert_size_eq(strlen(result), ts.columns);
+        free(result);
+    }
     it("right-justifies non-escape-code strings") {
         struct {
             char* s;
@@ -1358,14 +1387,6 @@ subdesc(colr_str_rjust) {
             assert_str_eq(result, tests[i].expected, "colr_str_rjust failed to justify.");
             free(result);
         }
-        // For terminal-width, all I can do is make sure it doesn't crash.
-        // Unless I can mock the ioctl somehow, but I'm not ready to do that.
-        char* result = colr_str_rjust("test", ' ', 0);
-        assert_not_null(result);
-        assert_str_not_empty(result);
-        assert(colr_str_starts_with(result, "  "));
-        assert_str_contains(result, "test");
-        free(result);
     }
 }
 // colr_str_starts_with

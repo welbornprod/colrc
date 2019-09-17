@@ -149,6 +149,7 @@ subdesc(ColorText_length) {
         }
 
         // TODO: More justification tests.
+        TermSize ts = colr_term_size();
         struct {
             ColorText* ctextp;
             size_t expected;
@@ -156,6 +157,9 @@ subdesc(ColorText_length) {
             {Colr_ljust("test", 10, NULL), 11},
             {Colr_rjust("test", 10, NULL), 11},
             {Colr_center("test", 10, NULL), 11},
+            {Colr_ljust("test", 0, NULL), ts.columns + 1},
+            {Colr_rjust("test", 0, NULL), ts.columns + 1},
+            {Colr_center("test", 0, NULL), ts.columns + 1},
         };
 
         for_each(just_tests, i) {

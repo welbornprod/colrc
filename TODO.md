@@ -7,7 +7,10 @@
 ## Tests
 [ ] Should have %100 coverage.
     [ ] Tests for '*_example' functions.
+    [ ] Tests for _colr_ptr_repr() and _colr_ptr_to_str().
     [ ] Tests for `rainbow*` functions.
+    [ ] Tests for ColorResult_length, when it needs to be recalculated.
+    [ ] Tests for ColorValue_from_esc with invalid RGB/Extended escape codes.
     [ ] Tests for ExtendedValue (not fully covered).
         [ ] Coverage for `ExtendedValue_repr`.
         [ ] Tests for `ExtendedValue_from_hex_default`.
@@ -15,7 +18,6 @@
         [ ] Tests for `ExtendedValue_to_str`.
     [ ] Tests for StyleValue (not fully covered).
     [ ] Tests for ColorText with justification (with ColorJustify member set).
-        [ ] Tests for `ColorText_set_just`.
         [ ] Tests for `ColorText_to_str` with justification.
     [ ] Tests for RGB (more tests, covering all functions)
         [ ] Tests for `RGB_from_hex_default`.

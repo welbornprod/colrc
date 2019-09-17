@@ -477,9 +477,12 @@
 */
 #define assert_not_null(x) \
     do { \
+        _Pragma("GCC diagnostic push"); \
+        _Pragma("GCC diagnostic ignored \"-Waddress\""); \
         if (!x) { \
             fail("Not supposed to be NULL: " #x); \
         } \
+        _Pragma("GCC diagnostic pop"); \
     } while (0)
 
 #define assert_ptr_eq(a, b) \
@@ -766,6 +769,26 @@
         free(_a_e_s_repr); \
     } while (0)
 
+/*! \def assert_str_ends_with
+    Ensure a string ends with a certain suffix.
+
+    \pi s      The string to check.
+    \pi prefix The prefix to look for.
+*/
+#define assert_str_ends_with(s, suffix) \
+    do { \
+        assert_not_null(s); \
+        assert_not_null(suffix); \
+        assert_str_not_empty(s); \
+        assert_str_not_empty(suffix); \
+        if (!colr_str_ends_with(s, suffix)) { \
+            char* _a_s_e_w_repr = colr_repr(s); \
+            char* _a_s_e_w_suffix = colr_repr(suffix); \
+            fail("String does not end with %s: %s", _a_s_e_w_suffix, _a_s_e_w_repr); \
+            free(_a_s_e_w_repr); \
+            free(_a_s_e_w_suffix); \
+        } \
+    } while (0)
 
 /*! \def assert_str_eq
     Assert that two strings are equal, with a nice message with string reprs.
@@ -789,7 +812,7 @@
             free(_a_s_e_s1_repr); \
         } else if (s2 != NULL && s1 == NULL) { /* cppcheck-suppress literalWithCharPtrCompare */ \
             char* _a_s_e_s2_repr = colr_str_repr(s2); \
-            fail("%s:\n    NULL\n  != %s", _a_s_e_use_msg, _a_s_e_s2_repr); \
+            fail("%s:\n     NULL\n  != %s", _a_s_e_use_msg, _a_s_e_s2_repr); \
             free(_a_s_e_s2_repr); \
         } else if (strcmp(s1, s2) != 0) { \
             char* _a_s_e_s1_repr = colr_str_repr(s1); \
@@ -825,7 +848,6 @@
                 _a_s_e_s1_repr, \
                 _a_s_e_repr \
             ); \
-            free(_a_s_e_repr); \
             free(_a_s_e_s1_repr); \
         } else if (s2 != NULL && s1 == NULL) { /* cppcheck-suppress literalWithCharPtrCompare */ \
             char* _a_s_e_s2_repr = colr_str_repr(s2); \
@@ -834,7 +856,6 @@
                 _a_s_e_s2_repr, \
                 _a_s_e_repr \
             ); \
-            free(_a_s_e_repr); \
             free(_a_s_e_s2_repr); \
         } else if (strcmp(s1, s2) != 0) { \
             char* _a_s_e_s1_repr = colr_str_repr(s1); \
@@ -845,10 +866,10 @@
                 _a_s_e_s2_repr, \
                 _a_s_e_repr \
             ); \
-            free(_a_s_e_repr); \
             free(_a_s_e_s1_repr); \
             free(_a_s_e_s2_repr); \
         } \
+        free(_a_s_e_repr); \
     } while (0)
 
 
@@ -923,8 +944,8 @@
         assert_str_not_empty(s); \
         assert_str_not_empty(prefix); \
         if (!colr_str_starts_with(s, prefix)) { \
-            char* _a_s_s_repr = test_repr(s); \
-            char* _a_s_s_prefix = test_repr(prefix); \
+            char* _a_s_s_repr = colr_repr(s); \
+            char* _a_s_s_prefix = colr_repr(prefix); \
             fail("String does not start with %s: %s", _a_s_s_prefix, _a_s_s_repr); \
             free(_a_s_s_repr); \
             free(_a_s_s_prefix); \
