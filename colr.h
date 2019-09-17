@@ -211,10 +211,10 @@
 //! Seed value for colr_str_hash().
 #define COLR_HASH_SEED 5381
 
-//! Character used in printf format strings for Colr objects.
-#define COLR_FMT_CHAR 'R'
 //! Format character string suitable for use in the printf-family of functions.
 #define COLR_FMT "R"
+//! Character used in printf format strings for Colr objects.
+#define COLR_FMT_CHAR COLR_FMT[0]
 
 /*! Alias for COLOR_INVALID.
     \details
@@ -584,12 +584,35 @@
     \details
     This cannot be passed to the \colrmacros.
 
+    \details
+    If this ColorText is manually stored on the heap, and then sent through
+    the colr macros, it's ColorArgs will be free'd. You cannot use the same
+    ColorText twice inside the colr macros/functions.
+
     \pi text String to colorize/style.
     \pi ...  No more than 3 ColorArg pointers for fore, back, and style in any order.
 
     \return An initialized ColorText.
 
     \sa Colr
+
+    \examplecodefor{Colra,.c}
+    // This ColorText is stack-allocated, but it's ColorArgs are not.
+    ColorText ctext = Colra("This.", fore(RED), back(WHITE));
+    // You cannot use this in the colr macros.
+    char* mystring = ColorText_to_str(ctext);
+    printf("%s\n", mystring);
+    free(mystring);
+    // And you are responsible for cleaning up the ColorArgs.
+    ColorText_free_args(&ctext);
+
+    ColorText singleuse = Colra("That.", fore(BLUE));
+    ColorText* manualalloc = ColorText_to_ptr(singleuse);
+    assert(singleuse.fore == manualalloc->fore);
+    colr_printf("Used up: %R\n", manualalloc);
+    // The ColorArgs associated with `singleuse` were just free'd
+    // because they were linked with the heap-allocated ColorText.
+    \endexamplecode
 */
 #define Colra(text, ...) ColorText_from_values(text, __VA_ARGS__, _ColrLastArg)
 
@@ -2322,6 +2345,7 @@ char* ColorResult_to_str(ColorResult cred);
 */
 ColorText ColorText_empty(void);
 void ColorText_free(ColorText* p);
+void ColorText_free_args(ColorText* p);
 ColorText ColorText_from_values(char* text, ...);
 bool ColorText_has_arg(ColorText ctext, ColorArg carg);
 bool ColorText_has_args(ColorText ctext);

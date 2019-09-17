@@ -3040,31 +3040,36 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
     ColorText** ctextps = ps;
     if (ColorArg_is_ptr(*cargps)) {
         while ((i < count) && cargps[i]) {
-            if (i) strcat(final, joiner);
             char* s = ColorArg_to_esc(*(cargps[i++]));
             if (!s || s[0] == '\0') continue;
+            if (i > 1) strcat(final, joiner);
             strcat(final, s);
             free(s);
+            // Set more than once, but only if there was a non-empty ColorArg.
+            do_reset = true;
         }
-        do_reset = true;
     } else if (ColorResult_is_ptr(*cresps)) {
         while ((i < count) && cresps[i]) {
-            if (i) strcat(final, joiner);
             char* s = ColorResult_to_str(*(cresps[i++]));
             if (!s || s[0] == '\0') continue;
+            if (i > 1) strcat(final, joiner);
             strcat(final, s);
         }
     } else if (ColorText_is_ptr(*ctextps)) {
         while ((i < count) && ctextps[i]) {
-            if (i) strcat(final, joiner);
             char* s = ColorText_to_str(*(ctextps[i++]));
             if (!s || s[0] == '\0') continue;
+            if (i > 1) strcat(final, joiner);
             strcat(final, s);
             free(s);
         }
     } else {
         char** sps = ps;
         while ((i < count) && sps[i]) {
+            if (!sps[i] || sps[i][0] == '\0') {
+                i++;
+                continue;
+            }
             if (i) strcat(final, joiner);
             strcat(final, sps[i++]);
         }
@@ -4022,7 +4027,7 @@ bool ColorJustify_is_empty(ColorJustify cjust) {
 
     \pi method  ColorJustifyMethod to use.
     \pi width   Width for justification.
-                If `0` is given, ColorText will use the width from colr_terminal_size().
+                If `0` is given, ColorText will use the width from colr_term_size().
     \pi padchar Padding character to use.
                 If `0` is given, the default, space (`' '`), is used.
 
@@ -4270,15 +4275,32 @@ ColorText ColorText_empty(void) {
 
     \sa ColorText
 */
-void ColorText_free(ColorText *p) {
+void ColorText_free(ColorText* p) {
     if (!p) return;
-    ColorArg_free(p->fore);
-    ColorArg_free(p->back);
-    ColorArg_free(p->style);
-
+    ColorText_free_args(p);
     free(p);
 }
 
+/*! Frees the ColorArg members of a ColorText. The ColorText itself is not
+    free'd.
+
+    \details
+    This is safe to use on a stack-allocated ColorText with heap-allocated
+    ColorArgs.
+
+    \pi p Pointer to a ColorText.
+
+    \sa ColorText
+*/
+void ColorText_free_args(ColorText* p) {
+    if (!p) return;
+    ColorArg_free(p->fore);
+    p->fore = NULL;
+    ColorArg_free(p->back);
+    p->back = NULL;
+    ColorArg_free(p->style);
+    p->style = NULL;
+}
 /*! Builds a ColorText from 1 mandatory \string, and optional fore, back, and
     style args (pointers to ColorArgs).
     \pi text Text to colorize (a regular string).
