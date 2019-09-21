@@ -7,6 +7,7 @@ appversion="0.1.1"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 appdir="${apppath%/*}"
+
 colr_dir="$appdir/.."
 test_dir="$colr_dir/test"
 xml_dir="$colr_dir/cppcheck_report"
@@ -17,6 +18,9 @@ test_xml_dir="$test_dir/cppcheck_report"
 test_xml_file="$test_xml_dir/cppcheck-report.xml"
 test_html_file="$test_xml_dir/index.html"
 test_suppress_file="${appdir}/cppcheck.suppress.test.txt"
+
+# Command to list cppcheck errors with descriptions.
+declare -a cppcheck_error_list=("python3" "$appdir/cppcheck_errors.py")
 
 declare -A script_deps=(["cppcheck"]="cppcheck")
 for script_dep in "${!script_deps[@]}"; do
@@ -63,6 +67,11 @@ function fail_usage {
     exit 1
 }
 
+function list_errors {
+    # List all error names/descs from cppcheck.
+    "${cppcheck_error_list[@]}" "$@"
+}
+
 function print_usage {
     # Show usage reason if first arg is available.
     [[ -n "$1" ]] && echo_err "\n$1\n"
@@ -71,6 +80,7 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
+        $appscript -l [-f pat]
         $appscript [-f pat] [-e pat] [-t | FILE...] [-- ARGS...]
         $appscript [-E] [-t | FILE...] [-- ARGS...]
         $appscript [-t | FILE...] (-r | -x) [-- ARGS...]
@@ -86,6 +96,8 @@ function print_usage {
         -f pat,--filter pat   : Only show lines that match this pattern.
                                 These work in the order they are given.
         -h,--help             : Show this message.
+        -l,--errorlist        : List available error names/descs using:
+                                ${cppcheck_error_list[*]}
         -r,--report           : Generate HTML report.
         -t,--test             : Run on test files.
         -V,--view             : View a previously generated HTML report.
@@ -108,6 +120,7 @@ in_args=0
 in_filter_arg=0
 in_exclude_arg=0
 do_errors=0
+do_listerrors=0
 do_report=0
 do_test=0
 do_view=0
@@ -137,6 +150,9 @@ for arg; do
         "-h" | "--help")
             print_usage ""
             exit 0
+            ;;
+        "-l" | "--errorlist")
+            do_listerrors=1
             ;;
         "-r" | "--report")
             do_report=1
@@ -182,6 +198,10 @@ for arg; do
     esac
 done
 
+((do_listerrors)) && {
+    list_errors "$filter_pat"
+    exit
+}
 ((do_view)) && {
     # Just view the cppcheck report, if it exists.
     view_html
