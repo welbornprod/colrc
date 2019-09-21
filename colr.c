@@ -906,7 +906,7 @@ bool colr_char_is_code_end(const char c) {
 /*! Creates a \string representation for a char.
 
     \pi c   Value to create the representation for.
-    \return An allocated string.\n
+    \return An allocated string.
             \mustfree
             \maybenullalloc
 */
@@ -1135,11 +1135,14 @@ size_t colr_mb_len(const char* s, size_t length) {
     return total;
 }
 
+#ifdef COLR_GNU
 /*! Handles printing with printf for Colr objects.
 
     \details
     This function matches the required `typedef` in `printf.h` (`printf_function`),
     for handling a custom printf format char with `register_printf_specifier`.
+
+    \gnuonly
 
     \pi fp   FILE pointer for output.
     \pi info Info from printf about how to format the argument.
@@ -1217,6 +1220,8 @@ int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *co
     This function matches the required `typedef` in `printf.h` (`printf_arginfo_size_function`)
     for handling a custom printf format char with `register_printf_specifier`.
 
+    \gnuonly
+
     \pi info     Info from printf about how to format the argument.
     \pi n        Number of arguments for the format char.
     \po argtypes Type of arguments being handled, from an `enum` defined in `printf`.
@@ -1242,6 +1247,8 @@ int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, in
     \details
     This function only needs to be called once and `register_printf_specifier`
     is only called the first time this function is called.
+
+    \gnuonly
 
     \examplecodefor{colr_printf_register,.c}
     #include "colr.h"
@@ -1273,7 +1280,7 @@ void colr_printf_register(void) {
     register_printf_specifier(COLR_FMT_CHAR, colr_printf_handler, colr_printf_info);
     is_registered = true;
 }
-
+#endif // COLR_GNU
 
 /*! Sets the locale to `(LC_ALL, "")` if it hasn't already been set.
     \details
@@ -1298,13 +1305,13 @@ bool colr_set_locale(void) {
 
 /*! Center-justifies a \string, ignoring escape codes when measuring the width.
 
-    \pi s       The string to justify.\n
+    \pi s       The string to justify.
                 \mustnullin
-    \pi width   The overall width for the resulting string.\n
+    \pi width   The overall width for the resulting string.
                 If set to '0', the terminal width will be used from colr_term_size().
     \pi padchar The character to pad with. If '0', then `' '` is used.
 
-    \return     An allocated string with the result.\n
+    \return     An allocated string with the result.
                 \mustfree
                 \maybenullalloc
 
@@ -1443,7 +1450,7 @@ size_t colr_str_chars_lcount(const char* restrict s, const char* restrict chars)
 
 /*! Return the number of escape-codes in a \string.
 
-    \pi s   A string to count the escape-codes for.\n
+    \pi s   A string to count the escape-codes for.
             \mustnull
     \return The number of escape-codes, or `0` if \p s is `NULL`, or
             doesn't contain any escape-codes.
@@ -1489,7 +1496,7 @@ size_t colr_str_code_cnt(const char* s) {
 }
 /*! Return the number of bytes that make up all the escape-codes in a \string.
 
-    \pi s   A string to count the code-chars for.\n
+    \pi s   A string to count the code-chars for.
             \mustnull
     \return The number of escape-code characters, or `0` if \p s is `NULL`, or
             doesn't contain any escape-codes.
@@ -1596,9 +1603,9 @@ char* colr_str_copy(char* restrict dest, const char* restrict src, size_t length
     \details
     \p str and \p suf must not overlap.
 
-    \pi str String to check.\n
+    \pi str String to check.
             \mustnull
-    \pi suf Suffix to check for.\n
+    \pi suf Suffix to check for.
             \mustnull
     \return True if `str` ends with `suf`.
     \return False if either is NULL, or the string doesn't end with the suffix.
@@ -1625,7 +1632,7 @@ bool colr_str_ends_with(const char* restrict str, const char* restrict suf) {
     \details
     colr_str_list_free() can be used to easily `free()` the result of this function.
 
-    \pi s      A string to get the escape-codes from.\n
+    \pi s      A string to get the escape-codes from.
                \mustnull
     \pi unique Whether to only include _unique_ escape codes.
     \return    An allocated list of \string pointers, where the last element is `NULL`.
@@ -1931,13 +1938,13 @@ void colr_str_list_free(char** ps) {
 
 /*! Left-justifies a \string, ignoring escape codes when measuring the width.
 
-    \pi s       The string to justify.\n
+    \pi s       The string to justify.
                 \mustnullin
-    \pi width   The overall width for the resulting string.\n
+    \pi width   The overall width for the resulting string.
                 If set to '0', the terminal width will be used from colr_term_size().
     \pi padchar The character to pad with. If '0', then `' '` is used.
 
-    \return     An allocated string with the result, or `NULL` if \p s is `NULL`.\n
+    \return     An allocated string with the result, or `NULL` if \p s is `NULL`.
                 \mustfree
                 \maybenullalloc
 
@@ -2170,8 +2177,8 @@ size_t colr_str_mb_len(const char* s) {
 
     \pi s   String to get the length for.
             \mustnullin
-    \return The length of the string, as if it didn't contain escape codes.\n
-            For non-escape-code strings, this is like `strlen()`.\n
+    \return The length of the string, as if it didn't contain escape codes.
+            For non-escape-code strings, this is like `strlen()`.
             For `NULL` or "empty" strings, `0` is returned.
 
     \sa colr_str_strip_codes
@@ -2202,7 +2209,7 @@ size_t colr_str_noncode_len(const char* s) {
     \pi target The string to replace.
     \pi repl   The string to replace with.
     \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
-               \p target is `NULL`/empty.\n
+               \p target is `NULL`/empty.
                \mustfree
                \maybenullalloc
 */
@@ -2259,7 +2266,7 @@ char* colr_str_replace(char* restrict s, const char* restrict target, const char
     \pi repl   The ColorArg to produce escape-codes to replace with.
                ColorArg_free() is called after the replacement is done.
     \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
-               \p target is `NULL`/empty.\n
+               \p target is `NULL`/empty.
                \mustfree
                \maybenullalloc
 */
@@ -2282,7 +2289,7 @@ char* colr_str_replace_ColorArg(char* restrict s, const char* restrict target, C
     \pi repl   The ColorResult to produce escape-codes to replace with.
                ColorResult_free() is called after the replacement is done.
     \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
-               \p target is `NULL`/empty.\n
+               \p target is `NULL`/empty.
                \mustfree
                \maybenullalloc
 */
@@ -2303,7 +2310,7 @@ char* colr_str_replace_ColorResult(char* restrict s, const char* restrict target
     \pi repl   The ColorText to produce text/escape-codes to replace with.
                ColorText_free() is called after the replacement is done.
     \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
-               \p target is `NULL`/empty.\n
+               \p target is `NULL`/empty.
                \mustfree
                \maybenullalloc
 */
@@ -2329,7 +2336,7 @@ char* colr_str_replace_ColorText(char* restrict s, const char* restrict target, 
     result is printed.
 
     \pi     s The string to represent.
-    \return An allocated string with the representation.\n
+    \return An allocated string with the representation.
             \mustfree
             \maybenullalloc
 
@@ -2387,13 +2394,13 @@ char* colr_str_repr(const char* s) {
 
 /*! Right-justifies a \string, ignoring escape codes when measuring the width.
 
-    \pi s       The string to justify.\n
+    \pi s       The string to justify.
                 \mustnullin
-    \pi width   The overall width for the resulting string.\n
+    \pi width   The overall width for the resulting string.
                 If set to '0', the terminal width will be used from colr_term_size().
     \pi padchar The character to pad with. If '0', then `' '` is used.
 
-    \return     An allocated string with the result, or `NULL` if \p s is `NULL`.\n
+    \return     An allocated string with the result, or `NULL` if \p s is `NULL`.
                 \mustfree
                 \maybenullalloc
 
@@ -2490,7 +2497,7 @@ bool colr_str_starts_with(const char* restrict s, const char* restrict prefix) {
 
     \pi s   The string to strip escape codes from.
             \mustnullin
-    \return An allocated string with the result.\n
+    \return An allocated string with the result.
             \mustfree
             \maybenullalloc
 
@@ -2530,9 +2537,9 @@ char* colr_str_strip_codes(const char* s) {
     \details
     \mustfree
 
-    \pi s   The input string to convert to lower case.\n
+    \pi s   The input string to convert to lower case.
             \mustnull
-    \return The allocated string, or `NULL` if \p s is `NULL`.\n
+    \return The allocated string, or `NULL` if \p s is `NULL`.
             \mustfree
             \maybenullalloc
 */
@@ -2803,9 +2810,9 @@ bool _colr_is_last_arg(void* p) {
     \pi joinerp The joiner (any ColorArg, ColorResult, ColorText, or string).
     \pi ...     Zero or more ColorArgs, ColorResults, ColorTexts, or strings to
                 join by the joiner.
-    \return     An allocated string with mixed escape codes/strings.\n
+    \return     An allocated string with mixed escape codes/strings.
                 CODE_RESET_ALL is appended to all ColorText arguments.
-                This allows easy part-colored messages.\n
+                This allows easy part-colored messages.
                 \mustfree
                 \maybenullalloc
                 Also, `NULL` will be returned if \p joinerp is `NULL`.
@@ -2949,7 +2956,7 @@ size_t _colr_join_size(void *joinerp, va_list args) {
     \pi joinerp The joiner (any ColorArg, ColorText, or string).
     \pi ps      An array of pointers to ColorArgs, ColorTexts, or strings.
                 The array must have `NULL` as the last item.
-    \return     An allocated string with the result.\n
+    \return     An allocated string with the result.
                 \mustfree
                 \maybenullalloc
 
@@ -2985,7 +2992,7 @@ char* colr_join_array(void* joinerp, void* ps) {
                 The array must have at least a length of `count`, unless a
                 `NULL` element is placed at the end.
     \pi count   The total number of items in the array.
-    \return     An allocated string with the result.\n
+    \return     An allocated string with the result.
                 \mustfree
                 \maybenullalloc
                 If any parameter is `NULL`, `NULL` is returned.
@@ -3191,7 +3198,7 @@ size_t _colr_ptr_length(void* p) {
     \<type\>_repr function to obtain an allocated string representation.
 
     \pi p   A ColorArg pointer, ColorResult pointer, ColorText pointer, or string.
-    \return An allocated string with the result.\n
+    \return An allocated string with the result.
             \mustfree
             \maybenullalloc
 */
@@ -3215,7 +3222,7 @@ char* _colr_ptr_repr(void* p) {
     \<type\>_to_str function to obtain an allocated string.
 
     \pi p   A ColorArg pointer, ColorResult pointer, ColorText pointer, or string.
-    \return An allocated string with the result.\n
+    \return An allocated string with the result.
             \mustfree
             \maybenullalloc
 */
@@ -3251,7 +3258,7 @@ bool ArgType_eq(ArgType a, ArgType b) {
 /*! Creates a \string representation of a ArgType.
 
     \pi type An ArgType to get the type from.
-    \return  A pointer to an allocated string.\n
+    \return  A pointer to an allocated string.
              \mustfree
              \maybenullalloc
 
@@ -3279,7 +3286,7 @@ char* ArgType_repr(ArgType type) {
 /*! Creates a human-friendly \string from an ArgType.
 
     \pi type An ArgType to get the type from.
-    \return  A pointer to an allocated string.\n
+    \return  A pointer to an allocated string.
              \mustfree
              \maybenullalloc
 
@@ -3342,7 +3349,7 @@ bool ColorArg_eq(ColorArg a, ColorArg b) {
     \pi carg      A ColorArg to get an example string for.
     \pi colorized Whether to include a colorized example.
                   If set to `false`, there will be no escape-codes in the string.
-    \return       An allocated string with the result.\n
+    \return       An allocated string with the result.
                   \mustfree
                   \maybenullalloc
 
@@ -3719,7 +3726,7 @@ size_t ColorArg_length(ColorArg carg) {
     Allocates memory for the string representation.
 
     \pi carg ColorArg struct to get the representation for.
-    \return Allocated string for the representation.\n
+    \return Allocated string for the representation.
             \mustfree
 
     \sa ColorArg
@@ -3754,7 +3761,7 @@ char* ColorArg_repr(ColorArg carg) {
     You must still free the empty string.
 
     \pi carg ColorArg to get the ArgType and ColorValue from.
-    \return  Allocated string for the escape code.\n
+    \return  Allocated string for the escape code.
              \mustfree
              If the ColorArg is considered "empty", or the ColorValue is invalid,
              then `NULL` is returned.
@@ -3795,7 +3802,7 @@ bool ColorArg_to_esc_s(char* dest, ColorArg carg) {
     You must free() the memory if you call this directly.
 
     \pi carg ColorArg to copy/allocate for.
-    \return  Pointer to a heap-allocated ColorArg.\n
+    \return  Pointer to a heap-allocated ColorArg.
              \mustfree
              \maybenullalloc
 
@@ -3815,7 +3822,7 @@ ColorArg *ColorArg_to_ptr(ColorArg carg) {
     This uses ColorArg_from_esc() and colr_str_get_codes() to build a heap-allocated
     list of heap-allocated ColorArgs.
 
-    \pi s      A string to get the escape-codes from.\n
+    \pi s      A string to get the escape-codes from.
                \mustnull
     \pi unique Whether to only include _unique_ ColorArgs.
     \return    An allocated list of ColorArg pointers, where the last element is `NULL`.
@@ -4048,7 +4055,7 @@ ColorJustify ColorJustify_new(ColorJustifyMethod method, int width, char padchar
     Allocates memory for the string representation.
 
     \pi cjust ColorJustify struct to get the representation for.
-    \return   Allocated string for the representation.\n
+    \return   Allocated string for the representation.
               \mustfree
 
     \sa ColorJustify
@@ -4076,7 +4083,7 @@ char* ColorJustify_repr(ColorJustify cjust) {
     Allocates memory for the string representation.
 
     \pi meth ColorJustifyMethod to get the representation for.
-    \return  Allocated string for the representation.\n
+    \return  Allocated string for the representation.
              \mustfree
 
     \sa ColorJustifyMethod
@@ -4551,7 +4558,7 @@ void ColorText_set_values(ColorText* ctext, char* text, ...) {
     You must free() the memory if you call this directly.
 
     \pi ctext ColorText to copy/allocate for.
-    \return   Pointer to a heap-allocated ColorText.\n
+    \return   Pointer to a heap-allocated ColorText.
               \mustfree
               \maybenullalloc
 
@@ -4568,7 +4575,7 @@ ColorText* ColorText_to_ptr(ColorText ctext) {
 /*! Stringifies a ColorText struct, creating a mix of escape codes and text.
 
     \pi ctext ColorText to stringify.
-    \return   An allocated string with text/escape-codes.\n
+    \return   An allocated string with text/escape-codes.
               \mustfree
               \maybenullalloc
               If the ColorText has a `NULL` `.text` member, `NULL` is returned.
@@ -4776,7 +4783,7 @@ char* ColorType_repr(ColorType type) {
 /*! Create a human-friendly \string representation for a ColorType.
 
     \pi type A ColorType to get the name for.
-    \return  An allocated string with the result.\n
+    \return  An allocated string with the result.
              \mustfree
              \maybenullalloc
 
@@ -4861,7 +4868,7 @@ bool ColorValue_eq(ColorValue a, ColorValue b) {
     type/name.
 
     \pi cval A ColorValue to get an example string for.
-    \return  An allocated string with the result.\n
+    \return  An allocated string with the result.
              \mustfree
              \maybenullalloc
 
@@ -4904,7 +4911,7 @@ char* ColorValue_example(ColorValue cval) {
 
 /*! Convert an escape-code \string into a ColorValue.
 
-    \pi s    An escape-code string to parse.\n
+    \pi s    An escape-code string to parse.
              \mustnull
     \return  A ColorValue (with no fore/back information, only the color type and value).
     \retval  For invalid strings, the `.type` member can be one of:
@@ -5207,7 +5214,7 @@ size_t ColorValue_length(ArgType type, ColorValue cval) {
 /*! Creates a \string representation of a ColorValue.
 
     \pi cval    A ColorValue to get the type and value from.
-    \return     A pointer to an allocated string.\n
+    \return     A pointer to an allocated string.
                 \mustfree
                 \maybenullalloc
 
@@ -5234,7 +5241,7 @@ char* ColorValue_repr(ColorValue cval) {
     \pi cval ColorValue to get the color value from.
 
     \return  An allocated string with the appropriate escape code.
-             For invalid values, an empty string is returned.\n
+             For invalid values, an empty string is returned.
              \mustfree
              \maybenullalloc
 
@@ -5244,6 +5251,7 @@ char* ColorValue_to_esc(ArgType type, ColorValue cval) {
     char* codes;
     switch (type) {
         case FORE:
+            assert(cval.type != TYPE_STYLE);
             switch (cval.type) {
                 case TYPE_BASIC:
                     codes = alloc_basic();
@@ -5266,6 +5274,7 @@ char* ColorValue_to_esc(ArgType type, ColorValue cval) {
                     return NULL;
                 }
         case BACK:
+            assert(cval.type != TYPE_STYLE);
             switch (cval.type) {
                 case TYPE_BASIC:
                     codes = alloc_basic();
@@ -5288,6 +5297,7 @@ char* ColorValue_to_esc(ArgType type, ColorValue cval) {
                     return NULL;
                 }
         case STYLE:
+            assert(cval.type == TYPE_STYLE);
             switch (cval.type) {
                 case TYPE_STYLE:
                     // This is the only appropriate case.
@@ -5334,6 +5344,7 @@ char* ColorValue_to_esc(ArgType type, ColorValue cval) {
 bool ColorValue_to_esc_s(char* dest, ArgType type, ColorValue cval) {
     switch (type) {
         case FORE:
+            assert(cval.type != TYPE_STYLE);
             switch (cval.type) {
                 case TYPE_BASIC:
                     format_fg(dest, cval.basic);
@@ -5353,6 +5364,7 @@ bool ColorValue_to_esc_s(char* dest, ArgType type, ColorValue cval) {
                     return false;
                 }
         case BACK:
+            assert(cval.type != TYPE_STYLE);
             switch (cval.type) {
                 case TYPE_BASIC:
                     format_bg(dest, cval.basic);
@@ -5372,6 +5384,7 @@ bool ColorValue_to_esc_s(char* dest, ArgType type, ColorValue cval) {
                     return false;
                 }
         case STYLE:
+            assert(cval.type == TYPE_STYLE);
             switch (cval.type) {
                 case TYPE_STYLE:
                     // This is the only appropriate case.
@@ -5415,7 +5428,7 @@ bool BasicValue_eq(BasicValue a, BasicValue b) {
 
 /*! Convert an escape-code \string to an actual BasicValue enum value.
 
-    \pi s   Escape-code string.\n
+    \pi s   Escape-code string.
             \mustnull
     \retval BasicValue value on success.
     \retval BASIC_INVALID on error (or if \p s is `NULL`).
@@ -5488,7 +5501,7 @@ bool BasicValue_is_valid(BasicValue x) {
 /*! Creates a \string representation of a BasicValue.
 
     \pi bval A BasicValue to get the value from.
-    \return  A pointer to an allocated string.\n
+    \return  A pointer to an allocated string.
              \mustfree
              \maybenullalloc
 
@@ -5592,7 +5605,7 @@ int BasicValue_to_ansi(ArgType type, BasicValue bval) {
 /*! Create a human-friendly \string representation for a BasicValue.
 
     \pi bval BasicValue to get the name for.
-    \return  An allocated string with the result.\n
+    \return  An allocated string with the result.
              \mustfree
              \maybenullalloc
 
@@ -5645,7 +5658,7 @@ int ExtendedValue_from_BasicValue(BasicValue bval) {
 
 /*! Convert an escape-code \string to an ExtendedValue.
 
-    \pi s   Escape-code string.\n
+    \pi s   Escape-code string.
             \mustnull
     \retval An integer in the range `0-255` on success.
     \retval EXT_INVALID on error (or if \p s is `NULL`).
@@ -5826,7 +5839,7 @@ int ExtendedValue_from_str(const char* arg) {
 /*! Creates a \string representation of a ExtendedValue.
 
     \pi eval    A ExtendedValue to get the value from.
-    \return     A pointer to an allocated string.\n
+    \return     A pointer to an allocated string.
                 \mustfree
                 \maybenullalloc
 
@@ -5992,7 +6005,7 @@ RGB RGB_from_ExtendedValue(ExtendedValue eval) {
 
 /*! Convert an escape-code \string to an actual RGB value.
 
-    \pi s      Escape-code string.\n
+    \pi s      Escape-code string.
                \mustnull
     \po rgb    Pointer to an RGB struct to fill in the values for.
 
@@ -6228,7 +6241,7 @@ RGB RGB_monochrome(RGB rgb) {
 /*! Converts an RGB value into a hex \string.
 
     \pi rgb RGB value to convert.
-    \return An allocated string.\n
+    \return An allocated string.
             \mustfree
             \maybenullalloc
 
@@ -6244,7 +6257,7 @@ char* RGB_to_hex(RGB rgb) {
     to RGB_from_str().
 
     \pi rgb RGB value to convert.
-    \return An allocated string in the form `"red;green;blue"`.\n
+    \return An allocated string in the form `"red;green;blue"`.
             \mustfree
             \maybenullalloc
 
@@ -6299,7 +6312,7 @@ RGB RGB_to_term_RGB(RGB rgb) {
     Allocates memory for the string representation.
 
     \pi rgb RGB struct to get the representation for.
-    \return Allocated string for the representation.\n
+    \return Allocated string for the representation.
             \mustfree
 
     \sa RGB
@@ -6333,7 +6346,7 @@ bool StyleValue_eq(StyleValue a, StyleValue b) {
 
 /*! Convert an escape-code \string to an actual StyleValue enum value.
 
-    \pi s   Escape-code string.\n
+    \pi s   Escape-code string.
             \mustnull
     \retval StyleValue value on success.
     \retval STYLE_INVALID on error (or if \p s is `NULL`).
@@ -6404,7 +6417,7 @@ bool StyleValue_is_valid(StyleValue x) {
 /*! Create a human-friendly \string representation for a StyleValue.
 
     \pi sval StyleValue to get the name for.
-    \return  An allocated string with the result.\n
+    \return  An allocated string with the result.
              \mustfree
              \maybenullalloc
 
@@ -6425,7 +6438,7 @@ char* StyleValue_to_str(StyleValue sval) {
 /*! Creates a \string representation of a StyleValue.
 
     \pi sval    A StyleValue to get the value from.
-    \return     A pointer to an allocated string.\n
+    \return     A pointer to an allocated string.
                 \mustfree
                 \maybenullalloc
 
@@ -6487,7 +6500,7 @@ char* StyleValue_repr(StyleValue sval) {
 /*! Create a \string representation for a TermSize.
 
     \pi ts  TermSize to get the representation for.
-    \return An allocated string with the result.\n
+    \return An allocated string with the result.
             \mustfree
             \maybenullalloc
 
@@ -6521,7 +6534,7 @@ char* TermSize_repr(TermSize ts) {
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
     \pi spread Number of characters per color.
-    \return    The allocated/formatted string on success.\n
+    \return    The allocated/formatted string on success.
                \mustfree
                \maybenullalloc
 */
@@ -6546,7 +6559,7 @@ char* rainbow_bg(const char* s, double freq, size_t offset, size_t spread) {
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
     \pi spread Number of characters per color.
-    \return    The allocated/formatted string on success.\n
+    \return    The allocated/formatted string on success.
                \mustfree
                \maybenullalloc
 */
@@ -6570,7 +6583,7 @@ char* rainbow_bg_term(const char* s, double freq, size_t offset, size_t spread) 
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
     \pi spread Number of characters per color.
-    \return    The allocated/formatted string on success.\n
+    \return    The allocated/formatted string on success.
                \mustfree
                \maybenullalloc
 */
@@ -6595,7 +6608,7 @@ char* rainbow_fg(const char* s, double freq, size_t offset, size_t spread) {
     \pi freq   Frequency ("tightness") for the colors.
     \pi offset Starting offset in the rainbow.
     \pi spread Number of characters per color.
-    \return    The allocated/formatted string on success.\n
+    \return    The allocated/formatted string on success.
                \mustfree
                \maybenullalloc
 */
@@ -6613,7 +6626,7 @@ char* rainbow_fg_term(const char* s, double freq, size_t offset, size_t spread) 
     \pi freq   The "tightness" for colors.
     \pi offset The starting offset into the rainbow.
     \pi spread Number of characters per color.
-    \return    An allocated \string with the result.\n
+    \return    An allocated \string with the result.
                \mustfree
                \maybenullalloc
 */

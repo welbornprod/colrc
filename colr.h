@@ -59,13 +59,56 @@
 #endif
 #endif // DOXYGEN_SKIP
 
-// ColrC uses GNU extensions.
-#ifndef __GNUC__
-    #error "ColrC uses GNU extensions that your compiler doesn't support."
-#endif
 // Without _Generic, ColrC is useless.
 #ifndef IS_C11
     #error "ColrC cannot compile without C11+ generic selections (_Generic)."
+#endif
+
+// ColrC uses GNU extensions.
+#if defined(__GNUC__)
+    /*! \def COLR_GNU
+        Defined when `__GNUC__` is available, to enable
+        <a href='https://gcc.gnu.org/onlinedocs/gcc/Statement-Exprs.html'>
+            statement-expressions
+        </a>
+        and
+        <a href='https://www.gnu.org/software/libc/manual/html_node/Customizing-Printf.html'>
+            register_printf_specifier
+        </a>.
+
+        \details
+        There isn't a lot of information available for `register_printf_specifier`
+        right now. There are a couple of
+        <a href='https://lib.void.so/define-your-own-custom-conversion-specifiers-for-printf-example/'>
+            tutorials
+        </a> out there. No
+        <a href='https://www.kernel.org/doc/man-pages/missing_pages.html'>
+            man pages
+        </a> though.
+        It
+        <a href='https://fossies.org/diffs/glibc/2.26_vs_2.27/stdio-common/reg-printf.c-diff.html'>
+        looks like
+        </a> it was introduced in `glibc-2.27`.
+
+        \sa back_str_static
+        \sa fore_str_static
+        \sa colr_asprintf
+        \sa colr_printf
+        \sa colr_printf_handler
+        \sa colr_printf_info
+        \sa colr_printf_macro
+        \sa colr_printf_register
+        \sa colr_sprintf
+        \sa colr_snprintf
+    */
+    #define COLR_GNU
+#else
+    #warning "ColrC uses GNU extensions that your system doesn't support."
+    #if defined(COLR_GNU)
+        #warning "ColrC GNU extensions are enabled (COLR_GNU) for a non-GNU compiler."
+    #else
+        #warning "No glibc and COLR_GNU=0, some features will be disabled."
+    #endif
 #endif
 
 #include <assert.h>
@@ -76,7 +119,9 @@
 #include <math.h>
 #include <limits.h> // Used for asprintf return checking.
 #include <locale.h> // Not used in colr.c, but necessary for users of rainbow stuff.
+#ifdef COLR_GNU
 #include <printf.h> // For register_printf_specifier.
+#endif
 #include <stdarg.h> // Variadic functions and `va_list`.
 #include <stdbool.h>
 #include <stdint.h> // marker integers for colr structs
@@ -94,10 +139,6 @@
 #pragma GCC diagnostic ignored "-Wunused-macros"
 /* Tell gcc to ignore clang pragmas, for linting. */
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
-
-/* Tell clang to ignore unused macros. */
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-macros"
 
 //! Convenience definition, because this is used a lot.
 #define CODE_RESET_ALL "\x1b[0m"
@@ -357,6 +398,7 @@
 */
 #define back_str(x) ColorArg_to_esc(back_arg(x))
 
+#ifdef COLR_GNU
 /*! \def back_str_static
     Creates a stack-allocated escape code \string for a back color.
 
@@ -364,6 +406,8 @@
     These are not constant strings, but they are stored on the stack.
     A "statement expression" is used to build a string of the correct length
     and content using ColorArg_to_esc_s().
+
+    \gnuonly
 
     \pi x       A BasicValue, ExtendedValue, or RGB value.
     \return     A stack-allocated escape code string.
@@ -396,6 +440,7 @@
         ColorArg_to_esc_s(_bss_codes, _bss_carg); \
         _bss_codes; \
     })
+#endif // COLR_GNU
 
 /*! \def basic
     Casts to BasicValue.
@@ -569,7 +614,7 @@
     \pi text String to colorize/style.
     \pi ...  No more than 3 ColorArg pointers for fore, back, and style in any order.
 
-    \return An allocated ColorText.\n
+    \return An allocated ColorText.
             \colrmightfree
 
     \sa Colra
@@ -621,6 +666,7 @@
     will automatically `free()`.
 
     \pi ... Arguments for colr_cat(), to concatenate.
+            \colrwillfree
     \return An allocated ColorResult with all arguments joined together.\n
             \mustfree
             \maybenullalloc
@@ -698,6 +744,7 @@
     \pi ...    Other arguments to join, with \p joiner between them.
                ColorArg pointers, ColorResult pointers, ColorText pointers,
                or strings, in any order.
+               \colrwillfree
     \return    An allocated ColorResult.\n
                \mustfree
                \maybenullalloc
@@ -835,7 +882,7 @@
 
     \pi text String to colorize/style.
     \pi ...  No more than 3 ColorArg pointers for fore, back, and style in any order.
-
+             \colrwillfree
     \return An allocated string with the result.\n
             \mustfree
             \maybenullalloc
@@ -849,6 +896,7 @@
 
     \pi s   An allocated string.
     \return An allocated ColorResult.
+            \colrmightfree
 */
 #define ColrResult(s) ColorResult_to_ptr(ColorResult_new(s))
 
@@ -880,6 +928,7 @@
 
     \pi ... One or more ColorArg pointers, ColorResult pointers, ColorText pointers,
             or strings to join.
+            \colrwillfree
     \return An allocated string result.\n
             \mustfree
 
@@ -965,6 +1014,7 @@
     _Generic( \
         (x), \
         ColorArg*: ColorArg_free, \
+        ColorResult*: ColorResult_free, \
         ColorText*: ColorText_free, \
         default: _colr_free \
     )(x)
@@ -1129,6 +1179,7 @@
     } while (0)
 
 
+#ifdef COLR_GNU
 /*! \def colr_printf_macro
     Calls one of the printf-family functions, with format warnings disabled
     for the call, and returns the result.
@@ -1136,6 +1187,8 @@
     \details
     This function also ensures that colr_printf_register() is called, which
     ensures that register_printf_specifier() is called one time.
+
+    \gnuonly
 
     \pi func The standard printf function to call, with a return type of `int`.
     \pi ...  Arguments for the printf function.
@@ -1162,7 +1215,10 @@
     Will call `free()` on any ColorArg pointer, ColorResult pointer,
     ColorText pointer, or the strings created by them.
 
+    \gnuonly
+
     \pi ... Arguments for `printf`.
+            \colrwillfree
     \return Same as `printf`.
 
     \example colr_printf_example.c
@@ -1176,8 +1232,10 @@
     Will call `free()` on any ColorArg pointer, ColorResult pointer,
     ColorText pointer, or the strings created by them.
 
+    \gnuonly
+
     \pi ... Arguments for `fprintf`.\n
-            \colrmightfree
+            \colrwillfree
     \return Same as `fprintf`.
 */
 #define colr_fprintf(...) colr_printf_macro(fprintf, __VA_ARGS__)
@@ -1189,8 +1247,10 @@
     Will call `free()` on any ColorArg pointer, ColorResult pointer,
     ColorText pointer, or the strings created by them.
 
+    \gnuonly
+
     \pi ... Arguments for `sprintf`.\n
-            \colrmightfree
+            \colrwillfree
     \return Same as `sprintf`.
 */
 #define colr_sprintf(...) colr_printf_macro(sprintf, __VA_ARGS__)
@@ -1202,8 +1262,10 @@
     Will call `free()` on any ColorArg pointer, ColorResult pointer,
     ColorText pointer, or the strings created by them.
 
+    \gnuonly
+
     \pi ... Arguments for `snprintf`.\n
-            \colrmightfree
+            \colrwillfree
     \return Same as `snprintf`.
 */
 #define colr_snprintf(...) colr_printf_macro(snprintf, __VA_ARGS__)
@@ -1215,12 +1277,14 @@
     Will call `free()` on any ColorArg pointer, ColorResult pointer,
     ColorText pointer, or the strings created by them.
 
-    \pi ... Arguments for `asprintf`.\n
-            \colrmightfree
+    \gnuonly
+
+    \pi ... Arguments for `asprintf`.
+            \colrwillfree
     \return Same as `asprintf`.
 */
 #define colr_asprintf(...) colr_printf_macro(asprintf, __VA_ARGS__)
-
+#endif // COLR_GNU
 
 /*! \def colr_puts
     Create a string from a colr_cat() call, print it (with a newline), and free it.
@@ -1260,7 +1324,7 @@
                \mustnull
     \pi repl   A string, ColorArg, ColorResult, or ColorText to replace the target string with.
                If this is `NULL`, then an empty string is used (`""`) as the replacement.
-    \return    An allocated string with the result.\n
+    \return    An allocated string with the result.
                \mustfree
 */
 #define colr_replace(s, target, repl) \
@@ -1301,7 +1365,7 @@
         - char
 
     \pi x   A value with one of the supported types to transform into a string.
-    \return Stringified representation of what was passed in.\n
+    \return Stringified representation of what was passed in.
             \mustfree
 
 */
@@ -1360,7 +1424,7 @@
     If a string is given, it is duplicated like `strdup()`.
 
     \pi x   A supported type to build a string from.
-    \return An allocated string from the type's `*_to_str()` function.\n
+    \return An allocated string from the type's `*_to_str()` function.
             \mustfree
             \maybenullalloc
 */
@@ -1510,7 +1574,7 @@
     Color names (`char* `) can be passed to generate the appropriate color value.
 
     \pi x   A BasicValue, ExtendedValue, or RGB struct to use for the color value.
-    \return A pointer to a heap-allocated ColorArg struct.\n
+    \return A pointer to a heap-allocated ColorArg struct.
             \colrmightfree
 
     \sa fore_arg fore_str colr Colr
@@ -1549,13 +1613,14 @@
     Retrieve just the escape code string for a fore color.
 
     \pi     x A BasicValue, ExtendedValue, or RGB struct.
-    \return An allocated ColorArg.\n
+    \return An allocated ColorArg.
             \mustfree
 
     \sa fore fore_arg
 */
 #define fore_str(x) ColorArg_to_esc(fore_arg(x))
 
+#ifdef COLR_GNU
 /*! \def fore_str_static
     Creates a stack-allocated escape code \string for a fore color.
 
@@ -1563,6 +1628,8 @@
     These are not constant strings, but they are stored on the stack.
     A "statement expression" is used to build a string of the correct length
     and content using ColorArg_to_esc_s().
+
+    \gnuonly
 
     \pi x       A BasicValue, ExtendedValue, or RGB value.
     \return     A stack-allocated escape code string.
@@ -1595,7 +1662,7 @@
         ColorArg_to_esc_s(_fss_codes, _fss_carg); \
         _fss_codes; \
     })
-
+#endif
 
 
 /*! \def hex
@@ -1651,7 +1718,7 @@
     Style names (`char* `) can be passed to generate the appropriate style value.
 
     \pi x   A StyleValue.
-    \return A pointer to a heap-allocated ColorArg struct.\n
+    \return A pointer to a heap-allocated ColorArg struct.
             \colrmightfree
 
     \sa style_arg style_str colr Colr
@@ -1682,7 +1749,7 @@
     Retrieve just the escape code string for a style.
 
     \pi x   StyleValue to use.
-    \return An allocated string.\n
+    \return An allocated string.
             \mustfree
 
     \sa style style_arg
@@ -2165,9 +2232,11 @@ bool colr_check_marker(uint32_t marker, void* p);
 char* colr_empty_str(void);
 size_t colr_mb_len(const char* s, size_t length);
 
+#ifdef COLR_GNU
 int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *const *args);
 int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, int *sz);
 void colr_printf_register(void);
+#endif
 
 bool colr_set_locale(void);
 bool colr_supports_rgb(void);

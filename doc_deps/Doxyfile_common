@@ -32,16 +32,16 @@ ALIASES += "pout=\param[out]"
 ALIASES += "pm=\param"
 ALIASES += "po=\param[out]"
 ALIASES += "warn=\warning"
-ALIASES += "att=\attention"
-ALIASES += "colr_hash=`colr_hash` (`unsigned long`)"
+ALIASES += "colrfreetypes=ColorArg, ColorResult, or ColorText pointer"
 ALIASES += "colrmacros=colr_cat(), colr_join(), Colr(), Colr_cat(), and Colr_join() macros"
-ALIASES += "colrmightfree=If used inside of the \colrmacros, <em>they will `free()` the result</em>.<br>Otherwise, <em>you are responsible for calling `free()`</em>.\n"
-ALIASES += "maybenullalloc=<em>If allocation fails, `NULL` is returned</em>."
-ALIASES += "mustfree=<em>You must `free()` the memory allocated by this function.</em>\n"
-ALIASES += "mustnull=<em>must be `null`-terminated</em>.\n"
-ALIASES += "mustnullin=Input <em>must be `null`-terminated</em>.\n"
-ALIASES += "mustnotnull=<em>must not be `null`</em>.\n"
-ALIASES += "mustnotzero=<em>must not be `0`</em>.\n"
+ALIASES += "colrmightfree=\nIf used inside of the \colrmacros, <em>they will `free()` the result</em>.\nOtherwise, <em>you are responsible for calling `free()`</em>.\n"
+ALIASES += "colrwillfree=\n<em>colr_free() will be called on any \colrfreetypes passed to this function</em>.\n"
+ALIASES += "gnuonly=\n\attention\nThis feature uses a GNU extension, and is only available when COLR_GNU is defined."
+ALIASES += "maybenullalloc=\n<em>If allocation fails, `NULL` is returned</em>."
+ALIASES += "mustfree=\n<em>You must `free()` the memory allocated by this function.</em>"
+ALIASES += "mustnull=\n<em>Must be `null`-terminated</em>.\n"
+ALIASES += "mustnullin=\nInput <em>must be `null`-terminated</em>."
+ALIASES += "mustnotzero=\n<em>Must not be `0`</em>.\n"
 ALIASES += "strtype=`char*`"
 ALIASES += "string=string (\strtype)"
 ALIASES += "strings=strings (\strtype)"
@@ -94,8 +94,8 @@ REFERENCED_BY_RELATION = YES
 ENABLE_PREPROCESSING   = YES
 PREDEFINED             = DEBUG=1 \
                          _GNU_SOURCE=1 \
-                         DOXYGEN_SKIP=1 \
-                         COLR_PRINTF=1
+                         __GNUC__=1 \
+                         DOXYGEN_SKIP=1
 
 # Graph settings -------------------------------------------------------------
 DOT_FONTNAME           = Arial
