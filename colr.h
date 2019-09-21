@@ -120,7 +120,7 @@
 #include <limits.h> // Used for asprintf return checking.
 #include <locale.h> // Not used in colr.c, but necessary for users of rainbow stuff.
 #ifdef COLR_GNU
-#include <printf.h> // For register_printf_specifier.
+    #include <printf.h> // For register_printf_specifier.
 #endif
 #include <stdarg.h> // Variadic functions and `va_list`.
 #include <stdbool.h>

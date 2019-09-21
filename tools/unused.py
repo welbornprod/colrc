@@ -84,10 +84,15 @@ EXAMPLE_FILES = tuple(
 SUPPRESS_FILE = os.path.join(SCRIPTDIR, 'cppcheck.suppress.txt')
 CPPCHECK_ARGS = [
     '--std=c11',
-    '--enable=all',
+    '-DDEBUG',
+    '-D__GNUC__',
+    '--enable=unusedFunction',
     '--force',
+    '--inconclusive',
     '--inline-suppr',
     '--error-exitcode=1',
+    f'-I{COLRC_DIR}',
+    f'-I{TEST_DIR}',
 ]
 if os.path.exists(SUPPRESS_FILE):
     CPPCHECK_ARGS.append(f'--suppressions-list={SUPPRESS_FILE}')
@@ -356,11 +361,11 @@ def get_cppcheck_names(pat=None, use_tests=False):
     cmd = ['cppcheck']
     cmd.extend(CPPCHECK_ARGS)
     if use_tests:
-        cmd.extend(TEST_FILES)
+        cmd.extend(s for s in TEST_FILES if s.endswith('.c'))
         cls = TestFunctionName
     else:
-        cmd.extend(COLRC_FILES)
-        cmd.extend(TOOL_FILES)
+        cmd.extend(s for s in COLRC_FILES if s.endswith('.c'))
+        cmd.extend(s for s in TOOL_FILES if s.endswith('.c'))
         cls = FunctionName
     debug(f'Running: {" ".join(cmd)}')
     proc = ProcessOutput(cmd)
