@@ -84,13 +84,14 @@ EXAMPLE_FILES = tuple(
 SUPPRESS_FILE = os.path.join(SCRIPTDIR, 'cppcheck.suppress.txt')
 CPPCHECK_ARGS = [
     '--std=c11',
-    '-DDEBUG',
-    '-D__GNUC__',
     '--enable=unusedFunction',
     '--force',
     '--inconclusive',
     '--inline-suppr',
     '--error-exitcode=1',
+    '-DIS_C11',
+    '-D__GNUC__',
+    '-DDEBUG',
     f'-I{COLRC_DIR}',
     f'-I{TEST_DIR}',
 ]
@@ -379,6 +380,7 @@ def get_cppcheck_names(pat=None, use_tests=False):
     )
     with prog:
         for line in proc.iter_stderr():
+            debug(f'cppcheck: {line.decode()}')
             if not line.endswith(b'is never used.'):
                 continue
             _, _, name = line.partition(b'\'')
