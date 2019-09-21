@@ -1,5 +1,8 @@
 # ColrC Todo List
 
+## Lints
+[ ] unreadVariable for sprintf() in ColorArgs_list_repr().
+
 ## Features
 [ ] colr_str_replace_re(), replace a regex pattern with a string, ColorArg,
     ColorResult, or ColorText.

@@ -3972,13 +3972,16 @@ char* ColorArgs_list_repr(ColorArg** lst) {
     repr[1] = '\n';
     repr += 2;
     for (size_t i = 0; i < count; i++) {
+        /* cppcheck-suppress unreadVariable */
         sprintf(repr, "%s%s", indent, strings[i]);
         repr += indent_len + strlen(strings[i]);
         free(strings[i]);
+        /* cppcheck-suppress unreadVariable */
         sprintf(repr, "%s", sep);
         // Skip past the separator string.
         repr += sep_len;
     }
+    /* cppcheck-suppress unreadVariable */
     sprintf(repr, "%sNULL\n}", indent);
     return repr_start;
 }
