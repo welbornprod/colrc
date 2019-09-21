@@ -39,9 +39,11 @@ declare -a cppcheck_cmd=(
     "--force"
     "--inline-suppr"
     "--error-exitcode=1"
-    # These are not needed at all:
-    # "-I" "/usr/include"
-    # "-I" "/usr/lib/gcc/x86_64-linux-gnu/7/include"
+    "-DDEBUG"
+    "-DCOLR_DEBUG"
+    "-DIS_C11"
+    "-D__GNUC__"
+    "-Ddbug=printf"
 )
 
 function echo_err {

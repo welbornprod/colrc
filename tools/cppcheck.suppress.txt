@@ -1,0 +1,2 @@
+// dbug() macro is causing problems for cppcheck. Just ignore it.
+ConfigurationNotChecked

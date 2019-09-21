@@ -2826,9 +2826,12 @@ char* _colr_join(void *joinerp, ...) {
     va_list argcopy;
     va_copy(argcopy, args);
     size_t length = _colr_join_size(joinerp, argcopy);
-    if (length < 2) return NULL;
-
     va_end(argcopy);
+    if (length < 2) {
+        va_end(args);
+        return NULL;
+    }
+
 
     char* final = calloc(length, sizeof(char));
     char* joiner;
@@ -2855,7 +2858,10 @@ char* _colr_join(void *joinerp, ...) {
         // It's a string, or it better be anyway.
         joiner = (char* )joinerp;
     }
-    if (!joiner) return NULL;
+    if (!joiner) {
+        free(final);
+        return NULL;
+    }
 
     int count = 0;
     ColorArg* cargp = NULL;

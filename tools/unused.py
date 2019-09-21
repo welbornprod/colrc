@@ -92,6 +92,7 @@ CPPCHECK_ARGS = [
     '-DIS_C11',
     '-D__GNUC__',
     '-DDEBUG',
+    '-DCOLR_DEBUG',
     f'-I{COLRC_DIR}',
     f'-I{TEST_DIR}',
 ]

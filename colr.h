@@ -486,25 +486,13 @@
         RGB: ColorArg_from_value(type, TYPE_RGB, &x) \
     )
 
-/*! \def color_name_is_basic
-    Convenience macro for checking if a color name is valid, and maps to a
-    BasicValue.
-
-    \pi x   Color name (`char*`) to check.
-    \return `true` if the name is a valid BasicValue name, otherwise `false`.
-
-    \sa color_name_is_valid color_name_is_invalid
-*/
-#define color_name_is_basic(x) (ColorType_from_str(x) == TYPE_BASIC)
-
-
 /*! \def color_name_is_invalid
     Convenience macro for checking if a color name is invalid.
 
-    \pi x Color name (`char*`) to check.
+    \pi x   \string to check (a name, hex-string, rgb-string, or integer-string).
     \return `true` if the name is an invalid color name, otherwise `false`.
 
-    \sa color_name_is_valid color_name_is_basic
+    \sa color_name_is_valid
 
     \examplecodefor{color_name_is_invalid,.c}
     char* names[] = {
@@ -518,9 +506,12 @@
         "aliceblue",
         // Invalid names:
         "NOTACOLOR",
+        // Invalid range (not 0-255):
         "345",
+        // Bad RGB strings:
         "1;",
         "1;2;",
+        // Bad RGB ranges:
         "345;345;345",
         "-1;0;0",
         "0;0;256",
@@ -540,10 +531,10 @@
 /*! \def color_name_is_valid
     Convenience macro for checking if a color name is valid.
 
-    \pi x   Color name (`char*`) to check.
+    \pi x   \string to check (a name, hex-string, rgb-string, or integer-string).
     \return `true` if the name is a valid color name, otherwise `false`.
 
-    \sa color_name_is_invalid color_name_is_basic
+    \sa color_name_is_invalid
 
     \examplecodefor{color_name_is_valid,.c}
     char* names[] = {
@@ -557,9 +548,12 @@
         "aliceblue",
         // Invalid names:
         "NOTACOLOR",
+        // Invalid range (not 0-255):
         "345",
+        // Bad RGB strings:
         "1;",
         "1;2;",
+        // Bad RGB ranges:
         "345;345;345",
         "-1;0;0",
         "0;0;256",
@@ -1101,7 +1095,12 @@
 
     \return `1` if \p s1 is equal to \p s2 or \p s3, otherwise `0`.
 */
-#define colr_istr_either(s1, s2, s3) ((s1 && s2 && s3) ? (colr_istr_eq(s1, s2) || colr_istr_eq(s1, s3)) : 0)
+#define colr_istr_either(s1, s2, s3) \
+    ( \
+        ((s1) && (s2) && (s3)) ? \
+            (colr_istr_eq((s1), (s2)) || colr_istr_eq((s1), (s3))) : \
+            false \
+    )
 
 /*! \def colr_istr_eq
     Convenience macro for `!strcasecmp(s1, s2)`.
@@ -1111,7 +1110,12 @@
 
     \return `1` if \p s1 and \p s2 are equal, otherwise `0`.
 */
-#define colr_istr_eq(s1, s2) ((s1 && s2) ? !strcasecmp(s1, s2) : 0)
+#define colr_istr_eq(s1, s2) \
+    ( \
+        ((s1) && (s2)) ? \
+            !strcasecmp((s1), (s2)) : \
+            false \
+    )
 
 /*! \def colr_join
     Join ColorArg pointers, ColorText pointers, and strings by another
@@ -1419,7 +1423,7 @@
     \return `1` if \p s1 and \p s2 are equal, otherwise `0`.
 */
 #define colr_str_eq(s1, s2) ( \
-        (s1 && s2) ? (bool)!strcmp(s1, s2) : false \
+        ((s1) && (s2)) ? !strcmp((s1), (s2)) : false \
     )
 
 /*! \def colr_str_either
