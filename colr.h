@@ -508,14 +508,22 @@
 
     \examplecodefor{color_name_is_invalid,.c}
     char* names[] = {
+        // Valid names:
         "red",
         "lightblue",
         "127",
         "123,54,67",
+        "#ff0000",
+        "#fff",
+        "aliceblue",
+        // Invalid names:
         "NOTACOLOR",
         "345",
         "1;",
-        "1;2;"
+        "1;2;",
+        "345;345;345",
+        "-1;0;0",
+        "0;0;256",
     };
     size_t names_len = sizeof(names) / sizeof(names[0]);
     for (size_t i = 0; i < names_len; i++) {
@@ -539,14 +547,22 @@
 
     \examplecodefor{color_name_is_valid,.c}
     char* names[] = {
+        // Valid names:
         "red",
         "lightblue",
         "127",
         "123,54,67",
+        "#ff0000",
+        "#fff",
+        "aliceblue",
+        // Invalid names:
         "NOTACOLOR",
         "345",
         "1;",
-        "1;2;"
+        "1;2;",
+        "345;345;345",
+        "-1;0;0",
+        "0;0;256",
     };
     size_t names_len = sizeof(names) / sizeof(names[0]);
     for (size_t i = 0; i < names_len; i++) {
