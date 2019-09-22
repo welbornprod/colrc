@@ -33,12 +33,12 @@
 */
 #ifndef COLR_H
 #define COLR_H
-#ifndef _GNU_SOURCE
-    #define _GNU_SOURCE
-#endif
 
 //! Current version for ColrC.
 #define COLR_VERSION "0.3.4"
+
+/* Tell gcc to ignore clang pragmas, for linting. */
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
 
 #ifndef DOXYGEN_SKIP
 /*! \def IS_C11
@@ -66,6 +66,30 @@
 
 // ColrC uses GNU extensions.
 #if defined(__GNUC__)
+    #if !defined(_GNU_SOURCE)
+        /*
+            This enables gnu extensions.
+            ColrC will not compile at all without this.
+            Current GNU dependencies:
+                Optional:
+                    Statement-Expressions in fore_str_static/back_str_static
+                    register_printf_specifier from printf.h.
+                Required:
+                     stdio.h: asprintf()
+                    locale.h: uselocale(), LC_GLOBAL_LOCALE
+                    string.h: strndup(), strdup(), strcmp(), strcasecmp(), strnlen()
+                      math.h: M_PI
+
+        */
+        #define _GNU_SOURCE
+    #elif _GNU_SOURCE < 1
+        // This is for testing. If _GNU_SOURCE=0 is set, it will be undefined,
+        // and I can watch all of the warnings and errors that pop up.
+        #undef _GNU_SOURCE
+        #pragma GCC warning "Trying to compile without _GNU_SOURCE, this will not work."
+    #endif
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wmacro-redefined"
     /*! \def COLR_GNU
         Defined when `__GNUC__` is available, to enable
         <a href='https://gcc.gnu.org/onlinedocs/gcc/Statement-Exprs.html'>
@@ -102,16 +126,21 @@
         \sa colr_snprintf
     */
     #define COLR_GNU
+    #pragma clang diagnostic pop // -Wmacro-redefined
 #else
-    #warning "ColrC uses GNU extensions that your system doesn't support."
+    #pragma GCC warning "ColrC uses GNU extensions that your system doesn't support."
     #if defined(COLR_GNU)
-        #warning "ColrC GNU extensions are enabled (COLR_GNU) for a non-GNU compiler."
+        #pragma GCC warning "ColrC GNU extensions are enabled (COLR_GNU) for a non-GNU system."
     #else
-        #warning "No glibc and COLR_GNU=0, some features will be disabled."
+        #pragma GCC warning "No glibc and COLR_GNU=0, some features will be disabled."
     #endif
 #endif
 
 #include <assert.h>
+// assert() uses a statement-expression when compiling with __GNUC__ defined.
+// This is here to silence clang linters.
+#pragma clang diagnostic ignored "-Wgnu-statement-expression"
+
 #include <ctype.h> // islower, iscntrl, isdigit, etc.
 /*  Must include `-lm` in compiler args or Makefile LIBS!
     This is for the `sin()` function used in `rainbow_step()`.
@@ -137,8 +166,6 @@
 #endif
 /* Tell gcc to ignore unused macros. */
 #pragma GCC diagnostic ignored "-Wunused-macros"
-/* Tell gcc to ignore clang pragmas, for linting. */
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
 
 //! Convenience definition, because this is used a lot.
 #define CODE_RESET_ALL "\x1b[0m"

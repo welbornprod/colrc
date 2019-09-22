@@ -12,8 +12,16 @@ CFLAGS=-Wall -Wextra -Wfloat-equal -Wenum-compare -Winline -Wlogical-op \
        -Wmissing-include-dirs -Wnull-dereference -Wpedantic -Wshadow \
        -Wstrict-prototypes -Wunused \
        -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 \
-       -D_GNU_SOURCE \
        -std=$(STD)
+# Gnu-support can be disabled for testing by specifying a non-gnu std and
+# setting COLR_GNU to 0: COLR_GNU=0 STD=c11 make -e debug
+COLR_GNU=1
+ifeq ($(COLR_GNU), 1)
+CFLAGS+=-D_GNU_SOURCE
+else
+CFLAGS+=-D_GNU_SOURCE=0
+endif
+
 # ColrC uses libm right now, but it's pretty standard.
 LIBS=-lm
 # Sanitizers/protectors to optionally enable.
@@ -183,15 +191,15 @@ tags: $(source) $(headers)
 	@printf "Building ctags...\n    "
 	ctags $(source) $(headers)
 
+.PHONY: clangdebug
+clangdebug: CC=clang
+clangdebug: CFLAGS+=-Wno-unknown-warning-option -Wliblto
+clangdebug: debug
+
 .PHONY: clang
 clang: CC=clang
 clang: CFLAGS+=-Wno-unknown-warning-option -Wliblto
-clang: debug
-
-.PHONY: clangrelease
-clangrelease: CC=clang
-clangrelease: CFLAGS+=-Wno-unknown-warning-option -Wliblto
-clangrelease: release
+clang: release
 
 .PHONY: clean
 clean:
@@ -362,8 +370,8 @@ strip:
 help targets:
 	-@printf "Make targets available:\n\
     all               : Build with no optimization or debug symbols.\n\
-    clang             : Use \`clang\` to build the default target.\n\
-    clangrelease      : Use \`clang\` to build the \`release\` target.\n\
+    clang             : Use \`clang\` to build the \`release\` target.\n\
+    clangdebug        : Use \`clang\` to build the \`debug\` target.\n\
     clean             : Delete previous build files.\n\
     cleancoverage     : Delete previous coverage files.\n\
     cleandebug        : Like running \`make clean debug\`.\n\
