@@ -37,15 +37,23 @@ binobjects:=$(notdir $(objects))
 .PHONY: all
 all: sanitize
 
+.PHONY: coveragecompile
+coveragecompile: clean
+coveragecompile: cleancoverage
+coveragecompile: CFLAGS+=-O0 -DDEBUG
+coveragecompile: CFLAGS+=-fprofile-arcs -ftest-coverage
+coveragecompile: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
+coveragecompile: $(binary)
+
 .PHONY: coverage
-coverage: clean
-coverage: cleancoverage
-coverage: CFLAGS+=-O0 -DDEBUG
-coverage: CFLAGS+=-fprofile-arcs -ftest-coverage
-coverage: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
-coverage: $(binary)
+coverage: coveragecompile
 coverage:
 	@$(cov_cmd) "$(realpath $(binary))" "$(realpath $(cov_dir))"
+
+.PHONY: coveragegui
+coveragegui: coveragecompile
+coveragegui:
+	@$(cov_cmd) --gui "$(realpath $(binary))" "$(realpath $(cov_dir))"
 
 .PHONY: debug
 debug: tags
@@ -99,7 +107,7 @@ cleanquiet:
 .PHONY: cleancoverage
 cleancoverage:
 	@shopt -s nullglob; \
-	declare -a covfiles=($(cov_dir)/*.gc{da,no} $(cov_dir)/*.info $(cov_dir)/html); \
+	declare -a covfiles=($(cov_dir)/*.gc{da,no} $(cov_dir)/*.info $(cov_dir)/html $(cov_dir)/*.o); \
 	if (($${#covfiles[@]})) && [[ "$${covfiles[*]}" != $(cov_dir)/html ]]; then \
 		printf "Removing coverage files...\n"; \
 		for covfile in "$${covfiles[@]}"; do \
@@ -167,7 +175,9 @@ help targets:
     clean           : Delete previous build files.\n\
     cleancoverage   : Delete previous coverage files.\n\
     cleantest       : Delete previous build files, then build and run the tests.\n\
-    coverage        : Compile the \`debug\` build and generate coverage reports.\n\
+    coverage        : Compile the \`debug\` build, and generate coverage reports.\n\
+    coveragecompile : Compile the \`debug\` build with coverage enabled.\n\
+    coveragegui     : Compile the \`debug\` build, and view coverage with \`ggcov\`.\n\
     coveragesummary : View a summary of previously generated coverage reports.\n\
     coverageview    : View previously generated html coverage reports.\n\
     cppcheck        : Run \`cppcheck\` on the tests.\n\
