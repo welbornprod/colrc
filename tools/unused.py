@@ -131,6 +131,9 @@ USAGESTR = f"""{VERSIONSTR}
         -v,--version     : Show version.
 """
 
+# TODO: -j,--json           : Load info from a json file for testing/dev.
+# TODO: -o file,--out file  : Write raw info to json file. (print_raw() > file)
+
 
 def rgb(r, g, b):
     """ This simply allows my editor to trigger the css color-picker,
@@ -150,6 +153,7 @@ CUnused = Preset(fore=rgb(200, 93, 93))
 CMacroUnused = Preset(fore=rgb(141, 92, 200))
 CNum = Preset(fore='blue', style='bright')
 CTotal = Preset(fore='yellow')
+CLineNum = Preset(fore=rgb(119, 201, 255))
 
 legend = {
     'func': {
@@ -233,7 +237,7 @@ def check_file(filepath, names):
     in_comment = False
     try:
         with open(filepath, 'r') as f:
-            for line in f:
+            for i, line in enumerate(f):
                 stripped = line.strip()
                 if stripped.startswith('/*'):
                     in_comment = True
@@ -255,7 +259,7 @@ def check_file(filepath, names):
                         continue
                     counts.setdefault(name, {'count': 0, 'lines': []})
                     counts[name]['count'] += line.count(namestr)
-                    counts[name]['lines'].append(line)
+                    counts[name]['lines'].append(Line(i + 1, line))
     except EnvironmentError as ex:
         print_err(f'Cannot read file: {filepath}\n{ex}')
     finally:
@@ -524,7 +528,7 @@ def print_full(info):
             filename = os.path.split(filepath)[-1]
             print(f'    {CFile(filename):>{colwidth - 4}}: {CNum(filecnt)}')
             for line in fileinfo['lines']:
-                print(f'{" " * colwidth}{highlight_code(line.strip())}')
+                print(f'{" " * colwidth}{line.highlighted()}')
     return 1 if info else 0
 
 
@@ -626,6 +630,22 @@ class InvalidArg(ValueError):
         if self.msg:
             return f'Invalid argument, {self.msg}'
         return 'Invalid argument!'
+
+
+class Line(object):
+    def __init__(self, linenum, text):
+        self.linenum = linenum or 0
+        self.text = text
+        self.stripped = text.strip()
+
+    def __str__(self):
+        return f'{self.linenum:>5}: {self.stripped}'
+
+    def highlighted(self):
+        return C(': ').join(
+            CLineNum(self.linenum),
+            highlight_code(self.stripped)
+        )
 
 
 class Name(UserString):
