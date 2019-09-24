@@ -3,14 +3,16 @@
 # Uses lcov to generate an html report for a previously compiled binary.
 # -Christopher Welborn 06-29-2019
 appname="Colr Coverage Generator"
-appversion="0.0.2"
+appversion="0.0.3"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 # appdir="${apppath%/*}"
 declare -A script_deps=(
     ["lcov"]="lcov"
     ["genhtml"]="lcov"
+    ["ggcov"]="ggcov"
 )
+
 for script_dep in "${!script_deps[@]}"; do
     hash "$script_dep" &>/dev/null || {
         printf "\nMissing \`%s\` command.\n" "$script_dep" 1>&2
@@ -38,33 +40,38 @@ function fail_usage {
     exit 1
 }
 
-
-function generate_html {
+function generate_coverage {
     printf "\nRunning executable for coverage...\n"
     $exe_path "${flagargs[@]}" "${nonflags[@]}" 1>/dev/null
+    move_cov_files "$cov_dir"
+    generate_lcov
+}
 
-    printf "\nMoving coverage files...\n"
-    local have_files=0 covext covfile
-    for covext in .gcno .gcda .gcov; do
-        while read -r covfile; do
-            have_files=1
-            mv "$covfile" "$cov_dir" && printf "    %s\n" "$covfile"
-        done < <(find "$input_dir" -maxdepth 1 -type f -name "*$covext")
-        ((have_files)) || {
-            printf "No coverage files: *%s\n" "$$covext"
-            break;
-        }
-    done
+function generate_ggcov {
+    generate_coverage
+    cp ./*.o "$cov_dir"
+    ggcov ./ -o "$cov_dir" -p "$cov_dir"
+    printf "\nFinished with ggcov.\n"
+}
 
-    printf "\nGenerating lcov report info...\n"
+function generate_html {
+    generate_coverage
+    printf "\nGenerating html report...\n"
+    declare -a info_files=("$cov_dir"/*.info)
+    ((${#info_files[@]})) || fail "No .info files were generated."
+    genhtml --output-directory "$html_dir" "${info_files[@]}"
+}
+
+function generate_lcov {
+    printf "\nGenerating lcov report info in: %s\n" "$cov_dir"
     lcov \
         --capture --directory "$cov_dir" --output-file "$lcov_name" \
         --rc lcov_branch_coverage=1 || fail "Failed to generate lcov info."
-    declare -a info_files=("$cov_dir"/*.info)
-    ((${#info_files[@]})) || fail "No .info files were generated."
+}
 
-    printf "\nGenerating html report...\n"
-    genhtml --output-directory "$html_dir" "${info_files[@]}"
+function move_cov_files {
+    printf "\nMoving coverage files to: %s\n" "$cov_dir"
+    process_cov_files "mv" "$cov_dir"
 }
 
 function print_usage {
@@ -75,18 +82,73 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
-        $appscript -s | -V
-        $appscript EXE COVERAGE_DIR [ARGS...]
+        $appscript -c | -s | -V
+        $appscript [-g | -l] EXE COVERAGE_DIR [ARGS...]
 
     Options:
         ARGS          : Extra arguments for the executable when running.
         EXE           : Executable to run to generate the coverage files.
         COVERAGE_DIR  : Directory for output coverage files.
+        -c,--clean    : Remove coverage files from the current directory.
+        -g,--gui      : Open coverage in ggcov.
         -h,--help     : Show this message.
+        -l,--lcov     : Only generate lcov info, not html.
         -s,--summary  : View a summary of a previously generated report.
         -V,--view     : View previously generated reports in a browser.
         -v,--version  : Show $appname version and exit.
     "
+}
+
+function process_cov_files {
+    local cmd=$1
+    shift
+    declare -a cmdargs=("$@")
+    printf "\nProcessing coverage files in: %s\n" "$input_dir"
+    printf "    Command: %s <file> %s\n" "$cmd" "${cmdargs[*]}"
+    local have_files=0 covext covfile missing=0
+    declare -a exts=(".gcno" ".gcda" ".gcov")
+    for covext in "${exts[@]}"; do
+        while read -r covfile; do
+            have_files=1
+            "$cmd" "$covfile" "${cmdargs[@]}" && printf "    %s\n" "$covfile"
+        done < <(find "$input_dir" -maxdepth 1 -type f -name "*$covext")
+        ((have_files)) || {
+            let missing+=1
+            printf "    Missing coverage type: *%s\n" "$covext"
+        }
+    done
+    ((missing == ${#exts[@]})) && {
+        echo_err "No coverage files found: ${exts[*]}"
+        return 1
+    }
+    return 0
+}
+
+function remove_cov_files {
+    printf "\nRemoving coverage files:\n"
+    process_cov_files "rm"
+    local errs=0
+    (($#)) && {
+        local arg
+        for arg; do
+            remove_ext_files "$arg" || let errs+=1
+        done
+    }
+    return $errs
+}
+
+function remove_ext_files {
+    local fileext=$1 objfile have_files=0
+    [[ -n "$fileext" ]] || fail "No file extension given to remove_ext_files!"
+    while read -r objfile; do
+        have_files=1
+        rm "$objfile" && printf "    %s\n" "$objfile"
+    done < <(find "$cov_dir" -maxdepth 1 -type f -name "$fileext")
+    ((have_files)) || {
+        printf "    Missing file ext: %s\n" "$fileext"
+        return 1
+    }
+    return 0
 }
 
 function view_html {
@@ -105,14 +167,26 @@ function view_summary {
 declare -a flagargs nonflags
 exe_path=""
 cov_dir=""
+do_clean=0
+do_gui=0
+do_lcov=0
 do_summary=0
 do_view=0
 
 for arg; do
     case "$arg" in
+        "-c" | "--clean")
+            do_clean=1
+            ;;
+        "-g" | "--gui")
+            do_gui=1
+            ;;
         "-h" | "--help")
             print_usage ""
             exit 0
+            ;;
+        "-l" | "--lcov")
+            do_lcov=1
             ;;
         "-s" | "--summary")
             do_summary=1
@@ -149,15 +223,25 @@ exe_name="${exe_path##*/}"
 lcov_name="${cov_dir}/${exe_name}.info"
 html_dir="${cov_dir}/html"
 
-[[ -d $html_dir ]] || {
-    ((do_view)) && { fail "Html report directory doesn't exist: $html_dir"; }
-    mkdir "$html_dir" || fail "Can't create coverage html dir: $html_dir"
-    printf "Created %s.\n" "$html_dir"
+((do_view || do_summary)) && {
+    # Ensure the html directory exists for these commands.
+    [[ -d $html_dir ]] || {
+        ((do_view)) && { fail "Html report directory doesn't exist: $html_dir"; }
+        mkdir "$html_dir" || fail "Can't create coverage html dir: $html_dir"
+        printf "Created %s.\n" "$html_dir"
+    }
 }
-if ((do_view)); then
+if ((do_clean)); then
+    remove_cov_files "*.o"
+elif ((do_gui)); then
+    generate_ggcov
+elif ((do_lcov)); then
+    generate_coverage
+elif ((do_view)); then
     view_html
 elif ((do_summary)); then
     view_summary
 else
     generate_html
 fi
+exit
