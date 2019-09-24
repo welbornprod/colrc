@@ -94,13 +94,16 @@ endef
 .PHONY: all
 all: debug
 
+.PHONY: coveragecompile
+coveragecompile: clean
+coveragecompile: cleancoverage
+coveragecompile: CFLAGS+=-O0 -DDEBUG
+coveragecompile: CFLAGS+=-fprofile-arcs -ftest-coverage
+coveragecompile: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
+coveragecompile: $(binary)
+
 .PHONY: coverage
-coverage: clean
-coverage: cleancoverage
-coverage: CFLAGS+=-O0 -DDEBUG
-coverage: CFLAGS+=-fprofile-arcs -ftest-coverage
-coverage: CFLAGS+=-fkeep-inline-functions -fkeep-static-functions
-coverage: $(binary)
+coverage: coveragecompile
 coverage:
 	@./tools/gen_coverage_html.sh "$(realpath $(binary))" "$(realpath $(cov_dir))" $(COLR_ARGS)
 
@@ -382,6 +385,7 @@ help targets:
     coverage          : Compile the \`debug\` build and generate coverage reports.\n\
                         This only checks the main binary, not the tests.\n\
                         See the \`testcoverage\` target.\n\
+    coveragecompile   : Compile the \`debug\` build with coverage enabled.\n\
     coveragesummary   : View a summary of previously generated coverage reports.\n\
                         This is only for the main binary, not the tests.\n\
                         See the \`testsummary\` target.\n\
