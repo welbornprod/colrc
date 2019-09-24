@@ -6,7 +6,7 @@ appname="Colr Coverage Generator"
 appversion="0.0.3"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
-# appdir="${apppath%/*}"
+appdir="${apppath%/*}"
 declare -A script_deps=(
     ["lcov"]="lcov"
     ["genhtml"]="lcov"
@@ -243,7 +243,7 @@ input_dir="${exe_path%/*}"
 exe_name="${exe_path##*/}"
 lcov_name="${cov_dir}/${exe_name}.info"
 html_dir="${cov_dir}/html"
-css_file="${cov_dir}/gcov-colrc.css"
+css_file="${appdir}/../doc_deps/gcov-colrc.css"
 
 ((do_view || do_summary)) && {
     # Ensure the html directory exists for these commands.
