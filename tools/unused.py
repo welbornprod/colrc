@@ -286,16 +286,16 @@ def check_files(filepaths, names):
                     'example_cnt': 0,
                 }
             )
-            counts[name]['files'][filepath] = {
+            filename = os.path.split(filepath)[-1]
+            counts[name]['files'][filename] = {
                 'count': fileinfo['count'],
                 'lines': fileinfo['lines'],
             }
             counts[name]['total'] += fileinfo['count']
 
     for name, nameinfo in counts.items():
-        for filepath, fileinfo in nameinfo['files'].items():
+        for filename, fileinfo in nameinfo['files'].items():
             filecount = fileinfo['count']
-            filename = os.path.split(filepath)[-1]
             if filename.startswith('test_'):
                 counts[name]['test_cnt'] += filecount
             elif filename.endswith('_example.c'):
@@ -548,8 +548,17 @@ def print_names(names):
 
 
 def print_raw(info):
+    fixed = {}
+    for name in info:
+        nameinfo = info[name]
+        for filepath in nameinfo['files']:
+            fileinfo = nameinfo['files'][filepath]
+            fileinfo['lines'] = [l.as_tuple() for l in fileinfo['lines']]
+            nameinfo['files'][filepath] = fileinfo
+        fixed[str(name)] = nameinfo
+
     rawjson = json.dumps(
-        {str(k): v for k, v in info.items()},
+        fixed,
         sort_keys=True,
         indent=4
     )
@@ -646,6 +655,9 @@ class Line(object):
             CLineNum(self.linenum),
             highlight_code(self.stripped)
         )
+
+    def as_tuple(self):
+        return (self.linenum, self.text)
 
 
 class Name(UserString):
