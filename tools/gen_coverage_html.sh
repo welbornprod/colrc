@@ -41,25 +41,30 @@ function fail_usage {
 }
 
 function generate_coverage {
+    make_coverage
     printf "\nRunning executable for coverage...\n"
-    $exe_path "${flagargs[@]}" "${nonflags[@]}" 1>/dev/null
+    $exe_path "${flagargs[@]}" "${nonflags[@]}" 1>/dev/null || fail "Could not run the executable: $exe_path"
     move_cov_files "$cov_dir"
+
     generate_lcov
 }
 
-function generate_ggcov {
-    generate_coverage
-    cp ./*.o "$cov_dir"
-    ggcov ./ -o "$cov_dir" -p "$cov_dir"
-    printf "\nFinished with ggcov.\n"
-}
-
 function generate_html {
+    local title="Coverage"
+    [[ "$exe_path" == test* ]] && title="Test Coverage"
     generate_coverage
     printf "\nGenerating html report...\n"
     declare -a info_files=("$cov_dir"/*.info)
     ((${#info_files[@]})) || fail "No .info files were generated."
-    genhtml --output-directory "$html_dir" "${info_files[@]}"
+    declare -a genhtml_args=(
+        --output-directory "$html_dir"
+        --function-coverage
+        --frames
+        --title "ColrC - $title"
+        --css-file "$css_file"
+    )
+    ((do_branch)) && genhtml_args+=("--branch-coverage")
+    genhtml "${genhtml_args[@]}" "$lcov_name"
 }
 
 function generate_lcov {
@@ -67,6 +72,21 @@ function generate_lcov {
     lcov \
         --capture --directory "$cov_dir" --output-file "$lcov_name" \
         --rc lcov_branch_coverage=1 || fail "Failed to generate lcov info."
+}
+
+function make_coverage {
+    local gcnofile
+    declare -a gcnofiles
+    while read -r gcnofile; do
+        gcnofiles+=("$gcnofile")
+    done < <(find "$input_dir" -maxdepth 1 -type f -name "*.gcno")
+
+    ((${#gcnofiles[@]})) && {
+        printf "\nCoverage-enabled executable was already compiled.\n"
+        return 0
+    }
+    printf "\nCompiling executable to produce .gcno files...\n"
+    make coveragecompile
 }
 
 function move_cov_files {
@@ -83,14 +103,14 @@ function print_usage {
     Usage:
         $appscript -h | -v
         $appscript -c | -s | -V
-        $appscript [-g | -l] EXE COVERAGE_DIR [ARGS...]
+        $appscript [-b] [-l] EXE COVERAGE_DIR [ARGS...]
 
     Options:
         ARGS          : Extra arguments for the executable when running.
         EXE           : Executable to run to generate the coverage files.
         COVERAGE_DIR  : Directory for output coverage files.
+        -b,--branch   : Include branch info in html output.
         -c,--clean    : Remove coverage files from the current directory.
-        -g,--gui      : Open coverage in ggcov.
         -h,--help     : Show this message.
         -l,--lcov     : Only generate lcov info, not html.
         -s,--summary  : View a summary of a previously generated report.
@@ -167,19 +187,19 @@ function view_summary {
 declare -a flagargs nonflags
 exe_path=""
 cov_dir=""
+do_branch=0
 do_clean=0
-do_gui=0
 do_lcov=0
 do_summary=0
 do_view=0
 
 for arg; do
     case "$arg" in
+        "-b" | "--branch")
+            do_branch=1
+            ;;
         "-c" | "--clean")
             do_clean=1
-            ;;
-        "-g" | "--gui")
-            do_gui=1
             ;;
         "-h" | "--help")
             print_usage ""
@@ -218,10 +238,12 @@ done
     mkdir "$cov_dir" || fail "Can't create coverage dir: $cov_dir"
     printf "Created %s.\n" "$cov_dir"
 }
+exe_path="$(readlink -f "$exe_path")"
 input_dir="${exe_path%/*}"
 exe_name="${exe_path##*/}"
 lcov_name="${cov_dir}/${exe_name}.info"
 html_dir="${cov_dir}/html"
+css_file="${cov_dir}/gcov-colrc.css"
 
 ((do_view || do_summary)) && {
     # Ensure the html directory exists for these commands.
@@ -233,8 +255,6 @@ html_dir="${cov_dir}/html"
 }
 if ((do_clean)); then
     remove_cov_files "*.o"
-elif ((do_gui)); then
-    generate_ggcov
 elif ((do_lcov)); then
     generate_coverage
 elif ((do_view)); then
