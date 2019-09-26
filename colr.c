@@ -5198,7 +5198,9 @@ size_t ColorValue_length(ArgType type, ColorValue cval) {
                     return 1;
                 }
         case STYLE:
-            assert(cval.type == TYPE_STYLE);
+            // The default case is valid (for invalid types), but any other
+            // non-STYLE type is a product of mismatched info.
+            assert(cval.type == TYPE_STYLE || !bool_colr_enum(cval.type));
             switch (cval.type) {
                 case TYPE_STYLE:
                     return STYLE_LEN;
@@ -5209,6 +5211,7 @@ size_t ColorValue_length(ArgType type, ColorValue cval) {
                     return CODEX_LEN;
                 case TYPE_RGB:
                     return CODE_RGB_LEN;
+                // Except this one, it's for TYPE_INVALID stuff.
                 default:
                     // Empty string for invalid/empty values.
                     return 1;
@@ -5306,7 +5309,7 @@ char* ColorValue_to_esc(ArgType type, ColorValue cval) {
                     return NULL;
                 }
         case STYLE:
-            assert(cval.type == TYPE_STYLE);
+            assert(cval.type == TYPE_STYLE || !bool_colr_enum(cval.type));
             switch (cval.type) {
                 case TYPE_STYLE:
                     // This is the only appropriate case.
@@ -5326,6 +5329,7 @@ char* ColorValue_to_esc(ArgType type, ColorValue cval) {
                     codes = alloc_rgb();
                     format_fg_RGB(codes, cval.rgb);
                     return codes;
+                // Except this one, it's for TYPE_INVALID stuff.
                 default:
                     return NULL;
             }
@@ -5393,7 +5397,9 @@ bool ColorValue_to_esc_s(char* dest, ArgType type, ColorValue cval) {
                     return false;
                 }
         case STYLE:
-            assert(cval.type == TYPE_STYLE);
+            // The default case is valid (for invalid types), but any other
+            // non-STYLE type is a product of mismatched info.
+            assert(cval.type == TYPE_STYLE || !bool_colr_enum(cval.type));
             switch (cval.type) {
                 case TYPE_STYLE:
                     // This is the only appropriate case.
@@ -5409,6 +5415,7 @@ bool ColorValue_to_esc_s(char* dest, ArgType type, ColorValue cval) {
                 case TYPE_RGB:
                     format_fg_RGB(dest, cval.rgb);
                     return true;
+                // Except this one, it's for TYPE_INVALID stuff.
                 default:
                     dest[0] = '\0';
                     return false;
