@@ -11,7 +11,11 @@ import os
 import re
 import subprocess
 import sys
-from collections import UserString
+from collections import (
+    UserDict,
+    UserList,
+    UserString,
+)
 
 from colr import (
     AnimatedProgress,
@@ -44,7 +48,7 @@ macro_pat = re.compile(r'#define ([\w_]+)([ \t]+)?\([^\(]')
 colr_auto_disable()
 
 NAME = 'ColrC - Usage Stats'
-VERSION = '0.0.3'
+VERSION = '0.0.4'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -102,37 +106,46 @@ if os.path.exists(SUPPRESS_FILE):
 USAGESTR = f"""{VERSIONSTR}
     Usage:
         {SCRIPT} [-h | -v]
-        {SCRIPT} [-D] [-T] -l
-        {SCRIPT} [-D] [-T] -s PATTERNS...
-        {SCRIPT} [-D] [-T] [-F | -M] -N [PATTERN]
-        {SCRIPT} [-D] [-T] [-F | -M] (-E | -e) [-f | -n | -r] [PATTERN]
-        {SCRIPT} [-D] [-T] [-a] [-d] [-F | -M] [-f | -n | -r] [-t] [PATTERN]
+        {SCRIPT} [-D] -l
+        {SCRIPT} [-D] [-j file | -T] [-F | -M] -o file
+        {SCRIPT} [-D] [-j file | -T] -s PATTERNS...
+        {SCRIPT} [-D] [-j file | -T] [-F | -M] -N [-s | PATTERN]
+        {SCRIPT} [-D] [-j file | -T] [-F | -M] [-f | -n | -r]
+                 (-E | -e) [-s | PATTERN]
+        {SCRIPT} [-D] [-j file | -T] [-F | -M] [-f | -n | -r]
+                 [-a] [-d] [-t] [-s | PATTERN]
 
     Options:
-        PATTERN          : Only show names matching this regex/text pattern.
-        PATTERNS         : One or more patterns to send to the search command.
-        -a,--all         : Show everything cppcheck thinks is unused.
-        -D,--debug       : Show more info while running.
-        -d,--testdeps    : Functions with tests, or in tests are not unused.
-        -E,--noexamples  : Show anything not used in the examples.
-        -e,--examples    : Show anything used in the examples.
-        -F,--onlyfuncs   : Use only functions, not function-like macros.
-        -f,--full        : Show full info.
-        -h,--help        : Show this help message.
-        -l,--legend      : Print a color-code legend.
-        -M,--onlymacros  : Use only function-like macros.
-        -N,--listnames   : Show all function names reported by cppcheck, or
-                           macro names unless -F is used.
-        -n,--names       : Show just the names in the final report.
-        -r,--raw         : Show raw info.
-        -s,--search      : Use `ag` to search for symbols in the project.
-        -T,--checktests  : Gather info about the tests, not the project.
-        -t,--untested    : Show untested functions.
-        -v,--version     : Show version.
+        PATTERN              : Only show names matching this regex/text pattern.
+        PATTERNS             : One or more function/macro names for the search
+                               command.
+                               Without any other arguments, this is just like
+                               running `ag --cc (PATTERN\\b)`.
+        -a,--all             : Show everything cppcheck thinks is unused.
+        -D,--debug           : Show more info while running.
+        -d,--testdeps        : Show test dependencies.
+        -E,--noexamples      : Show anything not used in the examples.
+        -e,--examples        : Show anything used in the examples.
+        -F,--onlyfuncs       : Use only functions, not function-like macros.
+        -f,--full            : Show full info.
+        -h,--help            : Show this help message.
+        -j file,--json file  : Load info from a JSON file.
+        -l,--legend          : Print a color-code legend.
+        -M,--onlymacros      : Use only function-like macros.
+        -N,--listnames       : Show all function names reported by cppcheck, or
+                               macro names unless -F is used.
+                               This is like -a -n.
+        -n,--names           : Show just the names in the final report.
+        -o file,--out file   : Write info in JSON format to a file.
+                               This is like --all and --raw.
+        -r,--raw             : Show raw info.
+        -s,--search          : Use `ag` to search for symbols in the project.
+                               When combined with other options, all listed
+                               names are searched for.
+        -T,--checktests      : Gather info about the tests, not the project.
+        -t,--untested        : Show untested functions.
+        -v,--version         : Show version.
 """
-
-# TODO: -j,--json           : Load info from a json file for testing/dev.
-# TODO: -o file,--out file  : Write raw info to json file. (print_raw() > file)
 
 
 def rgb(r, g, b):
@@ -145,8 +158,10 @@ def rgb(r, g, b):
 CFile = Preset(fore='cyan')
 CName = Preset(fore=rgb(77, 88, 237))
 CMacro = Preset(fore=rgb(100, 149, 237))
-CTestdep = Preset(fore=rgb(255, 128, 64))
-CMacroTestdep = Preset(fore=rgb(246, 112, 255))
+CFalseName = Preset(fore=rgb(0, 121, 0))
+CFalseMacro = Preset(fore=rgb(95, 163, 0))
+CTestDep = Preset(fore=rgb(255, 128, 64))
+CMacroTestDep = Preset(fore=rgb(246, 112, 255))
 CUntested = Preset(fore=rgb(200, 66, 66), style='bright')
 CMacroUntested = Preset(fore=rgb(141, 92, 200), style='bright')
 CUnused = Preset(fore=rgb(200, 93, 93))
@@ -158,13 +173,15 @@ CLineNum = Preset(fore=rgb(119, 201, 255))
 legend = {
     'func': {
         'Function': CName,
-        'Function Test Depencency': CTestdep,
+        'Function False Positive': CFalseName,
+        'Function Test Depencency': CTestDep,
         'Unused/Untested Function': CUntested,
         'Unused Function': CUnused,
     },
     'macro': {
         'Macro': CMacro,
-        'Macro Test Dependency': CMacroTestdep,
+        'Macro False Positive': CFalseMacro,
+        'Macro Test Dependency': CMacroTestDep,
         'Unused/Untested Macro': CMacroUntested,
         'Unused Macro': CMacroUnused,
     },
@@ -175,57 +192,79 @@ def main(argd):
     """ Main entry point, expects docopt arg dict as argd. """
     if argd['--legend']:
         return print_legend()
-    elif argd['--search']:
+    elif argd['--search'] and argd['PATTERNS']:
         return search(argd['PATTERNS'])
 
     pat = try_repat(argd['PATTERN'])
-    if argd['--onlymacros']:
-        names = get_macro_names(pat=pat, use_tests=argd['--checktests'])
-    elif argd['--onlyfuncs']:
-        names = get_cppcheck_names(pat=pat, use_tests=argd['--checktests'])
-        if not names:
-            print_err('No unused functions reported by cppcheck.')
-            return 1
+    if argd['--json']:
+        info = UnusedInfo.from_json_file(argd['--json'])
+        info.filter_pattern(pat)
+        if argd['--listnames']:
+            return print_names(info)
+        if argd['--onlyfuncs']:
+            info = info.only_functions()
+        elif argd['--onlymacros']:
+            info = info.only_macros()
     else:
-        names = get_cppcheck_names(pat=pat, use_tests=argd['--checktests'])
-        names.extend(get_macro_names(pat=pat, use_tests=argd['--checktests']))
-    if not names:
-        print_err('No names to use.')
+        if argd['--onlymacros']:
+            names = get_macro_names(pat=pat, use_tests=argd['--checktests'])
+        elif argd['--onlyfuncs']:
+            names = get_cppcheck_names(pat=pat, use_tests=argd['--checktests'])
+            if not names:
+                print_err('No unused functions reported by cppcheck.')
+                return 1
+        else:
+            names = get_cppcheck_names(pat=pat, use_tests=argd['--checktests'])
+            names.extend(
+                get_macro_names(pat=pat, use_tests=argd['--checktests'])
+            )
+        if not names:
+            print_err('No names to use.')
+            return 1
+        if argd['--listnames']:
+            return print_names(names)
+        filepaths = []
+        if argd['--checktests']:
+            filepaths.extend(TEST_FILES)
+        else:
+            filepaths.extend(COLRC_FILES)
+            filepaths.extend(TOOL_FILES)
+            filepaths.extend(TEST_FILES)
+            filepaths.extend(EXAMPLE_FILES)
+        info = UnusedInfo(check_files(filepaths, names))
+
+    if argd['--examples'] or argd['--noexamples']:
+        info.filter_examples(with_examples=argd['--examples'])
+
+    if not info:
+        print_err('No info to use!')
         return 1
 
-    if argd['--listnames']:
-        return print_names(names)
-
-    filepaths = []
-    if argd['--checktests']:
-        filepaths.extend(TEST_FILES)
-    else:
-        filepaths.extend(COLRC_FILES)
-        filepaths.extend(TOOL_FILES)
-        filepaths.extend(TEST_FILES)
-        filepaths.extend(EXAMPLE_FILES)
-    info = check_files(filepaths, names)
-    if argd['--examples'] or argd['--noexamples']:
-        info = filter_examples(info, with_examples=argd['--examples'])
-
-    if not argd['--all']:
+    if not (argd['--all'] or argd['--out']):
         # all macro names are gathered, not all of them are unused.
-        info = filter_used_macros(info)
+        info.filter_used_macros()
         # cppcheck has a lot of false positives, do some more filtering.
-        info = filter_used(
-            info,
+        info.filter_used(
             untested=argd['--untested'],
             test_deps=argd['--testdeps'],
         )
+    elif argd['--all'] or argd['--out']:
+        # Keep false-positives, but mark them as such.
+        info.filter_used(mark_only=True)
+
     if argd['--full']:
         ret = print_full(info)
     elif argd['--names']:
-        ret = print_names(sorted(info))
+        ret = print_names(info)
+    elif argd['--out']:
+        ret = print_file(info, argd['--out'])
     elif argd['--raw']:
-        ret = print_raw(info)
+        ret = json_write(info)
+    elif argd['--search']:
+        return info.search()
     else:
         ret = print_simple(info)
-    if not (argd['--raw'] or argd['--names']):
+    if not (argd['--raw'] or argd['--names'] or argd['--out']):
         print_footer(argd, info)
 
     return ret
@@ -268,99 +307,27 @@ def check_file(filepath, names):
 
 def check_files(filepaths, names):
     """ Look for names in several files. """
-    counts = {}
+    counts = set()
+    # Get info for each file, the easy part.
     for filepath in filepaths:
         filecounts = check_file(filepath, names)
         if not filecounts:
             continue
+        # Reorganize into a dict of names with file references and counts.
         for name in filecounts:
             fileinfo = filecounts[name]
-            counts.setdefault(
-                name,
-                {
-                    'total': 0,
-                    'files': {},
-                    'colr_cnt': 0,
-                    'tool_cnt': 0,
-                    'test_cnt': 0,
-                    'example_cnt': 0,
-                }
-            )
             filename = os.path.split(filepath)[-1]
-            counts[name]['files'][filename] = {
+            name.info['files'][filename] = {
                 'count': fileinfo['count'],
                 'lines': fileinfo['lines'],
             }
-            counts[name]['total'] += fileinfo['count']
+            name.info['total'] += fileinfo['count']
+            counts.add(name)
 
-    for name, nameinfo in counts.items():
-        for filename, fileinfo in nameinfo['files'].items():
-            filecount = fileinfo['count']
-            if filename.startswith('test_'):
-                counts[name]['test_cnt'] += filecount
-            elif filename.endswith('_example.c'):
-                counts[name]['example_cnt'] += filecount
-            elif filename.endswith(('_tool.c', '_tool.h')):
-                counts[name]['tool_cnt'] += filecount
-            elif filename.startswith('colr'):
-                counts[name]['colr_cnt'] += filecount
+    # Get general counts for tests, examples, colr-tool, and colr.c.
+    for name in counts:
+        name.set_counts()
     return counts
-
-
-def filter_examples(info, with_examples=True):
-    keep = {}
-    for name in sorted(info):
-        nameinfo = info[name]
-        if with_examples:
-            if is_example(name, nameinfo):
-                keep[name] = nameinfo
-                continue
-        elif not is_example(name, nameinfo):
-            keep[name] = nameinfo
-            continue
-    return keep
-
-
-def filter_used(info, untested=False, test_deps=False):
-    keep = {}
-    for name, nameinfo in info.items():
-        if untested:
-            if is_untested(name, nameinfo):
-                keep[name] = nameinfo
-            continue
-        if is_unused(name, nameinfo):
-            if test_deps and not is_test_dep(name, nameinfo):
-                continue
-            keep[name] = nameinfo
-            continue
-
-    return keep
-
-
-def filter_used_macros(info):
-    keep = {}
-    for name, nameinfo in info.items():
-        if not isinstance(name, MacroName):
-            keep[name] = nameinfo
-            debug(f'Not a macro: {name}')
-            continue
-        if is_unused(name, nameinfo):
-            keep[name] = nameinfo
-            debug(f'Unused Macro: {name}')
-            continue
-    debug(f'Filtered used macros: {len(info) - len(keep)}/{len(info)}')
-    return keep
-
-
-def format_name(name, nameinfo):
-    if is_test_dep(name, nameinfo):
-        return name.fmt_testdep()
-    elif is_untested(name, nameinfo):
-        return name.fmt_untested()
-    elif is_unused(name, nameinfo):
-        return name.fmt_unused()
-
-    return C(name)
 
 
 def get_cppcheck_names(pat=None, use_tests=False):
@@ -433,39 +400,18 @@ def highlight_code(line, lexer=lexer_c):
     return highlight(line, lexer, fmter_256).strip()
 
 
-def is_example(name, nameinfo):
-    return nameinfo['example_cnt'] > 0
+def json_write(info, fd=sys.stdout):
+    rawjson = info.as_json()
+    if fd.isatty():
+        infostr = highlight_code(
+            rawjson,
+            lexer=lexer_json,
+        )
+    else:
+        infostr = rawjson
 
-
-def is_untested(name, nameinfo):
-    if isinstance(name, TestFunctionName):
-        return nameinfo['test_cnt'] < 3
-    elif isinstance(name, TestMacroName):
-        return nameinfo['test_cnt'] < 2
-    return not nameinfo['test_cnt']
-
-
-def is_unused(name, nameinfo):
-    if isinstance(name, TestFunctionName):
-        return nameinfo['test_cnt'] < 3
-    elif isinstance(name, TestMacroName):
-        return nameinfo['test_cnt'] < 2
-
-    colr_cnt = nameinfo['colr_cnt']
-    tool_cnt = nameinfo['tool_cnt']
-    if (colr_cnt < 3) and (colr_cnt and not tool_cnt):
-        return True
-    elif (tool_cnt < 3) and (tool_cnt and not colr_cnt):
-        return True
-    return False
-
-
-def is_used(name, nameinfo):
-    return not is_unused(name, nameinfo)
-
-
-def is_test_dep(name, nameinfo):
-    return nameinfo['test_cnt'] > 2
+    print(infostr, file=fd)
+    return 1 if info else 0
 
 
 def print_err(*args, **kwargs):
@@ -490,6 +436,18 @@ def print_err(*args, **kwargs):
         )
 
     print(msg, **kwargs)
+
+
+def print_file(info, filepath):
+    """ Write raw info to a file. """
+    try:
+        with open(filepath, 'w') as f:
+            json_write(info, fd=f)
+    except EnvironmentError as ex:
+        print_err(f'\nCan\'t write to file: {filepath}\n{ex}')
+        return 1
+    print(C(': ').join('Wrote info to', CFile(filepath)))
+    return 0
 
 
 def print_footer(argd, info):
@@ -519,11 +477,10 @@ def print_footer(argd, info):
 def print_full(info):
     colwidth = 30
     for name in sorted(info):
-        nameinfo = info[name]
-        total = nameinfo['total']
+        total = name.info['total']
         print(f'{C(name):<{colwidth}}  {CTotal(total)} ')
-        for filepath in sorted(nameinfo['files']):
-            fileinfo = nameinfo['files'][filepath]
+        for filepath in sorted(name.info['files']):
+            fileinfo = name.info['files'][filepath]
             filecnt = fileinfo['count']
             filename = os.path.split(filepath)[-1]
             print(f'    {CFile(filename):>{colwidth - 4}}: {CNum(filecnt)}')
@@ -547,33 +504,6 @@ def print_names(names):
     return 0 if names else 1
 
 
-def print_raw(info):
-    fixed = {}
-    for name in info:
-        nameinfo = info[name]
-        for filepath in nameinfo['files']:
-            fileinfo = nameinfo['files'][filepath]
-            fileinfo['lines'] = [l.as_tuple() for l in fileinfo['lines']]
-            nameinfo['files'][filepath] = fileinfo
-        fixed[str(name)] = nameinfo
-
-    rawjson = json.dumps(
-        fixed,
-        sort_keys=True,
-        indent=4
-    )
-    if sys.stdout.isatty():
-        infostr = highlight_code(
-            rawjson,
-            lexer=lexer_json,
-        )
-    else:
-        infostr = rawjson
-
-    print(infostr)
-    return 1 if info else 0
-
-
 def print_simple(info):
     def fmt_lbl(lbl, val):
         val_args = {
@@ -593,15 +523,14 @@ def print_simple(info):
         return C(': ').join(C(lbl, 'cyan'), C(val, **val_args)).ljust(11)
 
     for name in sorted(info):
-        nameinfo = info[name]
-        namefmt = format_name(name, nameinfo)
+        namefmt = name.fmt()
         print(C(' ').join(
             namefmt.ljust(30),
-            fmt_lbl('total', nameinfo['total']),
-            fmt_lbl('colr', nameinfo['colr_cnt']),
-            fmt_lbl('tool', nameinfo['tool_cnt']),
-            fmt_lbl('test', nameinfo['test_cnt']),
-            fmt_lbl('example', nameinfo['example_cnt']),
+            fmt_lbl('total', name.info['total']),
+            fmt_lbl('colr', name.info['colr_cnt']),
+            fmt_lbl('tool', name.info['tool_cnt']),
+            fmt_lbl('test', name.info['test_cnt']),
+            fmt_lbl('example', name.info['example_cnt']),
         ))
 
     return 1 if info else 0
@@ -630,6 +559,51 @@ def try_repat(s):
     return p
 
 
+class DebugFilterOp(object):
+    def __init__(self, filtertype, obj):
+        self.type = filtertype
+        self.obj = obj
+        self.length = len(obj)
+
+    def __enter__(self):
+        debug(f'Filtering {self.type} ({len(self.obj)})...', level=1)
+        return self
+
+    def __exit__(self, exc, typ, tb):
+        filtered = self.length - len(self.obj)
+        debug(f'Filtered {self.type} ({filtered}/{self.length})', level=1)
+        return False
+
+
+class Files(UserDict):
+    """ A collection of file names with Lines and counts for each file.
+        Each Name has one or more file references. This is a collection of
+        those references.
+    """
+    def as_json_obj(self):
+        d = {}
+        for filename, fileinfo in self.items():
+            fileinfo['lines'] = [
+                l.as_json_obj()
+                for l in fileinfo['lines']
+            ]
+            d[filename] = fileinfo
+        return d
+
+    @classmethod
+    def from_json_obj(cls, o):
+        if not isinstance(o, dict):
+            raise TypeError(f'Expecting dict, got: {type(o).__name__}')
+        d = {k: v for k, v in o.items()}
+        for filename, fileinfo in d.items():
+            fileinfo['lines'] = [
+                Line.from_json_obj(l)
+                for l in fileinfo['lines']
+            ]
+            d[filename] = fileinfo
+        return cls(d)
+
+
 class InvalidArg(ValueError):
     """ Raised when the user has used an invalid argument. """
     def __init__(self, msg=None):
@@ -639,6 +613,21 @@ class InvalidArg(ValueError):
         if self.msg:
             return f'Invalid argument, {self.msg}'
         return 'Invalid argument!'
+
+
+class InvalidJSON(InvalidArg):
+    """ Raised when JSON info cannot be read or decoded. """
+    def __init__(self, msg=None, filepath=None):
+        self.msg = msg or ''
+        self.filepath = filepath
+
+    def __str__(self):
+        msg = f'Cannot load JSON'
+        if self.filepath:
+            msg = ' '.join((msg, f'from: {self.filepath}'))
+        if self.msg:
+            return f'{msg}\n{self.msg}'
+        return msg
 
 
 class Line(object):
@@ -656,58 +645,274 @@ class Line(object):
             highlight_code(self.stripped)
         )
 
-    def as_tuple(self):
+    def as_json_obj(self):
         return (self.linenum, self.text)
+
+    @classmethod
+    def from_json_obj(cls, o):
+        if not isinstance(o, (list, tuple)):
+            raise TypeError(f'Expecting list/tuple, got: {type(o).__name__}')
+        if len(o) != 2:
+            raise TypeError(f'Expecting [linenum, text], got: {o!r}')
+        return cls(*o)
 
 
 class Name(UserString):
+    # Overridden in subclasses:
+    fmt_classes = {}
+    # Marked as false positive in UnusedInfo.filter_used()
+    false_positive = False
+
+    def __init__(self, o):
+        super().__init__(o)
+        self.info = {
+            'total': 0,
+            'files': Files(),
+            'colr_cnt': 0,
+            'tool_cnt': 0,
+            'test_cnt': 0,
+            'example_cnt': 0,
+        }
+
     def __colr__(self):
         return C(self.data)
 
-    def fmt_testdep(self):
-        raise NotImplementedError('This method should be overridden.')
+    def fmt(self):
+        if not self.fmt_classes:
+            raise NotImplementedError('No fmt_classes implemented.')
+        if self.false_positive:
+            return self.fmt_classes['false-positive'](self)
+        elif self.is_test_dep():
+            return self.fmt_classes['test-dependency'](self)
+        elif self.is_untested():
+            return self.fmt_classes['untested'](self)
+        elif self.is_unused():
+            return self.fmt_classes['unused'](self)
 
-    def fmt_untested(self):
-        raise NotImplementedError('This method should be overridden.')
+        return C(self)
 
-    def fmt_unused(self):
-        raise NotImplementedError('This method should be overridden.')
+    def is_example(self):
+        return self.info['example_cnt'] > 0
+
+    def is_macro(self):
+        return False
+
+    def is_test(self):
+        return False
+
+    def is_test_dep(self):
+        return self.info['test_cnt'] > 2
+
+    def is_untested(self):
+        return not self.info['test_cnt']
+
+    def is_unused(self):
+        colr_cnt = self.info['colr_cnt']
+        tool_cnt = self.info['tool_cnt']
+        if (colr_cnt < 3) and (colr_cnt and not tool_cnt):
+            return True
+        elif (tool_cnt < 3) and (tool_cnt and not colr_cnt):
+            return True
+        return False
+
+    def is_used(self):
+        return not self.is_unused()
+
+    def set_counts(self):
+        for filename, fileinfo in self.info['files'].items():
+            filecount = fileinfo['count']
+            if filename.startswith('test_'):
+                self.info['test_cnt'] += filecount
+            elif filename.endswith('_example.c'):
+                self.info['example_cnt'] += filecount
+            elif filename.endswith(('_tool.c', '_tool.h')):
+                self.info['tool_cnt'] += filecount
+            elif filename.startswith('colr'):
+                self.info['colr_cnt'] += filecount
 
 
 class FunctionName(Name):
+    fmt_classes = {
+        'false-positive': CFalseName,
+        'test-dependency': CTestDep,
+        'untested': CUntested,
+        'unused': CUnused,
+    }
+
     def __colr__(self):
         return CName(self.data)
 
-    def fmt_testdep(self):
-        return CTestdep(self)
-
-    def fmt_untested(self):
-        return CUntested(self)
-
-    def fmt_unused(self):
-        return CUnused(self)
-
 
 class TestFunctionName(FunctionName):
-    pass
+    def is_test(self):
+        return True
+
+    def is_untested(self):
+        return self.info['test_cnt'] < 3
+
+    def is_unused(self):
+        return self.info['test_cnt'] < 3
 
 
 class MacroName(Name):
+    fmt_classes = {
+        'false-positive': CFalseMacro,
+        'test-dependency': CMacroTestDep,
+        'untested': CMacroUntested,
+        'unused': CMacroUnused,
+    }
+
     def __colr__(self):
         return CMacro(self.data)
 
-    def fmt_testdep(self):
-        return CMacroTestdep(self)
-
-    def fmt_untested(self):
-        return CMacroUntested(self)
-
-    def fmt_unused(self):
-        return CMacroUnused(self)
+    def is_macro(self):
+        return True
 
 
 class TestMacroName(MacroName):
-    pass
+    def is_macro(self):
+        return True
+
+    def is_test(self):
+        return True
+
+    def is_untested(self):
+        return self.info['test_cnt'] < 2
+
+    def is_unused(self):
+        return self.info['test_cnt'] < 2
+
+
+class UnusedInfo(UserList):
+    name_classes = (
+        FunctionName,
+        TestFunctionName,
+        MacroName,
+        TestMacroName
+    )
+
+    def as_json(self):
+        return json.dumps(
+            self.as_json_obj(),
+            sort_keys=True,
+            indent=4
+        )
+
+    def as_json_obj(self):
+        fixed = {}
+        for name in self:
+            name.info['files'] = name.info['files'].as_json_obj()
+            namestr = str(name)
+            fixed[namestr] = {'info': name.info}
+            fixed[namestr]['class'] = type(name).__name__
+            fixed[namestr]['false_positive'] = name.false_positive
+        return fixed
+
+    def filter_examples(self, with_examples=True):
+        unused = []
+        with DebugFilterOp('examples', self):
+            for name in self:
+                if with_examples:
+                    if name.is_example():
+                        unused.append(name)
+                elif not name.is_example():
+                    unused.append(name)
+            self.data = unused
+        return self
+
+    def filter_pattern(self, pat):
+        """ Filter Names by regex pattern. """
+        if not pat:
+            # None as a pattern means "nevermind, don't filter anything".
+            return self
+        with DebugFilterOp('pattern', self):
+            self.data = [
+                name
+                for name in self
+                if pat.search(str(name)) is not None
+            ]
+        return self
+
+    def filter_used(self, untested=False, test_deps=False, mark_only=False):
+        unused = []
+        debugmsg = 'false-positives'
+        if mark_only:
+            debugmsg = ' '.join((debugmsg, '(mark only)'))
+        with DebugFilterOp(debugmsg, self):
+            for name in self:
+                if untested:
+                    if name.is_untested():
+                        unused.append(name)
+                elif name.is_unused():
+                    if test_deps and not name.is_test_dep():
+                        continue
+                    unused.append(name)
+                else:
+                    # Used for marking only.
+                    name.false_positive = True
+            if not mark_only:
+                self.data = unused
+        return self
+
+    def filter_used_macros(self):
+        length = len(self)
+        debug(f'Filtering used macros ({length})...')
+        unused = []
+        for name in self:
+            if not isinstance(name, MacroName):
+                unused.append(name)
+            elif name.is_unused():
+                unused.append(name)
+        debug(f'Filtered used macros: {length - len(unused)}/{length}')
+        self.data = unused
+        return self
+
+    @classmethod
+    def from_json_file(cls, filepath):
+        """ Load raw info from a json file. """
+        try:
+            with open(filepath, 'r') as f:
+                try:
+                    o = json.load(f)
+                except json.JSONDecodeError as ex:
+                    raise InvalidJSON(f'Decoding error: {ex}')
+        except EnvironmentError as ex:
+            raise InvalidJSON(f'Error reading file: {ex}')
+
+        return cls.from_json_obj(o)
+
+    @classmethod
+    def from_json_obj(cls, o):
+        # Convert from raw dict into the appropriate classes.
+        clsmap = {
+            c.__name__: c
+            for c in cls.name_classes
+        }
+        fixed = []
+        for namestr, nameinfo in o.items():
+            namecls = clsmap[nameinfo['class']]
+            name = namecls(namestr)
+            name.false_positive = nameinfo['false_positive']
+            nameinfo['info']['files'] = Files.from_json_obj(
+                nameinfo['info']['files']
+            )
+            name.info = nameinfo['info']
+            fixed.append(name)
+        return cls(sorted(fixed))
+
+    def only_functions(self):
+        self.data = [n for n in self if isinstance(n, FunctionName)]
+        return self
+
+    def only_macros(self):
+        self.data = [n for n in self if isinstance(n, MacroName)]
+        return self
+
+    def search(self):
+        """ Use `ag` to search for all current names.
+            Returns an exit status code.
+        """
+        return search(str(name) for name in self)
 
 
 if __name__ == '__main__':
