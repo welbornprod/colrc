@@ -18,3 +18,4 @@ cppcheck_report
 colrc-*.*.*
 snippet.last.*
 snippet.colr.*.c
+unused.json
