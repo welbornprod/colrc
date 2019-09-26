@@ -10,7 +10,6 @@ appdir="${apppath%/*}"
 declare -A script_deps=(
     ["lcov"]="lcov"
     ["genhtml"]="lcov"
-    ["ggcov"]="ggcov"
 )
 
 for script_dep in "${!script_deps[@]}"; do
