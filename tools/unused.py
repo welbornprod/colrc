@@ -51,7 +51,7 @@ macro_pat = re.compile(r'#define ([\w_]+)([ \t]+)?\([^\(]')
 colr_auto_disable()
 
 NAME = 'ColrC - Usage Stats'
-VERSION = '0.0.4'
+VERSION = '0.0.5'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
