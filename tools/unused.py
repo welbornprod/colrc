@@ -155,6 +155,7 @@ def rgb(r, g, b):
     return r, g, b
 
 
+# Some Colr presets, so changing "themes" can be done in one place.
 CFile = Preset(fore='cyan')
 CName = Preset(fore=rgb(77, 88, 237))
 CMacro = Preset(fore=rgb(100, 149, 237))

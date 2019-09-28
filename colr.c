@@ -771,7 +771,7 @@ const size_t colr_name_data_len = sizeof(colr_name_data) / sizeof(colr_name_data
     \pi s The string to append to.
           <em>Must have extra room for CODE_RESET_ALL</em>.
 */
-void colr_append_reset(char *s) {
+void colr_append_reset(char* s) {
     if (!s) return;
     if (s[0] == '\0') {
         // Special case, an empty string, with room for CODE_RESET_ALL.
@@ -1601,26 +1601,26 @@ char* colr_str_copy(char* restrict dest, const char* restrict src, size_t length
 /*! Determine if one \string ends with another.
 
     \details
-    \p str and \p suf must not overlap.
+    \p str and \p suffix must not overlap.
 
-    \pi str String to check.
-            \mustnull
-    \pi suf Suffix to check for.
-            \mustnull
-    \return True if `str` ends with `suf`.
-    \return False if either is NULL, or the string doesn't end with the suffix.
+    \pi s      String to check.
+               \mustnull
+    \pi suffix Suffix to check for.
+               \mustnull
+    \return    True if `str` ends with `suffix`.
+    \return    False if either is NULL, or the string doesn't end with the suffix.
 */
-bool colr_str_ends_with(const char* restrict str, const char* restrict suf) {
-    if (!str || !suf) {
+bool colr_str_ends_with(const char* restrict s, const char* restrict suffix) {
+    if (!s || !suffix) {
         return false;
     }
-    size_t strlength = strlen(str);
-    size_t suflength = strlen(suf);
+    size_t strlength = strlen(s);
+    size_t suflength = strlen(suffix);
     if ((!(suflength && strlength)) || (suflength > strlength)) {
         // Empty strings, or suffix is longer than the entire string.
         return false;
     }
-    return (strncmp(str + (strlength - suflength), suf, suflength) == 0);
+    return (strncmp(s + (strlength - suflength), suffix, suflength) == 0);
 }
 
 /*! Get a list of escape-codes from a \string.
@@ -1795,7 +1795,7 @@ bool colr_str_has_codes(const char* s) {
     \endexamplecode
 */
 
-ColrHash colr_str_hash(const char *s) {
+ColrHash colr_str_hash(const char* s) {
     if (!s) return 0;
     // This is also the default value for empty strings.
     ColrHash hash = COLR_HASH_SEED;
@@ -2932,7 +2932,7 @@ char* _colr_join(void *joinerp, ...) {
 
     \sa _colr
 */
-size_t _colr_join_size(void *joinerp, va_list args) {
+size_t _colr_join_size(void* joinerp, va_list args) {
     // No joiner, no strings. NULL will be returned.
     if (!joinerp) return 0;
 
@@ -3444,7 +3444,7 @@ char* ColorArg_example(ColorArg carg, bool colorized) {
 
     \sa ColorArg
 */
-void ColorArg_free(ColorArg *p) {
+void ColorArg_free(ColorArg* p) {
     if (!p) return;
     free(p);
 }
@@ -3640,7 +3640,7 @@ ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value) {
 
     \sa ColorArg
 */
-ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void *p) {
+ColorArg ColorArg_from_value(ArgType type, ColorType colrtype, void* p) {
     if (!p) {
         return (ColorArg){
             .marker=COLORARG_MARKER,
@@ -3689,7 +3689,7 @@ bool ColorArg_is_invalid(ColorArg carg) {
 
     \sa ColorArg
 */
-bool ColorArg_is_ptr(void *p) {
+bool ColorArg_is_ptr(void* p) {
     if (!p) return false;
     if (!colr_check_marker(COLORARG_MARKER, p)) return false;
     // The head of a ColorArg is always a valid marker.
@@ -3815,7 +3815,7 @@ bool ColorArg_to_esc_s(char* dest, ColorArg carg) {
     \sa ColorArg
 */
 ColorArg *ColorArg_to_ptr(ColorArg carg) {
-    ColorArg *p = malloc(sizeof(carg));
+    ColorArg* p = malloc(sizeof(carg));
     if (!p) return NULL;
     carg.marker = COLORARG_MARKER;
     *p = carg;
@@ -4203,7 +4203,7 @@ size_t ColorResult_length(ColorResult cres) {
 
     \sa ColorResult
 */
-ColorResult ColorResult_new(char *s) {
+ColorResult ColorResult_new(char* s) {
     ColorResult cres = ColorResult_empty();
     cres.result = s;
     cres.length = s ? (strlen(s) + 1) : 0;
@@ -4422,7 +4422,7 @@ bool ColorText_is_empty(ColorText ctext) {
 
     \sa ColorText
 */
-bool ColorText_is_ptr(void *p) {
+bool ColorText_is_ptr(void* p) {
     if (!p) return false;
     if (!colr_check_marker(COLORTEXT_MARKER, p)) return false;
 
@@ -4574,7 +4574,7 @@ void ColorText_set_values(ColorText* ctext, char* text, ...) {
     \sa ColorText
 */
 ColorText* ColorText_to_ptr(ColorText ctext) {
-    ColorText *p = malloc(sizeof(ColorText));
+    ColorText* p = malloc(sizeof(ColorText));
     if (!p) return NULL;
     ctext.marker = COLORTEXT_MARKER;
     *p = ctext;
@@ -5030,7 +5030,7 @@ ColorValue ColorValue_from_str(const char* s) {
 
     \sa ColorValue
 */
-ColorValue ColorValue_from_value(ColorType type, void *p) {
+ColorValue ColorValue_from_value(ColorType type, void* p) {
     if (
         type == TYPE_INVALID ||
         type == TYPE_INVALID_EXT_RANGE ||
@@ -5494,24 +5494,24 @@ BasicValue BasicValue_from_str(const char* arg) {
 
 /*! Determines whether a BasicValue is invalid.
 
-    \pi x   A BasicValue to check.
-    \return `true` if the value is considered invalid, otherwise `false`.
+    \pi bval A BasicValue to check.
+    \return  `true` if the value is considered invalid, otherwise `false`.
 
     \sa BasicValue
 */
-bool BasicValue_is_invalid(BasicValue x) {
-    return ((x == BASIC_INVALID) || (x == BASIC_INVALID_RANGE));
+bool BasicValue_is_invalid(BasicValue bval) {
+    return ((bval == BASIC_INVALID) || (bval == BASIC_INVALID_RANGE));
 }
 
 /*! Determines whether a BasicValue is valid.
 
-    \pi x   A BasicValue to check.
-    \return `true` if the value is considered valid, otherwise `false`.
+    \pi bval A BasicValue to check.
+    \return  `true` if the value is considered valid, otherwise `false`.
 
     \sa BasicValue
 */
-bool BasicValue_is_valid(BasicValue x) {
-    return ((x != BASIC_INVALID) && (x != BASIC_INVALID_RANGE));
+bool BasicValue_is_valid(BasicValue bval) {
+    return ((bval != BASIC_INVALID) && (bval != BASIC_INVALID_RANGE));
 }
 
 /*! Creates a \string representation of a BasicValue.
@@ -5878,24 +5878,24 @@ char* ExtendedValue_repr(int eval) {
 
 /*! Determines whether an integer is an invalid ExtendedValue.
 
-    \pi x   A number to check.
-    \return `true` if the value is considered invalid, otherwise `false`.
+    \pi eval A number to check.
+    \return  `true` if the value is considered invalid, otherwise `false`.
 
     \sa ExtendedValue
 */
-bool ExtendedValue_is_invalid(int x) {
-    return ((x < 0) || (x > 255));
+bool ExtendedValue_is_invalid(int eval) {
+    return ((eval < 0) || (eval > 255));
 }
 
 /*! Determines whether an integer is a valid ExtendedValue.
 
-    \pi x   A number to check.
-    \return `true` if the value is considered valid, otherwise `false`.
+    \pi eval A number to check.
+    \return  `true` if the value is considered valid, otherwise `false`.
 
     \sa ExtendedValue
 */
-bool ExtendedValue_is_valid(int x) {
-    return ((x > -1) && (x < 256));
+bool ExtendedValue_is_valid(int eval) {
+    return ((eval > -1) && (eval < 256));
 }
 
 /*! Creates a human-friendly \string from an ExtendedValue's actual value,
@@ -6265,7 +6265,7 @@ RGB RGB_monochrome(RGB rgb) {
 */
 char* RGB_to_hex(RGB rgb) {
     char* s;
-    asprintf_or_return(NULL, &s, "%02x%02x%02x", rgb.red, rgb.green, rgb.blue);
+    asprintf_or_return(NULL, &s, "#%02x%02x%02x", rgb.red, rgb.green, rgb.blue);
     return s;
 }
 
@@ -6410,24 +6410,24 @@ StyleValue StyleValue_from_str(const char* arg) {
 
 /*! Determines whether a StyleValue is invalid.
 
-    \pi x   A StyleValue to check.
-    \return `true` if the value is considered invalid, otherwise `false`.
+    \pi sval A StyleValue to check.
+    \return  `true` if the value is considered invalid, otherwise `false`.
 
     \sa StyleValue
 */
-bool StyleValue_is_invalid(StyleValue x) {
-    return ((x == STYLE_INVALID) || (x == STYLE_INVALID_RANGE));
+bool StyleValue_is_invalid(StyleValue sval) {
+    return ((sval == STYLE_INVALID) || (sval == STYLE_INVALID_RANGE));
 }
 
 /*! Determines whether a StyleValue is valid.
 
-    \pi x   A StyleValue to check.
-    \return `true` if the value is considered valid, otherwise `false`.
+    \pi sval A StyleValue to check.
+    \return  `true` if the value is considered valid, otherwise `false`.
 
     \sa StyleValue
 */
-bool StyleValue_is_valid(StyleValue x) {
-    return ((x != STYLE_INVALID) && (x != STYLE_INVALID_RANGE));
+bool StyleValue_is_valid(StyleValue sval) {
+    return ((sval != STYLE_INVALID) && (sval != STYLE_INVALID_RANGE));
 }
 
 /*! Create a human-friendly \string representation for a StyleValue.

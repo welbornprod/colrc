@@ -41,6 +41,35 @@ subdesc(RGB_from_hex) {
         }
     }
 }
+subdesc(RGB_from_hex_default) {
+    it("recognizes hex strings") {
+        for_len(hex_tests_len, i) {
+            RGB rgb;
+            // The call should return 0 itself.
+            assert_rgb_from(hex_tests[i].input, RGB_from_hex, 0, &rgb);
+            // The values returned should match the expected tests.
+            assert_RGB_eq(rgb, hex_tests[i].rgb);
+        }
+    }
+    it("defaults to user's value") {
+        RGB defaults[] = {
+            rgb(0, 0, 0),
+            rgb(255, 255, 255),
+            rgb(1, 2, 3)
+        };
+        for_each(defaults, i) {
+            for_len(bad_hex_tests_len, j) {
+                char* hexstr = bad_hex_tests[j];
+                assert_colr_eq_repr(
+                    RGB_from_hex_default(hexstr, defaults[i]),
+                    defaults[i],
+                    hexstr
+                );
+            }
+        }
+    }
+}
+
 subdesc(RGB_from_str) {
     it("recognizes valid RGB strings") {
         for_len(str_tests_len, i) {
@@ -99,6 +128,48 @@ subdesc(RGB_repr) {
         assert_not_null(repr);
         assert_str_starts_with(repr, "RGB");
         free(repr);
+    }
+}
+subdesc(RGB_to_hex) {
+    it("converts rgb values to hex") {
+        struct {
+            RGB rgb;
+            char* expected;
+        } tests[] = {
+            {rgb(0, 0, 0), "#000000"},
+            {rgb(255, 255, 255), "#ffffff"},
+            {rgb(1, 2, 3), "#010203"},
+        };
+        for_each(tests, i) {
+            char* hexstr = RGB_to_hex(tests[i].rgb);
+            assert_str_eq_repr(
+                hexstr,
+                tests[i].expected,
+                tests[i].rgb
+            );
+            free(hexstr);
+        }
+    }
+}
+subdesc(RGB_to_str) {
+    it("converts rgb values to str") {
+        struct {
+            RGB rgb;
+            char* expected;
+        } tests[] = {
+            {rgb(0, 0, 0), "000;000;000"},
+            {rgb(255, 255, 255), "255;255;255"},
+            {rgb(1, 2, 3), "001;002;003"},
+        };
+        for_each(tests, i) {
+            char* rgbstr = RGB_to_str(tests[i].rgb);
+            assert_str_eq_repr(
+                rgbstr,
+                tests[i].expected,
+                tests[i].rgb
+            );
+            free(rgbstr);
+        }
     }
 }
 }

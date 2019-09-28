@@ -23,7 +23,3 @@
     [ ] Tests for ColorText with justification (with ColorJustify member set).
         [ ] Tests for `ColorText_to_str` with justification.
     [ ] Tests for RGB (more tests, covering all functions)
-        [ ] Tests for `RGB_from_hex_default`.
-        [ ] Tests for `RGB_to_hex`.
-        [ ] Tests for `RGB_to_str`.
-        [ ] Tests for `RGB_repr`.

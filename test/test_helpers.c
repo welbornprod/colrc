@@ -1057,8 +1057,10 @@ subdesc(colr_str_lower) {
         }
     }
 }
+// colr_str_lstrip
 // colr_str_lstrip_char
 subdesc(colr_str_lstrip_char) {
+    // This function calls colr_str_lstrip directly.
     it("should lstrip a char") {
         struct {
             char* s;

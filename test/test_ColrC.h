@@ -13,18 +13,17 @@
 #pragma GCC diagnostic ignored "-Wunused-macros"
 // Tell gcc to ignore clang pragmas, for linting.
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
-// Tell clang to ignore this unused inclusion macro.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-macros"
+
 #define TEST_COLR_H
 
-#pragma clang diagnostic pop
 // Warn for any other unused macros, for gcc and clang.
 #pragma GCC diagnostic warning "-Wunused-macros"
-#pragma clang diagnostic push
-#pragma clang diagnostic warning "-Wunused-macros"
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
+#pragma clang diagnostic ignored "-Wstrict-prototypes"
+#pragma clang diagnostic ignored "-Wunused-function"
 #pragma clang diagnostic ignored "-Wvariadic-macros"
 #pragma clang diagnostic ignored "-Wgnu-statement-expression"
+#pragma clang diagnostic warning "-Wunused-macros"
 
 #include "../colr.h"
 
@@ -1100,8 +1099,4 @@ char* ulong_long_repr(unsigned long long x);
 
 // Override ioctl to force a failed call.
 int ioctl(int fd, unsigned long request, ...);
-
-#pragma GCC diagnostic ignored "-Wstrict-prototypes"
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wstrict-prototypes"
 #endif /* TEST_COLR_H */
