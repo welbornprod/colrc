@@ -10,6 +10,7 @@ import json
 import os
 import re
 import subprocess
+import stat
 import sys
 from collections import (
     UserDict,
@@ -25,7 +26,9 @@ from colr import (
     auto_disable as colr_auto_disable,
     docopt,
 )
-from outputcatcher import ProcessOutput
+from outputcatcher import (
+    ProcessOutput,
+)
 from printdebug import DebugColrPrinter
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
@@ -58,11 +61,14 @@ COLRC_FILES = tuple(
     os.path.join(COLRC_DIR, s)
     for s in ('colr.h', 'colr.c')
 )
+COLRC_MAIN_FILE = os.path.join(COLRC_DIR, 'colr.c')
 
 TOOL_FILES = tuple(
     os.path.join(COLRC_DIR, s)
     for s in ('colr_tool.h', 'colr_tool.c')
 )
+TOOL_MAIN_FILE = os.path.join(COLRC_DIR, 'colr_tool.c')
+
 MACRO_FILES = tuple(
     os.path.join(COLRC_DIR, s)
     for s in ('colr.h', 'colr_tool.h')
@@ -74,6 +80,7 @@ TEST_FILES = tuple(
     for s in os.listdir(TEST_DIR)
     if s.endswith(('.h', '.c')) and (not s.startswith(IGNORE_TEST_FILES))
 )
+TEST_MAIN_FILE = os.path.join(TEST_DIR, 'test_ColrC.c')
 TEST_MACRO_FILES = tuple(
     os.path.join(TEST_DIR, s)
     for s in os.listdir(TEST_DIR)
@@ -107,6 +114,8 @@ USAGESTR = f"""{VERSIONSTR}
     Usage:
         {SCRIPT} [-h | -v]
         {SCRIPT} [-D] -l
+        {SCRIPT} [-D] (-c | -M) [-T] [-F] [-f | -n | -r]
+                 [-a] [-d] [-t] [-s | PATTERN]
         {SCRIPT} [-D] [-j file | -T] [-F | -M] -o file
         {SCRIPT} [-D] [-j file | -T] -s PATTERNS...
         {SCRIPT} [-D] [-j file | -T] [-F | -M] -N [-s | PATTERN]
@@ -122,6 +131,7 @@ USAGESTR = f"""{VERSIONSTR}
                                Without any other arguments, this is just like
                                running `ag --cc (PATTERN\\b)`.
         -a,--all             : Show everything cppcheck thinks is unused.
+        -c,--cfuncs          : Use `cfuncs` command to gather names.
         -D,--debug           : Show more info while running.
         -d,--testdeps        : Show test dependencies.
         -E,--noexamples      : Show anything not used in the examples.
@@ -207,7 +217,20 @@ def main(argd):
         elif argd['--onlymacros']:
             info = info.only_macros()
     else:
-        if argd['--onlymacros']:
+        if argd['--cfuncs']:
+            if argd['--onlyfuncs'] and argd['--onlymacros']:
+                # This is just bad arg handling in the docopt usage.
+                argd['--onlyfuncs'] = argd['--onlymacros'] = False
+            names = get_cfuncs_names(
+                pat=pat,
+                use_tests=argd['--checktests'],
+                untested=argd['--untested'],
+            )
+            if not argd['--onlyfuncs']:
+                names.extend(
+                    get_macro_names(pat=pat, use_tests=argd['--checktests'])
+                )
+        elif argd['--onlymacros']:
             names = get_macro_names(pat=pat, use_tests=argd['--checktests'])
         elif argd['--onlyfuncs']:
             names = get_cppcheck_names(pat=pat, use_tests=argd['--checktests'])
@@ -331,6 +354,46 @@ def check_files(filepaths, names):
     return counts
 
 
+def get_cfuncs_names(pat=None, use_tests=False, untested=False):
+    exe = get_command('cfuncs')
+    if not exe:
+        raise FatalError('missing `cfuncs` command/script.')
+    cmd = [exe, '-m', '-q']
+    if use_tests:
+        cmd.append(TEST_MAIN_FILE)
+    else:
+        cmd.append(COLRC_MAIN_FILE)
+    if untested or use_tests:
+        cmd.append(TEST_DIR)
+    else:
+        cmd.append(TOOL_MAIN_FILE)
+    proc = ProcessOutput(cmd)
+    names = []
+    for line in proc.iter_stdout():
+        name = line.decode().strip()
+        if pat and (pat.search(name) is None):
+            continue
+        names.append(FunctionName(name))
+    return names
+
+
+def get_command(cmdname):
+    """ Look for `cmdname` executable in $PATH.
+        Returns the full path if the command can be found, otherwise returns
+        None.
+    """
+    for trypath in get_env_path():
+        fullpath = os.path.join(trypath, cmdname)
+        try:
+            st = os.stat(fullpath)
+        except FileNotFoundError:
+            continue
+        if st.st_mode & stat.S_IEXEC:
+            debug(f'Found executable: {fullpath}')
+            return fullpath
+    return None
+
+
 def get_cppcheck_names(pat=None, use_tests=False):
     cmd = ['cppcheck']
     cmd.extend(CPPCHECK_ARGS)
@@ -394,6 +457,18 @@ def get_macro_names(pat=None, use_tests=False):
                 continue
             names.append(cls(name))
     return names
+
+
+def get_env_path():
+    """ Return $PATH as a list of paths. """
+    p = [
+        s
+        for s in os.environ.get('PATH', '').split(os.pathsep)
+        if s
+    ]
+    if not p:
+        raise FatalError('no paths in environment variable: PATH')
+    return p
 
 
 def highlight_code(line, lexer=lexer_c):
@@ -463,7 +538,8 @@ def print_footer(argd, info):
     if argd['--all']:
         method = 'unused'
         if not argd['--onlymacros']:
-            plural = f'{plural} (some reported by cppcheck)'
+            reporter = 'cfuncs' if argd['--cfuncs'] else 'cppcheck'
+            plural = f'{plural} (some reported by {reporter})'
     elif argd['--untested']:
         method = 'untested'
     elif argd['--testdeps']:
@@ -629,6 +705,14 @@ class InvalidJSON(InvalidArg):
         if self.msg:
             return f'{msg}\n{self.msg}'
         return msg
+
+
+class FatalError(InvalidArg):
+    """ Raised when the program should exit immediately. """
+    def __str__(self):
+        if self.msg:
+            return f'Fatal error, {self.msg}'
+        return 'Fatal error, cannot continue.'
 
 
 class Line(object):
