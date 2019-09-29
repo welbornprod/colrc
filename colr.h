@@ -1358,6 +1358,13 @@
     colr_str_replace().
 
     \details
+    If \p target is a \string, this is a plain string-replace.
+    If \p target is a \regexpattern, it's \regexmatch will be used to find a
+    target string in \p s.
+    If \p target is a \regexmatch, it's offsets will be used to find a target
+    string in \p s.
+
+    \details
     If a ColorArg or ColorText is used as \p repl, the appropriate
     colr_str_replace_\<type\> function is called. The function will create a
     string of escape-codes/text to be used as a replacement.
@@ -1368,21 +1375,135 @@
 
     \pi s      The string to operate on.
                \mustnull
-    \pi target A target string to replace in \p s.
-               \mustnull
+    \pi target A target string, regex pattern (`regex_t`),
+               or regex match (`regmatch_t`) to replace in \p s.
+               If a string is given, it <em>must be null-terminated</em>.
     \pi repl   A string, ColorArg, ColorResult, or ColorText to replace the target string with.
                If this is `NULL`, then an empty string is used (`""`) as the replacement.
     \return    An allocated string with the result.
                \mustfree
+
+    \sa colr_replace_re
+    \sa colr_str_replace
+    \sa colr_str_replace_ColorArg
+    \sa colr_str_replace_ColorResult
+    \sa colr_str_replace_ColorText
+    \sa colr_str_replace_re_pat
+    \sa colr_str_replace_re_pat_ColorArg
+    \sa colr_str_replace_re_pat_ColorResult
+    \sa colr_str_replace_re_pat_ColorText
+    \sa colr_str_replace_re_match
+    \sa colr_str_replace_re_match_ColorArg
+    \sa colr_str_replace_re_match_ColorResult
+    \sa colr_str_replace_re_match_ColorText
 */
 #define colr_replace(s, target, repl) \
     _Generic( \
         (repl), \
-        char*: colr_str_replace, \
-        ColorArg*: colr_str_replace_ColorArg, \
-        ColorResult*: colr_str_replace_ColorResult, \
-        ColorText*: colr_str_replace_ColorText \
+        char*: _Generic( \
+            (target), \
+                char* : colr_str_replace, \
+                regex_t* : colr_str_replace_re_pat, \
+                regmatch_t*: colr_str_replace_re_match \
+            ), \
+        ColorArg*: _Generic( \
+            (target), \
+                char* : colr_str_replace_ColorArg, \
+                regex_t* : colr_str_replace_re_pat_ColorArg, \
+                regmatch_t*: colr_str_replace_re_match_ColorArg \
+            ), \
+        ColorResult*: _Generic( \
+            (target), \
+                char* : colr_str_replace_ColorResult, \
+                regex_t* : colr_str_replace_re_pat_ColorResult, \
+                regmatch_t*: colr_str_replace_re_match_ColorResult \
+            ), \
+        ColorText*: _Generic( \
+            (target), \
+                char* : colr_str_replace_ColorText \
+                regex_t* : colr_str_replace_re_pat_ColorText, \
+                regmatch_t*: colr_str_replace_re_match_ColorText \
+            ) \
     )(s, target, repl)
+
+/*! \def colr_replace_re
+    Replace a regex pattern \string in \p s with another string, ColorArg string, or
+    ColorText string.
+
+    \details
+    If a string (`char*`) is used as \p repl, this is just a wrapper around
+    colr_str_replace().
+
+    \details
+    If a ColorArg or ColorText is used as \p repl, the appropriate
+    colr_str_replace_\<type\> function is called. The function will create a
+    string of escape-codes/text to be used as a replacement.
+
+    \details
+    If \p repl is `NULL`, then an empty string (`""`) is used as the replacement,
+    which causes the \p target string to be removed.
+
+    \pi s      The string to operate on.
+               \mustnull
+    \pi target A regex pattern \string, \regexpattern,
+               or \regexmatch to replace in \p s.
+               If a string is given, it <em>must be null-terminated</em>.
+    \pi repl   A string, ColorArg, ColorResult, or ColorText to replace the target string with.
+               If this is `NULL`, then an empty string is used (`""`) as the replacement.
+    \return    An allocated string with the result.
+               \mustfree
+
+    \sa colr_replace
+    \sa colr_str_replace_re
+    \sa colr_str_replace_re_ColorArg
+    \sa colr_str_replace_re_ColorResult
+    \sa colr_str_replace_re_ColorText
+
+    \examplecodefor{colr_replace_re,.c}
+    #include "colr.h"
+    int main(void) {
+        char* mystring = "This is a foo line.";
+        puts(mystring);
+        char* replaced = colr_replace_re(mystring, "fo{2}", "replaced", 0);
+        if (!replaced) return EXIT_FAILURE;
+        puts(replaced);
+        free(replaced);
+
+        // ColorArgs.
+        replaced = colr_replace_re(mystring, "f\\w\\w ", fore(RED), 0);
+        if (!replaced) return EXIT_FAILURE;
+        puts(replaced);
+        // No reset code was appended to that last one.
+        printf("%s", CODE_RESET_ALL);
+        free(replaced);
+
+        // ColorResults.
+        replaced = colr_replace_re(
+            mystring,
+            "\\woo",
+            Colr_join(" ", Colr("nicely", fore(RED)), Colr("colored", fore(BLUE))),
+            0
+        );
+        if (!replaced) return EXIT_FAILURE;
+        puts(replaced);
+        free(replaced);
+
+        // ColorTexts.
+        replaced = colr_replace_re(mystring, "f[a-z]{2}", Colr("styled", style(UNDERLINE)) , 0);
+        if (!replaced) return EXIT_FAILURE;
+        puts(replaced);
+        free(replaced);
+    }
+    \endexamplecode
+*/
+#define colr_replace_re(s, target, repl, flags) \
+    _Generic( \
+        (repl), \
+        char*: colr_str_replace_re, \
+        ColorArg*: colr_str_replace_re_ColorArg, \
+        ColorResult*: colr_str_replace_re_ColorResult, \
+        ColorText*: colr_str_replace_re_ColorText \
+    )(s, target, repl, flags)
 
 /*! \def colr_repr
     Transforms several ColrC objects into their string representations.

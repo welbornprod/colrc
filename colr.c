@@ -2363,7 +2363,9 @@ char* colr_str_replace_re(const char* restrict s, const char* restrict pattern, 
     if (regcomp(&repat, pattern, re_flags)) {
         return NULL;
     }
-    return colr_str_replace_re_pat(s, &repat, repl);
+    char* result = colr_str_replace_re_pat(s, &repat, repl);
+    regfree(&repat);
+    return result;
 }
 
 /*! Replace substrings from a regex pattern \string in a \string with a
