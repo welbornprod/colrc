@@ -151,6 +151,7 @@
 #ifdef COLR_GNU
     #include <printf.h> // For register_printf_specifier.
 #endif
+#include <regex.h> // For colr_str_replace_re and friends.
 #include <stdarg.h> // Variadic functions and `va_list`.
 #include <stdbool.h>
 #include <stdint.h> // marker integers for colr structs
@@ -2201,7 +2202,7 @@ typedef struct ColorText {
     //! A marker used to inspect void pointers and determine if they are ColorTexts.
     uint32_t marker;
     //! Text to colorize.
-    char* text;
+    const char* text;
     // Pointers are used for compatibility with the fore(), back(), and style() macros.
     //! ColorArg for fore color. Can be `NULL`.
     ColorArg *fore;
@@ -2311,10 +2312,22 @@ char* colr_str_lstrip_char(const char* s, const char c);
 char* colr_str_lstrip_chars(const char* restrict s, const char* restrict chars);
 size_t colr_str_mb_len(const char* s);
 size_t colr_str_noncode_len(const char* s);
-char* colr_str_replace(char* restrict s, const char* restrict target, const char* restrict repl);
-char* colr_str_replace_ColorArg(char* restrict s, const char* restrict target, ColorArg* repl);
-char* colr_str_replace_ColorResult(char* restrict s, const char* restrict target, ColorResult* repl);
-char* colr_str_replace_ColorText(char* restrict s, const char* restrict target, ColorText* repl);
+char* colr_str_replace(const char* restrict s, const char* restrict target, const char* restrict repl);
+char* colr_str_replace_ColorArg(const char* restrict s, const char* restrict target, ColorArg* repl);
+char* colr_str_replace_ColorResult(const char* restrict s, const char* restrict target, ColorResult* repl);
+char* colr_str_replace_ColorText(const char* restrict s, const char* restrict target, ColorText* repl);
+char* colr_str_replace_re(const char* restrict s, const char* restrict pattern, const char* restrict repl, int re_flags);
+char* colr_str_replace_re_ColorArg(const char* restrict s, const char* restrict pattern, ColorArg* repl, int re_flags);
+char* colr_str_replace_re_ColorResult(const char* restrict s, const char* restrict pattern, ColorResult* repl, int re_flags);
+char* colr_str_replace_re_ColorText(const char* restrict s, const char* restrict pattern, ColorText* repl, int re_flags);
+char* colr_str_replace_re_pat(const char* restrict s, regex_t* repattern, const char* restrict repl);
+char* colr_str_replace_re_pat_ColorArg(const char* restrict s, regex_t* repattern, ColorArg* repl);
+char* colr_str_replace_re_pat_ColorResult(const char* restrict s, regex_t* repattern, ColorResult* repl);
+char* colr_str_replace_re_pat_ColorText(const char* restrict s, regex_t* repattern, ColorText* repl);
+char* colr_str_replace_re_match(const char* restrict s, regmatch_t* match, const char* restrict repl);
+char* colr_str_replace_re_match_ColorArg(const char* restrict s, regmatch_t* match, ColorArg* repl);
+char* colr_str_replace_re_match_ColorResult(const char* restrict s, regmatch_t* match, ColorResult* repl);
+char* colr_str_replace_re_match_ColorText(const char* restrict s, regmatch_t* match, ColorText* repl);
 char* colr_str_repr(const char* s);
 char* colr_str_rjust(const char* s, int width, const char padchar);
 bool colr_str_starts_with(const char* restrict s, const char* restrict prefix);
@@ -2462,7 +2475,7 @@ char* ColorResult_to_str(ColorResult cred);
 ColorText ColorText_empty(void);
 void ColorText_free(ColorText* p);
 void ColorText_free_args(ColorText* p);
-ColorText ColorText_from_values(char* text, ...);
+ColorText ColorText_from_values(const char* text, ...);
 bool ColorText_has_arg(ColorText ctext, ColorArg carg);
 bool ColorText_has_args(ColorText ctext);
 bool ColorText_is_empty(ColorText ctext);

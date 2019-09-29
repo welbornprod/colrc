@@ -2209,17 +2209,17 @@ size_t colr_str_noncode_len(const char* s) {
     \pi target The string to replace.
     \pi repl   The string to replace with.
     \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
-               \p target is `NULL`/empty.
+               or \p target is `NULL`/empty.
                \mustfree
                \maybenullalloc
 */
-char* colr_str_replace(char* restrict s, const char* restrict target, const char* restrict repl) {
+char* colr_str_replace(const char* restrict s, const char* restrict target, const char* restrict repl) {
     if (!(s && target)) return NULL;
     if ((s[0] == '\0') || (target[0] == '\0')) return NULL;
     if (!repl) repl = "";
 
     // Keeps track of the target strings.
-    char* ins = s;
+    char* ins = (char*)s;
     // Count the number of replacements needed, by using strstr and skipping
     // past the targets for each call.
     size_t target_len = strlen(target);
@@ -2266,11 +2266,11 @@ char* colr_str_replace(char* restrict s, const char* restrict target, const char
     \pi repl   The ColorArg to produce escape-codes to replace with.
                ColorArg_free() is called after the replacement is done.
     \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
-               \p target is `NULL`/empty.
+               or \p target is `NULL`/empty.
                \mustfree
                \maybenullalloc
 */
-char* colr_str_replace_ColorArg(char* restrict s, const char* restrict target, ColorArg* repl) {
+char* colr_str_replace_ColorArg(const char* restrict s, const char* restrict target, ColorArg* repl) {
     if (!(s && target)) return NULL;
     if ((s[0] == '\0') || (target[0] == '\0')) return NULL;
     char* replstr = repl ? ColorArg_to_esc(*repl): NULL;
@@ -2289,11 +2289,11 @@ char* colr_str_replace_ColorArg(char* restrict s, const char* restrict target, C
     \pi repl   The ColorResult to produce escape-codes to replace with.
                ColorResult_free() is called after the replacement is done.
     \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
-               \p target is `NULL`/empty.
+               or \p target is `NULL`/empty.
                \mustfree
                \maybenullalloc
 */
-char* colr_str_replace_ColorResult(char* restrict s, const char* restrict target, ColorResult* repl) {
+char* colr_str_replace_ColorResult(const char* restrict s, const char* restrict target, ColorResult* repl) {
     if (!(s && target)) return NULL;
     if ((s[0] == '\0') || (target[0] == '\0')) return NULL;
     char* replstr = repl ? ColorResult_to_str(*repl): NULL;
@@ -2310,15 +2310,347 @@ char* colr_str_replace_ColorResult(char* restrict s, const char* restrict target
     \pi repl   The ColorText to produce text/escape-codes to replace with.
                ColorText_free() is called after the replacement is done.
     \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
-               \p target is `NULL`/empty.
+               or \p target is `NULL`/empty.
                \mustfree
                \maybenullalloc
 */
-char* colr_str_replace_ColorText(char* restrict s, const char* restrict target, ColorText* repl) {
+char* colr_str_replace_ColorText(const char* restrict s, const char* restrict target, ColorText* repl) {
     if (!(s && target)) return NULL;
     if ((s[0] == '\0') || (target[0] == '\0')) return NULL;
     char* replstr = repl ? ColorText_to_str(*repl): NULL;
     char* result = colr_str_replace(s, target, replstr);
+    if (replstr) free(replstr);
+    ColorText_free(repl);
+    return result;
+}
+/*! Replaces substrings from a regex pattern \string in a \string.
+
+    \details
+    Using `NULL` as a replacement is like using an empty string (""), which
+    removes the \p target string from \p s.
+
+    \pi s       The string to operate on.
+    \pi pattern The regex match object to find text to replace.
+    \pi repl    The string to replace with.
+    \return     An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+                \p pattern is `NULL`, or the regex pattern doesn't compile/match.
+                \maybenullalloc
+
+    \sa colr_str_replace_re colr_str_replace_re_match
+
+    \examplecodefor{colr_str_replace_re,.c}
+    #include "colr.h"
+
+    int main(void) {
+        char* mystring = "This is a foo line.";
+        char* replaced = colr_str_replace_re(mystring, "foo", "replaced", 0);
+        if (!replaced) return EXIT_FAILURE;
+        puts(replaced);
+        free(replaced);
+        replaced = colr_str_replace_re(mystring, "^([^ ]+)", "That", 0);
+        if (!replaced) return EXIT_FAILURE;
+        puts(replaced);
+        free(replaced);
+    }
+    \endexamplecode
+*/
+char* colr_str_replace_re(const char* restrict s, const char* restrict pattern, const char* restrict repl, int re_flags) {
+    if (!(s && pattern)) return NULL;
+    if ((s[0] == '\0') || (pattern[0] == '\0')) return NULL;
+    regex_t repat;
+    // Always use extended regex.
+    if (!(re_flags & REG_EXTENDED)) re_flags = re_flags | REG_EXTENDED;
+    if (regcomp(&repat, pattern, re_flags)) {
+        return NULL;
+    }
+    return colr_str_replace_re_pat(s, &repat, repl);
+}
+
+/*! Replace substrings from a regex pattern \string in a \string with a
+    ColorArg's string result.
+    \details
+    Using `NULL` as a replacement is like using an empty string ("").
+
+    \pi s        The string to operate on.
+    \pi pattern  The regex pattern to compile.
+    \pi repl     The ColorArg to produce escape-codes to replace with.
+                 ColorArg_free() is called after the replacement is done.
+    \return      An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+                 \p pattern is `NULL`, or the regex pattern doesn't compile/match.
+                 \mustfree
+                 \maybenullalloc
+*/
+char* colr_str_replace_re_ColorArg(const char* restrict s, const char* restrict pattern, ColorArg* repl, int re_flags) {
+    if (!(s && pattern)) return NULL;
+    if (s[0] == '\0') return NULL;
+    char* replstr = repl ? ColorArg_to_esc(*repl): NULL;
+    char* result = colr_str_replace_re(s, pattern, replstr, re_flags);
+    if (replstr) free(replstr);
+    ColorArg_free(repl);
+    return result;
+}
+
+/*! Replace substrings from a regex pattern \string in a \string with a
+    ColorResult's string result.
+    \details
+    Using `NULL` as a replacement is like using an empty string ("").
+
+    \pi s        The string to operate on.
+    \pi pattern  The regex match object to find text to replace.
+    \pi repl     The ColorResult to produce escape-codes to replace with.
+                 ColorResult_free() is called after the replacement is done.
+    \pi re_flags Flags for `regexec()`.
+    \return      An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+                 \p pattern is `NULL`, or the regex pattern doesn't compile/match.
+                 \mustfree
+                 \maybenullalloc
+*/
+char* colr_str_replace_re_ColorResult(const char* restrict s, const char* restrict pattern, ColorResult* repl, int re_flags) {
+    if (!(s && pattern)) return NULL;
+    if (s[0] == '\0') return NULL;
+    char* replstr = repl ? ColorResult_to_str(*repl): NULL;
+    char* result = colr_str_replace_re(s, pattern, replstr, re_flags);
+    ColorResult_free(repl);
+    return result;
+}
+/*! Replace substrings from a regex pattern \string in a \string with a
+    ColorText's string result.
+    \details
+    Using `NULL` as a replacement is like using an empty string ("").
+
+    \pi s        The string to operate on.
+    \pi pattern  The regex match object to find text to replace.
+    \pi repl     The ColorText to produce text/escape-codes to replace with.
+                 ColorText_free() is called after the replacement is done.
+    \pi re_flags Flags for `regexec()`.
+    \return      An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+                 \p pattern is `NULL`, or the regex pattern doesn't compile/match.
+                 \mustfree
+                 \maybenullalloc
+*/
+char* colr_str_replace_re_ColorText(const char* restrict s, const char* restrict pattern, ColorText* repl, int re_flags) {
+    if (!(s && pattern)) return NULL;
+    if (s[0] == '\0') return NULL;
+    char* replstr = repl ? ColorText_to_str(*repl): NULL;
+    char* result = colr_str_replace_re(s, pattern, replstr, re_flags);
+    if (replstr) free(replstr);
+    ColorText_free(repl);
+    return result;
+}
+
+/*! Replaces substrings from a regex match (`regmatch_t*`) in a \string.
+
+    \details
+    Using `NULL` as a replacement is like using an empty string (""), which
+    removes the \p target string from \p s.
+
+    \pi s     The string to operate on.
+    \pi match The regex match object to find text to replace.
+    \pi repl  The string to replace with.
+    \return   An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+              \p match is `NULL`, or the regex pattern doesn't match.
+              \maybenullalloc
+*/
+char* colr_str_replace_re_match(const char* restrict s, regmatch_t* match, const char* restrict repl) {
+    if (!(s && match)) return NULL;
+    if (s[0] == '\0') return NULL;
+    if (!repl) repl = "";
+    char* result = NULL;
+    if (match->rm_so > 0) {
+        // Starting in the middle of the string.
+        char line_begin[match->rm_so + 1];
+        strncpy(line_begin, s, match->rm_so);
+        line_begin[match->rm_so] = '\0';
+        asprintf_or_return(NULL, &result, "%s%s%s", line_begin, repl, s + match->rm_eo);
+
+    } else {
+        // Replace the beginning of the string.
+        asprintf_or_return(NULL, &result, "%s%s", repl, s + match->rm_eo);
+    }
+    return result;
+}
+
+/*! Replace substrings from a regex match (`regmatch_t*`) in a \string with a
+    ColorArg's string result.
+    \details
+    Using `NULL` as a replacement is like using an empty string ("").
+
+    \pi s        The string to operate on.
+    \pi match    The regex match object to find text to replace.
+    \pi repl     The ColorArg to produce escape-codes to replace with.
+                 ColorArg_free() is called after the replacement is done.
+    \return      An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+                 \p match is `NULL`, or the regex pattern doesn't match.
+                 \mustfree
+                 \maybenullalloc
+*/
+char* colr_str_replace_re_match_ColorArg(const char* restrict s, regmatch_t* match, ColorArg* repl) {
+    if (!(s && match)) return NULL;
+    if (s[0] == '\0') return NULL;
+    char* replstr = repl ? ColorArg_to_esc(*repl): NULL;
+    char* result = colr_str_replace_re_match(s, match, replstr);
+    if (replstr) free(replstr);
+    ColorArg_free(repl);
+    return result;
+}
+
+/*! Replace substrings from a regex match (`regmatch_t*`) in a \string with a
+    ColorResult's string result.
+    \details
+    Using `NULL` as a replacement is like using an empty string ("").
+
+    \pi s        The string to operate on.
+    \pi match    The regex match object to find text to replace.
+    \pi repl     The ColorResult to produce escape-codes to replace with.
+                 ColorResult_free() is called after the replacement is done.
+    \return      An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+                 \p match is `NULL`, or the regex pattern doesn't match.
+                 \mustfree
+                 \maybenullalloc
+*/
+char* colr_str_replace_re_match_ColorResult(const char* restrict s, regmatch_t* match, ColorResult* repl) {
+    if (!(s && match)) return NULL;
+    if (s[0] == '\0') return NULL;
+    char* replstr = repl ? ColorResult_to_str(*repl): NULL;
+    char* result = colr_str_replace_re_match(s, match, replstr);
+    ColorResult_free(repl);
+    return result;
+}
+/*! Replace substrings from a regex match (`regmatch_t*`) in a \string with a
+    ColorText's string result.
+    \details
+    Using `NULL` as a replacement is like using an empty string ("").
+
+    \pi s        The string to operate on.
+    \pi match    The regex match object to find text to replace.
+    \pi repl     The ColorText to produce text/escape-codes to replace with.
+                 ColorText_free() is called after the replacement is done.
+    \return      An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+                 \p match is `NULL`, or the regex pattern doesn't match.
+                 \mustfree
+                 \maybenullalloc
+*/
+char* colr_str_replace_re_match_ColorText(const char* restrict s, regmatch_t* match, ColorText* repl) {
+    if (!(s && match)) return NULL;
+    if (s[0] == '\0') return NULL;
+    char* replstr = repl ? ColorText_to_str(*repl): NULL;
+    char* result = colr_str_replace_re_match(s, match, replstr);
+    if (replstr) free(replstr);
+    ColorText_free(repl);
+    return result;
+}
+
+
+/*! Replaces regex patterns in a \string.
+
+    \details
+    Using `NULL` as a replacement is like using an empty string (""), which
+    removes the \p target string from \p s.
+
+    \pi s         The string to operate on.
+    \pi repattern The regex pattern to match (`regex_t*`).
+    \pi repl      The string to replace with.
+    \pi re_flags  Flags for `regexec()`.
+    \return       An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+                  \p repattern is `NULL`, or the regex pattern doesn't match.
+                  \maybenullalloc
+
+    \sa colr_str_replace_re colr_str_replace_re_match
+
+    \examplecodefor{colr_str_replace_re_pat,.c}
+    #include "colr.h"
+
+    int main(void) {
+        // Compile a regex pattern.
+        regex_t pat;
+        if (regcomp(&pat, "foo", 0)) return EXIT_FAILURE;
+
+        char* mystring = "This is a foo line.";
+        char* replaced = colr_str_replace_re_pat(mystring, &pat, "replaced");
+        if (!replaced) return EXIT_FAILURE;
+        puts(replaced);
+        free(replaced);
+    }
+    \endexamplecode
+*/
+char* colr_str_replace_re_pat(const char* restrict s, regex_t* repattern, const char* restrict repl) {
+    if (!(s && repattern)) return NULL;
+    if (s[0] == '\0') return NULL;
+    if (!repl) repl = "";
+
+    regmatch_t matches[2];
+    if (regexec(repattern, s, 2, matches, 0)) {
+        // No match found.
+        return NULL;
+    }
+    return colr_str_replace_re_match(s, &matches[0], repl);
+}
+
+/*! Replace regex patterns in a \string with a ColorArg's string result.
+    \details
+    Using `NULL` as a replacement is like using an empty string ("").
+
+    \pi s         The string to operate on.
+    \pi repattern The regex pattern to match (`regex_t*`).
+    \pi repl      The ColorArg to produce escape-codes to replace with.
+                  ColorArg_free() is called after the replacement is done.
+    \pi re_flags  Flags for `regexec()`.
+    \return       An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+                  \p repattern is `NULL`, or the regex pattern doesn't match.
+                  \mustfree
+                  \maybenullalloc
+*/
+char* colr_str_replace_re_pat_ColorArg(const char* restrict s, regex_t* repattern, ColorArg* repl) {
+    if (!(s && repattern)) return NULL;
+    if (s[0] == '\0') return NULL;
+    char* replstr = repl ? ColorArg_to_esc(*repl): NULL;
+    char* result = colr_str_replace_re_pat(s, repattern, replstr);
+    if (replstr) free(replstr);
+    ColorArg_free(repl);
+    return result;
+}
+
+/*! Replace regex patterns in a \string with a ColorResult's string result.
+    \details
+    Using `NULL` as a replacement is like using an empty string ("").
+
+    \pi s         The string to operate on.
+    \pi repattern The regex pattern to match (`regex_t*`).
+    \pi repl      The ColorResult to produce escape-codes to replace with.
+                  ColorResult_free() is called after the replacement is done.
+    \pi re_flags  Flags for `regexec()`.
+    \return       An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+                  \p repattern is `NULL`, or the regex pattern doesn't match.
+                  \mustfree
+                  \maybenullalloc
+*/
+char* colr_str_replace_re_pat_ColorResult(const char* restrict s, regex_t* repattern, ColorResult* repl) {
+    if (!(s && repattern)) return NULL;
+    if (s[0] == '\0') return NULL;
+    char* replstr = repl ? ColorResult_to_str(*repl): NULL;
+    char* result = colr_str_replace_re_pat(s, repattern, replstr);
+    ColorResult_free(repl);
+    return result;
+}
+/*! Replace regex patterns in a \string with a ColorText's string result.
+    \details
+    Using `NULL` as a replacement is like using an empty string ("").
+
+    \pi s         The string to operate on.
+    \pi repattern The regex pattern to match (`regex_t*`).
+    \pi repl      The ColorText to produce text/escape-codes to replace with.
+                  ColorText_free() is called after the replacement is done.
+    \pi re_flags  Flags for `regexec()`.
+    \return       An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+                  \p repattern is `NULL`, or the regex pattern doesn't match.
+                  \mustfree
+                  \maybenullalloc
+*/
+char* colr_str_replace_re_pat_ColorText(const char* restrict s, regex_t* repattern, ColorText* repl) {
+    if (!(s && repattern)) return NULL;
+    if (s[0] == '\0') return NULL;
+    char* replstr = repl ? ColorText_to_str(*repl): NULL;
+    char* result = colr_str_replace_re_pat(s, repattern, replstr);
     if (replstr) free(replstr);
     ColorText_free(repl);
     return result;
@@ -4325,7 +4657,7 @@ void ColorText_free_args(ColorText* p) {
 
     \sa ColorText
 */
-ColorText ColorText_from_values(char* text, ...) {
+ColorText ColorText_from_values(const char* text, ...) {
     // Argument list must have ColorArg with NULL members at the end.
     ColorText ctext = ColorText_empty();
     ctext.text = text;
