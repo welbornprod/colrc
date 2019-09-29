@@ -305,16 +305,20 @@
 /*! \def alloc_basic
     Allocate enough for a basic code.
 
-    \return Pointer to the allocated string, or NULL on error.\n
-            \mustfree
+    \return \parblock
+                Pointer to the allocated string, or NULL on error.
+                \mustfree
+            \endparblock
 */
 #define alloc_basic() calloc(CODE_LEN, sizeof(char))
 
 /*! \def alloc_extended
     Allocate enough for a extended code.
 
-    \return Pointer to the allocated string, or NULL on error.\n
-            \mustfree
+    \return \parblock
+                Pointer to the allocated string, or NULL on error.
+                \mustfree
+            \endparblock
 */
 #define alloc_extended() calloc(CODEX_LEN, sizeof(char))
 
@@ -322,16 +326,20 @@
 /*! \def alloc_rgb
     Allocate enough for an rgb code.
 
-    \return Pointer to the allocated string, or NULL on error.\n
-            \mustfree
+    \return \parblock
+                Pointer to the allocated string, or NULL on error.
+                \mustfree
+            \endparblock
 */
 #define alloc_rgb() calloc(CODE_RGB_LEN, sizeof(char))
 
 /*! \def alloc_style
     Allocate enough for a style code.
 
-    \return Pointer to the allocated string, or NULL on error.\n
-            \mustfree
+    \return \parblock
+                Pointer to the allocated string, or NULL on error.
+                \mustfree
+            \endparblock
 */
 #define alloc_style() calloc(STYLE_LEN, sizeof(char))
 
@@ -378,8 +386,10 @@
 
 
     \pi x   A BasicValue, ExtendedValue, or RGB struct to use for the color value.
-    \return A pointer to a heap-allocated ColorArg struct.\n
-            \colrmightfree
+    \return \parblock
+                A pointer to a heap-allocated ColorArg struct.\n
+                \colrmightfree
+            \endparblock
 
     \sa back_arg back_str colr Colr
 
@@ -397,10 +407,12 @@
 
     \pi x   `BasicValue`, `Extended` (`unsigned char`), `RGB` struct,
             or string (color name) for back color.
-    \return A ColorArg with the BACK type set, and it's `.value.type` set
-            for the appropriate color type/value.\n
-            For invalid values the `.value.type` may be set to TYPE_INVALID.\n
-            \mustfree
+    \return \parblock
+                A ColorArg with the BACK type set, and it's `.value.type` set
+                for the appropriate color type/value.\n
+                For invalid values the `.value.type` may be set to TYPE_INVALID.\n
+                \mustfree
+            \endparblock
 
     \sa back back_str
 
@@ -487,7 +499,7 @@
     \details
     Any value less than `0` is considered false.
 
-    \pi x An enum to convert to boolean.
+    \pi x   An enum to convert to boolean.
     \retval true if the value is considered valid, or non-empty.
     \retval false if the value is considered invalid, or empty.
 */
@@ -652,9 +664,10 @@
     \pi text String to colorize/style.
     \pi ...  No more than 3 ColorArg pointers for fore, back, and style in any order.
 
-    \return An allocated ColorText.
-            \colrmightfree
-
+    \return \parblock
+                An allocated ColorText.
+                \colrmightfree
+            \endparblock
     \sa Colra
 
     \example Colr_example.c
@@ -703,12 +716,16 @@
     Like colr_cat(), but returns an allocated ColorResult that the \colrmacros
     will automatically `free()`.
 
-    \pi ... Arguments for colr_cat(), to concatenate.
-            \colrwillfree
-    \return An allocated ColorResult with all arguments joined together.\n
-            \mustfree
-            \maybenullalloc
-            \colrmightfree
+    \pi ... \parblock
+                Arguments for colr_cat(), to concatenate.
+                \colrwillfree
+            \endparblock
+    \return \parblock
+                An allocated ColorResult with all arguments joined together.\n
+                \mustfree
+                \maybenullalloc
+                \colrmightfree
+            \endparblock
 */
 #define Colr_cat(...) ColorResult_to_ptr(ColorResult_new(colr_cat(__VA_ARGS__)))
 
@@ -722,8 +739,10 @@
     \pi justwidth Width for justification.
     \pi ...       Fore, back, or style ColorArgs for Colr().
 
-    \return       An allocated ColorText.\n
-                  \colrmightfree
+    \return       \parblock
+                      An allocated ColorText.
+                      \colrmightfree
+                  \endparblock
 
     \examplecodefor{Colr_center,.c}
     char* justified = colr_cat(Colr_center("This.", 9, fore(RED), back(WHITE)));
@@ -750,8 +769,10 @@
     \pi c         The character to pad with.
     \pi ...       Fore, back, or style ColorArgs for Colr().
 
-    \return       An allocated ColorText.\n
-                  \colrmightfree
+    \return       \parblock
+                      An allocated ColorText.
+                      \colrmightfree
+                  \endparblock
 
     \sa Colr_center
 
@@ -779,14 +800,18 @@
 
     \pi joiner What to put between the other arguments.
                ColorArg pointer, ColorResult pointer, ColorText pointer, or string.
-    \pi ...    Other arguments to join, with \p joiner between them.
-               ColorArg pointers, ColorResult pointers, ColorText pointers,
-               or strings, in any order.
-               \colrwillfree
-    \return    An allocated ColorResult.\n
-               \mustfree
-               \maybenullalloc
-               \colrmightfree
+    \pi ...    \parblock
+                   Other arguments to join, with \p joiner between them.
+                   ColorArg pointers, ColorResult pointers, ColorText pointers,
+                   or strings, in any order.
+                   \colrwillfree
+               \endparblock
+    \return    \parblock
+                   An allocated ColorResult.
+                   \mustfree
+                   \maybenullalloc
+                   \colrmightfree
+                \endparblock
 
     \sa ColorResult colr_join colr Colr
 
@@ -804,8 +829,10 @@
     \pi justwidth Width for justification.
     \pi ...       Fore, back, or style ColorArgs for Colr().
 
-    \return       An allocated ColorText.\n
-                  \colrmightfree
+    \return       \parblock
+                      An allocated ColorText.
+                      \colrmightfree
+                  \endparblock
 
     \examplecodefor{Colr_ljust,.c}
     char* justified = colr_cat(Colr_ljust("This.", 8, fore(RED), back(WHITE)));
@@ -831,8 +858,10 @@
     \pi c         The character to pad with.
     \pi ...       Fore, back, or style ColorArgs for Colr().
 
-    \return       An allocated ColorText.\n
-                  \colrmightfree
+    \return       \parblock
+                      An allocated ColorText.
+                      \colrmightfree
+                  \endparblock
 
     \sa Colr_ljust
 
@@ -862,8 +891,10 @@
     \pi justwidth Width for justification.
     \pi ...       Fore, back, or style ColorArgs for Colr().
 
-    \return       An allocated ColorText.\n
-                  \colrmightfree
+    \return       \parblock
+                    An allocated ColorText.
+                    \colrmightfree
+                  \endparblock
 
     \examplecodefor{Colr_rjust,.c}
     char* justified = colr_cat(Colr_rjust("This.", 8, fore(RED), back(WHITE)));
@@ -890,8 +921,10 @@
     \pi c         The character to pad with.
     \pi ...       Fore, back, or style ColorArgs for Colr().
 
-    \return       An allocated ColorText.\n
-                  \colrmightfree
+    \return       \parblock
+                    An allocated ColorText.
+                    \colrmightfree
+                  \endparblock
 
     \sa Colr_rjust
 
@@ -919,11 +952,16 @@
     `free()` the ColorText, and return a string that you are responsible for.
 
     \pi text String to colorize/style.
-    \pi ...  No more than 3 ColorArg pointers for fore, back, and style in any order.
-             \colrwillfree
-    \return An allocated string with the result.\n
-            \mustfree
-            \maybenullalloc
+    \pi ...  \parblock
+                No more than 3 ColorArg pointers for fore, back, and style in
+                any order.
+                \colrwillfree
+             \endparblock
+    \return  \parblock
+                An allocated string with the result.\n
+                \mustfree
+                \maybenullalloc
+             \endparblock
 */
 #define Colr_str(text, ...) colr_cat(Colr(text, __VA_ARGS__))
 
@@ -964,11 +1002,15 @@
     for you, then you will have to call colr_to_str() on the structs and build
     or join the resulting strings yourself.
 
-    \pi ... One or more ColorArg pointers, ColorResult pointers, ColorText pointers,
-            or strings to join.
-            \colrwillfree
-    \return An allocated string result.\n
-            \mustfree
+    \pi ... \parblock
+                One or more ColorArg pointers, ColorResult pointers, ColorText
+                pointers, or strings to join.
+                \colrwillfree
+            \endparblock
+    \return \parblock
+                An allocated string result.\n
+                \mustfree
+            \endparblock
 
     \sa Colr
 
@@ -1024,9 +1066,11 @@
     ColorValues.
 
     \pi x   A supported type to get an example string for.
-    \return An allocated string with the result.\n
-            \mustfree
-            \maybenullalloc
+    \return \parblock
+                An allocated string with the result.
+                \mustfree
+                \maybenullalloc
+            \endparblock
 */
 #define colr_example(x) \
     _Generic( \
@@ -1163,8 +1207,10 @@
                ColorArg pointer, ColorText pointer, or string.
     \pi ...    Other arguments to join, with \p joiner between them.
                ColorArg pointers, ColorText pointers, or strings, in any order.
-    \return    An allocated string.\n
-               \mustfree
+    \return    \parblock
+                   An allocated string.
+                   \mustfree
+               \endparblock
 
     \sa colr Colr
 
@@ -1265,8 +1311,10 @@
 
     \gnuonly
 
-    \pi ... Arguments for `printf`.
-            \colrwillfree
+    \pi ... \parblock
+                Arguments for `printf`.
+                \colrwillfree
+            \endparblock
     \return Same as `printf`.
 
     \example colr_printf_example.c
@@ -1282,8 +1330,10 @@
 
     \gnuonly
 
-    \pi ... Arguments for `fprintf`.\n
-            \colrwillfree
+    \pi ... \parblock
+                Arguments for `fprintf`.
+                \colrwillfree
+            \endparblock
     \return Same as `fprintf`.
 */
 #define colr_fprintf(...) colr_printf_macro(fprintf, __VA_ARGS__)
@@ -1297,8 +1347,10 @@
 
     \gnuonly
 
-    \pi ... Arguments for `sprintf`.\n
-            \colrwillfree
+    \pi ... \parblock
+                Arguments for `sprintf`.
+                \colrwillfree
+            \endparblock
     \return Same as `sprintf`.
 */
 #define colr_sprintf(...) colr_printf_macro(sprintf, __VA_ARGS__)
@@ -1312,8 +1364,10 @@
 
     \gnuonly
 
-    \pi ... Arguments for `snprintf`.\n
-            \colrwillfree
+    \pi ... \parblock
+                Arguments for `snprintf`.
+                \colrwillfree
+            \endparblock
     \return Same as `snprintf`.
 */
 #define colr_snprintf(...) colr_printf_macro(snprintf, __VA_ARGS__)
@@ -1327,8 +1381,10 @@
 
     \gnuonly
 
-    \pi ... Arguments for `asprintf`.
-            \colrwillfree
+    \pi ... \parblock
+                Arguments for `asprintf
+                \colrwillfree
+            \endparblock
     \return Same as `asprintf`.
 */
 #define colr_asprintf(...) colr_printf_macro(asprintf, __VA_ARGS__)
@@ -1373,22 +1429,26 @@
     If \p repl is `NULL`, then an empty string (`""`) is used as the replacement,
     which causes the \p target string to be removed.
 
-    \pi s      The string to operate on.
-               \mustnull
+    \pi s      \parblock
+                   The string to operate on.
+                   \mustnull
+                   \endparblock
     \pi target \parblock
-               A target string, regex pattern (`regex_t`),
-               or regex match (`regmatch_t`) to replace in \p s.
-               If a string is given, it <em>must be null-terminated</em>.
+                   A target string, regex pattern (`regex_t`),
+                   or regex match (`regmatch_t`) to replace in \p s.
+                   If a string is given, it <em>must be null-terminated</em>.
                \endparblock
     \pi repl   \parblock
-               A string, ColorArg, ColorResult, or ColorText to replace the target string with.
-               If this is `NULL`, then an empty string is used (`""`) as the replacement.
-               \colrwillfree
+                   A string, ColorArg, ColorResult, or ColorText to replace
+                   the target string with.
+                   If this is `NULL`, then an empty string is used (`""`) as
+                   the replacement.
+                   \colrwillfree
                \endparblock
     \return    \parblock
-               An allocated string with the result.
-               \mustfree
-               \maybenullalloc
+                   An allocated string with the result.
+                   \mustfree
+                   \maybenullalloc
                \endparblock
 
     \sa colr_replace_re
@@ -1452,29 +1512,31 @@
     which causes the \p target string to be removed.
 
     \pi s      \parblock
-               The string to operate on.
-               \mustnull
+                   The string to operate on.
+                   \mustnull
                \endparblock
     \pi target \parblock
-               A regex pattern \string, \regexpattern,
-               or \regexmatch to replace in \p s.
-               \n
-               If a string is given, it <em>must be null-terminated</em>.
+                   A regex pattern \string, \regexpattern,
+                   or \regexmatch to replace in \p s.
+                   \n
+                   If a string is given, it <em>must be null-terminated</em>.
                \endparblock
     \pi repl   \parblock
-               A string, ColorArg, ColorResult, or ColorText to replace the target string with.
-               If this is `NULL`, then an empty string is used (`""`) as the replacement.
-               \colrwillfree
+                   A string, ColorArg, ColorResult, or ColorText to replace
+                   the target string with.
+                   If this is `NULL`, then an empty string is used (`""`) as
+                   the replacement.
+                   \colrwillfree
                \endparblock
     \pi flags  \parblock
-               Flags for `regcomp()`. `REG_EXTENDED` is always used, whether
-               flags are provided or not.
+                   Flags for `regcomp()`. `REG_EXTENDED` is always used, whether
+                   flags are provided or not.
                \endparblock
 
     \return    \parblock
-               An allocated string with the result.
-               \mustfree
-               \maybenullalloc
+                   An allocated string with the result.
+                   \mustfree
+                   \maybenullalloc
                \endparblock
 
     \sa colr_replace
@@ -1558,8 +1620,10 @@
         - char
 
     \pi x   A value with one of the supported types to transform into a string.
-    \return Stringified representation of what was passed in.
-            \mustfree
+    \return \parblock
+                Stringified representation of what was passed in.
+                \mustfree
+            \endparblock
 
 */
 #define colr_repr(x) \
@@ -1617,9 +1681,11 @@
     If a string is given, it is duplicated like `strdup()`.
 
     \pi x   A supported type to build a string from.
-    \return An allocated string from the type's `*_to_str()` function.
-            \mustfree
-            \maybenullalloc
+    \return \parblock
+                An allocated string from the type's `*_to_str()` function.
+                \mustfree
+                \maybenullalloc
+            \endparblock
 */
 #define colr_to_str(x) \
     _Generic( \
@@ -1708,9 +1774,10 @@
     \details
     This is a convenience macro for ExtendedValue_from_hex_default().
 
-    \pi s              A hex string to convert.
-    \pi default_value  ExtendedValue to use if the hex string is not valid.
-    \return            The closest matching ExtendedValue, or `default_value` for bad hex strings.
+    \pi s             A hex string to convert.
+    \pi default_value ExtendedValue to use if the hex string is not valid.
+    \return           The closest matching ExtendedValue, or `default_value` for
+                      bad hex strings.
 
     \sa ext ext_hex hex hex_or
 */
@@ -1767,8 +1834,10 @@
     Color names (`char* `) can be passed to generate the appropriate color value.
 
     \pi x   A BasicValue, ExtendedValue, or RGB struct to use for the color value.
-    \return A pointer to a heap-allocated ColorArg struct.
-            \colrmightfree
+    \return \parblock
+                A pointer to a heap-allocated ColorArg struct.
+                \colrmightfree
+            \endparblock
 
     \sa fore_arg fore_str colr Colr
 
@@ -1806,8 +1875,10 @@
     Retrieve just the escape code string for a fore color.
 
     \pi     x A BasicValue, ExtendedValue, or RGB struct.
-    \return An allocated ColorArg.
-            \mustfree
+    \return \parblock
+                An allocated ColorArg.
+                \mustfree
+            \endparblock
 
     \sa fore fore_arg
 */
@@ -1911,8 +1982,10 @@
     Style names (`char* `) can be passed to generate the appropriate style value.
 
     \pi x   A StyleValue.
-    \return A pointer to a heap-allocated ColorArg struct.
-            \colrmightfree
+    \return \parblock
+                A pointer to a heap-allocated ColorArg struct.
+                \colrmightfree
+            \endparblock
 
     \sa style_arg style_str colr Colr
 
@@ -1942,8 +2015,10 @@
     Retrieve just the escape code string for a style.
 
     \pi x   StyleValue to use.
-    \return An allocated string.
-            \mustfree
+    \return \parblock
+                An allocated string.
+                \mustfree
+            \endparblock
 
     \sa style style_arg
 */
