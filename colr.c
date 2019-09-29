@@ -2208,10 +2208,12 @@ size_t colr_str_noncode_len(const char* s) {
     \pi s      The string to operate on.
     \pi target The string to replace.
     \pi repl   The string to replace with.
-    \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+    \return    \parblock
+               An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                or \p target is `NULL`/empty.
                \mustfree
                \maybenullalloc
+               \endparblock
 */
 char* colr_str_replace(const char* restrict s, const char* restrict target, const char* restrict repl) {
     if (!(s && target)) return NULL;
@@ -2265,10 +2267,12 @@ char* colr_str_replace(const char* restrict s, const char* restrict target, cons
     \pi target The string to replace.
     \pi repl   The ColorArg to produce escape-codes to replace with.
                ColorArg_free() is called after the replacement is done.
-    \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+    \return    \parblock
+               An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                or \p target is `NULL`/empty.
                \mustfree
                \maybenullalloc
+               \endparblock
 */
 char* colr_str_replace_ColorArg(const char* restrict s, const char* restrict target, ColorArg* repl) {
     if (!(s && target)) return NULL;
@@ -2288,10 +2292,12 @@ char* colr_str_replace_ColorArg(const char* restrict s, const char* restrict tar
     \pi target The string to replace.
     \pi repl   The ColorResult to produce escape-codes to replace with.
                ColorResult_free() is called after the replacement is done.
-    \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+    \return    \parblock
+               An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                or \p target is `NULL`/empty.
                \mustfree
                \maybenullalloc
+               \endparblock
 */
 char* colr_str_replace_ColorResult(const char* restrict s, const char* restrict target, ColorResult* repl) {
     if (!(s && target)) return NULL;
@@ -2309,10 +2315,12 @@ char* colr_str_replace_ColorResult(const char* restrict s, const char* restrict 
     \pi target The string to replace.
     \pi repl   The ColorText to produce text/escape-codes to replace with.
                ColorText_free() is called after the replacement is done.
-    \return    An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+    \return    \parblock
+               An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                or \p target is `NULL`/empty.
                \mustfree
                \maybenullalloc
+               \endparblock
 */
 char* colr_str_replace_ColorText(const char* restrict s, const char* restrict target, ColorText* repl) {
     if (!(s && target)) return NULL;
@@ -2329,12 +2337,16 @@ char* colr_str_replace_ColorText(const char* restrict s, const char* restrict ta
     Using `NULL` as a replacement is like using an empty string (""), which
     removes the \p target string from \p s.
 
-    \pi s       The string to operate on.
-    \pi pattern The regex match object to find text to replace.
-    \pi repl    The string to replace with.
-    \return     An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
-                \p pattern is `NULL`, or the regex pattern doesn't compile/match.
-                \maybenullalloc
+    \pi s        The string to operate on.
+    \pi pattern  The regex match object to find text to replace.
+    \pi repl     The string to replace with.
+    \pi re_flags Flags for `regcomp()`. `REG_EXTENDED` is always used, whether
+                 flags are provided or not.
+    \return      \parblock
+                 An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+                 \p pattern is `NULL`, or the regex pattern doesn't compile/match.
+                 \maybenullalloc
+                 \endparblock
 
     \sa colr_str_replace_re colr_str_replace_re_match
 
@@ -2377,10 +2389,14 @@ char* colr_str_replace_re(const char* restrict s, const char* restrict pattern, 
     \pi pattern  The regex pattern to compile.
     \pi repl     The ColorArg to produce escape-codes to replace with.
                  ColorArg_free() is called after the replacement is done.
-    \return      An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+    \pi re_flags Flags for `regcomp()`. `REG_EXTENDED` is always used, whether
+                 flags are provided or not.
+    \return      \parblock
+                 An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                  \p pattern is `NULL`, or the regex pattern doesn't compile/match.
                  \mustfree
                  \maybenullalloc
+                 \endparblock
 */
 char* colr_str_replace_re_ColorArg(const char* restrict s, const char* restrict pattern, ColorArg* repl, int re_flags) {
     if (!(s && pattern)) return NULL;
@@ -2401,11 +2417,14 @@ char* colr_str_replace_re_ColorArg(const char* restrict s, const char* restrict 
     \pi pattern  The regex match object to find text to replace.
     \pi repl     The ColorResult to produce escape-codes to replace with.
                  ColorResult_free() is called after the replacement is done.
-    \pi re_flags Flags for `regexec()`.
-    \return      An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+    \pi re_flags Flags for `regcomp()`. `REG_EXTENDED` is always used, whether
+                 flags are provided or not.
+    \return      \parblock
+                 An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                  \p pattern is `NULL`, or the regex pattern doesn't compile/match.
                  \mustfree
                  \maybenullalloc
+                 \endparblock
 */
 char* colr_str_replace_re_ColorResult(const char* restrict s, const char* restrict pattern, ColorResult* repl, int re_flags) {
     if (!(s && pattern)) return NULL;
@@ -2424,11 +2443,14 @@ char* colr_str_replace_re_ColorResult(const char* restrict s, const char* restri
     \pi pattern  The regex match object to find text to replace.
     \pi repl     The ColorText to produce text/escape-codes to replace with.
                  ColorText_free() is called after the replacement is done.
-    \pi re_flags Flags for `regexec()`.
-    \return      An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+    \pi re_flags Flags for `regcomp()`. `REG_EXTENDED` is always used, whether
+                 flags are provided or not.
+    \return      \parblock
+                 An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                  \p pattern is `NULL`, or the regex pattern doesn't compile/match.
                  \mustfree
                  \maybenullalloc
+                 \endparblock
 */
 char* colr_str_replace_re_ColorText(const char* restrict s, const char* restrict pattern, ColorText* repl, int re_flags) {
     if (!(s && pattern)) return NULL;
@@ -2449,9 +2471,12 @@ char* colr_str_replace_re_ColorText(const char* restrict s, const char* restrict
     \pi s     The string to operate on.
     \pi match The regex match object to find text to replace.
     \pi repl  The string to replace with.
-    \return   An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+    \return   \parblock
+              An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
               \p match is `NULL`, or the regex pattern doesn't match.
+              \mustfree
               \maybenullalloc
+              \endparblock
 */
 char* colr_str_replace_re_match(const char* restrict s, regmatch_t* match, const char* restrict repl) {
     if (!(s && match)) return NULL;
@@ -2481,10 +2506,12 @@ char* colr_str_replace_re_match(const char* restrict s, regmatch_t* match, const
     \pi match    The regex match object to find text to replace.
     \pi repl     The ColorArg to produce escape-codes to replace with.
                  ColorArg_free() is called after the replacement is done.
-    \return      An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+    \return      \parblock
+                 An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                  \p match is `NULL`, or the regex pattern doesn't match.
                  \mustfree
                  \maybenullalloc
+                 \endparblock
 */
 char* colr_str_replace_re_match_ColorArg(const char* restrict s, regmatch_t* match, ColorArg* repl) {
     if (!(s && match)) return NULL;
@@ -2505,10 +2532,12 @@ char* colr_str_replace_re_match_ColorArg(const char* restrict s, regmatch_t* mat
     \pi match    The regex match object to find text to replace.
     \pi repl     The ColorResult to produce escape-codes to replace with.
                  ColorResult_free() is called after the replacement is done.
-    \return      An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+    \return      \parblock
+                 An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                  \p match is `NULL`, or the regex pattern doesn't match.
                  \mustfree
                  \maybenullalloc
+                 \endparblock
 */
 char* colr_str_replace_re_match_ColorResult(const char* restrict s, regmatch_t* match, ColorResult* repl) {
     if (!(s && match)) return NULL;
@@ -2527,10 +2556,12 @@ char* colr_str_replace_re_match_ColorResult(const char* restrict s, regmatch_t* 
     \pi match    The regex match object to find text to replace.
     \pi repl     The ColorText to produce text/escape-codes to replace with.
                  ColorText_free() is called after the replacement is done.
-    \return      An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+    \return      \parblock
+                 An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                  \p match is `NULL`, or the regex pattern doesn't match.
                  \mustfree
                  \maybenullalloc
+                 \endparblock
 */
 char* colr_str_replace_re_match_ColorText(const char* restrict s, regmatch_t* match, ColorText* repl) {
     if (!(s && match)) return NULL;
@@ -2552,10 +2583,12 @@ char* colr_str_replace_re_match_ColorText(const char* restrict s, regmatch_t* ma
     \pi s         The string to operate on.
     \pi repattern The regex pattern to match (`regex_t*`).
     \pi repl      The string to replace with.
-    \pi re_flags  Flags for `regexec()`.
-    \return       An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+    \return       \parblock
+                  An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                   \p repattern is `NULL`, or the regex pattern doesn't match.
+                  \mustfree
                   \maybenullalloc
+                  \endparblock
 
     \sa colr_str_replace_re colr_str_replace_re_match
 
@@ -2596,11 +2629,12 @@ char* colr_str_replace_re_pat(const char* restrict s, regex_t* repattern, const 
     \pi repattern The regex pattern to match (`regex_t*`).
     \pi repl      The ColorArg to produce escape-codes to replace with.
                   ColorArg_free() is called after the replacement is done.
-    \pi re_flags  Flags for `regexec()`.
-    \return       An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+    \return       \parblock
+                  An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                   \p repattern is `NULL`, or the regex pattern doesn't match.
                   \mustfree
                   \maybenullalloc
+                  \endparblock
 */
 char* colr_str_replace_re_pat_ColorArg(const char* restrict s, regex_t* repattern, ColorArg* repl) {
     if (!(s && repattern)) return NULL;
@@ -2620,11 +2654,12 @@ char* colr_str_replace_re_pat_ColorArg(const char* restrict s, regex_t* repatter
     \pi repattern The regex pattern to match (`regex_t*`).
     \pi repl      The ColorResult to produce escape-codes to replace with.
                   ColorResult_free() is called after the replacement is done.
-    \pi re_flags  Flags for `regexec()`.
-    \return       An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+    \return       \parblock
+                  An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                   \p repattern is `NULL`, or the regex pattern doesn't match.
                   \mustfree
                   \maybenullalloc
+                  \endparblock
 */
 char* colr_str_replace_re_pat_ColorResult(const char* restrict s, regex_t* repattern, ColorResult* repl) {
     if (!(s && repattern)) return NULL;
@@ -2642,11 +2677,12 @@ char* colr_str_replace_re_pat_ColorResult(const char* restrict s, regex_t* repat
     \pi repattern The regex pattern to match (`regex_t*`).
     \pi repl      The ColorText to produce text/escape-codes to replace with.
                   ColorText_free() is called after the replacement is done.
-    \pi re_flags  Flags for `regexec()`.
-    \return       An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
+    \return       \parblock
+                  An allocated string with the result, or `NULL` if \p s is `NULL`/empty,
                   \p repattern is `NULL`, or the regex pattern doesn't match.
                   \mustfree
                   \maybenullalloc
+                  \endparblock
 */
 char* colr_str_replace_re_pat_ColorText(const char* restrict s, regex_t* repattern, ColorText* repl) {
     if (!(s && repattern)) return NULL;
@@ -2670,9 +2706,11 @@ char* colr_str_replace_re_pat_ColorText(const char* restrict s, regex_t* repatte
     result is printed.
 
     \pi     s The string to represent.
-    \return An allocated string with the representation.
+    \return \parblock
+            An allocated string with the representation.
             \mustfree
             \maybenullalloc
+            \endparblock
 
     \sa colr_char_should_escape colr_char_escape_char
 

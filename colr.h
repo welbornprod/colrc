@@ -1375,13 +1375,21 @@
 
     \pi s      The string to operate on.
                \mustnull
-    \pi target A target string, regex pattern (`regex_t`),
+    \pi target \parblock
+               A target string, regex pattern (`regex_t`),
                or regex match (`regmatch_t`) to replace in \p s.
                If a string is given, it <em>must be null-terminated</em>.
-    \pi repl   A string, ColorArg, ColorResult, or ColorText to replace the target string with.
+               \endparblock
+    \pi repl   \parblock
+               A string, ColorArg, ColorResult, or ColorText to replace the target string with.
                If this is `NULL`, then an empty string is used (`""`) as the replacement.
-    \return    An allocated string with the result.
+               \colrwillfree
+               \endparblock
+    \return    \parblock
+               An allocated string with the result.
                \mustfree
+               \maybenullalloc
+               \endparblock
 
     \sa colr_replace_re
     \sa colr_str_replace
@@ -1443,15 +1451,31 @@
     If \p repl is `NULL`, then an empty string (`""`) is used as the replacement,
     which causes the \p target string to be removed.
 
-    \pi s      The string to operate on.
+    \pi s      \parblock
+               The string to operate on.
                \mustnull
-    \pi target A regex pattern \string, \regexpattern,
+               \endparblock
+    \pi target \parblock
+               A regex pattern \string, \regexpattern,
                or \regexmatch to replace in \p s.
+               \n
                If a string is given, it <em>must be null-terminated</em>.
-    \pi repl   A string, ColorArg, ColorResult, or ColorText to replace the target string with.
+               \endparblock
+    \pi repl   \parblock
+               A string, ColorArg, ColorResult, or ColorText to replace the target string with.
                If this is `NULL`, then an empty string is used (`""`) as the replacement.
-    \return    An allocated string with the result.
+               \colrwillfree
+               \endparblock
+    \pi flags  \parblock
+               Flags for `regcomp()`. `REG_EXTENDED` is always used, whether
+               flags are provided or not.
+               \endparblock
+
+    \return    \parblock
+               An allocated string with the result.
                \mustfree
+               \maybenullalloc
+               \endparblock
 
     \sa colr_replace
     \sa colr_str_replace_re
