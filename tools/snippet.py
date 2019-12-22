@@ -52,7 +52,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.2.7'
+VERSION = '0.2.8'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -246,12 +246,18 @@ def main(argd):
                 show_name=argd['--name'],
                 quiet=argd['--quiet'],
             )
-
+    # `snippets` can be set by reading files, editing the last snippet, or
+    # by using `argd['CODE']`.
+    snippets = []
     if argd['--file']:
         snippets = [
             read_file(s)
             for s in argd['--file']
+            if s
         ]
+        if not snippets:
+            raise InvalidArg('no files read.')
+
     if argd['--editlast']:
         if argd['--wrapped']:
             if not config['last_c_file']:
@@ -269,7 +275,8 @@ def main(argd):
             raise InvalidArg('no "last snippet" found.')
         snippets = [Snippet(LAST_SNIPPET, name='last-snippet')]
     else:
-        snippets = [
+        # Snippets may have been set by reading a file (argd['--file']).
+        snippets = snippets or [
             Snippet(argd['CODE'], name='cmdline-snippet') or read_stdin()
         ]
 
@@ -547,11 +554,19 @@ def get_gcc_cmd(
     if output_file:
         cmd.extend(('-o', output_file))
     cmd.append(f'-iquote{COLR_DIR}')
-    compiler, make_flags = get_make_flags(
-        user_args=[make_target] if make_target else None
-    )
+
+    try:
+        compiler, make_flags = get_make_flags(
+            user_args=[make_target] if make_target else None
+        )
+    except ValueError:
+        # No make flags available.
+        compiler = None
+        make_flags = []
+
     if not compiler:
         compiler = 'gcc'
+        debug(f'Using default compiler: {compiler}')
     cmd.extend(make_flags)
     cmd.extend(user_args or [])
     if c_files:
@@ -613,7 +628,13 @@ def iter_make_output(user_args=None):
     make_cmd = ['make']
     make_cmd.extend(user_args or [])
     make_cmd.extend(['-B', '-n'])
-    yield from iter_output(make_cmd)
+    try:
+        yield from iter_output(make_cmd)
+    except subprocess.CalledProcessError:
+        # No make flags for you.
+        cmdstr = ' '.join(make_cmd)
+        debug(f'No make flags, returned non-zero: {cmdstr}')
+        pass
 
 
 def iter_output(cmd, stderr=subprocess.PIPE):
@@ -1143,11 +1164,14 @@ def view_snippets(snippets, show_name=False, quiet=False):
 
 
 class CompileError(ValueError):
-    def __init__(self, filepath):
+    def __init__(self, filepath, reason=None):
         self.filepath = filepath
+        self.reason = reason
 
     def __str__(self):
-        return f'Can\'t compile snippet: {self.filepath}'
+        rsn = f', {self.reason}' if self.reason else ''
+        fpath = self.filepath or '<no filepath>'
+        return f'Can\'t compile snippet{rsn}: {fpath}'
 
 
 class EditError(CompileError):
@@ -1429,6 +1453,10 @@ class Snippet(object):
         return str(self.code)
 
     def compile(self, user_args=None, make_target=None):
+        if not self.code:
+            # No code to compile.
+            raise CompileError(self.src_file, reason='no code to compile')
+
         status(C(': ').join(
             C('Compiling', 'cyan'),
             self.name,
@@ -1454,10 +1482,13 @@ class Snippet(object):
             debug(' '.join(cmd), align=True)
             compret = run_compile_cmd(self.src_file, cmd)
         except subprocess.CalledProcessError:
-            raise CompileError(self.src_file)
+            raise CompileError(self.src_file, reason='compiler error')
         else:
             if compret != 0:
-                raise CompileError(self.src_file)
+                raise CompileError(
+                    self.src_file,
+                    reason='compiler returned non-zero'
+                )
         tmpobjnames = get_obj_files()
         debug(f'Found object files: {", ".join(tmpobjnames)}')
         objnames = []

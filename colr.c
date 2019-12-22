@@ -8,6 +8,11 @@
 */
 #include "colr.h"
 
+/*! Integer to test for the presence of the "escaped output modifier" in
+    colr_printf_handler. This is set in colr_printf_register.
+*/
+int colr_printf_esc_mod = 0;
+
 //! A list of BasicInfo items, used with BasicValue_from_str().
 const BasicInfo basic_names[] = {
     {"reset", RESET},
@@ -1212,6 +1217,15 @@ int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *co
             return 1;
         }
     }
+    // Escape output if the '/' modifier was used.
+    if (info->user & colr_printf_esc_mod) {
+        char* escaped = colr_repr(s);
+        if (escaped) {
+            // Escape was successful, we don't need the original `s` anymore.
+            free(s);
+            s = escaped;
+        }
+    }
     fprintf(fp, "%s", s);
     size_t length = strlen(s);
     if (cargp || ctextp || justified) free(s);
@@ -1284,6 +1298,8 @@ void colr_printf_register(void) {
     if (is_registered) return;
     // Do the actual registering, if not done already.
     register_printf_specifier(COLR_FMT_CHAR, colr_printf_handler, colr_printf_info);
+    // Register the '/' modifier for escaped output.
+    colr_printf_esc_mod = register_printf_modifier(L"/");
     is_registered = true;
 }
 #endif // COLR_GNU
@@ -2662,10 +2678,15 @@ char* colr_str_replace_re_match_ColorText(const char* restrict s, regmatch_t* ma
     int main(void) {
         // Compile a regex pattern.
         regex_t pat;
-        if (regcomp(&pat, "foo", 0)) return EXIT_FAILURE;
-
+        if (regcomp(&pat, "foo", 0)) {
+            // Failed to compile the pattern.
+            regfree(&pat);
+            return EXIT_FAILURE;
+        }
         char* mystring = "This is a foo line.";
         char* replaced = colr_str_replace_re_pat(mystring, &pat, "replaced");
+        // Don't forget to free your regex pattern.
+        regfree(&pat);
         if (!replaced) return EXIT_FAILURE;
         puts(replaced);
         free(replaced);
@@ -4814,7 +4835,7 @@ void ColorText_free_args(ColorText* p) {
 
     \sa ColorText
 */
-ColorText ColorText_from_values(const char* text, ...) {
+ColorText ColorText_from_values(char* text, ...) {
     // Argument list must have ColorArg with NULL members at the end.
     ColorText ctext = ColorText_empty();
     ctext.text = text;

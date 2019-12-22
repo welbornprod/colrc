@@ -35,7 +35,7 @@
 #define COLR_H
 
 //! Current version for ColrC.
-#define COLR_VERSION "0.3.4"
+#define COLR_VERSION "0.3.5"
 
 /* Tell gcc to ignore clang pragmas, for linting. */
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
@@ -284,6 +284,14 @@
 #define COLR_FMT "R"
 //! Character used in printf format strings for Colr objects.
 #define COLR_FMT_CHAR COLR_FMT[0]
+//! Modifier for Colr printf character to produce escaped output.
+#define COLR_FMT_MOD_ESC "/"
+//! Modifier for Colr printf character to produce escaped output, in char form.
+#define COLR_FMT_MOD_ESC_CHAR COLR_FMT_MOD_ESC[0]
+/*! Integer to test for the presence of the "escaped output modifier" in
+    colr_printf_handler. This is set in colr_printf_register.
+*/
+extern int colr_printf_esc_mod;
 
 /*! Alias for COLOR_INVALID.
     \details
@@ -1488,7 +1496,7 @@
             ), \
         ColorText*: _Generic( \
             (target), \
-                char* : colr_str_replace_ColorText \
+                char* : colr_str_replace_ColorText, \
                 regex_t* : colr_str_replace_re_pat_ColorText, \
                 regmatch_t*: colr_str_replace_re_match_ColorText \
             ) \
@@ -2422,7 +2430,7 @@ typedef struct ColorText {
     //! A marker used to inspect void pointers and determine if they are ColorTexts.
     uint32_t marker;
     //! Text to colorize.
-    const char* text;
+    char* text;
     // Pointers are used for compatibility with the fore(), back(), and style() macros.
     //! ColorArg for fore color. Can be `NULL`.
     ColorArg *fore;
@@ -2695,7 +2703,7 @@ char* ColorResult_to_str(ColorResult cred);
 ColorText ColorText_empty(void);
 void ColorText_free(ColorText* p);
 void ColorText_free_args(ColorText* p);
-ColorText ColorText_from_values(const char* text, ...);
+ColorText ColorText_from_values(char* text, ...);
 bool ColorText_has_arg(ColorText ctext, ColorArg carg);
 bool ColorText_has_args(ColorText ctext);
 bool ColorText_is_empty(ColorText ctext);

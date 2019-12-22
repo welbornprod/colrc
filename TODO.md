@@ -24,7 +24,7 @@ Should have %100 coverage.
     [ ] Tests for `ColorText_to_str` with justification.
 [ ] Tests for RGB (more tests, covering all functions)
 
-Functions not mentioned in Tests (collected with `cfuncs colr.c ./test`)
+Functions not mentioned in Tests (collected with `cfuncs colr.c ./test`):
     ArgType_eq
     ColorText_free_args
     ColorType_eq

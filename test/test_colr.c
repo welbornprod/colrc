@@ -86,6 +86,13 @@ subdesc(colr_asprintf) {
         assert(!colr_str_has_codes(mystring));
         free(mystring);
     }
+    it("handles escape modifier") {
+        char* escaped = NULL;
+        colr_asprintf(&escaped, "%" COLR_FMT_MOD_ESC COLR_FMT, Colr("Test", fore(RED)));
+        assert_not_null(escaped);
+        assert_str_eq(escaped, "\"\\x1b[31mTest\\x1b[0m\"", "Did not escape.");
+        free(escaped);
+    }
     it("handles justification") {
         // center
         char* mycenter = NULL;
@@ -726,6 +733,19 @@ subdesc(colr_snprintf) {
         assert_not_null(mystring);
         // Should not contain escape codes.
         assert(!colr_str_has_codes(mystring));
+    }
+    it("handles escape modifier") {
+        char* s = "Test";
+        size_t length = CODE_ANY_LEN + strlen(s);
+        char escaped[length + 1];
+        colr_snprintf(
+            escaped,
+            length + 1,
+            "%" COLR_FMT_MOD_ESC COLR_FMT,
+            Colr("Test", fore(RED))
+        );
+        assert_str_not_empty(escaped);
+        assert_str_eq(escaped, "\"\\x1b[31mTest\\x1b[0m\"", "Did not escape.");
     }
     it("handles justification") {
         ColorText* ctext = Colr("test", fore(RED));
