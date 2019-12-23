@@ -186,7 +186,7 @@
 #define NCNL CODE_RESET_ALL "\n"
 //! Short-hand for WCODE_RESET_ALL, stands for "Wide No Color".
 #define WNC WCODE_RESET_ALL
-//! Short-hand for `WCODE_RESET_ALL "\n"`, stands for "No Color, New Line".
+//! Short-hand for `WCODE_RESET_ALL "\n"`, stands for "Wide No Color, New Line".
 #define WNCNL WCODE_RESET_ALL L"\n"
 
 //! Length of CODE_RESET_ALL, including `'\0'`.
@@ -217,7 +217,8 @@
 #define STYLE_LEN_MIN 5
 //! Maximum length for a style escape code, including `'\0'`.
 #define STYLE_LEN 6
-/*! Maximum length in chars for any combination of basic/extended escape codes.
+/*! Maximum length in chars for any combination of basic/extended escape codes
+    for one complete style (one of each: fore, back, style).
 
     Should be `(CODEX_LEN * 2) + STYLE_LEN`.
     Allocating for a string that will be colorized must account for this.
@@ -239,12 +240,56 @@
 */
 #define COLOR_RGB_LEN 26
 
-/*! Maximum length in chars for any possible escape code mixture.
+/*! Maximum length in chars for any possible escape code mixture for one complete
+    style (one of each: fore, back, and style).
 
     (basically `(CODE_RGB_LEN * 2) + STYLE_LEN` since rgb codes are the longest).
 */
 #define CODE_ANY_LEN 46
 
+/*! \internal
+        The following markers are not %100 safe. It is possible to compare equal
+        with an arbitrary non-ColrC struct if they happen to have the same/similar
+        first member type/value (values must match, types can be close enough).
+        See `colr_check_marker()`, but an example of an arbitrary struct that
+        matches would be:
+        \examplecodefor{colr_marker_mismatch, .c}
+            //
+            // Better viewed with: ./tools/snippet.py -L colr_marker_mismatch
+            //      Run this with: ./tools/snippet.py -x colr_marker_mismatch
+
+            typedef struct Thing {
+                uint32_t marker;
+            } Thing;
+            Thing* mything = malloc(sizeof(Thing));
+
+            // Setting the marker value to ColorArg's marker value.
+            mything->marker = COLORARG_MARKER;
+
+            assert(colr_check_marker(COLORARG_MARKER, mything));
+            assert(ColorArg_is_ptr(mything));
+            fprintf(stderr, "Uh oh, ColrC believes this thing is a ColorArg!\n");
+            fprintf(stderr, "I hope this thing has a usable .type/.value member!\n");
+        \endexamplecode
+
+        When using certain ColrC macros/functions, the ColrC structs are void
+        pointers, interpreted as a series of bytes (to determine which ColrC
+        type was passed into the function).
+        When comparing memory like this, types are thrown out of the window.
+        This opens the door for all kinds of trouble if you don't know what
+        types you had to begin with. Passing a non-ColrC (or an uninitialized, or
+        incorrectly initialized) struct pointer into these functions will break
+        things.
+        It's one of the risks that ColrC takes to be dynamic (argument order
+        doesn't matter, certain types can be mixed in function arguments).
+        This is also why every function/macro/global is documented in ColrC,
+        and private/internal functions are marked (they start with '_').
+
+        ** The Colr markers are considered private/internal, and are subject to
+           change/disappear.
+
+    \endinternal
+*/
 /*! Marker for the ColorArg struct, for identifying a void pointer as a
     ColorArg.
 */
