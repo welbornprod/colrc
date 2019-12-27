@@ -52,7 +52,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.2.8'
+VERSION = '0.2.9'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -122,10 +122,10 @@ USAGESTR = f"""{VERSIONSTR}
         {SCRIPT} [-D] (-L | -N) [PATTERN]
         {SCRIPT} [-D] [-n] [-q] [-w] -V
         {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe] -b
-        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -s] [-t name] -x [PATTERN] [-- ARGS...]
-        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -s] [-M | -t name] [CODE] [-- ARGS...]
-        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -s] [-M | -t name] [-f file...] [-- ARGS...]
-        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -s] [-M | -t name] [-w] (-e [CODE] | -l) [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -R | -s] [-t name] -x [PATTERN] [-- ARGS...]
+        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -s] [-M | -t name] [CODE] [-- ARGS...]
+        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -s] [-M | -t name] [-f file...] [-- ARGS...]
+        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -s] [-M | -t name] [-w] (-e [CODE] | -l) [-- ARGS...]
         {SCRIPT} [-D] -E [-M | -t name] -x [PATTERN] [-- ARGS...]
         {SCRIPT} [-D] [-W] -E [-M | -t name] [CODE] [-- ARGS...]
         {SCRIPT} [-D] [-W] -E [-M | -t name] [-f file...] [-- ARGS...]
@@ -166,6 +166,8 @@ USAGESTR = f"""{VERSIONSTR}
         -n,--name              : Print the resulting binary name, for further
                                  testing.
         -q,--quiet             : Don't print any status messages.
+        -R,--norun             : Don't execute the resulting binary.
+                                 Just compile it.
         -r exe,--run exe       : Run a program on the compiled binary, like
                                  `gdb` or `kdbg`.
         -s,--sanitize          : Use -fsanitize compiler arguments.
@@ -225,6 +227,7 @@ def main(argd):
             preprocess=argd['--preprocessor'],
             quiet=argd['--quiet'],
             make_target=argd['--target'],
+            run=not argd['--norun'],
         )
     elif argd['--lastbinary']:
         if not config['last_binary']:
@@ -313,6 +316,7 @@ def main(argd):
         memcheck=argd['--memcheck'],
         quiet=argd['--quiet'],
         make_target=Disabled if argd['--nomake'] else argd['--target'],
+        run=not argd['--norun'],
     )
 
 
@@ -909,7 +913,7 @@ def run_compiled_exe(
                 ),
             ]
             if quiet:
-                fmtpcs.append(C('-Name-quiet'))
+                fmtpcs.append(C('--quiet'))
             fmtpcs.append(namefmt)
             namefmt = C(' ').join(fmtpcs)
         status(C(': ').join(
@@ -966,7 +970,7 @@ def run_compiled_exe(
 def run_examples(
         pat=None, exe=None, show_name=False, compiler_args=None,
         disasm=False, memcheck=False, preprocess=False,
-        quiet=False, make_target=None):
+        quiet=False, make_target=None, run=True):
     """ Compile and run source examples, with optional filtering pattern.
     """
     errs = 0
@@ -1018,6 +1022,7 @@ def run_examples(
                 memcheck=memcheck,
                 quiet=quiet,
                 make_target=make_target,
+                run=run,
             )
         snipscnt = snippetinfo['total'] - snippetinfo['skipped']
         success += snipscnt - errs
@@ -1050,7 +1055,8 @@ def run_examples(
 
 def run_snippets(
         snippets, exe=None, show_name=False, compiler_args=None,
-        disasm=False, memcheck=False, quiet=False, make_target=None):
+        disasm=False, memcheck=False, quiet=False, make_target=None,
+        run=True):
     """ Compile and run several c code snippets. """
     errs = 0
     sniplen = len(snippets)
@@ -1061,7 +1067,7 @@ def run_snippets(
         )
         if disasm:
             errs += disasm_file(binaryname)
-        else:
+        elif run:
             procresult = run_compiled_exe(
                 binaryname,
                 exe=exe,
@@ -1074,8 +1080,11 @@ def run_snippets(
                 debug(f'Snippet process returned: {procresult["returncode"]}')
                 # Use the actual process return code for single runs.
                 errs += procresult['returncode'] if (sniplen == 1) else 1
-
             status_runtime(procresult['duration'])
+        elif show_name:
+            # Even if `quiet` was used, `show_name` overrides it.
+            print(CName(binaryname))
+
     return errs
 
 

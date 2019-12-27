@@ -283,7 +283,9 @@
         It's one of the risks that ColrC takes to be dynamic (argument order
         doesn't matter, certain types can be mixed in function arguments).
         This is also why every function/macro/global is documented in ColrC,
-        and private/internal functions are marked (they start with '_').
+        private/internal functions are marked (they start with '_'), and great
+        care is taken to always use properly initialized ColrC objects with the
+        correct type.
 
         ** The Colr markers are considered private/internal, and are subject to
            change/disappear.
