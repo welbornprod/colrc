@@ -1981,7 +1981,7 @@ extern int colr_printf_esc_mod;
         ColorArg_to_esc_s(_fss_codes, _fss_carg); \
         _fss_codes; \
     })
-#endif
+#endif // COLR_GNU
 
 
 /*! \def hex
@@ -2548,7 +2548,7 @@ void colr_append_reset(char* s);
 char colr_char_escape_char(const char c);
 bool colr_char_in_str(const char* s, const char c);
 bool colr_char_is_code_end(const char c);
-char* colr_char_repr(char x);
+char* colr_char_repr(char c);
 bool colr_char_should_escape(const char c);
 
 bool colr_check_marker(uint32_t marker, void* p);
@@ -2740,7 +2740,7 @@ size_t ColorResult_length(ColorResult cres);
 ColorResult ColorResult_new(char* s);
 char* ColorResult_repr(ColorResult cres);
 ColorResult* ColorResult_to_ptr(ColorResult cres);
-char* ColorResult_to_str(ColorResult cred);
+char* ColorResult_to_str(ColorResult cres);
 
 /*! \internal
     ColorText functions that deal with a string of text, and fore/back/style
@@ -2756,7 +2756,7 @@ bool ColorText_has_args(ColorText ctext);
 bool ColorText_is_empty(ColorText ctext);
 bool ColorText_is_ptr(void* p);
 size_t ColorText_length(ColorText ctext);
-char* ColorText_repr(ColorText);
+char* ColorText_repr(ColorText ctext);
 ColorText* ColorText_set_just(ColorText* ctext, ColorJustify cjust);
 void ColorText_set_values(ColorText* ctext, char* text, ...);
 ColorText* ColorText_to_ptr(ColorText ctext);

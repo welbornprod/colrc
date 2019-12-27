@@ -3291,7 +3291,7 @@ bool _colr_is_last_arg(void* p) {
                     Also, `NULL` will be returned if \p joinerp is `NULL`.
                 \endparblock
 */
-char* _colr_join(void *joinerp, ...) {
+char* _colr_join(void* joinerp, ...) {
     if (!joinerp) {
         return NULL;
     }
@@ -4310,7 +4310,7 @@ bool ColorArg_to_esc_s(char* dest, ColorArg carg) {
 
     \sa ColorArg
 */
-ColorArg *ColorArg_to_ptr(ColorArg carg) {
+ColorArg* ColorArg_to_ptr(ColorArg carg) {
     ColorArg* p = malloc(sizeof(carg));
     if (!p) return NULL;
     carg.marker = COLORARG_MARKER;
