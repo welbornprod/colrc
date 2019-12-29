@@ -539,8 +539,8 @@ subdesc(colr_str_chars_lcount) {
         }
     }
 }
-// colr_str_code_cnt
-subdesc(colr_str_code_cnt) {
+// colr_str_code_count
+subdesc(colr_str_code_count) {
     it("counts escape codes") {
         ColorArg forearg = fore_arg(WHITE);
         ColorArg backarg = back_arg(RED);
@@ -557,17 +557,17 @@ subdesc(colr_str_code_cnt) {
         };
         for_each(tests, i) {
             char* s = ColorText_to_str(tests[i].ctext);
-            assert_size_eq_repr(colr_str_code_cnt(s), tests[i].expected, s);
+            assert_size_eq_repr(colr_str_code_count(s), tests[i].expected, s);
             free(s);
         }
-        assert_size_eq(colr_str_code_cnt(NULL), 0);
-        assert_size_eq(colr_str_code_cnt(""), 0);
+        assert_size_eq(colr_str_code_count(NULL), 0);
+        assert_size_eq(colr_str_code_count(""), 0);
         // Overflow the current_code buffer.
         // 1 extra char.
-        assert_size_eq(colr_str_code_cnt("\x1b[38;2;255;255;2550m"), 0);
+        assert_size_eq(colr_str_code_count("\x1b[38;2;255;255;2550m"), 0);
         // Many extra chars.
         char* waytoolong = "\x1b[38;2;255;255;2550101010101010101010101010101m";
-        assert_size_eq(colr_str_code_cnt(waytoolong), 0);
+        assert_size_eq(colr_str_code_count(waytoolong), 0);
     }
 }
 // colr_str_code_len
@@ -685,7 +685,7 @@ subdesc(colr_str_get_codes) {
         assert_null(colr_str_get_codes("No codes in here.", false));
         assert_null(colr_str_get_codes("No codes in here.", true));
         // Cause an overflow that will be skipped.
-        // These don't even touch the busy path. colr_str_code_cnt() causes
+        // These don't even touch the busy path. colr_str_code_count() causes
         // an early return because it doesn't accept overflow either.
         assert_null(colr_str_get_codes("\x1b[38;2;255;255;2550m", false));
         assert_null(colr_str_get_codes("\x1b[38;2;255;255;2550m", true));

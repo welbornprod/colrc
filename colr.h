@@ -1507,6 +1507,8 @@ extern int colr_printf_esc_mod;
                    \maybenullalloc
                \endparblock
 
+    \example colr_replace_example.c
+
     \sa colr_replace_re
     \sa colr_str_replace
     \sa colr_str_replace_ColorArg
@@ -1594,6 +1596,8 @@ extern int colr_printf_esc_mod;
                    \mustfree
                    \maybenullalloc
                \endparblock
+
+    \example colr_replace_re_example.c
 
     \sa colr_replace
     \sa colr_str_replace_re
@@ -2569,7 +2573,7 @@ size_t colr_str_char_count(const char* s, const char c);
 size_t colr_str_char_lcount(const char* s, const char c);
 size_t colr_str_chars_lcount(const char* restrict s, const char* restrict chars);
 char* colr_str_center(const char* s, int width, const char padchar);
-size_t colr_str_code_cnt(const char* s);
+size_t colr_str_code_count(const char* s);
 size_t colr_str_code_len(const char* s);
 char* colr_str_copy(char* restrict dest, const char* restrict src, size_t length);
 bool colr_str_ends_with(const char* restrict s, const char* restrict suffix);

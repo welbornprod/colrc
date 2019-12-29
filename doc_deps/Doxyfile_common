@@ -49,6 +49,7 @@ ALIASES += "regexpattern=regex pattern (\regextype)"
 ALIASES += "strtype=`char*`"
 ALIASES += "string=string (\strtype)"
 ALIASES += "strings=strings (\strtype)"
+ALIASES += "warninternal=\warning This is for internal use only."
 ALIASES += "examplecode{1}=\if html_example_code \
      <div class='examplecode'> \
           <div class='examplecode-header'> \
@@ -90,7 +91,7 @@ EXCLUDE                = test \
                          README.md
 EXCLUDE_PATTERNS       = *.py
 EXAMPLE_PATH           = examples
-EXAMPLE_PATTERNS       = *.c
+EXAMPLE_PATTERNS       = *example.c
 EXAMPLE_RECURSIVE      = YES
 IMAGE_PATH             =
 REFERENCED_BY_RELATION = YES

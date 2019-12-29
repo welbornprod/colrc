@@ -1498,13 +1498,13 @@ size_t colr_str_chars_lcount(const char* restrict s, const char* restrict chars)
     \examplecodefor{colr_str_code_len,.c}
     char* s = Colr_str("Testing this out.", fore(RED), back(WHITE));
     if (!s) exit(1);
-    size_t code_cnt = colr_str_code_cnt(s);
+    size_t code_cnt = colr_str_code_count(s);
     assert(code_cnt == 3); // The reset code is also appended.
     printf("Found codes: %zu\n", code_cnt);
     free(s);
     \endexamplecode
 */
-size_t colr_str_code_cnt(const char* s) {
+size_t colr_str_code_count(const char* s) {
     if (!s) return 0;
     if (s[0] == '\0') return 0;
     // Length of code, minus the 'm' and '\0'.
@@ -1723,7 +1723,7 @@ char** colr_str_get_codes(const char* s, bool unique) {
     if (!s) return NULL;
     if (s[0] == '\0') return NULL;
     // They may all be unique, so leave room just in case.
-    size_t code_cnt = colr_str_code_cnt(s);
+    size_t code_cnt = colr_str_code_count(s);
     if (!code_cnt) return NULL;
     // Allocate memory for some string pointers.
     char** code_list = calloc(code_cnt + 1, sizeof(char*));
@@ -3360,6 +3360,11 @@ void format_style(char* out, StyleValue style) {
 /* ---------------------------- ColrC Functions ---------------------------- */
 /*! Calls Colr `*_free()` functions for Colr objects, otherwise just calls `free()`.
 
+    \details
+    You should use the colr_free() macro instead.
+
+    \warninternal
+
     \pi p Pointer to a heap-allocated object.
 */
 void _colr_free(void* p) {
@@ -3371,6 +3376,8 @@ void _colr_free(void* p) {
 }
 
 /*! Determines if a void pointer is _ColrLastArg (the last-arg-marker).
+
+    \warninternal
 
     \pi p The pointer to check.
     \return `true` if the pointer is _ColrLastArg, otherwise `false`.
@@ -3399,6 +3406,11 @@ bool _colr_is_last_arg(void* p) {
     Any plain strings that are passed in are left alone. It is up to the caller
     to free those. ColrC only manages the temporary Colr-based objects needed
     to build up these strings.
+
+    \details
+    You should use colr_join() or Colr_join() instead.
+
+    \warninternal
 
     \pi joinerp The joiner (any ColorArg, ColorResult, ColorText, or string).
     \pi ...     Zero or more ColorArgs, ColorResults, ColorTexts, or strings to
@@ -3519,6 +3531,8 @@ char* _colr_join(void* joinerp, ...) {
     \details
     This allows _colr_join() to allocate once, instead of reallocating for each
     argument that is passed.
+
+    \warninternal
 
     \pi joinerp The joiner (any ColorArg, ColorText, or string).
     \pi args    A `va_list` with zero or more ColorArgs, ColorTexts, or strings to join.
@@ -3694,11 +3708,14 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
     return final;
 }
 
-/*! Get the size in bytes needed to join an array of \strings, ColorArgs, or
-    ColorTexts by another \string, ColorArg, or ColorText.
+/*! Get the size in bytes needed to join an array of \strings, ColorArgs,
+    ColorResults, or ColorTexts by another \string, ColorArg, ColorResult,
+    or ColorText.
 
     \details
     This is used to allocate memory in the _colr_join_array() function.
+
+    \warninternal
 
     \pi joinerp The joiner (any ColorArg, ColorResult, ColorText, or string).
     \pi ps      An array of pointers to ColorArgs, ColorResults, ColorTexts,
@@ -3740,7 +3757,9 @@ size_t _colr_join_arrayn_size(void* joinerp, void* ps, size_t count) {
 }
 
 /*! Determine the length of a `NULL`-terminated array of \strings, ColorArgs,
-    or ColorTexts.
+    ColorResults, or ColorTexts.
+
+    \warninternal
 
     \pi ps  A `NULL`-terminated array of ColorArgs, ColorResults, ColorTexts,
             or strings.
@@ -3770,6 +3789,8 @@ size_t _colr_join_array_length(void* ps) {
 
     \details
     This is used in the variadic _colr* functions.
+
+    \warninternal
 
     \pi p   A ColorArg pointer, ColorText pointer, or string.
     \return The length needed to convert the object into a string
@@ -3801,6 +3822,8 @@ size_t _colr_ptr_length(void* p) {
 /*! Determine what kind of pointer is being passed, and call the appropriate
     \<type\>_repr function to obtain an allocated string representation.
 
+    \warninternal
+
     \pi p   A ColorArg pointer, ColorResult pointer, ColorText pointer, or string.
     \return \parblock
                 An allocated string with the result.
@@ -3827,12 +3850,15 @@ char* _colr_ptr_repr(void* p) {
 /*! Determine what kind of pointer is being passed, and call the appropriate
     \<type\>_to_str function to obtain an allocated string.
 
+    \warninternal
+
     \pi p   A ColorArg pointer, ColorResult pointer, ColorText pointer, or string.
     \return \parblock
                 An allocated string with the result.
                 \mustfree
                 \maybenullalloc
             \endparblock
+
 */
 char* _colr_ptr_to_str(void* p) {
     if (!p) return NULL;
@@ -7333,6 +7359,8 @@ char* rainbow_fg_term(const char* s, double freq, size_t offset, size_t spread) 
 
 /*! Handles multibyte character \string conversion and character iteration for
     all of the rainbow_ functions.
+
+    \warninternal
 
     \pi fmter  A formatter function (RGB_fmter) that can create escape codes
                from RGB values.

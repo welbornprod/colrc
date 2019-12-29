@@ -39,4 +39,10 @@ int main(void) {
     printf("%s", colored);
     free(colored);
     free(allocated);
+
+    /*
+        For throw-away/nested results that will be used in ColrC functions/macros,
+        you can use the Colr_cat variant.
+    */
+    colr_puts(Colr_cat("No leaks: ", Colr("see", fore(RED)), "?"));
 }
