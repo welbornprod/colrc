@@ -18,8 +18,21 @@ int main(void) {
     char* s = Colr_str("Hello from ColrC!", fore("blueviolet"), back(WHITE));
     if (!s) return EXIT_FAILURE;
 
-    printf("%s\n", s);
+    puts(s);
+
+    char* s2 = colr_replace(
+        s,
+        "Hello",
+        Colr_cat(
+            Colr("Good", fore(BLUE)),
+            Colr("bye", fore(CYAN))
+        )
+    );
     free(s);
+    if (!s2) return EXIT_FAILURE;
+    puts(s2);
+    free(s2);
+
     return EXIT_SUCCESS;
 }
 ```

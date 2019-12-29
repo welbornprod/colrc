@@ -2275,6 +2275,8 @@ size_t colr_str_noncode_len(const char* s) {
     Using `NULL` as a replacement is like using an empty string (""), which
     removes the \p target string from \p s.
 
+    For a more dynamic version, see the colr_replace and colr_replace_re macros.
+
     \pi s      The string to operate on.
     \pi target The string to replace.
     \pi repl   The string to replace with.
@@ -2284,6 +2286,26 @@ size_t colr_str_noncode_len(const char* s) {
                    \mustfree
                    \maybenullalloc
                \endparblock
+
+    \sa colr_replace
+    \sa colr_replace_re
+
+    \examplecodefor{colr_str_replace,.c}
+    #include "colr.h"
+
+    int main(void) {
+        char* mystring = "This is a foo line.";
+        char* replaced = colr_str_replace(mystring, "foo", "replaced");
+        if (!replaced) {
+            fprintf(stderr, "Failed to allocate for new string!\n");
+            return EXIT_FAILURE;
+        }
+        printf("%s\n", replaced);
+        // Don't forget to free the new string.
+        free(replaced);
+        return EXIT_SUCCESS;
+    }
+    \endexamplecodefor
 */
 char* colr_str_replace(const char* restrict s, const char* restrict target, const char* restrict repl) {
     if (!(s && target)) return NULL;
@@ -2343,6 +2365,10 @@ char* colr_str_replace(const char* restrict s, const char* restrict target, cons
                    \mustfree
                    \maybenullalloc
                \endparblock
+
+    \sa colr_replace
+    \sa colr_replace_re
+
 */
 char* colr_str_replace_ColorArg(const char* restrict s, const char* restrict target, ColorArg* repl) {
     if (!(s && target)) return NULL;
@@ -2368,6 +2394,10 @@ char* colr_str_replace_ColorArg(const char* restrict s, const char* restrict tar
                    \mustfree
                    \maybenullalloc
                \endparblock
+
+    \sa colr_replace
+    \sa colr_replace_re
+
 */
 char* colr_str_replace_ColorResult(const char* restrict s, const char* restrict target, ColorResult* repl) {
     if (!(s && target)) return NULL;
@@ -2391,6 +2421,10 @@ char* colr_str_replace_ColorResult(const char* restrict s, const char* restrict 
                    \mustfree
                    \maybenullalloc
                \endparblock
+
+    \sa colr_replace
+    \sa colr_replace_re
+
 */
 char* colr_str_replace_ColorText(const char* restrict s, const char* restrict target, ColorText* repl) {
     if (!(s && target)) return NULL;
@@ -2420,7 +2454,9 @@ char* colr_str_replace_ColorText(const char* restrict s, const char* restrict ta
                      \maybenullalloc
                  \endparblock
 
-    \sa colr_str_replace_re colr_str_replace_re_match
+
+    \sa colr_replace
+    \sa colr_replace_re
 
     \examplecodefor{colr_str_replace_re,.c}
     #include "colr.h"
@@ -2437,6 +2473,7 @@ char* colr_str_replace_ColorText(const char* restrict s, const char* restrict ta
         free(replaced);
     }
     \endexamplecode
+
 */
 char* colr_str_replace_re(const char* restrict s, const char* restrict pattern, const char* restrict repl, int re_flags) {
     if (!(s && pattern)) return NULL;
@@ -2470,6 +2507,10 @@ char* colr_str_replace_re(const char* restrict s, const char* restrict pattern, 
                      \mustfree
                      \maybenullalloc
                  \endparblock
+
+    \sa colr_replace
+    \sa colr_replace_re
+
 */
 char* colr_str_replace_re_ColorArg(const char* restrict s, const char* restrict pattern, ColorArg* repl, int re_flags) {
     if (!(s && pattern)) return NULL;
@@ -2499,6 +2540,10 @@ char* colr_str_replace_re_ColorArg(const char* restrict s, const char* restrict 
                      \mustfree
                      \maybenullalloc
                  \endparblock
+
+    \sa colr_replace
+    \sa colr_replace_re
+
 */
 char* colr_str_replace_re_ColorResult(const char* restrict s, const char* restrict pattern, ColorResult* repl, int re_flags) {
     if (!(s && pattern)) return NULL;
@@ -2526,6 +2571,10 @@ char* colr_str_replace_re_ColorResult(const char* restrict s, const char* restri
                      \mustfree
                      \maybenullalloc
                  \endparblock
+
+    \sa colr_replace
+    \sa colr_replace_re
+
 */
 char* colr_str_replace_re_ColorText(const char* restrict s, const char* restrict pattern, ColorText* repl, int re_flags) {
     if (!(s && pattern)) return NULL;
@@ -2553,6 +2602,51 @@ char* colr_str_replace_re_ColorText(const char* restrict s, const char* restrict
                   \mustfree
                   \maybenullalloc
               \endparblock
+
+
+    \sa colr_replace
+    \sa colr_replace_re
+
+    \examplecodefor{colr_str_replace_re_match,.c}
+    #include "colr.h"
+
+    int main(void) {
+        // Build a regex pattern.
+        regex_t pat;
+        if (regcomp(&pat, "foo", 0)) {
+            // Failed to compile the pattern.
+            regfree(&pat);
+            return EXIT_FAILURE;
+        }
+
+        // Set up our matches (only 1 can be used with colr_replace_re_match).
+        size_t matchcnt = 1;
+        regmatch_t rematches[matchcnt];
+
+        // Run the regex and we should get an initialized `regmatch_t`.
+        char* mystring = "This is a foo line.";
+        if (regexec(&pat, mystring, matchcnt, rematches, 0)) {
+            fprintf(stderr, "No matches!?");
+            return EXIT_FAILURE;
+        }
+
+        // Replace the matched text with our string.
+        char* replaced = colr_str_replace_re_match(
+            mystring,
+            rematches,
+            "REPLACED"
+        );
+        // Don't forget to free your regex object (even if stack-allocated).
+        regfree(&pat);
+        if (!replaced) {
+                fprintf(stderr, "Cannot allocate for replaced string!\n");
+                return EXIT_FAILURE;
+        }
+        printf("%s\n", replaced);
+        free(replaced);
+        return EXIT_SUCCESS;
+    }
+    \endexamplecode
 */
 char* colr_str_replace_re_match(const char* restrict s, regmatch_t* match, const char* restrict repl) {
     if (!(s && match)) return NULL;
@@ -2589,6 +2683,10 @@ char* colr_str_replace_re_match(const char* restrict s, regmatch_t* match, const
                      \mustfree
                      \maybenullalloc
                  \endparblock
+
+    \sa colr_replace
+    \sa colr_replace_re
+
 */
 char* colr_str_replace_re_match_ColorArg(const char* restrict s, regmatch_t* match, ColorArg* repl) {
     if (!(s && match)) return NULL;
@@ -2616,6 +2714,10 @@ char* colr_str_replace_re_match_ColorArg(const char* restrict s, regmatch_t* mat
                      \mustfree
                      \maybenullalloc
                  \endparblock
+
+    \sa colr_replace
+    \sa colr_replace_re
+
 */
 char* colr_str_replace_re_match_ColorResult(const char* restrict s, regmatch_t* match, ColorResult* repl) {
     if (!(s && match)) return NULL;
@@ -2625,6 +2727,7 @@ char* colr_str_replace_re_match_ColorResult(const char* restrict s, regmatch_t* 
     ColorResult_free(repl);
     return result;
 }
+
 /*! Replace substrings from a regex match (`regmatch_t*`) in a \string with a
     ColorText's string result.
     \details
@@ -2641,6 +2744,10 @@ char* colr_str_replace_re_match_ColorResult(const char* restrict s, regmatch_t* 
                      \mustfree
                      \maybenullalloc
                  \endparblock
+
+    \sa colr_replace
+    \sa colr_replace_re
+
 */
 char* colr_str_replace_re_match_ColorText(const char* restrict s, regmatch_t* match, ColorText* repl) {
     if (!(s && match)) return NULL;
@@ -2651,7 +2758,6 @@ char* colr_str_replace_re_match_ColorText(const char* restrict s, regmatch_t* ma
     ColorText_free(repl);
     return result;
 }
-
 
 /*! Replaces regex patterns in a \string.
 
@@ -2670,7 +2776,9 @@ char* colr_str_replace_re_match_ColorText(const char* restrict s, regmatch_t* ma
                       \maybenullalloc
                   \endparblock
 
-    \sa colr_str_replace_re colr_str_replace_re_match
+
+    \sa colr_replace
+    \sa colr_replace_re
 
     \examplecodefor{colr_str_replace_re_pat,.c}
     #include "colr.h"
@@ -2721,6 +2829,10 @@ char* colr_str_replace_re_pat(const char* restrict s, regex_t* repattern, const 
                       \mustfree
                       \maybenullalloc
                   \endparblock
+
+    \sa colr_replace
+    \sa colr_replace_re
+
 */
 char* colr_str_replace_re_pat_ColorArg(const char* restrict s, regex_t* repattern, ColorArg* repl) {
     if (!(s && repattern)) return NULL;
@@ -2747,6 +2859,10 @@ char* colr_str_replace_re_pat_ColorArg(const char* restrict s, regex_t* repatter
                       \mustfree
                       \maybenullalloc
                   \endparblock
+
+    \sa colr_replace
+    \sa colr_replace_re
+
 */
 char* colr_str_replace_re_pat_ColorResult(const char* restrict s, regex_t* repattern, ColorResult* repl) {
     if (!(s && repattern)) return NULL;
@@ -2756,6 +2872,7 @@ char* colr_str_replace_re_pat_ColorResult(const char* restrict s, regex_t* repat
     ColorResult_free(repl);
     return result;
 }
+
 /*! Replace regex patterns in a \string with a ColorText's string result.
     \details
     Using `NULL` as a replacement is like using an empty string ("").
@@ -2771,6 +2888,10 @@ char* colr_str_replace_re_pat_ColorResult(const char* restrict s, regex_t* repat
                       \mustfree
                       \maybenullalloc
                   \endparblock
+
+    \sa colr_replace
+    \sa colr_replace_re
+
 */
 char* colr_str_replace_re_pat_ColorText(const char* restrict s, regex_t* repattern, ColorText* repl) {
     if (!(s && repattern)) return NULL;

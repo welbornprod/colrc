@@ -1461,12 +1461,17 @@ extern int colr_printf_esc_mod;
     } while (0)
 
 /*! \def colr_replace
-    Replace a substring in \p s with another string, ColorArg string, or
-    ColorText string.
+    Replace a substring in \p s with another string, ColorArg string,
+    ColorResult string, or ColorText string.
 
     \details
     If a string (`char*`) is used as \p repl, this is just a wrapper around
     colr_str_replace().
+
+    \details
+    If a ColorArg or ColorText is used as \p repl, the appropriate
+    colr_str_replace_\<type\> function is called. The function will create a
+    string of escape-codes/text to be used as a replacement.
 
     \details
     If \p target is a \string, this is a plain string-replace.
@@ -1475,10 +1480,6 @@ extern int colr_printf_esc_mod;
     If \p target is a \regexmatch, it's offsets will be used to find a target
     string in \p s.
 
-    \details
-    If a ColorArg or ColorText is used as \p repl, the appropriate
-    colr_str_replace_\<type\> function is called. The function will create a
-    string of escape-codes/text to be used as a replacement.
 
     \details
     If \p repl is `NULL`, then an empty string (`""`) is used as the replacement,
@@ -1550,16 +1551,16 @@ extern int colr_printf_esc_mod;
     )(s, target, repl)
 
 /*! \def colr_replace_re
-    Replace a regex pattern \string in \p s with another string, ColorArg string, or
-    ColorText string.
+    Replace a regex pattern \string in \p s with another string, ColorArg string,
+    ColorResult string, or ColorText string.
 
     \details
     If a string (`char*`) is used as \p repl, this is just a wrapper around
-    colr_str_replace().
+    colr_str_replace_re().
 
     \details
-    If a ColorArg or ColorText is used as \p repl, the appropriate
-    colr_str_replace_\<type\> function is called. The function will create a
+    If a ColorArg, ColorResult, or ColorText is used as \p repl, the appropriate
+    colr_str_replace_re_\<type\> function is called. The function will create a
     string of escape-codes/text to be used as a replacement.
 
     \details
@@ -2587,6 +2588,7 @@ char* colr_str_lstrip_char(const char* s, const char c);
 char* colr_str_lstrip_chars(const char* restrict s, const char* restrict chars);
 size_t colr_str_mb_len(const char* s);
 size_t colr_str_noncode_len(const char* s);
+
 char* colr_str_replace(const char* restrict s, const char* restrict target, const char* restrict repl);
 char* colr_str_replace_ColorArg(const char* restrict s, const char* restrict target, ColorArg* repl);
 char* colr_str_replace_ColorResult(const char* restrict s, const char* restrict target, ColorResult* repl);
@@ -2603,6 +2605,7 @@ char* colr_str_replace_re_match(const char* restrict s, regmatch_t* match, const
 char* colr_str_replace_re_match_ColorArg(const char* restrict s, regmatch_t* match, ColorArg* repl);
 char* colr_str_replace_re_match_ColorResult(const char* restrict s, regmatch_t* match, ColorResult* repl);
 char* colr_str_replace_re_match_ColorText(const char* restrict s, regmatch_t* match, ColorText* repl);
+
 char* colr_str_repr(const char* s);
 char* colr_str_rjust(const char* s, int width, const char padchar);
 bool colr_str_starts_with(const char* restrict s, const char* restrict prefix);
