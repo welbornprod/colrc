@@ -16,13 +16,34 @@ program.
 #include "colr.h"
 
 int main(void) {
+    // Simple usage:
     char* s = Colr_str("Hello from ColrC!", fore("blueviolet"), back(WHITE));
     if (!s) return EXIT_FAILURE;
 
-    printf("%s\n", s);
+    puts(s);
+
+    // Fancier functions:
+    char* s2 = colr_replace(
+        s,
+        "Hello",
+        Colr_join(
+            " ",
+            Colr_cat(
+                Colr("Good", fore(BLUE), back(RESET)),
+                Colr("bye", fore(CYAN))
+            ),
+            "and",
+            Colr("good luck", style(UNDERLINE))
+        )
+    );
     free(s);
+    if (!s2) return EXIT_FAILURE;
+    puts(s2);
+    free(s2);
+
     return EXIT_SUCCESS;
 }
+
 ```
 
 There are plenty of examples in the [documentation](examples.html), and
@@ -39,6 +60,8 @@ The colr.h header defines `_GNU_SOURCE` if it's not already defined (see `man fe
 ```bash
 gcc -std=c11 -c myprogram.c colr.c -o myexecutable -lm
 ```
+
+ColrC is tested with `gcc` and `clang`.
 
 ## Files
 
@@ -97,6 +120,34 @@ int main(int argc, char** argv) {
     puts(userstr);
     // colr_cat() already called ColorText_free(ctext).
     free(userstr);
+
+    // Colorize an existing string by replacing a word.
+    char* logtext = "[warning] This is awesome.";
+    char* colorized = colr_replace(
+        logtext,
+        "warning",
+        Colr("warning", fore(YELLOW))
+    );
+    // Failed to allocate for new string?
+    if (!colorized) return EXIT_FAILURE;
+    puts(colorized);
+    // You have to free the resulting string.
+    free(colorized);
+
+    // Or colorize an existing string by replacing a regex pattern.
+    colorized = colr_replace_re(
+        logtext,
+        "\\[\\w+\\]",
+        Colr_join(
+            Colr("ok", style(BRIGHT)),
+            "(",
+            ")"
+        ),
+        REG_EXTENDED
+    );
+    if (!colorized) return EXIT_FAILURE;
+    puts(colorized);
+    free(colorized);
 }
 ```
 
@@ -106,14 +157,16 @@ int main(int argc, char** argv) {
 For all examples, check the [documentation](examples.html).
 Here is a table of the most common usage examples:
 
-Name           | Example
-:------------- | :-----------------
-colr_cat  | [colr_cat_example.c](examples/colr_cat_example.c)
-colr_join | [colr_join_example.c](examples/colr_join_example.c)
-Colr      | [Colr_example.c](examples/Colr_example.c)
-fore      | [fore_example.c](examples/fore_example.c)
-back      | [back_example.c](examples/back_example.c)
-style     | [style_example.c](examples/style_example.c)
+Name                  | Example
+:-------------------- | :-----------------------------
+Colr             | [Colr_example.c](examples/Colr_example.c)
+colr_cat         | [colr_cat_example.c](examples/colr_cat_example.c)
+colr_join        | [colr_join_example.c](examples/colr_join_example.c)
+colr_replace     | [colr_replace_example.c](examples/colr_replace_example.c)
+colr_replace_re  | [colr_replace_re_example.c](examples/colr_replace_re_example.c)
+fore             | [fore_example.c](examples/fore_example.c)
+back             | [back_example.c](examples/back_example.c)
+style            | [style_example.c](examples/style_example.c)
 
 All of these examples can be built with the `examples` target:
 ```bash
@@ -127,7 +180,7 @@ target (`make runexamples`), or with the example runner:
 ```
 
 There is also a "snippet runner" that can build and run
-arbitrary C code snippets, but is useful for building and running all example
+arbitrary C code snippets, mainly used for building and running all example
 code snippets found in the ColrC source code itself:
 ```bash
 ./tools/snippet.py --examples
@@ -135,7 +188,12 @@ code snippets found in the ColrC source code itself:
 
 To see the source-based examples in the terminal you can run:
 ```bash
-./tools/snippet.py --listexamples
+./tools/snippet.py --listnames [NAME_PATTERN]
+```
+
+To view the source code for those examples, you can run:
+```bash
+./tools/snippet.py --listexamples [NAME_PATTERN]
 ```
 
 ## Why

@@ -288,6 +288,9 @@ cppcheckview:
 cppcheckviewall:
 	@$(cppcheck_cmd) --view && $(cppcheck_cmd) -t --view
 
+# TODO: When ColrC is published, this needs to be added to the `docs` target
+#       like the rest of the docs targets. It will "update" the documentation
+#       site.
 .PHONY: docscj
 docscj:
 	@if [[ -n "$(docs_cj_dir)" ]] && [[ -d "$(docs_cj_dir)" ]]; then \

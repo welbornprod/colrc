@@ -270,6 +270,7 @@
             assert(ColorArg_is_ptr(mything));
             fprintf(stderr, "Uh oh, ColrC believes this thing is a ColorArg!\n");
             fprintf(stderr, "I hope this thing has a usable .type/.value member!\n");
+            free(mything);
         \endexamplecode
 
         When using certain ColrC macros/functions, the ColrC structs are void
@@ -854,7 +855,8 @@ extern int colr_printf_esc_mod;
     for you.
 
     \pi joiner What to put between the other arguments.
-               ColorArg pointer, ColorResult pointer, ColorText pointer, or string.
+               ColorArg pointer, ColorResult pointer, ColorText pointer, or
+               \string.
     \pi ...    \parblock
                    Other arguments to join, with \p joiner between them.
                    ColorArg pointers, ColorResult pointers, ColorText pointers,
@@ -1465,13 +1467,8 @@ extern int colr_printf_esc_mod;
     ColorResult string, or ColorText string.
 
     \details
-    If a string (`char*`) is used as \p repl, this is just a wrapper around
-    colr_str_replace().
-
-    \details
-    If a ColorArg or ColorText is used as \p repl, the appropriate
-    colr_str_replace_\<type\> function is called. The function will create a
-    string of escape-codes/text to be used as a replacement.
+    If a string (`char*`) is used as \p target and \p repl, this is just a
+    wrapper around colr_str_replace().
 
     \details
     If \p target is a \string, this is a plain string-replace.
@@ -1479,6 +1476,11 @@ extern int colr_printf_esc_mod;
     target string in \p s.
     If \p target is a \regexmatch, it's offsets will be used to find a target
     string in \p s.
+
+    \details
+    If a ColorArg or ColorText is used as \p repl, the appropriate
+    colr_str_replace_\<types\> function is called. The function will create a
+    string of escape-codes/text to be used as a replacement.
 
 
     \details

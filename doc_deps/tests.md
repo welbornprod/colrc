@@ -36,14 +36,16 @@ make testfast
 # After I've sorted out the "easy" failures:
 make testfull
 
-# And finally, before pushing changes, the everything test:
-./test/run_tests.sh --all --quiet
+# And finally, before pushing changes, the "everything test".
+# This is important because it ensures that all examples will compile cleanly
+# and there are no leaks:
+make testeverything
 ```
 
 ## Test Everything
 The 'everything test' builds the colr tool and unit tests, both debug and
 release mode (some bugs only show up in release mode), and runs them through
-`valgrind` and `-fsanitize`.
+`valgrind` and `-fsanitize` (`libasan`).
 
 The examples are built and ran through `valgrind`, including the examples found
 in the source code (see `snippet.py --examples`). This ensures that all
@@ -64,6 +66,6 @@ while developing ColrC. I don't mind running this before pushing my changes.
 If you'd like to run every possible compile target, with tests and memcheck,
 including the example code and source-file examples (the 'everything test'):
 ```bash
-./test/run_tests.sh --all --quiet
+make testeverything
 ```
 

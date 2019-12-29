@@ -1495,7 +1495,7 @@ size_t colr_str_chars_lcount(const char* restrict s, const char* restrict chars)
     \return The number of escape-codes, or `0` if \p s is `NULL`, or
             doesn't contain any escape-codes.
 
-    \examplecodefor{colr_str_code_len,.c}
+    \examplecodefor{colr_str_code_count,.c}
     char* s = Colr_str("Testing this out.", fore(RED), back(WHITE));
     if (!s) exit(1);
     size_t code_cnt = colr_str_code_count(s);
@@ -1819,15 +1819,19 @@ bool colr_str_has_codes(const char* s) {
 
     \details
     This is only used for simple, short, \string hashing.
+    It is not designed for cryptography.
 
     \details
     There are some notes about collision rates for this function
     [here](https://softwareengineering.stackexchange.com/a/145633).
 
-    \pi s   The string to hash.
-    \return A ColrHash value with the hash.
+    \pi s   \parblock
+                The string to hash.
+                \mustnull
+            \endparblock
+    \return A \ColrHash value with the hash.
     \retval 0 if \p s is `NULL`.
-    \retval 5381 if \p s is an empty string.
+    \retval COLR_HASH_SEED if \p s is an empty string.
 
     \examplecodefor{colr_str_hash,.c}
     char* strings[] = {
