@@ -2663,10 +2663,18 @@ char* colr_str_replace_re_match(const char* restrict s, regmatch_t* match, const
         strncpy(line_begin, s, match->rm_so);
         line_begin[match->rm_so] = '\0';
         asprintf_or_return(NULL, &result, "%s%s%s", line_begin, repl, s + match->rm_eo);
-
     } else {
         // Replace the beginning of the string.
-        asprintf_or_return(NULL, &result, "%s%s", repl, s + match->rm_eo);
+        int written = asprintf(&result, "%s%s", repl, s + match->rm_eo);
+        if (written < 0) {
+            // Cannot allocate.
+            return NULL;
+        } else if (written < 1) {
+            // Happens when "removing" patterns by replacing with "" and
+            // the entire string gets replaced (`result` is untouched, and `NULL`).
+            if (result) free(result);
+            result = colr_empty_str();
+        }
     }
     return result;
 }
@@ -2810,8 +2818,9 @@ char* colr_str_replace_re_pat(const char* restrict s, regex_t* repattern, const 
     if (s[0] == '\0') return NULL;
     if (!repl) repl = "";
 
-    regmatch_t matches[2];
-    if (regexec(repattern, s, 2, matches, 0)) {
+    size_t num_matches = 1;
+    regmatch_t matches[num_matches];
+    if (regexec(repattern, s, num_matches, matches, 0)) {
         // No match found.
         return NULL;
     }
@@ -3826,6 +3835,9 @@ size_t _colr_ptr_length(void* p) {
 /*! Determine what kind of pointer is being passed, and call the appropriate
     \<type\>_repr function to obtain an allocated string representation.
 
+    \details
+    You should use colr_repr() instead.
+
     \warninternal
 
     \pi p   A ColorArg pointer, ColorResult pointer, ColorText pointer, or string.
@@ -3834,6 +3846,8 @@ size_t _colr_ptr_length(void* p) {
                 \mustfree
                 \maybenullalloc
             \endparblock
+
+    \sa colr_repr
 */
 char* _colr_ptr_repr(void* p) {
     if (!p) return NULL;
@@ -4814,7 +4828,8 @@ bool ColorResult_eq(ColorResult a, ColorResult b) {
 */
 void ColorResult_free(ColorResult* p) {
     if (!p) return;
-    free(p->result);
+    if (p->result) free(p->result);
+    p->result = NULL;
     free(p);
 }
 
@@ -6541,6 +6556,28 @@ int ExtendedValue_from_str(const char* arg) {
     return (int)usernum;
 }
 
+/*! Determines whether an integer is an invalid ExtendedValue.
+
+    \pi eval A number to check.
+    \return  `true` if the value is considered invalid, otherwise `false`.
+
+    \sa ExtendedValue
+*/
+bool ExtendedValue_is_invalid(int eval) {
+    return ((eval < 0) || (eval > 255));
+}
+
+/*! Determines whether an integer is a valid ExtendedValue.
+
+    \pi eval A number to check.
+    \return  `true` if the value is considered valid, otherwise `false`.
+
+    \sa ExtendedValue
+*/
+bool ExtendedValue_is_valid(int eval) {
+    return ((eval > -1) && (eval < 256));
+}
+
 /*! Creates a \string representation of a ExtendedValue.
 
     \pi eval    A ExtendedValue to get the value from.
@@ -6565,28 +6602,6 @@ char* ExtendedValue_repr(int eval) {
             asprintf_or_return(NULL, &repr, "(ExtendedValue) %d", eval);
     }
     return repr;
-}
-
-/*! Determines whether an integer is an invalid ExtendedValue.
-
-    \pi eval A number to check.
-    \return  `true` if the value is considered invalid, otherwise `false`.
-
-    \sa ExtendedValue
-*/
-bool ExtendedValue_is_invalid(int eval) {
-    return ((eval < 0) || (eval > 255));
-}
-
-/*! Determines whether an integer is a valid ExtendedValue.
-
-    \pi eval A number to check.
-    \return  `true` if the value is considered valid, otherwise `false`.
-
-    \sa ExtendedValue
-*/
-bool ExtendedValue_is_valid(int eval) {
-    return ((eval > -1) && (eval < 256));
 }
 
 /*! Creates a human-friendly \string from an ExtendedValue's actual value,

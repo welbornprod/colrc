@@ -1153,6 +1153,7 @@ extern int colr_printf_esc_mod;
     _Generic( \
         (x), \
         ColorArg*: ColorArg_free, \
+        ColorArg**: ColorArgs_list_free, \
         ColorResult*: ColorResult_free, \
         ColorText*: ColorText_free, \
         default: _colr_free \
@@ -1758,7 +1759,6 @@ extern int colr_printf_esc_mod;
         ColorResult: ColorResult_to_str, \
         ColorText: ColorText_to_str, \
         ColorType: ColorType_to_str, \
-        ColorValue: ColorValue_to_esc, \
         ExtendedValue: ExtendedValue_to_str, \
         StyleValue: StyleValue_to_str, \
         RGB: RGB_to_str, \
@@ -2017,6 +2017,11 @@ extern int colr_printf_esc_mod;
 
     \details
     Should be followed by a block of code.
+
+    \details
+    Note: asprintf returns `-1` for errors, but `0` is a valid return (`0`
+    bytes written to the string).
+    The string will be untouched (may be `NULL` if it was initialized as `NULL`)
 
     \pi ... Arguments for asprintf.
 */

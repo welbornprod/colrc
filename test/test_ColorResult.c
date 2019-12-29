@@ -70,6 +70,13 @@ subdesc(ColorResult_length) {
             assert_size_eq_repr(length, tests[i].expected, *tests[i].cres);
             ColorResult_free(tests[i].cres);
         }
+        // Calculate length after a result change.
+        // ColorResult_new calculates it if you give it a string.
+        ColorResult cres = ColorResult_new(NULL);
+        // So we'll bypass that to test ColorResult_length.
+        cres.result = "This is my string.";
+        size_t length = ColorResult_length(cres);
+        assert_size_eq_repr(length, strlen(cres.result) + 1, cres);
     }
 }
 subdesc(ColorResult_new) {

@@ -11,6 +11,51 @@ subdesc(ColorValue_empty) {
         assert(ColorValue_is_empty(empty));
     }
 }
+subdesc(ColorValue_eq) {
+    BasicValue basic = RED;
+    ExtendedValue extended = ext(35);
+    RGB rgbval = rgb(1, 2, 3);
+    struct {
+        ColorValue a;
+        ColorValue b;
+        bool expected;
+    } tests[] = {
+        {color_val(basic), color_val(basic), true},
+        {color_val(extended), color_val(extended), true},
+        {color_val(rgbval), color_val(rgbval), true},
+        {color_val(basic), color_val(extended), false},
+        {color_val(extended), color_val(rgbval), false},
+        {color_val(rgbval), color_val(basic), false},
+    };
+    for_each(tests, i) {
+        bool result = ColorValue_eq(tests[i].a, tests[i].b);
+        assert(result == tests[i].expected);
+    }
+}
+subdesc(ColorValue_example) {
+    it("creates colorized examples") {
+        BasicValue basicval = BLUE;
+        StyleValue styleval = BRIGHT;
+        ExtendedValue extval = ext(35);
+        RGB rgbval = rgb(1, 2, 3);
+
+        ColorValue cvals[] = {
+            color_val(basicval),
+            color_val(styleval),
+            color_val(extval),
+            color_val(rgbval),
+        };
+        for_each(cvals, i) {
+            ColorValue cval = cvals[i];
+            char* s = ColorValue_example(cval);
+            assert_not_null(s);
+            assert_str_not_empty(s);
+            // TODO: Could check for actual content, like: "basic BLUE"
+            //       But that may be subject to change?
+            free(s);
+        }
+    }
+}
 subdesc(ColorValue_from_esc) {
     it("creates ColorValues from basic esc-codes") {
         for_len(basic_names_len, i) {
@@ -62,6 +107,17 @@ subdesc(ColorValue_from_esc) {
             assert_is_valid(cval);
             assert_ColorValue_has(cval, expected);
         }
+    }
+    it("handles invalid esc-codes") {
+        ColorValue basic = ColorValue_from_esc("\x1b[165m");
+        assert_colr_eq(basic.type, TYPE_INVALID);
+        assert_is_invalid(basic);
+        ColorValue extended = ColorValue_from_esc("\x1b[38;5;257m");
+        assert_colr_eq(extended.type, TYPE_INVALID_EXT_RANGE);
+        assert_is_invalid(extended);
+        ColorValue rgbval = ColorValue_from_esc("\x1b[38;2;257;65;300m");
+        assert_colr_eq(rgbval.type, TYPE_INVALID_RGB_RANGE);
+        assert_is_invalid(rgbval);
     }
 }
 
@@ -224,6 +280,8 @@ subdesc(ColorValue_length) {
 subdesc(ColorValue_repr) {
     it("creates a ColorValue repr") {
         char* s = ColorValue_repr(ColorValue_from_str("white"));
+        assert_not_null(s);
+        assert_str_not_empty(s);
         free(s);
     }
 }

@@ -478,7 +478,7 @@
     do { \
         _Pragma("GCC diagnostic push"); \
         _Pragma("GCC diagnostic ignored \"-Waddress\""); \
-        if (!x) { \
+        if (!(x)) { \
             fail("Not supposed to be NULL: " #x); \
         } \
         _Pragma("GCC diagnostic pop"); \

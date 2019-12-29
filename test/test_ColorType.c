@@ -14,6 +14,24 @@
     } while (0)
 
 describe(ColorType) {
+subdesc(ColorType_eq) {
+    struct {
+        ColorType a;
+        ColorType b;
+        bool expected;
+    } tests[] = {
+        {TYPE_NONE, TYPE_NONE, true},
+        {TYPE_BASIC, TYPE_BASIC, true},
+        {TYPE_EXTENDED, TYPE_EXTENDED, true},
+        {TYPE_NONE, TYPE_BASIC, false},
+        {TYPE_BASIC, TYPE_EXTENDED, false},
+        {TYPE_EXTENDED, TYPE_NONE, false},
+    };
+    for_each(tests, i) {
+        bool result = ColorType_eq(tests[i].a, tests[i].b);
+        assert(result == tests[i].expected);
+    }
+}
 subdesc(ColorType_from_str) {
     it("recognizes bad values") {
         struct TestItem {
