@@ -51,6 +51,9 @@ subdesc(ExtendedValue_from_BasicValue) {
             {LIGHTMAGENTA, ext(13)},
             {LIGHTCYAN, ext(14)},
             {LIGHTWHITE, ext(15)},
+            // Invalid BasicValue (anything > 17 right now).
+            {18, ext(0)},
+            {255, ext(0)},
         };
         for_each(tests, i) {
             ExtendedValue eval = ExtendedValue_from_BasicValue(tests[i].basic);

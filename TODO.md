@@ -13,19 +13,4 @@
 
 ## Tests
 Should have %100 coverage.
-[ ] Tests for `rainbow*` functions.
-[ ] Tests for RGB (more tests, covering all functions)
-
-Functions not mentioned in Tests:
-    Collected with: cfuncs -m colr.h ./test -e '(str_replace)|(_colr)|(printf)|(free)|(join_array)|(locale)'
-    * All of the exclude patterns are somehow covered under another macro/function.
-    * See tests and test coverage to confirm.
-_rainbow
-rainbow_bg
-rainbow_bg_term
-rainbow_fg
-rainbow_fg_term
-rainbow_step
-
-6 functions were not mentioned in:
-    ./test
+[ ] Small edge cases for TYPE_NONE, TYPE_INVALID, etc. Run: `make coverage coverageview`

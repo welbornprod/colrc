@@ -28,23 +28,6 @@ describe(RGB) {
         }
     }
 }
-// RGB_from_esc
-subdesc(RGB_from_esc) {
-    it("recognizes RGB escape codes") {
-        for_len(colr_name_data_len, i) {
-            RGB expected = colr_name_data[i].rgb;
-            char* codes = fore_str_static(expected);
-            RGB rgb;
-            // Test fore colors.
-            assert_rgb_from(codes, RGB_from_esc, 0, &rgb);
-            assert_RGB_eq(rgb, expected);
-            // Test back colors also.
-            codes = back_str_static(expected);
-            assert_rgb_from(codes, RGB_from_esc, 0, &rgb);
-            assert_RGB_eq(rgb, expected);
-        }
-    }
-}
 // RGB_from_BasicValue
 subdesc(RGB_from_BasicValue) {
     it("creates an RGB from a BasicValue") {
@@ -54,12 +37,30 @@ subdesc(RGB_from_BasicValue) {
             BasicValue bval;
             RGB expected;
         } tests[] = {
-            {RESET, rgb(0, 0, 0)},
+            // This is just a copy of what's in RGB_from_BasicValue.
+            // Not a very good test, but the function is very simple and all
+            // cases are covered.
+            {BASIC_INVALID_RANGE, rgb(0, 0, 0)},
             {BASIC_INVALID, rgb(0, 0, 0)},
+            {BASIC_NONE, rgb(0, 0, 0)},
+            {UNUSED, rgb(0, 0, 0)},
+            {RESET, rgb(0, 0, 0)},
+            {BLACK, rgb(1, 1, 1)},
             {RED, rgb(255, 0, 0)},
             {GREEN, rgb(0, 255, 0)},
+            {YELLOW, rgb(255, 255, 0)},
             {BLUE, rgb(0, 0, 255)},
+            {MAGENTA, rgb(255, 0, 255)},
+            {CYAN, rgb(0, 255, 255)},
             {WHITE, rgb(255, 255, 255)},
+            {LIGHTBLACK, rgb(128, 128, 128)},
+            {LIGHTRED, rgb(255, 85, 85)},
+            {LIGHTGREEN, rgb(135, 255, 135)},
+            {LIGHTYELLOW, rgb(255, 255, 215)},
+            {LIGHTBLUE, rgb(175, 215, 215)},
+            {LIGHTMAGENTA, rgb(255, 85, 255)},
+            {LIGHTCYAN, rgb(215, 255, 255)},
+            {LIGHTWHITE, rgb(255, 255, 255)},
         };
         for_each(tests, i) {
             RGB result = RGB_from_BasicValue(tests[i].bval);
@@ -89,6 +90,23 @@ subdesc(RGB_from_ExtendedValue) {
         for_each(tests, i) {
             RGB result = RGB_from_ExtendedValue(tests[i].eval);
             assert_colr_eq_repr(result, tests[i].expected, tests[i].eval);
+        }
+    }
+}
+// RGB_from_esc
+subdesc(RGB_from_esc) {
+    it("recognizes RGB escape codes") {
+        for_len(colr_name_data_len, i) {
+            RGB expected = colr_name_data[i].rgb;
+            char* codes = fore_str_static(expected);
+            RGB rgb;
+            // Test fore colors.
+            assert_rgb_from(codes, RGB_from_esc, 0, &rgb);
+            assert_RGB_eq(rgb, expected);
+            // Test back colors also.
+            codes = back_str_static(expected);
+            assert_rgb_from(codes, RGB_from_esc, 0, &rgb);
+            assert_RGB_eq(rgb, expected);
         }
     }
 }

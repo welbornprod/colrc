@@ -377,7 +377,7 @@ pre.source
 /* Source code view: line number format */
 span.lineNum
 {
-  background-color: #EFE383;
+  background-color: #dae7fe;
 }
 
 /* Source code view: format for lines which were executed */

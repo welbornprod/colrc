@@ -107,10 +107,40 @@ subdesc(StyleValue_is_valid) {
 }
 subdesc(StyleValue_repr) {
     it("creates a StyleValue repr") {
-        char* s = StyleValue_repr(StyleValue_from_str("reset_all"));
-        assert_not_null(s);
-        assert_str_not_empty(s);
-        free(s);
+        struct {
+            StyleValue sval;
+            char* marker;
+        } tests[] = {
+            {STYLE_INVALID, "STYLE_INVALID"},
+            {STYLE_INVALID_RANGE, "STYLE_INVALID_RANGE"},
+            {STYLE_NONE, "STYLE_NONE"},
+            {RESET_ALL, "RESET_ALL"},
+            {BRIGHT, "BRIGHT"},
+            {DIM, "DIM"},
+            {ENCIRCLE, "ENCIRCLE"},
+            {FLASH, "FLASH"},
+            {FRAME, "FRAME"},
+            {HIGHLIGHT, "HIGHLIGHT"},
+            {ITALIC, "ITALIC"},
+            {NORMAL, "NORMAL"},
+            {OVERLINE, "OVERLINE"},
+            {STRIKETHRU, "STRIKETHRU"},
+            {UNDERLINE, "UNDERLINE"},
+        };
+        for_each(tests, i) {
+            char* s = StyleValue_repr(tests[i].sval);
+            assert_not_null(s);
+            assert_str_not_empty(s);
+            assert_str_contains(s, tests[i].marker);
+            free(s);
+        }
+        StyleValue invalid = 86;
+        char* invalid_repr = "86";
+        char* invalidstr = StyleValue_repr(invalid);
+        assert_not_null(invalidstr);
+        assert_str_not_empty(invalidstr);
+        assert_str_contains(invalidstr, invalid_repr);
+        free(invalidstr);
     }
 }
 subdesc(StyleValue_to_str) {
@@ -126,6 +156,14 @@ subdesc(StyleValue_to_str) {
             assert_str_not_empty(s);
             free(s);
         }
+        // An unknown name.
+        StyleValue invalid = 255;
+        char* invalidstr = StyleValue_to_str(invalid);
+        assert_not_null(invalidstr);
+        assert_str_not_empty(invalidstr);
+        assert_str_contains(invalidstr, "unknown");
+        free(invalidstr);
+
     }
 }
 } // describe(StyleValue)

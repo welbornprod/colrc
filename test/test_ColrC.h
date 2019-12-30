@@ -903,14 +903,6 @@
         }\
     } while (0)
 
-#define assert_str_not_empty(s) \
-    do { \
-        assert(s, "String was actually NULL: " #s); \
-        if (s[0] == '\0') { \
-            fail("String was empty: " #s " == \"\""); \
-        } \
-    } while (0)
-
 // TODO: These should be covered already with assert_size_eq_repr().
 #define assert_str_list_size_eq_repr(a, b, lst) \
     assert_str_list_size_op_repr(a, ==, b, lst, "List sizes are not equal")
@@ -928,6 +920,40 @@
             ); \
             free(_a_s_op_r_repr); \
         }\
+    } while (0)
+
+/*! \def assert_str_not_contains
+    Ensure a string does not contain another substring.
+
+    \pi s      The string to search.
+    \pi needle The substring to look for.
+*/
+#define assert_str_not_contains(s, needle) \
+    do { \
+        assert_not_null(s); \
+        assert_not_null(needle); \
+        assert_str_not_empty(s); \
+        assert_str_not_empty(needle); \
+        if (strstr(s, needle)) { \
+            char* _a_s_n_c_repr = test_repr(s); \
+            char* _a_s_n_c_needle = test_repr(needle); \
+            fail("String contains %s: %s", _a_s_n_c_needle, _a_s_n_c_repr); \
+            free(_a_s_n_c_repr); \
+            free(_a_s_n_c_needle); \
+        } \
+    } while (0)
+
+/*! \def assert_str_not_empty
+    Ensure a string is not an empty string ("").
+
+    \pi s The string to check.
+*/
+#define assert_str_not_empty(s) \
+    do { \
+        assert(s, "String was actually NULL: " #s); \
+        if (s[0] == '\0') { \
+            fail("String was empty: " #s " == \"\""); \
+        } \
     } while (0)
 
 /*! \def assert_str_starts_with

@@ -1214,7 +1214,7 @@ int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *co
             s = justified;
         } else {
             // Can't allocate for justified text.
-            return 1;
+            return 1; // LCOV_EXCL_LINE
         }
     }
     // Escape output if the '/' modifier was used.
@@ -1322,7 +1322,8 @@ bool colr_set_locale(void) {
         return checked;
     }
     // Locale already set.
-    return false;
+    // No tests for this line yet.
+    return false; // LCOV_EXCL_LINE
 }
 
 /*! Center-justifies a \string, ignoring escape codes when measuring the width.
@@ -2668,7 +2669,7 @@ char* colr_str_replace_re_match(const char* restrict s, regmatch_t* match, const
         int written = asprintf(&result, "%s%s", repl, s + match->rm_eo);
         if (written < 0) {
             // Cannot allocate.
-            return NULL;
+            return NULL; // LCOV_EXCL_LINE
         } else if (written < 1) {
             // Happens when "removing" patterns by replacing with "" and
             // the entire string gets replaced (`result` is untouched, and `NULL`).
@@ -3479,8 +3480,11 @@ char* _colr_join(void* joinerp, ...) {
         joiner = (char* )joinerp;
     }
     if (!joiner) {
+        // The callers of this function guard against this.
+        // LCOV_EXCL_START
         free(final);
         return NULL;
+        // LCOV_EXCL_STOP
     }
 
     int count = 0;
@@ -4037,26 +4041,35 @@ char* ColorArg_example(ColorArg carg, bool colorized) {
     if (!argtype_name) return NULL;
     char* val_example = ColorValue_example(carg.value);
     if (!val_example) {
+        // Don't have a test for allocation failures, yet.
+        // LCOV_EXCL_START
         free(argtype_name);
         return NULL;
+        // LCOV_EXCL_STOP
     }
     // Always use fore-codes for example colors.
     if (carg.type == BACK) carg.type = FORE;
     char* codes = ColorArg_to_esc(carg);
     if (!codes) {
+        // Don't have a test for allocation failures, yet.
+        // LCOV_EXCL_START
         free(argtype_name);
         free(val_example);
         return NULL;
+        // LCOV_EXCL_STOP
     }
 
     char* code_repr = NULL;
     if (ColorArg_is_valid(carg)) {
         code_repr = colr_str_repr(codes);
         if (!code_repr) {
+            // Don't have a test for allocation failures, yet.
+            // LCOV_EXCL_START
             free(argtype_name);
             free(val_example);
             free(codes);
             return NULL;
+            // LCOV_EXCL_STOP
         }
     }
     char* example = NULL;
@@ -5865,8 +5878,10 @@ size_t ColorValue_length(ArgType type, ColorValue cval) {
                 case TYPE_RGB:
                     return CODE_RGB_LEN;
                 // This case is not valid, but I will try to do the right thing.
+                // LCOV_EXCL_START
                 case TYPE_STYLE:
                     return STYLE_LEN;
+                // LCOV_EXCL_STOP
                 default:
                     // Empty string for invalid/empty values.
                     return 1;
@@ -5881,8 +5896,10 @@ size_t ColorValue_length(ArgType type, ColorValue cval) {
                 case TYPE_RGB:
                     return CODE_RGB_LEN;
                 // This case is not even valid, but okay.
+                // LCOV_EXCL_START
                 case TYPE_STYLE:
                     return STYLE_LEN;
+                // LCOV_EXCL_STOP
                 default:
                     // Empty string for invalid/empty values.
                     return 1;
@@ -5895,12 +5912,14 @@ size_t ColorValue_length(ArgType type, ColorValue cval) {
                 case TYPE_STYLE:
                     return STYLE_LEN;
                 // All of these other cases are a product of mismatched info.
+                // LCOV_EXCL_START
                 case TYPE_BASIC:
                     return CODE_LEN;
                 case TYPE_EXTENDED:
                     return CODEX_LEN;
                 case TYPE_RGB:
                     return CODE_RGB_LEN;
+                // LCOV_EXCL_STOP
                 // Except this one, it's for TYPE_INVALID stuff.
                 default:
                     // Empty string for invalid/empty values.
@@ -5972,10 +5991,12 @@ char* ColorValue_to_esc(ArgType type, ColorValue cval) {
                     format_fg_RGB(codes, cval.rgb);
                     return codes;
                 // This case is not valid, but I will try to do the right thing.
+                // LCOV_EXCL_START
                 case TYPE_STYLE:
                     codes = alloc_style();
                     format_style(codes, cval.style);
                     return codes;
+                // LCOV_EXCL_STOP
                 default:
                     return NULL;
                 }
@@ -5995,10 +6016,12 @@ char* ColorValue_to_esc(ArgType type, ColorValue cval) {
                     format_bg_RGB(codes, cval.rgb);
                     return codes;
                 // This case is not even valid, but okay.
+                // LCOV_EXCL_START
                 case TYPE_STYLE:
                     codes = alloc_style();
                     format_style(codes, cval.style);
                     return codes;
+                // LCOV_EXCL_STOP
                 default:
                     return NULL;
                 }
@@ -6011,6 +6034,7 @@ char* ColorValue_to_esc(ArgType type, ColorValue cval) {
                     format_style(codes, cval.style);
                     return codes;
                 // All of these other cases are a product of mismatched info.
+                // LCOV_EXCL_START
                 case TYPE_BASIC:
                     codes = alloc_basic();
                     format_fg(codes, cval.basic);
@@ -6023,6 +6047,7 @@ char* ColorValue_to_esc(ArgType type, ColorValue cval) {
                     codes = alloc_rgb();
                     format_fg_RGB(codes, cval.rgb);
                     return codes;
+                // LCOV_EXCL_STOP
                 // Except this one, it's for TYPE_INVALID stuff.
                 default:
                     return NULL;
@@ -6065,9 +6090,11 @@ bool ColorValue_to_esc_s(char* dest, ArgType type, ColorValue cval) {
                     format_fg_RGB(dest, cval.rgb);
                     return true;
                 // This case is not valid, but I will try to do the right thing.
+                // LCOV_EXCL_START
                 case TYPE_STYLE:
                     format_style(dest, cval.style);
                     return true;
+                // LCOV_EXCL_STOP
                 default:
                     dest[0] = '\0';
                     return false;
@@ -6085,9 +6112,11 @@ bool ColorValue_to_esc_s(char* dest, ArgType type, ColorValue cval) {
                     format_bg_RGB(dest, cval.rgb);
                     return true;
                 // This case is not even valid, but okay.
+                // LCOV_EXCL_START
                 case TYPE_STYLE:
                     format_style(dest, cval.style);
                     return true;
+                // LCOV_EXCL_STOP
                 default:
                     dest[0] = '\0';
                     return false;
@@ -6102,6 +6131,7 @@ bool ColorValue_to_esc_s(char* dest, ArgType type, ColorValue cval) {
                     format_style(dest, cval.style);
                     return true;
                 // All of these other cases are a product of mismatched info.
+                // LCOV_EXCL_START
                 case TYPE_BASIC:
                     format_fg(dest, cval.basic);
                     return true;
@@ -6111,6 +6141,7 @@ bool ColorValue_to_esc_s(char* dest, ArgType type, ColorValue cval) {
                 case TYPE_RGB:
                     format_fg_RGB(dest, cval.rgb);
                     return true;
+                // LCOV_EXCL_STOP
                 // Except this one, it's for TYPE_INVALID stuff.
                 default:
                     dest[0] = '\0';
@@ -6544,8 +6575,14 @@ int ExtendedValue_from_str(const char* arg) {
     short usernum;
     if (sscanf(arg, "%hd", &usernum) != 1) {
         // Zero, or more than one number provided.
+        // We've already proven that it's all digits, not negative, and
+        // less than 4 digits. I don't know how this could `if` could fire,
+        // but if it ever does. Put a test in ./test/test_ExtendedValue.c
+        // under the 'ExtendedValue_from_str' tests.
+        // LCOV_EXCL_START
         free(arglower);
         return EXT_INVALID;
+        // LCOV_EXCL_STOP
     }
     if (usernum < 0 || usernum > 255) {
         free(arglower);
@@ -6712,7 +6749,7 @@ RGB RGB_from_BasicValue(BasicValue bval) {
         return rgb(255, 255, 255);
     }
     // Shouldn't happen.
-    return rgb(0,0, 0);
+    return rgb(0,0, 0); // LCOV_EXCL_LINE
 }
 
 /*! Return an RGB value from a known ExtendedValue.
@@ -7196,6 +7233,9 @@ char* StyleValue_repr(StyleValue sval) {
         case STYLE_INVALID:
             asprintf_or_return(NULL, &repr, "(StyleValue) STYLE_INVALID");
             break;
+        case STYLE_INVALID_RANGE:
+            asprintf_or_return(NULL, &repr, "(StyleValue) STYLE_INVALID_RANGE");
+            break;
         case STYLE_NONE:
             asprintf_or_return(NULL, &repr, "(StyleValue) STYLE_NONE");
             break;
@@ -7404,7 +7444,7 @@ char* _rainbow(RGB_fmter fmter, const char* s, double freq, size_t offset, size_
     if (!s) {
         return NULL;
     }
-    if (!offset) offset = 3;
+    if (!offset) offset = 1;
     if (freq < 0.1) freq = 0.1;
     if (spread < 1) spread = 1;
 
@@ -7490,6 +7530,8 @@ RGB rainbow_step(double freq, size_t offset) {
                 return res;
             }
     */
+    if (freq < 0.1) freq = 0.1;
+    if (!offset) offset = 1;
     double base = freq * offset;
     double redval = sin(base + 0) * 127 + 128;
     double greenval = (sin(base + ((2 * M_PI) / 3)) * 127) + 128;
