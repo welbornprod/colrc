@@ -1094,7 +1094,7 @@ char* colr_empty_str(void) {
     #include "colr.h"
     int main(void) {
         // There are 4 multibyte characters in the string.
-        // There are multiple bytes making up each characters, probably 3 each,
+        // There are multiple bytes making up each character, probably 3 each,
         // which makes the byte-length 12.
         char* s = "１３３７";
 
@@ -1163,6 +1163,9 @@ size_t colr_mb_len(const char* s, size_t length) {
 */
 int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *const *args) {
     (void)info; // Unused.
+    // Wide character output is not supported right now.
+    assert(info->wide == 0);
+
     void* p = *(void**)args[0];
     char* s = NULL;
     ColorArg* cargp = NULL;
