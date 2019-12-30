@@ -6,6 +6,29 @@
 #include "test_RGB.h"
 
 describe(RGB) {
+// RGB_average
+    subdesc(RGB_average) {
+    it("averages an RGB value") {
+        // Not much to test here.
+        struct {
+            RGB rgbval;
+            unsigned char avg;
+        } tests[] = {
+            {rgb(0, 0, 0), 0},
+            {rgb(1, 0, 0), 0},
+            {rgb(0, 1, 0), 0},
+            {rgb(0, 0, 1), 0},
+            {rgb(3, 0, 0), 1},
+            {rgb(3, 3, 3), 3},
+            {rgb(10, 10, 10), 10},
+        };
+        for_each(tests, i) {
+            unsigned char avg = RGB_average(tests[i].rgbval);
+            assert(avg == tests[i].avg);
+        }
+    }
+}
+// RGB_from_esc
 subdesc(RGB_from_esc) {
     it("recognizes RGB escape codes") {
         for_len(colr_name_data_len, i) {
@@ -22,6 +45,54 @@ subdesc(RGB_from_esc) {
         }
     }
 }
+// RGB_from_BasicValue
+subdesc(RGB_from_BasicValue) {
+    it("creates an RGB from a BasicValue") {
+        // This function is pretty simple, and defaults to rgb(0, 0, 0) for
+        // "bad" values.
+        struct {
+            BasicValue bval;
+            RGB expected;
+        } tests[] = {
+            {RESET, rgb(0, 0, 0)},
+            {BASIC_INVALID, rgb(0, 0, 0)},
+            {RED, rgb(255, 0, 0)},
+            {GREEN, rgb(0, 255, 0)},
+            {BLUE, rgb(0, 0, 255)},
+            {WHITE, rgb(255, 255, 255)},
+        };
+        for_each(tests, i) {
+            RGB result = RGB_from_BasicValue(tests[i].bval);
+            assert_colr_eq_repr(result, tests[i].expected, result);
+        }
+    }
+}
+// RGB_from_ExtendedValue
+subdesc(RGB_from_ExtendedValue) {
+    it("creates an RGB from an ExtendedValue") {
+        // This is just accessing ext2rgb_map[eval], but casting to
+        // ExtendedValue first.
+        struct {
+            ExtendedValue eval;
+            RGB expected;
+        } tests[] = {
+            {ext(1), ext2rgb_map[1]},
+            {ext(10), ext2rgb_map[10]},
+            {ext(120), ext2rgb_map[120]},
+            {ext(200), ext2rgb_map[200]},
+            {ext(255), ext2rgb_map[255]},
+            // Test overflow? Probably not guaranteed to wrap around.
+            {ext(256), ext2rgb_map[0]},
+            {ext(257), ext2rgb_map[1]},
+            {ext(-2), ext2rgb_map[254]},
+        };
+        for_each(tests, i) {
+            RGB result = RGB_from_ExtendedValue(tests[i].eval);
+            assert_colr_eq_repr(result, tests[i].expected, tests[i].eval);
+        }
+    }
+}
+// RGB_from_hex
 subdesc(RGB_from_hex) {
     it("recognizes hex strings") {
         for_len(hex_tests_len, i) {
@@ -41,6 +112,7 @@ subdesc(RGB_from_hex) {
         }
     }
 }
+// RGB_from_hex_default
 subdesc(RGB_from_hex_default) {
     it("recognizes hex strings") {
         for_len(hex_tests_len, i) {
@@ -70,6 +142,7 @@ subdesc(RGB_from_hex_default) {
     }
 }
 
+// RGB_from_str
 subdesc(RGB_from_str) {
     it("recognizes valid RGB strings") {
         for_len(str_tests_len, i) {
@@ -122,6 +195,71 @@ subdesc(RGB_from_str) {
         }
     }
 }
+// RGB_grayscale
+subdesc(RGB_grayscale) {
+    it("creates grayscale RGBs") {
+        // This is a pretty simple function, it will never return rgb(0, 0, 0).
+        struct {
+            RGB rgbval;
+            RGB expected;
+        } tests[] = {
+            {rgb(0, 0, 0), rgb(1, 1, 1)},
+            {rgb(10, 10, 10), rgb(10, 10, 10)},
+            {rgb(10, 20, 30), rgb(20, 20, 20)},
+            {rgb(6, 6, 9), rgb(7, 7, 7)},
+        };
+        for_each(tests, i) {
+            RGB result = RGB_grayscale(tests[i].rgbval);
+            assert_colr_eq(result, tests[i].expected);
+        }
+    }
+}
+// RGB_inverted
+subdesc(RGB_inverted) {
+    it("creates inverted RGBs") {
+        // This function will never return rgb(0, 0, 0).
+        struct {
+            RGB rgbval;
+            RGB expected;
+        } tests[] = {
+            {rgb(0, 0, 0), rgb(255, 255, 255)},
+            {rgb(10, 10, 10), rgb(245, 245, 245)},
+            {rgb(10, 20, 30), rgb(245, 235, 225)},
+            {rgb(255, 255, 255), rgb(1, 1, 1)},
+            {rgb(10, 10, 255), rgb(245, 245, 1)},
+            {rgb(255, 10, 10), rgb(1, 245, 245)},
+            {rgb(10, 255, 10), rgb(245, 1, 245)},
+        };
+        for_each(tests, i) {
+            RGB result = RGB_inverted(tests[i].rgbval);
+            assert_colr_eq(result, tests[i].expected);
+        }
+    }
+}
+// RGB_monochrome
+subdesc(RGB_monochrome) {
+    it("creates a monochrome RGB") {
+        // This will always return rgb(255, 255, 255) or rgb(1, 1, 1).
+        struct {
+            RGB rgbval;
+            RGB expected;
+        } tests[] = {
+            {rgb(0, 0, 0), rgb(1, 1, 1)},
+            {rgb(10, 10, 10), rgb(1, 1, 1)},
+            {rgb(10, 20, 30), rgb(1, 1, 1)},
+            {rgb(255, 255, 255), rgb(255, 255, 255)},
+            {rgb(100, 100, 255), rgb(255, 255, 255)},
+            {rgb(129, 129, 129), rgb(255, 255, 255)},
+            {rgb(128, 128, 128), rgb(1, 1, 1)},
+        };
+        for_each(tests, i) {
+            RGB result = RGB_monochrome(tests[i].rgbval);
+            assert_colr_eq(result, tests[i].expected);
+        }
+    }
+}
+
+// RGB_repr
 subdesc(RGB_repr) {
     it("creates a repr") {
         char* repr = RGB_repr(rgb(34, 26, 47));
@@ -130,6 +268,7 @@ subdesc(RGB_repr) {
         free(repr);
     }
 }
+// RGB_to_hex
 subdesc(RGB_to_hex) {
     it("converts rgb values to hex") {
         struct {
@@ -151,6 +290,7 @@ subdesc(RGB_to_hex) {
         }
     }
 }
+// RGB_to_str
 subdesc(RGB_to_str) {
     it("converts rgb values to str") {
         struct {
@@ -172,4 +312,25 @@ subdesc(RGB_to_str) {
         }
     }
 }
+// RGB_to_term_RGB
+subdesc(RGB_to_term_RGB) {
+    it("creates the nearest term-color for RGBs") {
+        struct {
+            RGB rgbval;
+            RGB expected;
+        } tests[] = {
+            {rgb(150, 150, 100), rgb(135, 135, 95)},
+            {rgb(255, 255, 220), rgb(255, 255, 215)},
+            {rgb(170, 20, 30), rgb(175, 0, 0)},
+            {rgb(125, 125, 101), rgb(135, 135, 95)},
+            {rgb(10, 10, 255), rgb(0, 0, 255)},
+            {rgb(255, 10, 10), rgb(255, 0, 0)},
+            {rgb(10, 255, 10), rgb(0, 255, 0)},
+        };
+        for_each(tests, i) {
+            RGB result = RGB_to_term_RGB(tests[i].rgbval);
+            assert_colr_eq(result, tests[i].expected);
+        }
+    }
 }
+} // describe(RGB)

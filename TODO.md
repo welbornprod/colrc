@@ -26,13 +26,6 @@ rainbow_bg_term
 rainbow_fg
 rainbow_fg_term
 rainbow_step
-RGB_average
-RGB_from_BasicValue
-RGB_from_ExtendedValue
-RGB_grayscale
-RGB_inverted
-RGB_monochrome
-RGB_to_term_RGB
 
-13 functions were not mentioned in:
+6 functions were not mentioned in:
     ./test

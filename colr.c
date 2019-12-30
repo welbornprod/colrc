@@ -6633,7 +6633,9 @@ char* ExtendedValue_to_str(ExtendedValue eval) {
     \sa RGB
 */
 unsigned char RGB_average(RGB rgb) {
-    return (rgb.red + rgb.green + rgb.blue) / 3;
+    int sum = rgb.red + rgb.green + rgb.blue;
+    // May return 0 if red, green, or blue are zero.
+    return sum / 3;
 }
 
 /*! Compare two RGB structs.
@@ -6724,6 +6726,7 @@ RGB RGB_from_BasicValue(BasicValue bval) {
     \sa RGB
 */
 RGB RGB_from_ExtendedValue(ExtendedValue eval) {
+    // Casting to ExtendedValue offers some bounds checks.
     return ext2rgb_map[eval];
 }
 
@@ -6948,7 +6951,8 @@ RGB RGB_grayscale(RGB rgb) {
     \sa RGB
 */
 RGB RGB_inverted(RGB rgb) {
-    // RGB uses unsigned char, so wrap-around is expected.
+    // RGB uses unsigned char, so wrap-around is okay
+    // (if that's what is going to happen?).
     unsigned char r = 255 - rgb.red;
     unsigned char g = 255 - rgb.green;
     unsigned char b = 255 - rgb.blue;
@@ -7013,9 +7017,9 @@ char* RGB_to_str(RGB rgb) {
     \sa RGB
 */
 RGB RGB_to_term_RGB(RGB rgb) {
-    int incs[6] = {0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff};
+    int incs[6] = {0, 95, 135, 175, 215, 0xff};
     size_t inc_len = sizeof(incs) / sizeof(incs[0]);
-    size_t inc_max = inc_len -1 ;
+    size_t inc_max = inc_len - 1;
     unsigned char res[3] = {-1, -1, -1};
     size_t res_pos = 0;
     unsigned char parts[3] = {rgb.red, rgb.blue, rgb.green};
