@@ -15,13 +15,34 @@ program.
 #include "colr.h"
 
 int main(void) {
+    // Simple usage:
     char* s = Colr_str("Hello from ColrC!", fore("blueviolet"), back(WHITE));
     if (!s) return EXIT_FAILURE;
 
-    printf("%s\n", s);
+    puts(s);
+
+    // Fancier functions:
+    char* s2 = colr_replace(
+        s,
+        "Hello",
+        Colr_join(
+            " ",
+            Colr_cat(
+                Colr("Good", fore(BLUE), back(RESET)),
+                Colr("bye", fore(CYAN))
+            ),
+            "and",
+            Colr("good luck", style(UNDERLINE))
+        )
+    );
     free(s);
+    if (!s2) return EXIT_FAILURE;
+    puts(s2);
+    free(s2);
+
     return EXIT_SUCCESS;
 }
+
 ```
 
 There are plenty of examples in the [documentation](examples.html), and
@@ -64,14 +85,16 @@ building/printing of colorized strings (colr_puts() and colr_print()).
 For all examples, check the [documentation](examples.html).
 Here is a table of the most common usage examples:
 
-Name           | Example
-:------------- | :-----------------
-\ref colr_cat  | \ref colr_cat_example.c
-\ref colr_join | \ref colr_join_example.c
-\ref Colr      | \ref Colr_example.c
-\ref fore      | \ref fore_example.c
-\ref back      | \ref back_example.c
-\ref style     | \ref style_example.c
+Name                  | Example
+:-------------------- | :-----------------------------
+\ref Colr             | \ref Colr_example.c
+\ref colr_cat         | \ref colr_cat_example.c
+\ref colr_join        | \ref colr_join_example.c
+\ref colr_replace     | \ref colr_replace_example.c
+\ref colr_replace_re  | \ref colr_replace_re_example.c
+\ref fore             | \ref fore_example.c
+\ref back             | \ref back_example.c
+\ref style            | \ref style_example.c
 
 All of these examples can be built with the `examples` target:
 ```bash
@@ -85,7 +108,7 @@ target (`make runexamples`), or with the example runner:
 ```
 
 There is also a "snippet runner" that can build and run
-arbitrary C code snippets, but is useful for building and running all example
+arbitrary C code snippets, mainly used for building and running all example
 code snippets found in the ColrC source code itself:
 ```bash
 ./tools/snippet.py --examples
@@ -93,7 +116,12 @@ code snippets found in the ColrC source code itself:
 
 To see the source-based examples in the terminal you can run:
 ```bash
-./tools/snippet.py --listexamples
+./tools/snippet.py --listnames [NAME_PATTERN]
+```
+
+To view the source code for those examples, you can run:
+```bash
+./tools/snippet.py --listexamples [NAME_PATTERN]
 ```
 
 \anchor why

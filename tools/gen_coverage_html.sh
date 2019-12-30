@@ -261,6 +261,7 @@ elif ((do_view)); then
 elif ((do_summary)); then
     view_summary
 else
+    [[ -e "$css_file" ]] || fail "Missing custom css file: $css_file"
     generate_html
 fi
 exit

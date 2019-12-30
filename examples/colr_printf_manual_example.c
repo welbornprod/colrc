@@ -60,6 +60,17 @@ int main(void) {
     );
 
     /*
+        A custom modifier was added (`/`), to allow for escaped output.
+
+        %/R : Print the Colr object, with the output string escaped.
+    */
+    printf(
+        "        Normal: %R\n       Escaped: %/R\n",
+        Colr("okay", fore(RED)),
+        Colr("okay", fore(RED))
+    );
+
+    /*
         Other printf-like functions are available, like `sprintf`, `snprintf`,
         and `asprintf`.
     */

@@ -52,7 +52,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.2.7'
+VERSION = '0.2.9'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -122,14 +122,14 @@ USAGESTR = f"""{VERSIONSTR}
         {SCRIPT} [-D] (-L | -N) [PATTERN]
         {SCRIPT} [-D] [-n] [-q] [-w] -V
         {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe] -b
-        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -s] [-t name] -x [PATTERN] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -s] [-t name] [CODE] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -s] [-t name] [-f file...] [-- ARGS...]
-        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -s] [-t name] [-w] (-e [CODE] | -l) [-- ARGS...]
-        {SCRIPT} [-D] -E [-t name] -x [PATTERN] [-- ARGS...]
-        {SCRIPT} [-D] -E [-t name] [CODE] [-- ARGS...]
-        {SCRIPT} [-D] -E [-t name] [-f file...] [-- ARGS...]
-        {SCRIPT} [-D] -E [-t name] [-w] (-e [CODE] | -l) [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -R | -s] [-t name] -x [PATTERN] [-- ARGS...]
+        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -s] [-M | -t name] [CODE] [-- ARGS...]
+        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -s] [-M | -t name] [-f file...] [-- ARGS...]
+        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -s] [-M | -t name] [-w] (-e [CODE] | -l) [-- ARGS...]
+        {SCRIPT} [-D] -E [-M | -t name] -x [PATTERN] [-- ARGS...]
+        {SCRIPT} [-D] [-W] -E [-M | -t name] [CODE] [-- ARGS...]
+        {SCRIPT} [-D] [-W] -E [-M | -t name] [-f file...] [-- ARGS...]
+        {SCRIPT} [-D] [-W] -E [-M | -t name] [-w] (-e [CODE] | -l) [-- ARGS...]
 
     Options:
         ARGS                   : Extra arguments for the compiler.
@@ -157,17 +157,28 @@ USAGESTR = f"""{VERSIONSTR}
         -h,--help              : Show this help message.
         -L,--listexamples      : List example code snippets in the source.
         -l,--last              : Re-run the last snippet.
+        -M,--nomake            : Do not run `make` to get compiler args.
+                                 Running make could cause side-effects if this
+                                 tool is executed from another project directory
+                                 (with a Makefile in it).
         -m,--memcheck          : Run the snippet through `valgrind`.
         -N,--listnames         : List example snippet names from the source.
         -n,--name              : Print the resulting binary name, for further
                                  testing.
         -q,--quiet             : Don't print any status messages.
+        -R,--norun             : Don't execute the resulting binary.
+                                 Just compile it.
         -r exe,--run exe       : Run a program on the compiled binary, like
                                  `gdb` or `kdbg`.
         -s,--sanitize          : Use -fsanitize compiler arguments.
         -t name,--target name  : Make target to get compiler flags from.
         -V,--viewlast          : View the last snippet that was compiled.
         -v,--version           : Show version.
+        -W,--noautowrap        : Don't use any auto includes or macros.
+                                 ColrC itself will not be compiled in, and it's
+                                 header won't be available. This is good for
+                                 simple C snippets, but not testing/developing
+                                 ColrC.
         -w,--wrapped           : Use the "wrapped" version, which is the resulting
                                  `.c` file for snippets.
         -x,--examples          : Use source examples as the snippets.
@@ -192,6 +203,9 @@ def main(argd):
     """ Main entry point, expects docopt arg dict as argd. """
     global status
     last_snippet_read()
+    if argd['--noautowrap']:
+        Snippet.do_wrap = False
+
     if argd['--quiet']:
         status = noop
     if argd['--sanitize']:
@@ -213,6 +227,7 @@ def main(argd):
             preprocess=argd['--preprocessor'],
             quiet=argd['--quiet'],
             make_target=argd['--target'],
+            run=not argd['--norun'],
         )
     elif argd['--lastbinary']:
         if not config['last_binary']:
@@ -246,12 +261,23 @@ def main(argd):
                 show_name=argd['--name'],
                 quiet=argd['--quiet'],
             )
-
+    # `snippets` can be set by reading files, editing the last snippet, or
+    # by using `argd['CODE']`.
+    snippets = []
     if argd['--file']:
         snippets = [
             read_file(s)
             for s in argd['--file']
+            if s
         ]
+        if not snippets:
+            raise InvalidArg('no files read.')
+    elif argd['CODE'] and os.path.exists(argd['CODE']):
+        snippet = read_file(argd['CODE'])
+        if not snippet:
+            raise InvalidArg(f'cannot read file: argd["CODE"]')
+        snippets = [snippet]
+
     if argd['--editlast']:
         if argd['--wrapped']:
             if not config['last_c_file']:
@@ -269,7 +295,8 @@ def main(argd):
             raise InvalidArg('no "last snippet" found.')
         snippets = [Snippet(LAST_SNIPPET, name='last-snippet')]
     else:
-        snippets = [
+        # Snippets may have been set by reading a file (argd['--file']).
+        snippets = snippets or [
             Snippet(argd['CODE'], name='cmdline-snippet') or read_stdin()
         ]
 
@@ -288,7 +315,8 @@ def main(argd):
         disasm=argd['--disasm'],
         memcheck=argd['--memcheck'],
         quiet=argd['--quiet'],
-        make_target=argd['--target'],
+        make_target=Disabled if argd['--nomake'] else argd['--target'],
+        run=not argd['--norun'],
     )
 
 
@@ -547,11 +575,24 @@ def get_gcc_cmd(
     if output_file:
         cmd.extend(('-o', output_file))
     cmd.append(f'-iquote{COLR_DIR}')
-    compiler, make_flags = get_make_flags(
-        user_args=[make_target] if make_target else None
-    )
+
+    if make_target is Disabled:
+        debug('`make` flags were disabled.')
+        compiler = None
+        make_flags = []
+    else:
+        try:
+            compiler, make_flags = get_make_flags(
+                user_args=[make_target] if make_target else None
+            )
+        except ValueError:
+            # No make flags available.
+            compiler = None
+            make_flags = []
+
     if not compiler:
         compiler = 'gcc'
+        debug(f'Using default compiler: {compiler}')
     cmd.extend(make_flags)
     cmd.extend(user_args or [])
     if c_files:
@@ -613,7 +654,13 @@ def iter_make_output(user_args=None):
     make_cmd = ['make']
     make_cmd.extend(user_args or [])
     make_cmd.extend(['-B', '-n'])
-    yield from iter_output(make_cmd)
+    try:
+        yield from iter_output(make_cmd)
+    except subprocess.CalledProcessError:
+        # No make flags for you.
+        cmdstr = ' '.join(make_cmd)
+        debug(f'No make flags, returned non-zero: {cmdstr}')
+        pass
 
 
 def iter_output(cmd, stderr=subprocess.PIPE):
@@ -866,7 +913,7 @@ def run_compiled_exe(
                 ),
             ]
             if quiet:
-                fmtpcs.append(C('-Name-quiet'))
+                fmtpcs.append(C('--quiet'))
             fmtpcs.append(namefmt)
             namefmt = C(' ').join(fmtpcs)
         status(C(': ').join(
@@ -923,7 +970,7 @@ def run_compiled_exe(
 def run_examples(
         pat=None, exe=None, show_name=False, compiler_args=None,
         disasm=False, memcheck=False, preprocess=False,
-        quiet=False, make_target=None):
+        quiet=False, make_target=None, run=True):
     """ Compile and run source examples, with optional filtering pattern.
     """
     errs = 0
@@ -975,6 +1022,7 @@ def run_examples(
                 memcheck=memcheck,
                 quiet=quiet,
                 make_target=make_target,
+                run=run,
             )
         snipscnt = snippetinfo['total'] - snippetinfo['skipped']
         success += snipscnt - errs
@@ -1007,9 +1055,11 @@ def run_examples(
 
 def run_snippets(
         snippets, exe=None, show_name=False, compiler_args=None,
-        disasm=False, memcheck=False, quiet=False, make_target=None):
+        disasm=False, memcheck=False, quiet=False, make_target=None,
+        run=True):
     """ Compile and run several c code snippets. """
     errs = 0
+    sniplen = len(snippets)
     for snippet in snippets:
         binaryname = snippet.compile(
             user_args=compiler_args,
@@ -1017,7 +1067,7 @@ def run_snippets(
         )
         if disasm:
             errs += disasm_file(binaryname)
-        else:
+        elif run:
             procresult = run_compiled_exe(
                 binaryname,
                 exe=exe,
@@ -1026,8 +1076,15 @@ def run_snippets(
                 memcheck=memcheck,
                 quiet=quiet,
             )
-            errs += 1 if procresult['returncode'] else 0
+            if procresult['returncode']:
+                debug(f'Snippet process returned: {procresult["returncode"]}')
+                # Use the actual process return code for single runs.
+                errs += procresult['returncode'] if (sniplen == 1) else 1
             status_runtime(procresult['duration'])
+        elif show_name:
+            # Even if `quiet` was used, `show_name` overrides it.
+            print(CName(binaryname))
+
     return errs
 
 
@@ -1143,11 +1200,28 @@ def view_snippets(snippets, show_name=False, quiet=False):
 
 
 class CompileError(ValueError):
-    def __init__(self, filepath):
+    def __init__(self, filepath, reason=None):
         self.filepath = filepath
+        self.reason = reason
 
     def __str__(self):
-        return f'Can\'t compile snippet: {self.filepath}'
+        rsn = f', {self.reason}' if self.reason else ''
+        fpath = self.filepath or '<no filepath>'
+        return f'Can\'t compile snippet{rsn}: {fpath}'
+
+
+class _Disabled(object):
+    """ Used to check whether a feature should be disabled (see uses of it).
+    """
+    def __repr__(self):
+        return 'Disabled()'
+
+    def __str__(self):
+        return '<disabled>'
+
+
+# A singleton instance, so `is Disabled` works.
+Disabled = _Disabled()
 
 
 class EditError(CompileError):
@@ -1386,6 +1460,7 @@ class Snippet(object):
     indent = 4
     code_indent = 4
     quiet_mode = False
+    do_wrap = True
 
     def __init__(self, code, name=None):
         self.code = code
@@ -1429,6 +1504,10 @@ class Snippet(object):
         return str(self.code)
 
     def compile(self, user_args=None, make_target=None):
+        if not self.code:
+            # No code to compile.
+            raise CompileError(self.src_file, reason='no code to compile')
+
         status(C(': ').join(
             C('Compiling', 'cyan'),
             self.name,
@@ -1439,9 +1518,11 @@ class Snippet(object):
         last_snippet_write(self.code)
         basename = os.path.split(os.path.splitext(self.src_file)[0])[-1]
         objname = f'{basename}.o'
-        cfiles = [self.src_file, COLRC_FILE]
+        cfiles = [self.src_file]
+        if self.do_wrap:
+            cfiles.append(COLRC_FILE)
         colrobj = 'colr.o'
-        if os.path.exists(colrobj):
+        if self.do_wrap and os.path.exists(colrobj):
             try:
                 os.remove(colrobj)
                 debug(f'Removed existing: {colrobj}')
@@ -1454,15 +1535,19 @@ class Snippet(object):
             debug(' '.join(cmd), align=True)
             compret = run_compile_cmd(self.src_file, cmd)
         except subprocess.CalledProcessError:
-            raise CompileError(self.src_file)
+            raise CompileError(self.src_file, reason='compiler error')
         else:
             if compret != 0:
-                raise CompileError(self.src_file)
+                raise CompileError(
+                    self.src_file,
+                    reason='compiler returned non-zero'
+                )
         tmpobjnames = get_obj_files()
         debug(f'Found object files: {", ".join(tmpobjnames)}')
         objnames = []
         objnames.extend(tmpobjnames)
-        objnames.append(colrobj)
+        if self.do_wrap:
+            objnames.append(colrobj)
         binaryname = temp_file_name(ext='.binary')
         linkcmd = get_gcc_cmd(
             objnames,
@@ -1564,6 +1649,9 @@ class Snippet(object):
             If main() is already defined, the snippet is not wrapped.
             If colr.h is already included, no duplicate include is added.
         """
+        if not self.do_wrap:
+            debug('Not doing auto includes/macros.')
+            return code
         line_table = set(line.strip() for line in code.splitlines())
         lines = []
         for defname in sorted(config['defines']):

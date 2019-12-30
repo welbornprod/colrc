@@ -83,6 +83,10 @@ def format_stdin():
 def get_preset_codes(preset):
     # This needs to be in Colr. I just now needed it.
     # It could be Preset.codes().
+    # Update: It is in Colr 0.9.3, just haven't updated the package yet.
+    #         When it is updated, this whole function becomes: `preset.codes()`
+    #         and it comes with color/style validating and calculated colors
+    #         (like RGB/hex values that would crash this function).
     pcs = []
     if preset.fore:
         pcs.append(codes['fore'][preset.fore])

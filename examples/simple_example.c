@@ -39,4 +39,32 @@ int main(int argc, char** argv) {
     puts(userstr);
     // colr_cat() already called ColorText_free(ctext).
     free(userstr);
+
+    // Colorize an existing string by replacing a word.
+    char* logtext = "[warning] This is awesome.";
+    char* colorized = colr_replace(
+        logtext,
+        "warning",
+        Colr("warning", fore(YELLOW))
+    );
+    // Failed to allocate for new string?
+    if (!colorized) return EXIT_FAILURE;
+    puts(colorized);
+    // You have to free the resulting string.
+    free(colorized);
+
+    // Or colorize an existing string by replacing a regex pattern.
+    colorized = colr_replace_re(
+        logtext,
+        "\\[\\w+\\]",
+        Colr_join(
+            Colr("ok", style(BRIGHT)),
+            "(",
+            ")"
+        ),
+        REG_EXTENDED
+    );
+    if (!colorized) return EXIT_FAILURE;
+    puts(colorized);
+    free(colorized);
 }

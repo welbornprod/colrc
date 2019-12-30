@@ -7,6 +7,109 @@
 #include "test_helpers.h"
 
 describe(helpers) {
+// _colr_ptr_repr
+subdesc(_colr_ptr_repr) {
+    it("handles strings") {
+        char* s = "Testing this out.";
+        char* orig = colr_str_repr(s);
+        char* str = _colr_ptr_repr(s);
+        assert_not_null(orig);
+        assert_not_null(str);
+        assert_str_not_empty(orig);
+        assert_str_not_empty(str);
+        assert_str_eq(str, orig, "Strings are mismatched.");
+        free(str);
+        free(orig);
+    }
+    it("handles ColorArgs") {
+        ColorArg* carg = fore(RED);
+        char* carg_orig = ColorArg_repr(*carg);
+        char* carg_str = _colr_ptr_repr(carg);
+        assert_not_null(carg_orig);
+        assert_not_null(carg_str);
+        assert_str_not_empty(carg_orig);
+        assert_str_not_empty(carg_str);
+        assert_str_eq(carg_str, carg_orig, "ColorArg strings are mismatched.");
+        free(carg_str);
+        free(carg_orig);
+        colr_free(carg);
+    }
+    it("handles ColorTexts") {
+        ColorText* ctext = Colr("Test", fore(BLUE));
+        char* ctext_orig = ColorText_repr(*ctext);
+        char* ctext_str = _colr_ptr_repr(ctext);
+        assert_not_null(ctext_orig);
+        assert_not_null(ctext_str);
+        assert_str_not_empty(ctext_orig);
+        assert_str_not_empty(ctext_str);
+        assert_str_eq(ctext_str, ctext_orig, "ColorText strings are mismatched.");
+        free(ctext_str);
+        free(ctext_orig);
+        colr_free(ctext);
+    }
+    it("handles ColorResults") {
+        ColorResult* cres = Colr_cat("This ", Colr("test", style(BRIGHT)));
+        char* cres_orig = ColorResult_repr(*cres);
+        char* cres_str = _colr_ptr_repr(cres);
+        assert_not_null(cres_orig);
+        assert_not_null(cres_str);
+        assert_str_not_empty(cres_orig);
+        assert_str_not_empty(cres_str);
+        assert_str_eq(cres_str, cres_orig, "ColorResult strings are mismatched.");
+        free(cres_str);
+        free(cres_orig);
+        colr_free(cres);
+    }
+}
+// _colr_ptr_to_str
+subdesc(_colr_ptr_to_str) {
+    it("handles strings") {
+        char* orig = "Testing this out.";
+        char* str = _colr_ptr_to_str(orig);
+        assert_not_null(str);
+        assert_str_not_empty(str);
+        assert_str_eq(str, orig, "Strings are mismatched.");
+        free(str);
+    }
+    it("handles ColorArgs") {
+        ColorArg* carg = fore(RED);
+        char* carg_orig = ColorArg_to_esc(*carg);
+        char* carg_str = _colr_ptr_to_str(carg);
+        assert_not_null(carg_orig);
+        assert_not_null(carg_str);
+        assert_str_not_empty(carg_orig);
+        assert_str_not_empty(carg_str);
+        assert_str_eq(carg_str, carg_orig, "ColorArg strings are mismatched.");
+        free(carg_str);
+        free(carg_orig);
+        colr_free(carg);
+    }
+    it("handles ColorTexts") {
+        ColorText* ctext = Colr("Test", fore(BLUE));
+        char* ctext_orig = ColorText_to_str(*ctext);
+        char* ctext_str = _colr_ptr_to_str(ctext);
+        assert_not_null(ctext_orig);
+        assert_not_null(ctext_str);
+        assert_str_not_empty(ctext_orig);
+        assert_str_not_empty(ctext_str);
+        assert_str_eq(ctext_str, ctext_orig, "ColorText strings are mismatched.");
+        free(ctext_str);
+        free(ctext_orig);
+        colr_free(ctext);
+    }
+    it("handles ColorResults") {
+        // ColorResult_to_str is special. These will actually be the same string.
+        ColorResult* cres = Colr_cat("This ", Colr("test", style(BRIGHT)));
+        char* cres_orig = ColorResult_to_str(*cres);
+        char* cres_str = _colr_ptr_to_str(cres);
+        assert_not_null(cres_orig);
+        assert_not_null(cres_str);
+        assert_str_not_empty(cres_orig);
+        assert_str_not_empty(cres_str);
+        assert_str_eq(cres_str, cres_orig, "ColorResult strings are mismatched.");
+        colr_free(cres);
+    }
+}
 // colr_append_reset
 subdesc(colr_append_reset) {
     it("accounts for newlines") {
@@ -539,8 +642,8 @@ subdesc(colr_str_chars_lcount) {
         }
     }
 }
-// colr_str_code_cnt
-subdesc(colr_str_code_cnt) {
+// colr_str_code_count
+subdesc(colr_str_code_count) {
     it("counts escape codes") {
         ColorArg forearg = fore_arg(WHITE);
         ColorArg backarg = back_arg(RED);
@@ -557,17 +660,17 @@ subdesc(colr_str_code_cnt) {
         };
         for_each(tests, i) {
             char* s = ColorText_to_str(tests[i].ctext);
-            assert_size_eq_repr(colr_str_code_cnt(s), tests[i].expected, s);
+            assert_size_eq_repr(colr_str_code_count(s), tests[i].expected, s);
             free(s);
         }
-        assert_size_eq(colr_str_code_cnt(NULL), 0);
-        assert_size_eq(colr_str_code_cnt(""), 0);
+        assert_size_eq(colr_str_code_count(NULL), 0);
+        assert_size_eq(colr_str_code_count(""), 0);
         // Overflow the current_code buffer.
         // 1 extra char.
-        assert_size_eq(colr_str_code_cnt("\x1b[38;2;255;255;2550m"), 0);
+        assert_size_eq(colr_str_code_count("\x1b[38;2;255;255;2550m"), 0);
         // Many extra chars.
         char* waytoolong = "\x1b[38;2;255;255;2550101010101010101010101010101m";
-        assert_size_eq(colr_str_code_cnt(waytoolong), 0);
+        assert_size_eq(colr_str_code_count(waytoolong), 0);
     }
 }
 // colr_str_code_len
@@ -685,7 +788,7 @@ subdesc(colr_str_get_codes) {
         assert_null(colr_str_get_codes("No codes in here.", false));
         assert_null(colr_str_get_codes("No codes in here.", true));
         // Cause an overflow that will be skipped.
-        // These don't even touch the busy path. colr_str_code_cnt() causes
+        // These don't even touch the busy path. colr_str_code_count() causes
         // an early return because it doesn't accept overflow either.
         assert_null(colr_str_get_codes("\x1b[38;2;255;255;2550m", false));
         assert_null(colr_str_get_codes("\x1b[38;2;255;255;2550m", true));

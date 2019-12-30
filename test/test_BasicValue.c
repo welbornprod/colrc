@@ -131,35 +131,6 @@ subdesc(BasicValue_to_ansi) {
         }
     }
 }
-            assert_str_either("test", "test", "this");
-subdesc(BasicValue_to_str) {
-    it("converts to string") {
-        for_len(basic_names_len, i) {
-            BasicInfo info = basic_names[i];
-            BasicValue bval = info.value;
-            char* namestr = BasicValue_to_str(bval);
-            assert_not_null(namestr);
-            if (colr_eq(bval, RESET)) {
-                // Alias for "reset".
-                assert_str_either(namestr, "reset", "none");
-                free(namestr);
-                continue;
-            } else if (colr_eq(bval, WHITE)) {
-                // Alias for "white".
-                assert_str_either(namestr, "white", "normal");
-                free(namestr);
-                continue;
-            } else if (colr_eq(bval, LIGHTWHITE)) {
-                // Alias for "lightwhite".
-                assert_str_either(namestr, "lightwhite", "lightnormal");
-                free(namestr);
-                continue;
-            }
-            assert_str_eq(namestr, info.name, "Names are mismatched.");
-            free(namestr);
-        }
-    }
-}
 subdesc(BasicValue_repr) {
     it("creates a repr") {
         struct {
@@ -194,6 +165,48 @@ subdesc(BasicValue_repr) {
             assert_str_eq(repr, tests[i].expected, "Repr failed for BasicValue.");
             free(repr);
         }
+        int invalid_bval = 255;
+        char* invalid_bval_repr = "255";
+        char* invalidrepr = BasicValue_repr(invalid_bval);
+        assert_not_null(invalidrepr);
+        assert_str_not_empty(invalidrepr);
+        assert_str_contains(invalidrepr, invalid_bval_repr);
+        free(invalidrepr);
+    }
+}
+subdesc(BasicValue_to_str) {
+    it("converts to string") {
+        for_len(basic_names_len, i) {
+            BasicInfo info = basic_names[i];
+            BasicValue bval = info.value;
+            char* namestr = BasicValue_to_str(bval);
+            assert_not_null(namestr);
+            if (colr_eq(bval, RESET)) {
+                // Alias for "reset".
+                assert_str_either(namestr, "reset", "none");
+                free(namestr);
+                continue;
+            } else if (colr_eq(bval, WHITE)) {
+                // Alias for "white".
+                assert_str_either(namestr, "white", "normal");
+                free(namestr);
+                continue;
+            } else if (colr_eq(bval, LIGHTWHITE)) {
+                // Alias for "lightwhite".
+                assert_str_either(namestr, "lightwhite", "lightnormal");
+                free(namestr);
+                continue;
+            }
+            assert_str_eq(namestr, info.name, "Names are mismatched.");
+            free(namestr);
+        }
+        // An unknown name.
+        BasicValue invalid = 255;
+        char* invalidstr = BasicValue_to_str(invalid);
+        assert_not_null(invalidstr);
+        assert_str_not_empty(invalidstr);
+        assert_str_contains(invalidstr, "unknown");
+        free(invalidstr);
     }
 }
 } // describe(BasicValue)

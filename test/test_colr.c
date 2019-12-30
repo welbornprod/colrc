@@ -72,6 +72,7 @@ subdesc(colr) {
         free(s);
     }
 } // subdesc(colr)
+// colr_asprintf
 subdesc(colr_asprintf) {
     it("handles alternate form") {
         char* mystring = NULL;
@@ -85,6 +86,13 @@ subdesc(colr_asprintf) {
         // Should not contain escape codes.
         assert(!colr_str_has_codes(mystring));
         free(mystring);
+    }
+    it("handles escape modifier") {
+        char* escaped = NULL;
+        colr_asprintf(&escaped, "%" COLR_FMT_MOD_ESC COLR_FMT, Colr("Test", fore(RED)));
+        assert_not_null(escaped);
+        assert_str_eq(escaped, "\"\\x1b[31mTest\\x1b[0m\"", "Did not escape.");
+        free(escaped);
     }
     it("handles justification") {
         // center
@@ -713,6 +721,56 @@ subdesc(colr_join_array) {
         free(s);
     }
 }
+subdesc(colr_repr) {
+    it("sends arguments to the correct _repr function") {
+        ColorArg** colrargs = NULL;
+        ColorArgs_list_fill(colrargs, fore(RED), back(BLUE));
+
+        ColorArg* cargp = fore(YELLOW);
+        ColorResult* cresp = Colr_cat("This is a ", Colr("test", fore(BLUE)), ".");
+        ColorText* ctextp = Colr("test", fore(RED));
+
+        char* s = "this is a regular string.";
+
+        char* tests[] = {
+            colr_repr(fore_arg(RED)),
+            colr_repr(colrargs),
+            colr_repr(ColorJustify_new(JUST_LEFT, 4, ' ')),
+            colr_repr((ColorJustifyMethod)JUST_RIGHT),
+            colr_repr(ColorResult_new("testing")),
+            colr_repr(*ctextp),
+            colr_repr(color_val(rgb(55, 0, 155))),
+            colr_repr(FORE),
+            colr_repr(TYPE_EXTENDED),
+            colr_repr(BLUE),
+            colr_repr(ext(35)),
+            colr_repr(rgb(55, 0, 155)),
+            colr_repr(BRIGHT),
+            colr_repr(((TermSize){.rows= 5, .columns= 10})),
+            colr_repr("this is a constant string."),
+            colr_repr(s),
+            colr_repr((const char)'X'),
+            colr_repr((char)'Y'),
+            // Test against _colr_ptr_repr().
+            colr_repr((void*)cargp),
+            colr_repr((void*)cresp),
+            colr_repr((void*)ctextp),
+            colr_repr((void*)s),
+        };
+        // Free ColorArg list.
+        ColorArgs_list_free(colrargs);
+        // Free helper objects.
+        colr_free(cargp);
+        colr_free(ctextp);
+        colr_free(cresp);
+
+        for_each(tests, i) {
+            assert_not_null(tests[i]);
+            assert_str_not_empty(tests[i]);
+            free(tests[i]);
+        }
+    }
+}
 subdesc(colr_snprintf) {
     it("handles alternate form") {
         char* s = "Test";
@@ -726,6 +784,19 @@ subdesc(colr_snprintf) {
         assert_not_null(mystring);
         // Should not contain escape codes.
         assert(!colr_str_has_codes(mystring));
+    }
+    it("handles escape modifier") {
+        char* s = "Test";
+        size_t length = CODE_ANY_LEN + strlen(s);
+        char escaped[length + 1];
+        colr_snprintf(
+            escaped,
+            length + 1,
+            "%" COLR_FMT_MOD_ESC COLR_FMT,
+            Colr("Test", fore(RED))
+        );
+        assert_str_not_empty(escaped);
+        assert_str_eq(escaped, "\"\\x1b[31mTest\\x1b[0m\"", "Did not escape.");
     }
     it("handles justification") {
         ColorText* ctext = Colr("test", fore(RED));
@@ -809,135 +880,45 @@ subdesc(colr_snprintf) {
         }
 
     }
-}
-subdesc(colr_replace) {
-    it("replaces with strings") {
-        // helpers.colr_str_replace already tests colr_str_replace.
-        // Since colr_replace is just a wrapper around that function, these
-        // tests will just ensure that the correct function is called.
-        char* result = colr_replace("test", "s", "z");
-        assert_str_eq(result, "tezt", "Failed to call colr_str_replace()");
-        free(result);
-    }
-    it("replaces ColorArgs") {
-        struct {
-            char* s;
-            char* target;
-            ColorArg* repl;
-            char* expected;
-        } tests[] = {
-            // Null/empty string and/or target.
-            {NULL, "", NULL, NULL},
-            {"", "", NULL, NULL},
-            {"a", NULL, NULL, NULL},
-            {"a", "", NULL, NULL},
-            // Empty replacements.
-            {"a", "a", NULL, ""},
-            // ColorArgs.
-            {"apple", "a", fore(RED), "\x1b[31mpple"},
-            {"apple", "e", fore(RED), "appl\x1b[31m"},
-            {"apple", "p", fore(RED), "a\x1b[31m\x1b[31mle"},
-            {
-                " this has spaces ",
-                " ",
-                fore(RED),
-                "\x1b[31mthis\x1b[31mhas\x1b[31mspaces\x1b[31m"
-            }
+} // subdesc(colr_sprintf)
+subdesc(colr_to_str) {
+    it("sends arguments to the correct _to_str function") {
+        ColorArg* cargp = fore(RED);
+        ColorText* ctextp = Colr("test", fore(BLUE));
+        RGB rgbval = rgb(55, 0, 155);
+
+        char* tests[] = {
+            colr_to_str(FORE),
+            colr_to_str(BLUE),
+            colr_to_str(fore_arg(RED)),
+            colr_to_str(*ctextp),
+            colr_to_str(TYPE_EXTENDED),
+            colr_to_str(ext(35)),
+            colr_to_str(BRIGHT),
+            colr_to_str(rgbval),
+            colr_to_str((void*)cargp),
+            colr_to_str((void*)ctextp),
         };
+
+        colr_free(cargp);
+        colr_free(ctextp);
+
         for_each(tests, i) {
-            char* result = colr_replace(
-                tests[i].s,
-                tests[i].target,
-                tests[i].repl
-            );
-            assert_str_eq(result, tests[i].expected, "Failed on ColorArg");
-            free(result);
+            assert_not_null(tests[i]);
+            assert_str_not_empty(tests[i]);
+            free(tests[i]);
         }
-    }
-    it("replaces ColorResults") {
-        struct {
-            char* s;
-            char* target;
-            ColorResult* repl;
-            char* expected;
-        } tests[] = {
-            // Null/empty string and/or target.
-            {NULL, "", NULL, NULL},
-            {"", "", NULL, NULL},
-            {"a", NULL, NULL, NULL},
-            {"a", "", NULL, NULL},
-            // Empty replacements.
-            {"a", "a", NULL, ""},
-            // ColorResults.
-            {
-                "apple",
-                "a",
-                Colr_join("test", fore(RED), fore(RED)),
-                "\x1b[31mtest\x1b[31m\x1b[0mpple"
-            },
-            {
-                "apple",
-                "e",
-                Colr_join("test", "[", "]"),
-                "appl[test]"
-            },
-            {
-                "apple",
-                "p",
-                Colr_join("test", fore(RED), fore(RED)),
-                "a\x1b[31mtest\x1b[31m\x1b[0m\x1b[31mtest\x1b[31m\x1b[0mle"
-            },
-            {
-                " this has spaces ",
-                " ",
-                Colr_join("test", "[", "]"),
-                "[test]this[test]has[test]spaces[test]"
-            }
-        };
-        for_each(tests, i) {
-            char* result = colr_replace(
-                tests[i].s,
-                tests[i].target,
-                tests[i].repl
-            );
-            assert_str_eq(result, tests[i].expected, "Failed on ColorResult");
-            free(result);
-        }
-    }
-    it("replaces ColorTexts") {
-        struct {
-            char* s;
-            char* target;
-            ColorText* repl;
-            char* expected;
-        } tests[] = {
-            // Null/empty string and/or target.
-            {NULL, "", NULL, NULL},
-            {"", "", NULL, NULL},
-            {"a", NULL, NULL, NULL},
-            {"a", "", NULL, NULL},
-            // Empty replacements.
-            {"a", "a", NULL, ""},
-            // ColorTexts.
-            {"apple", "a", Colr("test", fore(RED)), "\x1b[31mtest\x1b[0mpple"},
-            {"apple", "e", Colr("test", fore(RED)), "appl\x1b[31mtest\x1b[0m"},
-            {"apple", "p", Colr("test", fore(RED)), "a\x1b[31mtest\x1b[0m\x1b[31mtest\x1b[0mle"},
-            {
-                " this has spaces ",
-                " ",
-                Colr("test", fore(RED)),
-                "\x1b[31mtest\x1b[0mthis\x1b[31mtest\x1b[0mhas\x1b[31mtest\x1b[0mspaces\x1b[31mtest\x1b[0m"
-            }
-        };
-        for_each(tests, i) {
-            char* result = colr_replace(
-                tests[i].s,
-                tests[i].target,
-                tests[i].repl
-            );
-            assert_str_eq(result, tests[i].expected, "Failed on ColorText");
-            free(result);
-        }
+        // ColorResult_to_str is special. Can't free it until we've used the
+        // the resulting string.
+        ColorResult* cresp = Colr_cat("This is a ", Colr("test", fore(RED)), ".");
+        char* colrresult = colr_to_str(*cresp);
+        assert_not_null(colrresult);
+        assert_str_not_empty(colrresult);
+        // This will actually be the same string, not leaking here.
+        colrresult = colr_to_str((void*)cresp);
+        assert_not_null(colrresult);
+        assert_str_not_empty(colrresult);
+        colr_free(cresp);
     }
 }
 } // describe(colr)

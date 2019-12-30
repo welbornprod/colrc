@@ -51,7 +51,8 @@ subdesc(ColorArg_example) {
         ColorArg* cargs[] = {
             fore(RED),
             fore(XGREEN),
-            fore(rgb(0, 255, 0))
+            back(rgb(0, 255, 0)),
+            style(BRIGHT),
         };
         for_each(cargs, i) {
             ColorArg* carg = cargs[i];

@@ -11,6 +11,53 @@ subdesc(ColorValue_empty) {
         assert(ColorValue_is_empty(empty));
     }
 }
+subdesc(ColorValue_eq) {
+    BasicValue basic = RED;
+    ExtendedValue extended = ext(35);
+    RGB rgbval = rgb(1, 2, 3);
+    struct {
+        ColorValue a;
+        ColorValue b;
+        bool expected;
+    } tests[] = {
+        {color_val(basic), color_val(basic), true},
+        {color_val(extended), color_val(extended), true},
+        {color_val(rgbval), color_val(rgbval), true},
+        {color_val(basic), color_val(extended), false},
+        {color_val(extended), color_val(rgbval), false},
+        {color_val(rgbval), color_val(basic), false},
+    };
+    for_each(tests, i) {
+        bool result = ColorValue_eq(tests[i].a, tests[i].b);
+        assert(result == tests[i].expected);
+    }
+}
+subdesc(ColorValue_example) {
+    it("creates colorized examples") {
+        BasicValue basicval = BLUE;
+        StyleValue styleval = BRIGHT;
+        ExtendedValue extval = ext(35);
+        RGB rgbval = rgb(1, 2, 3);
+
+        ColorValue cvals[] = {
+            color_val(basicval),
+            color_val(styleval),
+            color_val(extval),
+            color_val(rgbval),
+            // An invalid ColorValue
+            ColorValue_from_value(TYPE_INVALID, NULL),
+        };
+        for_each(cvals, i) {
+            ColorValue cval = cvals[i];
+            char* s = ColorValue_example(cval);
+            assert_not_null(s);
+            assert_str_not_empty(s);
+            // TODO: Could check for actual content, like: "basic BLUE"
+            //       But that may be subject to change?
+            free(s);
+        }
+    }
+}
 subdesc(ColorValue_from_esc) {
     it("creates ColorValues from basic esc-codes") {
         for_len(basic_names_len, i) {
@@ -62,6 +109,17 @@ subdesc(ColorValue_from_esc) {
             assert_is_valid(cval);
             assert_ColorValue_has(cval, expected);
         }
+    }
+    it("handles invalid esc-codes") {
+        ColorValue basic = ColorValue_from_esc("\x1b[165m");
+        assert_colr_eq(basic.type, TYPE_INVALID);
+        assert_is_invalid(basic);
+        ColorValue extended = ColorValue_from_esc("\x1b[38;5;257m");
+        assert_colr_eq(extended.type, TYPE_INVALID_EXT_RANGE);
+        assert_is_invalid(extended);
+        ColorValue rgbval = ColorValue_from_esc("\x1b[38;2;257;65;300m");
+        assert_colr_eq(rgbval.type, TYPE_INVALID_RGB_RANGE);
+        assert_is_invalid(rgbval);
     }
 }
 
@@ -117,6 +175,22 @@ subdesc(ColorValue_from_value) {
 
         // TODO: coverage for StyleValue outside of STYLE_MIN/MAX_VALUE
         // TODO: coverage for TYPE_NONE (the fallback return).
+    }
+    it("handles invalid StyleValues") {
+        StyleValue style_invalid = STYLE_INVALID;
+        ColorValue cval_invalid = ColorValue_from_value(TYPE_STYLE, &style_invalid);
+        // ColorValue_from_value should've switched it to TYPE_INVALID_STYLE.
+        assert_colr_eq(cval_invalid.type, TYPE_INVALID_STYLE);
+        StyleValue style_badrange = STYLE_MAX_VALUE + 1;
+        ColorValue cval_badrange = ColorValue_from_value(TYPE_STYLE, &style_badrange);
+        // ColorValue_from_value should switch this one too.
+        assert_colr_eq(cval_badrange.type, TYPE_INVALID_STYLE);
+    }
+    it("handles TYPE_NONE") {
+        // Can be anything except NULL to trigger this branch.
+        StyleValue sval = BRIGHT;
+        ColorValue cval = ColorValue_from_value(TYPE_NONE, &sval);
+        assert_colr_eq(cval.type, TYPE_NONE);
     }
 }
 subdesc(ColorValue_has_BasicValue) {
@@ -223,8 +297,24 @@ subdesc(ColorValue_length) {
 }
 subdesc(ColorValue_repr) {
     it("creates a ColorValue repr") {
-        char* s = ColorValue_repr(ColorValue_from_str("white"));
-        free(s);
+        BasicValue basic = BLUE;
+        ExtendedValue extended = ext(33);
+        RGB rgbval = rgb(1, 2, 3);
+        StyleValue styleval = BRIGHT;
+        ColorValue invalid = ColorValue_from_value(TYPE_INVALID, NULL);
+        ColorValue tests[] = {
+            color_val(basic),
+            color_val(extended),
+            color_val(rgbval),
+            color_val(styleval),
+            invalid,
+        };
+        for_each(tests, i) {
+            char* s = ColorValue_repr(tests[i]);
+            assert_not_null(s);
+            assert_str_not_empty(s);
+            free(s);
+        }
     }
 }
 subdesc(ColorValue_to_esc) {

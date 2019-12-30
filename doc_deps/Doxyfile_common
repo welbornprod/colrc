@@ -32,6 +32,7 @@ ALIASES += "pout=\param[out]"
 ALIASES += "pm=\param"
 ALIASES += "po=\param[out]"
 ALIASES += "warn=\warning"
+ALIASES += "ColrHash=ColrHash (`unsigned long`)"
 ALIASES += "colrfreetypes=ColorArg, ColorResult, or ColorText pointer"
 ALIASES += "colrmacros=colr_cat(), colr_join(), Colr(), Colr_cat(), and Colr_join() macros"
 ALIASES += "colrmightfree=\nIf used inside of the \colrmacros, <em>they will `free()` the result</em>.\nOtherwise, <em>you are responsible for calling `free()`</em>.\n"
@@ -42,9 +43,14 @@ ALIASES += "mustfree=\n<em>You must `free()` the memory allocated by this functi
 ALIASES += "mustnull=\n<em>Must be `null`-terminated</em>.\n"
 ALIASES += "mustnullin=\nInput <em>must be `null`-terminated</em>."
 ALIASES += "mustnotzero=\n<em>Must not be `0`</em>.\n"
+ALIASES += "regextype=`regex_t`"
+ALIASES += "regexmatchtype=`regmatch_t`"
+ALIASES += "regexmatch=regex match (\regexmatchtype)"
+ALIASES += "regexpattern=regex pattern (\regextype)"
 ALIASES += "strtype=`char*`"
 ALIASES += "string=string (\strtype)"
 ALIASES += "strings=strings (\strtype)"
+ALIASES += "warninternal=\warning This is for internal use only."
 ALIASES += "examplecode{1}=\if html_example_code \
      <div class='examplecode'> \
           <div class='examplecode-header'> \
@@ -86,7 +92,7 @@ EXCLUDE                = test \
                          README.md
 EXCLUDE_PATTERNS       = *.py
 EXAMPLE_PATH           = examples
-EXAMPLE_PATTERNS       = *.c
+EXAMPLE_PATTERNS       = *example.c
 EXAMPLE_RECURSIVE      = YES
 IMAGE_PATH             =
 REFERENCED_BY_RELATION = YES
