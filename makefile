@@ -43,6 +43,9 @@ is_build_cmd=bash tools/is_build.sh
 make_help_fmt_cmd=python3 tools/make_help_fmter.py
 undoxy_md_cmd=python3 tools/undoxy_markdown.py
 version_cmd=bash tools/get_version.sh
+dist_dir=./dist
+dist_files=colr.h colr.c
+make_dist_cmd=bash tools/make_dist.sh
 doc_dep_dir=doc_deps
 docs_config=$(doc_dep_dir)/Doxyfile_common
 docs_html_config=$(doc_dep_dir)/Doxyfile_html
@@ -288,6 +291,11 @@ cppcheckview:
 cppcheckviewall:
 	@$(cppcheck_cmd) --view && $(cppcheck_cmd) -t --view
 
+.PHONY: distsrc
+distsrc:
+	@$(make_dist_cmd) -d $(dist_dir) $(dist_files)
+
+
 # TODO: When ColrC is published, this needs to be added to the `docs` target
 #       like the rest of the docs targets. It will "update" the documentation
 #       site.
@@ -403,6 +411,7 @@ help targets:
     cppcheckviewall   : View previously generated cppcheck HTML report.\n\
                         This will also view the report for the tests.\n\
     debug             : Build the executable with debug symbols.\n\
+    distsrc           : Create a package with colr.h and colr.c in ./dist.\n\
     docs              : Build the Doxygen docs.\n\
     docsreadme        : Build the GitHub README.\n\
     docsrebuild       : Like running \`make cleandocs docs\`\n\
