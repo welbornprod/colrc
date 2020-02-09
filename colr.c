@@ -767,6 +767,17 @@ const ColorNameData colr_name_data[] = {
 //! Length of colr_name_data.
 const size_t colr_name_data_len = sizeof(colr_name_data) / sizeof(colr_name_data[0]);
 
+/*! Allocates space for a regmatch_t, initializes it, and returns a pointer
+    to it.
+    \pi match A `regmatch_t` to allocate for and copy.
+    \return   An allocated copy of the `regmatch_t`.
+*/
+regmatch_t* colr_alloc_regmatch(regmatch_t match) {
+    regmatch_t* matchcopy = calloc(sizeof(regmatch_t), 1);
+    *matchcopy = match;
+    return matchcopy;
+}
+
 /*! Appends CODE_RESET_ALL to a \string, but makes sure to do it before any
     newlines.
 
@@ -2683,6 +2694,151 @@ char* colr_str_replace_re_match(const char* restrict s, regmatch_t* match, const
     return result;
 }
 
+char* colr_str_replace_re_match_i(char* s, regmatch_t* match, const char* restrict repl) {
+    if (!match) return NULL;
+    size_t repl_len = 0;
+    if (repl) {
+        repl_len = strlen(repl);
+    } else {
+        repl = "";
+        repl_len = 0;
+    }
+    size_t end_len = strlen(s) - match->rm_eo;
+    char line_end[end_len];
+    strncpy(line_end, s + match->rm_eo, end_len);
+    line_end[end_len] = '\0';
+    if (match->rm_so > 0) {
+        // Starting in the middle of the string.
+        char line_begin[match->rm_so + 1];
+        strncpy(line_begin, s, match->rm_so);
+        line_begin[match->rm_so] = '\0';
+        int expected_len = strlen(line_begin) + repl_len + strlen(line_end) + 1;
+        int written =snprintf(
+            s,
+            expected_len,
+            "%s%s%s",
+            line_begin,
+            repl,
+            line_end
+        );
+        if (written >= expected_len) {
+            // Miscalculated length.
+            return NULL;
+        }
+    } else {
+        // Replace the beginning of the string.
+        int expected_len = repl_len + strlen(line_end) + 1;
+        int written = snprintf(
+            s,
+            expected_len,
+            "%s%s",
+            repl,
+            line_end
+        );
+        if (written == 0) {
+            // Happens when "removing" patterns by replacing with "" and
+            // the entire string gets replaced (`result` is untouched, and `NULL`).
+            return s;
+        } else if (written >= expected_len) {
+            // Miscalculated length.
+            return NULL;
+        }
+    }
+    return s;
+}
+
+
+/*! Replaces substrings from a list of regex match (`regmatch_t*`) in a \string.
+
+    \details
+    Using `NULL` as a replacement is like using an empty string (""), which
+    removes the \p target string from \p s.
+
+    \pi s     The string to operate on.
+    \pi match `NULL`-terminated array of regex match pointers to find text to replace.
+    \pi repl  The string to replace with.
+    \return   \parblock
+                  An allocated string with the result, or `NULL` if \p s is
+                  `NULL`/empty, \p match is `NULL`, or the regex pattern
+                  doesn't match.
+                  \mustfree
+                  \maybenullalloc
+              \endparblock
+
+    \sa colr_replace
+    \sa colr_replace_re
+*/
+char* colr_str_replace_re_matches(const char* restrict s, regmatch_t** matches, size_t nmatches, const char* restrict repl) {
+    if (!(s && matches)) return NULL;
+    if (s[0] == '\0') return NULL;
+    size_t repl_len = 0;
+    size_t final_len = 0;
+    if (repl) {
+        repl_len = strlen(repl);
+        final_len = strlen(s) + (repl_len * nmatches);
+    } else {
+        repl = "";
+        final_len = strlen(s);
+    }
+
+    char* result = calloc(final_len + 1, sizeof(char));
+    const char* using = s;
+    // Loop through the matches backwards, so starting/ending offsets don't change.
+    while (nmatches > 0) {
+        regmatch_t* match = matches[nmatches];
+        if (!match) break;
+        size_t end_len = strlen(using) - match->rm_eo;
+        char line_end[end_len];
+        strncpy(line_end, using + match->rm_eo, end_len);
+        line_end[end_len] = '\0';
+        if (match->rm_so > 0) {
+            // Starting in the middle of the string.
+            char line_begin[match->rm_so + 1];
+            strncpy(line_begin, s, match->rm_so);
+            line_begin[match->rm_so] = '\0';
+            int expected_len = strlen(line_begin) + repl_len + strlen(line_end) + 1;
+            int written =snprintf(
+                result,
+                expected_len,
+                "%s%s%s",
+                line_begin,
+                repl,
+                line_end
+            );
+            if (written >= expected_len) {
+                // Miscalculated length.
+                free(result);
+                return NULL;
+            }
+            using = result;
+        } else {
+            // Replace the beginning of the string.
+            int expected_len = repl_len + strlen(line_end) + 1;
+            int written = snprintf(
+                result,
+                expected_len,
+                "%s%s",
+                repl,
+                line_end
+            );
+            using = result;
+            if (written == 0) {
+                // Happens when "removing" patterns by replacing with "" and
+                // the entire string gets replaced (`result` is untouched, and `NULL`).
+                if (result) free(result);
+                result = colr_empty_str();
+            } else if (written >= expected_len) {
+                // Miscalculated length.
+                free(result);
+                return NULL;
+            }
+        }
+        nmatches--;
+    }
+    if (!matches[0]) return result;
+    return colr_str_replace_re_match(result, matches[0], repl);
+}
+
 /*! Replace substrings from a regex match (`regmatch_t*`) in a \string with a
     ColorArg's string result.
     \details
@@ -2829,6 +2985,86 @@ char* colr_str_replace_re_pat(const char* restrict s, regex_t* repattern, const 
         return NULL;
     }
     return colr_str_replace_re_match(s, &matches[0], repl);
+}
+
+/*! Replaces regex patterns in a \string.
+
+    \details
+    Using `NULL` as a replacement is like using an empty string (""), which
+    removes the \p target string from \p s.
+
+    \pi s         The string to operate on.
+    \pi repattern The regex pattern to match (`regex_t*`).
+    \pi repl      The string to replace with.
+    \return       \parblock
+                      An allocated string with the result, or `NULL` if \p s is
+                      `NULL`/empty, \p repattern is `NULL`, or the regex pattern
+                      doesn't match.
+                      \mustfree
+                      \maybenullalloc
+                  \endparblock
+
+
+    \sa colr_replace
+    \sa colr_replace_re
+
+    \examplecodefor{colr_str_replace_re_pat_all,.c}
+    #include "colr.h"
+
+    int main(void) {
+        // Compile a regex pattern.
+        regex_t pat;
+        if (regcomp(&pat, "[1-9]", REG_EXTENDED)) {
+            // Failed to compile the pattern.
+            fprintf(stderr, "Cannot compile the pattern!\n");
+            regfree(&pat);
+            return EXIT_FAILURE;
+        }
+        char* mystring = "1 2 everywhere, but still no 3 to spare.";
+        char* replaced = colr_str_replace_re_pat_all(mystring, &pat, "numbers");
+        // Don't forget to free your regex pattern.
+        regfree(&pat);
+        if (!replaced) return EXIT_FAILURE;
+        puts(replaced);
+        free(replaced);
+    }
+    \endexamplecode
+*/
+char* colr_str_replace_re_pat_all(const char* restrict s, regex_t* repattern, const char* restrict repl) {
+    if (!(s && repattern)) return NULL;
+    if (s[0] == '\0') return NULL;
+    if (!repl) repl = "";
+    // It's possible that we're replacing every single character in the string.
+    size_t num_matches_all = strlen(s);
+    size_t num_submatches = 1;
+    regmatch_t match_current[num_submatches];
+    regmatch_t* matches[num_matches_all + 1];
+    int ret = regexec(repattern, s, num_submatches, match_current, 0);
+    if (ret) {
+        // No match found.
+        return NULL;
+    }
+    size_t index = 0;
+    while (ret == 0) {
+        // Found a match, add it to the collection.
+        matches[index] = colr_alloc_regmatch(match_current[0]);
+        size_t offset_diff = match_current[0].rm_eo;
+        const char* rest = s + offset_diff;
+        ret = regexec(repattern, rest, num_submatches, match_current, 0);
+        match_current[0].rm_so = match_current[0].rm_so + offset_diff;
+        match_current[0].rm_eo = match_current[0].rm_eo + offset_diff;
+        index++;
+    }
+    index--;
+    // Found all matches, now replace them.
+    char* result = colr_str_replace_re_matches(s, matches, index, repl);
+
+    // Free all of the matches.
+    while (index) {
+        free(matches[index--]);
+    }
+    free(matches[index]);
+    return result;
 }
 
 /*! Replace regex patterns in a \string with a ColorArg's string result.

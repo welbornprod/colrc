@@ -2555,6 +2555,7 @@ static const struct _ColrLastArg_s* const _ColrLastArg = &_ColrLastArgValue;
     Common macros and definitions are found here in colr.h,
     however the functions are documented in colr.c.
 */
+regmatch_t* colr_alloc_regmatch(regmatch_t match);
 void colr_append_reset(char* s);
 
 char colr_char_escape_char(const char c);
@@ -2609,10 +2610,12 @@ char* colr_str_replace_re_ColorArg(const char* restrict s, const char* restrict 
 char* colr_str_replace_re_ColorResult(const char* restrict s, const char* restrict pattern, ColorResult* repl, int re_flags);
 char* colr_str_replace_re_ColorText(const char* restrict s, const char* restrict pattern, ColorText* repl, int re_flags);
 char* colr_str_replace_re_pat(const char* restrict s, regex_t* repattern, const char* restrict repl);
+char* colr_str_replace_re_pat_all(const char* restrict s, regex_t* repattern, const char* restrict repl);
 char* colr_str_replace_re_pat_ColorArg(const char* restrict s, regex_t* repattern, ColorArg* repl);
 char* colr_str_replace_re_pat_ColorResult(const char* restrict s, regex_t* repattern, ColorResult* repl);
 char* colr_str_replace_re_pat_ColorText(const char* restrict s, regex_t* repattern, ColorText* repl);
 char* colr_str_replace_re_match(const char* restrict s, regmatch_t* match, const char* restrict repl);
+char* colr_str_replace_re_match_i(char* s, regmatch_t* match, const char* restrict repl);
 char* colr_str_replace_re_match_ColorArg(const char* restrict s, regmatch_t* match, ColorArg* repl);
 char* colr_str_replace_re_match_ColorResult(const char* restrict s, regmatch_t* match, ColorResult* repl);
 char* colr_str_replace_re_match_ColorText(const char* restrict s, regmatch_t* match, ColorText* repl);
