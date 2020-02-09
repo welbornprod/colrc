@@ -113,6 +113,7 @@ if os.path.exists(SUPPRESS_FILE):
 USAGESTR = f"""{VERSIONSTR}
     Usage:
         {SCRIPT} [-h | -v]
+        {SCRIPT} [-D] [-f] -b
         {SCRIPT} [-D] -l
         {SCRIPT} [-D] (-c | -M) [-T] [-F] [-f | -n | -r]
                  [-a] [-d] [-t] [-s | PATTERN]
@@ -131,6 +132,7 @@ USAGESTR = f"""{VERSIONSTR}
                                Without any other arguments, this is just like
                                running `ag --cc (PATTERN\\b)`.
         -a,--all             : Show everything cppcheck thinks is unused.
+        -b,--badtests        : Show bad tests. Use with -f to show actual code.
         -c,--cfuncs          : Use `cfuncs` command to gather names.
         -D,--debug           : Show more info while running.
         -d,--testdeps        : Show test dependencies.
@@ -205,6 +207,8 @@ def main(argd):
         return print_legend()
     elif argd['--search'] and argd['PATTERNS']:
         return search(argd['PATTERNS'])
+    elif argd['--badtests']:
+        return print_bad_tests(code=argd['--full'])
 
     pat = try_repat(argd['PATTERN'])
     if argd['--json']:
@@ -431,6 +435,18 @@ def get_cppcheck_names(pat=None, use_tests=False):
     return names
 
 
+def get_env_path():
+    """ Return $PATH as a list of paths. """
+    p = [
+        s
+        for s in os.environ.get('PATH', '').split(os.pathsep)
+        if s
+    ]
+    if not p:
+        raise FatalError('no paths in environment variable: PATH')
+    return p
+
+
 def get_file_macros(filepath):
     total = 0
     try:
@@ -459,21 +475,27 @@ def get_macro_names(pat=None, use_tests=False):
     return names
 
 
-def get_env_path():
-    """ Return $PATH as a list of paths. """
-    p = [
-        s
-        for s in os.environ.get('PATH', '').split(os.pathsep)
-        if s
-    ]
-    if not p:
-        raise FatalError('no paths in environment variable: PATH')
-    return p
+def get_test_info():
+    """ Get test files, describe(), subdesc(), and it() info. """
+    info = {}
+    for filepath in TEST_FILES:
+        if filepath.endswith('.h'):
+            # Only gathering implementations, not definitions.
+            continue
+        info[filepath] = TestFile.from_file(filepath)
+    return info
 
 
-def highlight_code(line, lexer=lexer_c):
+def highlight_code(line, lexer=lexer_c, indent=0):
     """ Highlight a C code snippet using pygments. """
-    return highlight(line, lexer, fmter_256).strip()
+    code = highlight(line, lexer, fmter_256).strip()
+    if indent:
+        spaces = ' ' * indent
+        code = '{}{}'.format(
+            spaces,
+            f'\n{spaces}'.join(code.split('\n'))
+        )
+    return code
 
 
 def json_write(info, fd=sys.stdout):
@@ -488,6 +510,35 @@ def json_write(info, fd=sys.stdout):
 
     print(infostr, file=fd)
     return 1 if info else 0
+
+
+def parse_test_desc(line):
+    """ Parses a name from a subdesc() or describe() line. """
+    if not (('(' in line) and (')' in line)):
+        raise ValueError(f'Not a snow.h macro call: {line}')
+    _, _, name = line.partition('(')
+    name, _, _ = name.partition(')')
+    if name.startswith('"') and name.endswith('"'):
+        name = name[1:-1]
+    return name
+
+
+def print_bad_tests(code=False):
+    """ Print bad test info. """
+    info = get_test_info()
+    badinfo = {k: v.bad_tests() for k, v in info.items() if v.has_bad_tests()}
+    if not badinfo:
+        print('No bad tests found :).')
+        return 0
+
+    ttl = 0
+    for filepath in sorted(badinfo):
+        testfile = badinfo[filepath]
+        ttl += testfile.test_count()
+        print('\n', testfile.formatted(code=code, color=sys.stdout.isatty()))
+
+    print(f'\nPossibly bad tests: {CNum(ttl)}')
+    return ttl
 
 
 def print_err(*args, **kwargs):
@@ -619,6 +670,14 @@ def search(patterns):
     cmd = ['ag', '--cc', pattern, COLRC_DIR]
     debug(f'Running: {" ".join(cmd)}')
     return subprocess.check_call(cmd)
+
+
+def strip_c_line(line):
+    """ Strips spaces, newlines, tabs, and comments from a line of C code.
+    """
+    if '//' in line:
+        line, _, _ = line.partition('//')
+    return line.strip()
 
 
 def try_repat(s):
@@ -866,6 +925,441 @@ class TestMacroName(MacroName):
 
     def is_unused(self):
         return self.info['test_cnt'] < 2
+
+
+class TestDescribe(UserList):
+    """ Holds tests/subdesc() for one describe() call (from snow.h).
+    """
+    def __init__(self, name, tests=None, filepath=None, linenum=0):
+        super().__init__(tests if tests else [])
+        self.name = name
+        self.filepath = filepath
+        self.linenum = linenum
+        self.lines = []
+
+    def __colr__(self):
+        return C(self.formatted(color=True))
+
+    def __repr__(self):
+        return ''.join((
+            f'{type(self).__name__}(',
+            f'{self.name!r}, ',
+            f'tests=[tests: {len(self)}]',
+            ')',
+        ))
+
+    def __str__(self):
+        return self.formatted(indent=0)
+
+    def bad_tests(self):
+        return self.__class__(
+            self.name,
+            [sd.bad_tests() for sd in self if sd.has_bad_tests()]
+        )
+
+    def debug(self, *args, **kwargs):
+        kwargs['level'] = 1
+        debug('  ', *args, **kwargs)
+
+    def formatted(self, indent=0, color=False, code=True):
+        spaces = ' ' * indent
+        subindent = indent + 4
+        name = self.name
+        if color:
+            name = C(name, 'yellow')
+        return '\n'.join((
+            f'{spaces}{name} ({len(self)}):',
+            '\n'.join(
+                t.formatted(indent=subindent, color=color, code=code)
+                for t in self
+            ),
+        ))
+
+    def has_bad_tests(self):
+        return any(sd.has_bad_tests() for sd in self)
+
+    def parse_subdescs(self):
+        """ Parse self.lines to create TestSubdescs and TestIts for self.data.
+        """
+        self.debug(f'Parsing subdescs for: {self.linenum}: {self.name}')
+        braces = 0
+        started = False
+        subdescs = []
+        in_it = None
+        in_subdesc = None
+        for i, line in enumerate(self.lines):
+            stripped = line.strip()
+            if stripped.startswith('subdesc('):
+                in_subdesc = TestSubdesc(
+                    parse_test_desc(stripped),
+                    filepath=self.filepath,
+                )
+                braces = 1
+                started = True
+                self.debug(f'Found subdesc: {i}: {in_subdesc.name}')
+                continue
+            elif stripped.startswith('it('):
+                if in_subdesc is None:
+                    in_it = TestIt(parse_test_desc(stripped))
+                    self.debug(f'Found lone it: {i}: {in_it.desc}')
+                braces += 1
+            elif stripped.endswith('{'):
+                if stripped.startswith('}'):
+                    braces -= 1
+                braces += 1
+                # self.debug(f'Pushed: {braces}@{i+1}: {line.rstrip()}')
+            elif stripped.endswith('}') or stripped.endswith('};'):
+                if '= {' in stripped:
+                    braces += 1
+                braces -= 1
+                # self.debug(f'Popped: {braces}@{i+1}: {line.rstrip()}')
+            if (braces == 0) and started:
+                if in_subdesc is not None:
+                    self.debug(' '.join((
+                        f'Found end of subdesc: {i}: {in_subdesc.name}',
+                        f'({len(subdescs) + 1})',
+                    )))
+                    in_subdesc.parse_its()
+                    subdescs.append(in_subdesc)
+                    in_subdesc = None
+                    started = False
+                elif in_it is not None:
+                    debug(' '.join((
+                        f'Found end of lone it: {i}: {in_it.desc}',
+                        f'({len(subdescs) + 1})',
+                    )))
+                    subdescs.append(in_it)
+                    in_it = None
+                    started = False
+                else:
+                    raise ValueError('\n'.join((
+                        f'Found closing brace with no opening: {self.filepath}',
+                        f'Describe: {self.name}',
+                        f'Line: {i}: {line!r}',
+                    )))
+            elif in_subdesc is not None:
+                in_subdesc.lines.append(line)
+            elif in_it is not None:
+                in_it.append(line)
+            else:
+                # Header/Comment/Blank lines...
+                pass
+        self.data = subdescs
+        return self
+
+    def subdescs(self):
+        return [
+            sd
+            for sd in self
+            if isinstance(sd, TestSubdesc)
+        ]
+
+    def test_count(self):
+        return sum(sd.test_count() for sd in self)
+
+    def tests(self):
+        tests = []
+        for sd in self:
+            tests.extend(sd.tests())
+        return tests
+
+
+class TestFile(UserList):
+    """ Holds TestDescribes from one test file. """
+    def __init__(self, filepath, describes=None):
+        super().__init__(describes if describes else [])
+        self.filepath = filepath
+
+    def __colr__(self):
+        return C(self.formatted(color=True))
+
+    def __repr__(self):
+        return ''.join((
+            f'{type(self).__name__}(',
+            f'{self.filepath!r}, ',
+            f'describes=[describes: {len(self)}]',
+            ')',
+        ))
+
+    def __str__(self):
+        return self.formatted(indent=0)
+
+    def bad_tests(self):
+        return self.__class__(
+            self.filepath,
+            [d.bad_tests() for d in self if d.has_bad_tests()]
+        )
+
+    def formatted(self, indent=0, color=False, code=True):
+        spaces = ' ' * indent
+        subindent = indent + 4
+        filepath = self.filepath
+        if color:
+            filepath = C(filepath, 'blue', style='bright')
+        return '\n'.join((
+            f'{spaces}{filepath} ({len(self)}):',
+            '\n'.join(
+                d.formatted(indent=subindent, color=color, code=code)
+                for d in self
+            ),
+        ))
+
+    @classmethod
+    def from_file(cls, filepath):
+        """ Parse a file, and return an initialized TestFile instance. """
+        describes = []
+        braces = 0
+        in_desc = None
+
+        def add_desc_line(line):
+            nonlocal in_desc
+            if in_desc is None:
+                return
+            in_desc.lines.append(line.rstrip())
+
+        with open(filepath, 'r') as f:
+            debug(f'Parsing describes for: {filepath}')
+            for i, line in enumerate(f):
+                stripped = strip_c_line(line)
+                if stripped.startswith('describe('):
+                    if braces:
+                        raise ValueError('\n'.join((
+                            f'Found opening with no close!: {i+1}: {line}',
+                            f'Braces: {braces}'
+                        )))
+                    in_desc = TestDescribe(
+                        parse_test_desc(stripped),
+                        filepath=filepath,
+                        linenum=i + 1,
+                    )
+                    braces = 1
+                    debug(f'Found describe: {i+1}: {in_desc.name}')
+                    continue
+                elif stripped.endswith('{'):
+                    if stripped.startswith('}'):
+                        braces -= 1
+                    braces += 1
+                    # debug(f'Pushed: {braces}@{i+1}: {line}')
+                elif stripped.endswith('}') or stripped.endswith('};'):
+                    if '= {' in stripped:
+                        braces += 1
+                    braces -= 1
+                    # debug(f'Popped: {braces}@{i+1}: {line}')
+                if (braces == 0) and (in_desc is not None):
+                    debug(
+                        f'Found end of {in_desc.name} ({len(describes) + 1}).'
+                    )
+                    in_desc.parse_subdescs()
+                    describes.append(in_desc)
+                    in_desc = None
+                elif in_desc is not None:
+                    add_desc_line(line)
+                else:
+                    # Header lines...
+                    pass
+        return cls(filepath, describes)
+
+    def has_bad_tests(self):
+        return any(d.has_bad_tests() for d in self)
+
+    def is_impl(self):
+        """ Returns True if this is an actual test file. """
+        return len(self) > 0
+
+    def test_count(self):
+        return sum(d.test_count() for d in self)
+
+    def tests(self):
+        tests = []
+        for d in self:
+            tests.extend(d.tests())
+        return tests
+
+
+class TestIt(UserList):
+    """ Holds a function (it()) name, and it's lines. """
+    def __init__(self, desc, lines=None):
+        super().__init__(lines if lines else [])
+        self.desc = desc
+
+    def __colr__(self):
+        return C(self.formatted(color=True))
+
+    def __repr__(self):
+        return ''.join((
+            f'{type(self).__name__}(',
+            f'{self.desc!r}, ',
+            f'lines=[lines: {len(self)}]',
+            ')',
+        ))
+
+    def __str__(self):
+        return self.formatted(indent=0)
+
+    def bad_tests(self):
+        """ Compatible with TestSubdescs.bad_tests(), for lone it() calls.
+            Technically, a lone it() should be considered bad.
+        """
+        if self.is_bad():
+            return [self]
+        return []
+
+    def formatted(self, indent=0, color=False, code=True):
+        spaces = ' ' * indent
+        codeindent = indent + 4
+        desc = self.desc
+        if color:
+            desc = C(desc, 'cyan')
+        if not code:
+            return f'{spaces}{desc}'
+        codelines = '\n'.join(self.formatted_lines(indent=codeindent))
+        if color:
+            codelines = highlight_code(codelines)
+        return '\n'.join((
+            f'{spaces}{desc}:',
+            codelines
+        ))
+
+    def formatted_lines(self, indent=0):
+        if not self.lines:
+            return []
+        s = self.lines[0]
+        cnt = 0
+        while s.startswith(' '):
+            cnt += 1
+            s = s[1:]
+        spaces = ' ' * indent
+        return [f'{spaces}{l[cnt:]}' for l in self.lines]
+
+    def has_bad_tests(self):
+        """ Compatible with TestSubdesc.has_bad_tests(), for lone it() tests.
+        """
+        return self.is_bad()
+
+    def is_bad(self):
+        return (not self.is_good())
+
+    def is_good(self):
+        return (len(self) > 5) and (len(self.non_assert_lines()) > 2)
+
+    @property
+    def lines(self):
+        return self.data
+
+    def non_assert_lines(self):
+        return [s for s in self if not s.lstrip().startswith('assert')]
+
+    def test_count(self):
+        """ Compatible with Testsubdesc.test_count(), for lone it() tests. """
+        return 1
+
+    def tests(self):
+        """ Compatible with Testsubdesc.tests(), for lone it() tests. """
+        return [self]
+
+
+class TestSubdesc(UserList):
+    """ Holds it() functions for one describe()/subdesc() call (from snow.h).
+    """
+    def __init__(self, name, tests=None, filepath=None):
+        super().__init__(tests if tests else [])
+        self.name = name
+        self.filepath = filepath
+        self.lines = []
+
+    def __colr__(self):
+        return C(self.formatted(color=True))
+
+    def __repr__(self):
+        return ''.join((
+            f'{type(self).__name__}(',
+            f'{self.name!r}, ',
+            f'tests=[tests: {len(self)}]',
+            ')',
+        ))
+
+    def __str__(self):
+        return self.formatted(indent=0)
+
+    def bad_tests(self):
+        return self.__class__(
+            self.name,
+            [t for t in self if t.is_bad()]
+        )
+
+    def debug(self, *args, **kwargs):
+        kwargs['level'] = 1
+        debug('    ', *args, **kwargs)
+
+    def formatted(self, indent=0, color=False, code=True):
+        spaces = ' ' * indent
+        subindent = indent + 4
+        name = C(self.name, 'blue') if color else self.name
+        return '\n'.join((
+            f'{spaces}{name} ({len(self)}):',
+            '\n'.join(
+                t.formatted(indent=subindent, color=color, code=code)
+                for t in self
+            ),
+        ))
+
+    def has_bad_tests(self):
+        return any(t.is_bad() for t in self)
+
+    def parse_its(self):
+        """ Parse self.lines to create TestSubdescs and TestIts for self.data.
+        """
+        self.debug(f'Parsing its for: {self.name}')
+        braces = 0
+        its = []
+        in_it = None
+        started = False
+        for i, line in enumerate(self.lines):
+            stripped = strip_c_line(line)
+            if stripped.startswith('it('):
+                in_it = TestIt(parse_test_desc(stripped))
+                self.debug(f'Found it: {i+1}: {in_it.desc}')
+                braces = 1
+                started = True
+                continue
+            elif stripped.endswith('{'):
+                if stripped.startswith('}'):
+                    braces -= 1
+                braces += 1
+                # self.debug(f'Pushed: {braces}@{i+1}: {line}')
+            elif stripped.endswith('}') or stripped.endswith('};'):
+                if '= {' in stripped:
+                    braces += 1
+                braces -= 1
+                # self.debug(f'Popped: {braces}@{i+1}: {line}')
+            if (braces == 0) and started:
+                if in_it is not None:
+                    self.debug(' '.join((
+                        f'Found end of it: {i+1}: {in_it.desc}',
+                        f'({len(its) + 1})',
+                    )))
+                    its.append(in_it)
+                    in_it = None
+                    started = False
+                else:
+                    raise ValueError('\n'.join((
+                        f'Found closing brace with no opening: {self.filepath}',
+                        f'Describe: {self.name}',
+                        f'Line: {i}: {line!r}',
+                    )))
+            elif (in_it is not None):
+                in_it.append(line)
+            else:
+                # Comment lines...
+                pass
+        self.data = its
+        return self
+
+    def test_count(self):
+        return len(self)
+
+    def tests(self):
+        return self.data
 
 
 class UnusedInfo(UserList):
