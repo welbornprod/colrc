@@ -2694,27 +2694,100 @@ char* colr_str_replace_re_match(const char* restrict s, regmatch_t* match, const
     return result;
 }
 
-char* colr_str_replace_re_match_i(char* s, regmatch_t* match, const char* restrict repl) {
+/*! Replaces substrings from a regex match (`regmatch_t*`) in a \string.
+
+    \details
+    This modifies `target` in place. It must have capacity for the result.
+
+    \details
+    Using `NULL` as a replacement is like using an empty string (""), which
+    removes the \p target string from \p s.
+
+    \pi ref    The string to use for 0 to starting offset. Can be `target`.
+    \pi target \parblock
+                    The string to modify.
+                    Must have room for the resulting string.
+               \endparblock
+    \pi match  The regex match object to find text to replace.
+    \pi repl   The string to replace with.
+    \return    \parblock
+                   An allocated string with the result, or `NULL` if \p s is
+                   `NULL`/empty, \p match is `NULL`, or the regex pattern
+                   doesn't match.
+                   \mustfree
+                   \maybenullalloc
+               \endparblock
+
+
+    \sa colr_replace
+    \sa colr_replace_re
+
+    \examplecodefor{colr_str_replace_re_match_i,.c}
+    #include "colr.h"
+
+    int main(void) {
+        // Build a regex pattern.
+        regex_t pat;
+        if (regcomp(&pat, "foo", 0)) {
+            // Failed to compile the pattern.
+            regfree(&pat);
+            return EXIT_FAILURE;
+        }
+
+        // Set up our matches (only 1 can be used with colr_replace_re_match_i).
+        size_t matchcnt = 1;
+        regmatch_t rematches[matchcnt];
+
+        // Run the regex and we should get an initialized `regmatch_t`.
+        char* mystring = "This is a foo line.";
+        char* replacement = "REPLACED";
+        size_t length = strlen(mystring);
+        char* targetstring = calloc(length + strlen(replacement) + 1, sizeof(char));
+        strncpy(targetstring, mystring, length + 1);
+        if (regexec(&pat, mystring, matchcnt, rematches, 0)) {
+            fprintf(stderr, "No matches!?");
+            return EXIT_FAILURE;
+        }
+        // Don't forget to free your regex object (even if stack-allocated).
+        regfree(&pat);
+
+        // Replace the matched text with our string.
+        char* replaced = colr_str_replace_re_match_i(
+            mystring,
+            targetstring,
+            rematches,
+            replacement
+        );
+        if (!replaced) {
+                fprintf(stderr, "An error occurred!\n");
+                return EXIT_FAILURE;
+        }
+        printf("%s\n", replaced);
+        free(targetstring);
+        return EXIT_SUCCESS;
+    }
+    \endexamplecode
+*/
+char* colr_str_replace_re_match_i(const char* restrict ref, char* target, regmatch_t* match, const char* restrict repl) {
     if (!match) return NULL;
     size_t repl_len = 0;
     if (repl) {
         repl_len = strlen(repl);
     } else {
         repl = "";
-        repl_len = 0;
     }
-    size_t end_len = strlen(s) - match->rm_eo;
+    size_t end_len = strlen(ref) - match->rm_eo;
     char line_end[end_len];
-    strncpy(line_end, s + match->rm_eo, end_len);
+    strncpy(line_end, ref + match->rm_eo, end_len);
     line_end[end_len] = '\0';
     if (match->rm_so > 0) {
         // Starting in the middle of the string.
         char line_begin[match->rm_so + 1];
-        strncpy(line_begin, s, match->rm_so);
+        strncpy(line_begin, ref, match->rm_so);
         line_begin[match->rm_so] = '\0';
         int expected_len = strlen(line_begin) + repl_len + strlen(line_end) + 1;
         int written =snprintf(
-            s,
+            target,
             expected_len,
             "%s%s%s",
             line_begin,
@@ -2722,14 +2795,13 @@ char* colr_str_replace_re_match_i(char* s, regmatch_t* match, const char* restri
             line_end
         );
         if (written >= expected_len) {
-            // Miscalculated length.
             return NULL;
         }
     } else {
         // Replace the beginning of the string.
         int expected_len = repl_len + strlen(line_end) + 1;
         int written = snprintf(
-            s,
+            target,
             expected_len,
             "%s%s",
             repl,
@@ -2738,15 +2810,15 @@ char* colr_str_replace_re_match_i(char* s, regmatch_t* match, const char* restri
         if (written == 0) {
             // Happens when "removing" patterns by replacing with "" and
             // the entire string gets replaced (`result` is untouched, and `NULL`).
-            return s;
+            target[0] = '\0';
+            return target;
         } else if (written >= expected_len) {
             // Miscalculated length.
             return NULL;
         }
     }
-    return s;
+    return target;
 }
-
 
 /*! Replaces substrings from a list of regex match (`regmatch_t*`) in a \string.
 
@@ -2784,59 +2856,26 @@ char* colr_str_replace_re_matches(const char* restrict s, regmatch_t** matches, 
     char* result = calloc(final_len + 1, sizeof(char));
     const char* using = s;
     // Loop through the matches backwards, so starting/ending offsets don't change.
+    nmatches--;
     while (nmatches > 0) {
         regmatch_t* match = matches[nmatches];
         if (!match) break;
-        size_t end_len = strlen(using) - match->rm_eo;
-        char line_end[end_len];
-        strncpy(line_end, using + match->rm_eo, end_len);
-        line_end[end_len] = '\0';
-        if (match->rm_so > 0) {
-            // Starting in the middle of the string.
-            char line_begin[match->rm_so + 1];
-            strncpy(line_begin, s, match->rm_so);
-            line_begin[match->rm_so] = '\0';
-            int expected_len = strlen(line_begin) + repl_len + strlen(line_end) + 1;
-            int written =snprintf(
-                result,
-                expected_len,
-                "%s%s%s",
-                line_begin,
-                repl,
-                line_end
-            );
-            if (written >= expected_len) {
-                // Miscalculated length.
-                free(result);
-                return NULL;
-            }
-            using = result;
-        } else {
-            // Replace the beginning of the string.
-            int expected_len = repl_len + strlen(line_end) + 1;
-            int written = snprintf(
-                result,
-                expected_len,
-                "%s%s",
-                repl,
-                line_end
-            );
-            using = result;
-            if (written == 0) {
-                // Happens when "removing" patterns by replacing with "" and
-                // the entire string gets replaced (`result` is untouched, and `NULL`).
-                if (result) free(result);
-                result = colr_empty_str();
-            } else if (written >= expected_len) {
-                // Miscalculated length.
-                free(result);
-                return NULL;
-            }
+        char* replaced = colr_str_replace_re_match_i(using, result, match, repl);
+        if (!replaced) {
+            free(result);
+            return NULL;
         }
+        // We need to reference the result now, to pick up line changes.
+        using = result;
         nmatches--;
     }
     if (!matches[0]) return result;
-    return colr_str_replace_re_match(result, matches[0], repl);
+    char* finalrepl = colr_str_replace_re_match_i(using, result, matches[0], repl);
+    if (!finalrepl) {
+        free(result);
+        return NULL;
+    }
+    return result;
 }
 
 /*! Replace substrings from a regex match (`regmatch_t*`) in a \string with a
@@ -3055,15 +3094,14 @@ char* colr_str_replace_re_pat_all(const char* restrict s, regex_t* repattern, co
         match_current[0].rm_eo = match_current[0].rm_eo + offset_diff;
         index++;
     }
-    index--;
     // Found all matches, now replace them.
     char* result = colr_str_replace_re_matches(s, matches, index, repl);
-
+    index--;
     // Free all of the matches.
     while (index) {
         free(matches[index--]);
     }
-    free(matches[index]);
+    free(matches[0]);
     return result;
 }
 

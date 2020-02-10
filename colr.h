@@ -2615,7 +2615,7 @@ char* colr_str_replace_re_pat_ColorArg(const char* restrict s, regex_t* repatter
 char* colr_str_replace_re_pat_ColorResult(const char* restrict s, regex_t* repattern, ColorResult* repl);
 char* colr_str_replace_re_pat_ColorText(const char* restrict s, regex_t* repattern, ColorText* repl);
 char* colr_str_replace_re_match(const char* restrict s, regmatch_t* match, const char* restrict repl);
-char* colr_str_replace_re_match_i(char* s, regmatch_t* match, const char* restrict repl);
+char* colr_str_replace_re_match_i(const char* restrict ref, char* target, regmatch_t* match, const char* restrict repl);
 char* colr_str_replace_re_match_ColorArg(const char* restrict s, regmatch_t* match, ColorArg* repl);
 char* colr_str_replace_re_match_ColorResult(const char* restrict s, regmatch_t* match, ColorResult* repl);
 char* colr_str_replace_re_match_ColorText(const char* restrict s, regmatch_t* match, ColorText* repl);
