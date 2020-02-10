@@ -816,11 +816,15 @@
         } else if (strcmp(s1, s2) != 0) { \
             char* _a_s_e_s1_repr = colr_str_repr(s1); \
             char* _a_s_e_s2_repr = colr_str_repr(s2); \
+            size_t _a_s_e_s1_len = strlen(s1); \
+            size_t _a_s_e_s2_len = strlen(s2); \
             fail( \
-                "%s:\n     %s\n  != %s", \
+                "%s:\n     %s (%lu)\n  != %s (%lu)", \
                 _a_s_e_use_msg, \
                 _a_s_e_s1_repr, \
-                _a_s_e_s2_repr \
+                _a_s_e_s1_len, \
+                _a_s_e_s2_repr, \
+                _a_s_e_s2_len \
             ); \
             free(_a_s_e_s1_repr); \
             free(_a_s_e_s2_repr); \

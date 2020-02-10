@@ -58,7 +58,7 @@ int main(void) {
     /*
         Replace a regex match with a ColorResult.
     */
-    char* mytemplate = "This is REDuseful?";
+    char* mytemplate = "This is REDuseful" NC "?";
     replaced = colr_replace_re(
         mytemplate,
         "RED",

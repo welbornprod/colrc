@@ -3,16 +3,16 @@
 int main(void) {
 
     // The string we are modifying.
-    char* mystring = "This is a foo line.";
+    char* mystring = "This was foo. I mean foo.";
     char* pattern = "foo";
 
     /*
         Replace a string with a string.
     */
-    char* replaced = colr_replace(
+    char* replaced = colr_replace_all(
         mystring,
         pattern,
-        "replaced"
+        "replacement"
     );
     // Failed to allocate for new replaced string?
     if (!replaced) return EXIT_FAILURE;
@@ -23,10 +23,10 @@ int main(void) {
     /*
         Replace a string with a ColorText.
     */
-    replaced = colr_replace(
+    replaced = colr_replace_all(
         mystring,
         pattern,
-        Colr("replaced", fore(RED))
+        Colr("replacement", fore(RED))
     );
     // Failed to allocate for new replaced string?
     if (!replaced) return EXIT_FAILURE;
@@ -37,7 +37,7 @@ int main(void) {
     /*
         Replace a string with a ColorResult.
     */
-    replaced = colr_replace(
+    replaced = colr_replace_all(
         mystring,
         pattern,
         Colr_join(
@@ -55,8 +55,8 @@ int main(void) {
     /*
         Replace a string with a ColorResult.
     */
-    char* mytemplate = "This is REDuseful?" NC;
-    replaced = colr_replace(
+    char* mytemplate = "This REDis " NC "kinda REDuseful" NC "?";
+    replaced = colr_replace_all(
         mytemplate,
         "RED",
         fore(RED)
