@@ -1156,6 +1156,7 @@ extern int colr_printf_esc_mod;
         ColorArg**: ColorArgs_list_free, \
         ColorResult*: ColorResult_free, \
         ColorText*: ColorText_free, \
+        regmatch_t**: colr_free_re_matches, \
         default: _colr_free \
     )(x)
 
@@ -2771,6 +2772,7 @@ bool colr_char_should_escape(const char c);
 
 bool colr_check_marker(uint32_t marker, void* p);
 char* colr_empty_str(void);
+void colr_free_re_matches(regmatch_t** matches);
 size_t colr_mb_len(const char* s, size_t length);
 
 #ifdef COLR_GNU

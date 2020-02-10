@@ -1083,6 +1083,20 @@ char* colr_empty_str(void) {
     return s;
 }
 
+/*! Free an array of allocated `regmatch_t`, like the return from
+    colr_re_matches().
+
+    \po matches A pointer to an array of `regmatch_t` pointers.
+*/
+void colr_free_re_matches(regmatch_t** matches) {
+    size_t cnt = 0;
+    while (matches[cnt]) {
+        free(matches[cnt]);
+        matches[cnt++] = NULL;
+    }
+    free(matches);
+}
+
 /*! Like `mbrlen`, except it will return the length of the next N (`length`)
     multibyte characters in bytes.
 
@@ -2286,6 +2300,50 @@ size_t colr_str_noncode_len(const char* s) {
         total++;
     }
     return total;
+}
+
+/*! Returns all `regmatch_t` matches for regex pattern in a \string.
+
+    \pi s         The string to search.
+    \pi repattern The pattern to look for.
+    \return       \parblock
+                    A pointer to an allocated array of `regmatch_t*`,
+                    or `NULL` if \p s is `NULL` or \p repattern is `NULL`.
+                  \endparblock
+*/
+regmatch_t** colr_re_matches(const char* s, regex_t* repattern) {
+    if (!(s && repattern)) return NULL;
+
+    size_t num_matches_all = strlen(s);
+    size_t num_submatches = 1;
+    regmatch_t match_current[num_submatches];
+    regmatch_t** matches = calloc(num_matches_all + 1, sizeof(regmatch_t));
+    int ret = regexec(repattern, s, num_submatches, match_current, 0);
+    if (ret) {
+        // No match found.
+        free(matches);
+        return NULL;
+    }
+    size_t index = 0;
+    while (ret == 0) {
+        // Found a match, add it to the collection.
+        matches[index++] = colr_alloc_regmatch(match_current[0]);
+        size_t offset_diff = match_current[0].rm_eo;
+        const char* rest = s + offset_diff;
+        ret = regexec(repattern, rest, num_submatches, match_current, 0);
+        match_current[0].rm_so = match_current[0].rm_so + offset_diff;
+        match_current[0].rm_eo = match_current[0].rm_eo + offset_diff;
+    }
+    // Mark the end.
+    free(matches[index]);
+    matches[index++] = NULL;
+    // Free any unused matches.
+    while (index <= num_matches_all) {
+        free(matches[index]);
+        matches[index++] = NULL;
+    }
+
+    return matches;
 }
 
 /*! Replaces the first substring found in a \string.
@@ -3501,35 +3559,15 @@ char* colr_str_replace_re_pat_all(const char* restrict s, regex_t* repattern, co
     if (!(s && repattern)) return NULL;
     if (s[0] == '\0') return NULL;
     if (!repl) repl = "";
-    // It's possible that we're replacing every single character in the string.
-    size_t num_matches_all = strlen(s);
-    size_t num_submatches = 1;
-    regmatch_t match_current[num_submatches];
-    regmatch_t* matches[num_matches_all + 1];
-    int ret = regexec(repattern, s, num_submatches, match_current, 0);
-    if (ret) {
-        // No match found.
-        return NULL;
-    }
-    size_t index = 0;
-    while (ret == 0) {
-        // Found a match, add it to the collection.
-        matches[index] = colr_alloc_regmatch(match_current[0]);
-        size_t offset_diff = match_current[0].rm_eo;
-        const char* rest = s + offset_diff;
-        ret = regexec(repattern, rest, num_submatches, match_current, 0);
-        match_current[0].rm_so = match_current[0].rm_so + offset_diff;
-        match_current[0].rm_eo = match_current[0].rm_eo + offset_diff;
-        index++;
-    }
+    regmatch_t** matches = colr_re_matches(s, repattern);
+    if (!matches) return NULL;
+    size_t cnt = 0;
+    while (matches[cnt]) cnt++;
     // Found all matches, now replace them.
-    char* result = colr_str_replace_re_matches(s, matches, index, repl);
-    index--;
+    char* result = colr_str_replace_re_matches(s, matches, cnt, repl);
     // Free all of the matches.
-    while (index) {
-        free(matches[index--]);
-    }
-    free(matches[0]);
+    colr_free_re_matches(matches);
+    matches = NULL;
     return result;
 }
 
