@@ -426,4 +426,154 @@ subdesc(colr_replace_re_all) {
         }
     }
 } // subdesc(colr_replace_re_all)
+    /*
+        regex matches
+    */
+subdesc(colr_replace_matches_all) {
+    it("replaces regmatch_t** with strings") {
+        char* s = "test";
+        regmatch_t** matches = compiled_matches(s, "t");
+        assert_not_null(matches);
+        char* result = colr_replace_all(s, matches, "z");
+        colr_free(matches);
+        assert_not_null(result);
+        assert_str_not_empty(result);
+        assert_str_eq(result, "zesz", "Failed for regmatch_t**!");
+        free(result);
+    }
+    it("returns NULL for missing matches") {
+        char* s = "test";
+        regmatch_t** matches = compiled_matches(s, "apple");
+        assert_null(matches);
+        char* result = colr_replace_all("test", matches, "z");
+        assert_null(result);
+    }
+    it("replaces regmatch_t** with ColorArgs") {
+        struct {
+            char* s;
+            regmatch_t** target;
+            ColorArg* repl;
+            char* expected;
+        } tests[] = {
+            // Null/empty string and/or target.
+            {NULL, NULL, NULL, NULL},
+            {"", NULL, NULL, NULL},
+            {"a", NULL, NULL, NULL},
+            // Empty replacements.
+            {test_match_item("a", "a", NULL, "")},
+            {test_match_item("appliance", "a", NULL, "pplince")},
+            {test_match_item("good ending", "g", NULL, "ood endin")},
+            // ColorArgs.
+            {test_match_item("apple", "a", fore(RED), "\x1b[31mpple")},
+            {test_match_item("apple", "e", fore(RED), "appl\x1b[31m")},
+            {test_match_item("apple", "p", fore(RED), "a\x1b[31m\x1b[31mle")},
+            {test_match_item(
+                " this has spaces ",
+                " ",
+                fore(RED),
+                "\x1b[31mthis\x1b[31mhas\x1b[31mspaces\x1b[31m"
+            )}
+        };
+        for_each(tests, i) {
+            char* result = colr_replace_all(
+                tests[i].s,
+                tests[i].target,
+                tests[i].repl
+            );
+            // Free the matches.
+            if (tests[i].target) colr_free(tests[i].target);
+            if (tests[i].expected) assert_not_null(result);
+            if (tests[i].expected && tests[i].expected[0] != '\0') assert_str_not_empty(result);
+            assert_str_eq(result, tests[i].expected, "Failed on ColorArg");
+            free(result);
+        }
+    }
+    it("replaces regmatch_t** with ColorResults") {
+        struct {
+            char* s;
+            regmatch_t** target;
+            ColorResult* repl;
+            char* expected;
+        } tests[] = {
+            // Empty replacements.
+            {test_match_item("a", "a", NULL, "")},
+            {test_match_item("appliance", "a", NULL, "pplince")},
+            {test_match_item("good ending", "g", NULL, "ood endin")},
+            // ColorResults.
+            {test_match_item(
+                "apple",
+                "a",
+                Colr_join("test", fore(RED), fore(RED)),
+                "\x1b[31mtest\x1b[31m\x1b[0mpple"
+            }),
+            {test_match_item(
+                "apple",
+                "e",
+                Colr_join("test", "[", "]"),
+                "appl[test]"
+            }),
+            {test_match_item(
+                "apple",
+                "p",
+                Colr_join("test", fore(RED), fore(RED)),
+                "a\x1b[31mtest\x1b[31m\x1b[0m\x1b[31mtest\x1b[31m\x1b[0mle"
+            }),
+            {test_match_item(
+                " this has spaces ",
+                " ",
+                Colr_join("test", "[", "]"),
+                "[test]this[test]has[test]spaces[test]"
+            )}
+        };
+        for_each(tests, i) {
+            char* result = colr_replace_all(
+                tests[i].s,
+                tests[i].target,
+                tests[i].repl
+            );
+            // Free matches.
+            if (tests[i].target) colr_free(tests[i].target);
+            if (tests[i].expected) assert_not_null(result);
+            if (tests[i].expected && tests[i].expected[0] != '\0') assert_str_not_empty(result);
+            assert_str_eq(result, tests[i].expected, "Failed on ColorResult");
+            free(result);
+        }
+    }
+    it("replaces regmatch_t** with ColorTexts") {
+        struct {
+            char* s;
+            regmatch_t** target;
+            ColorText* repl;
+            char* expected;
+        } tests[] = {
+            // Empty replacements.
+            {test_match_item("a", "a", NULL, "")},
+            {test_match_item("appliance", "a", NULL, "pplince")},
+            {test_match_item("good ending", "g", NULL, "ood endin")},
+            // ColorTexts.
+            {test_match_item("apple", "a", Colr("test", fore(RED)), "\x1b[31mtest\x1b[0mpple")},
+            {test_match_item("apple", "e", Colr("test", fore(RED)), "appl\x1b[31mtest\x1b[0m")},
+            {test_match_item("apple", "p", Colr("test", fore(RED)), "a\x1b[31mtest\x1b[0m\x1b[31mtest\x1b[0mle")},
+            {test_match_item(
+                " this has spaces ",
+                " ",
+                Colr("test", fore(RED)),
+                "\x1b[31mtest\x1b[0mthis\x1b[31mtest\x1b[0mhas\x1b[31mtest\x1b[0mspaces\x1b[31mtest\x1b[0m"
+            )}
+        };
+        for_each(tests, i) {
+            char* result = colr_replace_all(
+                tests[i].s,
+                tests[i].target,
+                tests[i].repl
+            );
+            // Free matches.
+            if (tests[i].target) colr_free(tests[i].target);
+            if (tests[i].expected) assert_not_null(result);
+            if (tests[i].expected && tests[i].expected[0] != '\0') assert_str_not_empty(result);
+            assert_str_eq(result, tests[i].expected, "Failed on ColorText");
+            free(result);
+        }
+    }
+} // subdesc(colr_replace_matches_all)
 } // describe(colr_replace_all)

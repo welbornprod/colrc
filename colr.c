@@ -1089,6 +1089,7 @@ char* colr_empty_str(void) {
     \po matches A pointer to an array of `regmatch_t` pointers.
 */
 void colr_free_re_matches(regmatch_t** matches) {
+    if (!matches) return;
     size_t cnt = 0;
     while (matches[cnt]) {
         free(matches[cnt]);
@@ -3195,7 +3196,9 @@ char* colr_str_replace_re_match_i(const char* restrict ref, char* target, regmat
     if (repl) {
         repl_len = strlen(repl);
     } else {
-        repl = "";
+        // Callers of this function already take care of this.
+        // This is only here as a fail-safe.
+        repl = ""; // LCOV_EXCL_LINE
     }
     size_t end_len = strlen(ref) - match->rm_eo;
     char line_end[end_len + 1];
@@ -3236,7 +3239,7 @@ char* colr_str_replace_re_match_i(const char* restrict ref, char* target, regmat
             return target;
         } else if (written >= expected_len) {
             // Miscalculated length.
-            return NULL;
+            return NULL; // LCOV_EXCL_LINE
         }
     }
     return target;
@@ -3292,8 +3295,11 @@ char* colr_str_replace_re_matches(const char* restrict s, regmatch_t** matches, 
         if (!match) break;
         char* replaced = colr_str_replace_re_match_i(using, result, match, repl);
         if (!replaced) {
+            // LCOV_EXCL_START
+            // Could happen if `result` is not big enough.
             free(result);
             return NULL;
+            // LCOV_EXCL_STOP
         }
         // We need to reference the result now, to pick up line changes.
         using = result;
@@ -3302,8 +3308,11 @@ char* colr_str_replace_re_matches(const char* restrict s, regmatch_t** matches, 
     if (!matches[0]) return result;
     char* finalrepl = colr_str_replace_re_match_i(using, result, matches[0], repl);
     if (!finalrepl) {
+        // LCOV_EXCL_START
+        // Could happen if `result` is not big enough.
         free(result);
         return NULL;
+        // LCOV_EXCL_STOP
     }
     return result;
 }
@@ -4318,11 +4327,6 @@ char* _colr_join(void* joinerp, ...) {
     va_copy(argcopy, args);
     size_t length = _colr_join_size(joinerp, argcopy);
     va_end(argcopy);
-    if (length < 2) {
-        va_end(args);
-        return NULL;
-    }
-
 
     char* final = calloc(length, sizeof(char));
     char* joiner;
@@ -4423,7 +4427,13 @@ char* _colr_join(void* joinerp, ...) {
 
     \pi joinerp The joiner (any ColorArg, ColorText, or string).
     \pi args    A `va_list` with zero or more ColorArgs, ColorTexts, or strings to join.
-    \return     The length (in bytes) needed to allocate a string built with _colr_cat().
+    \return     \parblock
+                    The length (in bytes) needed to allocate a string built
+                    with _colr_cat().
+                    This function will return `0` if \p joinerp is `NULL`/empty).
+                    Except for `0`, it will never return anything less than
+                    `CODE_RESET_LEN`.
+                \endparblock
 
     \sa _colr
 */

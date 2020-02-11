@@ -383,9 +383,10 @@ function run_everything {
 
     echo_status "Trying to build (sanitize)" "$colrexe"
     make_in "$colrdir" clean sanitize
+    echo_status "Trying to run (sanitize)" "$colrexe"
     run_colrc_modes "sanitize"
 
-    echo_status "Trying to build (sanitize)" "$testexe"
+    echo_status "Trying to build/run (sanitize)" "$testexe"
     make_in "$testdir" clean sanitize testquiet
 
     echo_status "Running examples"
@@ -403,7 +404,7 @@ function run_everything {
     echo_status "Trying to run memcheck on (release)" "$colrexe"
     run_colrc_modes "memcheck-quiet"
 
-    echo_status "Trying to build (release)" "$testexe"
+    echo_status "Trying to build/run (release)" "$testexe"
     make_in "$testdir" clean release
 
     echo_status "Trying to run memcheck on (release)" "$testexe"

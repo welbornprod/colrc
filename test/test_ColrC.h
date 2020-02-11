@@ -960,6 +960,20 @@
         } \
     } while (0)
 
+/*! \def assert_str_null
+    Ensure a string is NULL.
+
+    \pi s The string to check.
+*/
+#define assert_str_null(s) \
+    do { \
+        if (s) { \
+            char* _a_s_n_repr = colr_repr(s); \
+            fail("String was not NULL: %s", _a_s_n_repr); \
+            free(_a_s_n_repr); \
+        } \
+    } while (0)
+
 /*! \def assert_str_starts_with
     Ensure a string starts with a certain prefix.
 
