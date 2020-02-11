@@ -33,9 +33,34 @@
         } \
     } while (0)
 
+#define compiled_matches(target_str, pat_str) \
+    __extension__ ({ \
+        regmatch_t** _c_m_m = NULL; \
+        if (target_str && pat_str) { \
+            regex_t _c_m_re; \
+            compile_re(_c_m_re, pat_str); \
+            _c_m_m = colr_re_matches(target_str, &_c_m_re); \
+            regfree(&_c_m_re); \
+        } \
+        _c_m_m; \
+    })
+
 #define compiled_re(pat_str) \
     __extension__ ({ \
         regex_t _c_r_pat; \
         compile_re(_c_r_pat, pat_str); \
         _c_r_pat; \
     })
+
+/*! \def test_match_item
+    Returns comma-separated members of the test item struct in test_colr_replace_all.c.
+
+    \pi s        (char*) The string to search.
+    \pi pat_str  (char*) The pattern string to compile.
+    \pi repl     (char*, ColorArg*, ColorResult*, ColorText*) The replacement.
+    \pi expected (char*) The expected result.
+
+    \return      Comma separated members/initializers.
+*/
+#define test_match_item(s, pat_str, repl, expected) \
+    s, compiled_matches(s, pat_str), repl, expected

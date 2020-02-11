@@ -183,10 +183,20 @@ subdesc(colr_asprintf) {
 }
 // colr_join
 subdesc(colr_join) {
-    it("handles NULL") {
+    it("handles NULL/empty") {
         char* result = colr_join(NULL, "this", "that");
-        assert_null(result);
+        assert_str_null(result);
+        result = colr_join("", NULL);
+        assert_str_empty(result);
+        free(result);
+        result = colr_join("", NULL, NULL);
+        assert_str_empty(result);
+        free(result);
+        result = colr_join("", "");
+        assert_str_empty(result);
+        free(result);
     }
+
     it("handles sentinel value") {
         char* s = _colr_join("", "test", "this", _ColrLastArg);
         assert_str_eq(s, "testthis", "Failed to stop on sentinel value!");

@@ -307,14 +307,11 @@ bool dir_exists(const char* dirpath) {
 /*! Checks to see if a file path exists.
 
     \pi filepath File path to check.
-    \return      `true` if the filepath is not `NULL`/empty and exists, otherwise `false`.
+    \return      `true` if the filepath is not `NULL`/empty and is readable, otherwise `false`.
 */
 bool file_exists(const char* filepath) {
     if (!filepath || filepath[0] == '\0') return false;
-    struct stat st;
-    if (stat(filepath, &st) < 0) return false;
-
-    return ((st.st_mode & S_IFMT) == S_IFREG);
+    return (access(filepath, R_OK) == 0);
 }
 
 /*! List all escape-codes found in the text and return an exit status code.

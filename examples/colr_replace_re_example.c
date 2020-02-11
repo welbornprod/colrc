@@ -1,6 +1,13 @@
 #include "colr.h"
 
 int main(void) {
+    /*
+        If you already have a `NULL`-terminated array of `regmatch_t` (`regmatch_t**`),
+        a single `regex_t`, or a compiled regex pattern (`regex_t`),
+        you can use colr_replace() or colr_replace_all().
+        This macro (colr_replace_re_all) is for string patterns.
+    */
+
 
     // The string we are modifying.
     char* mystring = "This is a foo line.";
@@ -58,7 +65,7 @@ int main(void) {
     /*
         Replace a regex match with a ColorResult.
     */
-    char* mytemplate = "This is REDuseful?";
+    char* mytemplate = "This is REDuseful" NC "?";
     replaced = colr_replace_re(
         mytemplate,
         "RED",
