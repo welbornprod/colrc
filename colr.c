@@ -3323,7 +3323,6 @@ char* colr_str_replace_re_matches(const char* restrict s, regmatch_t** matches, 
 
     \pi s        The string to operate on.
     \pi matches  The regex match objects to find text to replace.
-    \pi nmatches The number of `regmatch_t` found in `matches`.
     \pi repl     The ColorArg to produce escape-codes to replace with.
                  ColorArg_free() is called after the replacement is done.
     \return      \parblock
@@ -3355,7 +3354,6 @@ char* colr_str_replace_re_matches_ColorArg(const char* restrict s, regmatch_t** 
 
     \pi s        The string to operate on.
     \pi matches  The regex match objects to find text to replace.
-    \pi nmatches The number of `regmatch_t` found in `matches`.`
     \pi repl     The ColorResult to produce escape-codes to replace with.
                  ColorResult_free() is called after the replacement is done.
     \return      \parblock
@@ -3386,7 +3384,6 @@ char* colr_str_replace_re_matches_ColorResult(const char* restrict s, regmatch_t
 
     \pi s        The string to operate on.
     \pi matches  The regex match objects to find text to replace.
-    \pi nmatches Number of `rematch_t` in `matches`.
     \pi repl     The ColorText to produce text/escape-codes to replace with.
                  ColorText_free() is called after the replacement is done.
     \return      \parblock

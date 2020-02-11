@@ -1474,17 +1474,21 @@ extern int colr_printf_esc_mod;
 
     \details
     If \p target is a \string, this is a plain string-replace.
+
     If \p target is a \regexpattern, it's \regexmatch will be used to find a
-    target string in \p s.
+    target string to replace in \p s.
+
     If \p target is a \regexmatch, it's offsets will be used to find a target
     string in \p s.
-    If \p target is a \regmatcharray, each match will be replaced in the target
+
+    If \p target is a \regexmatcharray, each match will be replaced in the target
     string, \p s.
+
     There is no difference between colr_replace() and colr_replace_all() when
-    a \regmatcharray is used.
+    a \regexmatcharray is used.
 
     \details
-    If a ColorArg or ColorText is used as \p repl, the appropriate
+    If a ColorArg, ColorResult, or ColorText is used as \p repl, the appropriate
     colr_str_replace_\<types\> function is called. The function will create a
     string of escape-codes/text to be used as a replacement.
 
@@ -1580,15 +1584,18 @@ extern int colr_printf_esc_mod;
 
     \details
     If \p target is a \string, this is a plain string-replace.
+
     If \p target is a \regexpattern, it's \regexmatch will be used to find a
-    target string in \p s.
-    If \p target is a \regmatcharray, each match will be replaced in the target
+    target string to replace in \p s.
+
+    If \p target is a \regexmatcharray, each match will be replaced in the target
     string, \p s.
+
     There is no difference between colr_replace() and colr_replace_all() when
-    a \regmatcharray is used.
+    a \regexmatcharray is used.
 
     \details
-    If a ColorArg or ColorText is used as \p repl, the appropriate
+    If a ColorArg, ColorResult, or ColorText is used as \p repl, the appropriate
     colr_str_replace_\<types\> function is called. The function will create a
     string of escape-codes/text to be used as a replacement.
 
