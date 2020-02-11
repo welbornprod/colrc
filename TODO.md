@@ -14,3 +14,4 @@
 ## Tests
 Should have %100 coverage.
 [ ] Small edge cases for TYPE_NONE, TYPE_INVALID, etc. Run: `make coverage coverageview`
+[ ] Tests for colr_str_replace_re_matches*

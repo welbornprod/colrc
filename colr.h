@@ -1860,6 +1860,93 @@ extern int colr_printf_esc_mod;
         ColorText*: colr_str_replace_re_all_ColorText \
     )(s, target, repl, flags)
 
+/*! \def colr_replace_re_matches
+    Replace all `regmatch_t` matches in a \string in \p s with another string,
+    ColorArg string, ColorResult string, or ColorText string.
+
+    \details
+    If a string (`char*`) is used as \p repl, this is just a wrapper around
+    colr_str_replace_re().
+
+    \details
+    If a ColorArg, ColorResult, or ColorText is used as \p repl, the appropriate
+    colr_str_replace_re_matches_\<type\> function is called. The function will create a
+    string of escape-codes/text to be used as a replacement.
+
+    \details
+    If \p repl is `NULL`, then an empty string (`""`) is used as the replacement,
+    which causes the \p target string to be removed.
+
+
+    \pi s      \parblock
+                   The string to operate on.
+                   \mustnull
+               \endparblock
+    \pi matches \parblock
+                   Pointers to \regexmatch to replace in \p s.
+                   \mustnull
+               \endparblock
+    \pi repl   \parblock
+                   A string, ColorArg, ColorResult, or ColorText to replace
+                   the target string with.
+                   If this is `NULL`, then an empty string is used (`""`) as
+                   the replacement.
+                   \colrwillfree
+               \endparblock
+
+    \return    \parblock
+                   An allocated string with the result.
+                   \mustfree
+                   \maybenullalloc
+               \endparblock
+
+    \sa colr_replace
+    \sa colr_replace_all
+    \sa colr_replace_re
+    \sa colr_replace_re_all
+    \sa colr_str_replace_re
+    \sa colr_str_replace_re_ColorArg
+    \sa colr_str_replace_re_ColorResult
+    \sa colr_str_replace_re_ColorText
+
+    \examplecodefor{colr_replace_re_matches,.c}
+        #include "colr.h"
+        int main(void) {
+            // Compile a regex pattern.
+            regex_t pat;
+            if (regcomp(&pat, "foo", 0)) {
+                regfree(&pat);
+                return EXIT_FAILURE;
+            }
+            // The string to operate on.
+            const char* s = "This foo is a foo string, foo?";
+            // Get all matches.
+            regmatch_t** matches = colr_re_matches(s, &pat);
+            if (!matches) {
+                // This should be impossible (for this example).
+                fprintf(stderr, "No matches?\n");
+                return EXIT_FAILURE;
+            }
+            char* replaced = colr_replace_re_matches(s, matches, Colr("bar", fore("red")));
+            if (!replaced) return EXIT_FAILURE;
+            puts(s);
+            puts(replaced);
+            // Free all of your resources.
+            free(replaced);
+            colr_free(matches);
+            regfree(&pat);
+        }
+    \endexamplecode
+*/
+#define colr_replace_re_matches(s, matches, repl) \
+    _Generic( \
+        (repl), \
+        char*: colr_str_replace_re_matches, \
+        ColorArg*: colr_str_replace_re_matches_ColorArg, \
+        ColorResult*: colr_str_replace_re_matches_ColorResult, \
+        ColorText*: colr_str_replace_re_matches_ColorText \
+    )(s, matches, repl)
+
 /*! \def colr_repr
     Transforms several ColrC objects into their string representations.
 
@@ -2781,6 +2868,7 @@ int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, in
 void colr_printf_register(void);
 #endif
 
+regmatch_t** colr_re_matches(const char* s, regex_t* repattern);
 bool colr_set_locale(void);
 bool colr_supports_rgb(void);
 
@@ -2838,10 +2926,10 @@ char* colr_str_replace_re_match_i(const char* restrict ref, char* target, regmat
 char* colr_str_replace_re_match_ColorArg(const char* restrict s, regmatch_t* match, ColorArg* repl);
 char* colr_str_replace_re_match_ColorResult(const char* restrict s, regmatch_t* match, ColorResult* repl);
 char* colr_str_replace_re_match_ColorText(const char* restrict s, regmatch_t* match, ColorText* repl);
-char* colr_str_replace_re_matches(const char* restrict s, regmatch_t** matches, size_t nmatches, const char* restrict repl);
-char* colr_str_replace_re_matches_ColorArg(const char* restrict s, regmatch_t** matches, size_t nmatches, ColorArg* repl);
-char* colr_str_replace_re_matches_ColorResult(const char* restrict s, regmatch_t** matches, size_t nmatches, ColorResult* repl);
-char* colr_str_replace_re_matches_ColorText(const char* restrict s, regmatch_t** matches, size_t nmatches, ColorText* repl);
+char* colr_str_replace_re_matches(const char* restrict s, regmatch_t** matches, const char* restrict repl);
+char* colr_str_replace_re_matches_ColorArg(const char* restrict s, regmatch_t** matches, ColorArg* repl);
+char* colr_str_replace_re_matches_ColorResult(const char* restrict s, regmatch_t** matches, ColorResult* repl);
+char* colr_str_replace_re_matches_ColorText(const char* restrict s, regmatch_t** matches, ColorText* repl);
 
 char* colr_str_repr(const char* s);
 char* colr_str_rjust(const char* s, int width, const char padchar);

@@ -2309,7 +2309,40 @@ size_t colr_str_noncode_len(const char* s) {
     \return       \parblock
                     A pointer to an allocated array of `regmatch_t*`,
                     or `NULL` if \p s is `NULL` or \p repattern is `NULL`.
+                    The last member is always `NULL`.
+                    \mustfree
                   \endparblock
+
+    \examplecodefor{colr_re_matches,.c}
+        #include "colr.h"
+        int main(void) {
+            // Compile a regex pattern.
+            regex_t pat;
+            if (regcomp(&pat, "foo", 0)) {
+                regfree(&pat);
+                return EXIT_FAILURE;
+            }
+            // The string to operate on.
+            const char* s = "This foo is a foo string, foo?";
+            // Get all matches.
+            regmatch_t** matches = colr_re_matches(s, &pat);
+            if (!matches) {
+                // This should be impossible (for this example).
+                fprintf(stderr, "No matches?\n");
+                return EXIT_FAILURE;
+            }
+            puts(s);
+            // `colr_re_matches` always leaves `NULL` as the last member.
+            size_t cnt = 0;
+            while (matches[cnt]) {
+                printf("Found a match at: %d-%d\n", matches[cnt]->rm_so, matches[cnt]->rm_eo);
+                cnt++;
+            }
+            // Free all of your resources.
+            colr_free(matches);
+            regfree(&pat);
+        }
+    \endexamplecode
 */
 regmatch_t** colr_re_matches(const char* s, regex_t* repattern) {
     if (!(s && repattern)) return NULL;
@@ -3216,8 +3249,10 @@ char* colr_str_replace_re_match_i(const char* restrict ref, char* target, regmat
     removes the \p target string from \p s.
 
     \pi s        The string to operate on.
-    \pi matches  Regex match objects to find text to replace.
-    \pi nmatches The number of `regmatch_t` found in `matches`.
+    \pi matches  \parblock
+                    Regex match objects to find text to replace.
+                    The array must have `NULL` as the last member.
+                 \endparblock
     \pi repl     The string to replace with.
     \return      \parblock
                      An allocated string with the result, or `NULL` if \p s is
@@ -3230,14 +3265,18 @@ char* colr_str_replace_re_match_i(const char* restrict ref, char* target, regmat
     \sa colr_replace
     \sa colr_replace_re
 */
-char* colr_str_replace_re_matches(const char* restrict s, regmatch_t** matches, size_t nmatches, const char* restrict repl) {
+char* colr_str_replace_re_matches(const char* restrict s, regmatch_t** matches, const char* restrict repl) {
     if (!(s && matches)) return NULL;
     if (s[0] == '\0') return NULL;
     size_t repl_len = 0;
     size_t final_len = 0;
+    // Count matches, this better be NULL-terminated!
+    size_t cnt = 0;
+    while (matches[cnt]) cnt++;
+
     if (repl) {
         repl_len = strlen(repl);
-        final_len = strlen(s) + (repl_len * nmatches);
+        final_len = strlen(s) + (repl_len * cnt);
     } else {
         repl = "";
         final_len = strlen(s);
@@ -3247,9 +3286,9 @@ char* colr_str_replace_re_matches(const char* restrict s, regmatch_t** matches, 
     // Using the original string as a reference for the first time around.
     const char* using = s;
     // Loop through the matches backwards, so starting/ending offsets don't change.
-    nmatches--;
-    while (nmatches > 0) {
-        regmatch_t* match = matches[nmatches];
+    cnt--;
+    while (cnt > 0) {
+        regmatch_t* match = matches[cnt];
         if (!match) break;
         char* replaced = colr_str_replace_re_match_i(using, result, match, repl);
         if (!replaced) {
@@ -3258,7 +3297,7 @@ char* colr_str_replace_re_matches(const char* restrict s, regmatch_t** matches, 
         }
         // We need to reference the result now, to pick up line changes.
         using = result;
-        nmatches--;
+        cnt--;
     }
     if (!matches[0]) return result;
     char* finalrepl = colr_str_replace_re_match_i(using, result, matches[0], repl);
@@ -3291,11 +3330,11 @@ char* colr_str_replace_re_matches(const char* restrict s, regmatch_t** matches, 
     \sa colr_replace_re
 
 */
-char* colr_str_replace_re_matches_ColorArg(const char* restrict s, regmatch_t** matches, size_t nmatches, ColorArg* repl) {
+char* colr_str_replace_re_matches_ColorArg(const char* restrict s, regmatch_t** matches, ColorArg* repl) {
     if (!(s && matches)) return NULL;
     if (s[0] == '\0') return NULL;
     char* replstr = repl ? ColorArg_to_esc(*repl): NULL;
-    char* result = colr_str_replace_re_matches(s, matches, nmatches, replstr);
+    char* result = colr_str_replace_re_matches(s, matches, replstr);
     if (replstr) free(replstr);
     ColorArg_free(repl);
     return result;
@@ -3323,11 +3362,11 @@ char* colr_str_replace_re_matches_ColorArg(const char* restrict s, regmatch_t** 
     \sa colr_replace_re
 
 */
-char* colr_str_replace_re_matches_ColorResult(const char* restrict s, regmatch_t** matches, size_t nmatches, ColorResult* repl) {
+char* colr_str_replace_re_matches_ColorResult(const char* restrict s, regmatch_t** matches, ColorResult* repl) {
     if (!(s && matches)) return NULL;
     if (s[0] == '\0') return NULL;
     char* replstr = repl ? ColorResult_to_str(*repl): NULL;
-    char* result = colr_str_replace_re_matches(s, matches, nmatches, replstr);
+    char* result = colr_str_replace_re_matches(s, matches, replstr);
     ColorResult_free(repl);
     return result;
 }
@@ -3354,11 +3393,11 @@ char* colr_str_replace_re_matches_ColorResult(const char* restrict s, regmatch_t
     \sa colr_replace_re
 
 */
-char* colr_str_replace_re_matches_ColorText(const char* restrict s, regmatch_t** matches, size_t nmatches, ColorText* repl) {
+char* colr_str_replace_re_matches_ColorText(const char* restrict s, regmatch_t** matches, ColorText* repl) {
     if (!(s && matches)) return NULL;
     if (s[0] == '\0') return NULL;
     char* replstr = repl ? ColorText_to_str(*repl): NULL;
-    char* result = colr_str_replace_re_matches(s, matches, nmatches, replstr);
+    char* result = colr_str_replace_re_matches(s, matches, replstr);
     if (replstr) free(replstr);
     ColorText_free(repl);
     return result;
@@ -3561,10 +3600,9 @@ char* colr_str_replace_re_pat_all(const char* restrict s, regex_t* repattern, co
     if (!repl) repl = "";
     regmatch_t** matches = colr_re_matches(s, repattern);
     if (!matches) return NULL;
-    size_t cnt = 0;
-    while (matches[cnt]) cnt++;
+
     // Found all matches, now replace them.
-    char* result = colr_str_replace_re_matches(s, matches, cnt, repl);
+    char* result = colr_str_replace_re_matches(s, matches, repl);
     // Free all of the matches.
     colr_free_re_matches(matches);
     matches = NULL;
