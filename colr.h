@@ -1478,6 +1478,10 @@ extern int colr_printf_esc_mod;
     target string in \p s.
     If \p target is a \regexmatch, it's offsets will be used to find a target
     string in \p s.
+    If \p target is a \regmatcharray, each match will be replaced in the target
+    string, \p s.
+    There is no difference between colr_replace() and colr_replace_all() when
+    a \regmatcharray is used.
 
     \details
     If a ColorArg or ColorText is used as \p repl, the appropriate
@@ -1540,25 +1544,29 @@ extern int colr_printf_esc_mod;
             (target), \
                 char* : colr_str_replace, \
                 regex_t* : colr_str_replace_re_pat, \
-                regmatch_t*: colr_str_replace_re_match \
+                regmatch_t*: colr_str_replace_re_match, \
+                regmatch_t**: colr_str_replace_re_matches \
             ), \
         ColorArg*: _Generic( \
             (target), \
                 char* : colr_str_replace_ColorArg, \
                 regex_t* : colr_str_replace_re_pat_ColorArg, \
-                regmatch_t*: colr_str_replace_re_match_ColorArg \
+                regmatch_t*: colr_str_replace_re_match_ColorArg, \
+                regmatch_t**: colr_str_replace_re_matches_ColorArg \
             ), \
         ColorResult*: _Generic( \
             (target), \
                 char* : colr_str_replace_ColorResult, \
                 regex_t* : colr_str_replace_re_pat_ColorResult, \
-                regmatch_t*: colr_str_replace_re_match_ColorResult \
+                regmatch_t*: colr_str_replace_re_match_ColorResult, \
+                regmatch_t**: colr_str_replace_re_matches_ColorResult \
             ), \
         ColorText*: _Generic( \
             (target), \
                 char* : colr_str_replace_ColorText, \
                 regex_t* : colr_str_replace_re_pat_ColorText, \
-                regmatch_t*: colr_str_replace_re_match_ColorText \
+                regmatch_t*: colr_str_replace_re_match_ColorText, \
+                regmatch_t**: colr_str_replace_re_matches_ColorText \
             ) \
     )(s, target, repl)
 
@@ -1574,6 +1582,10 @@ extern int colr_printf_esc_mod;
     If \p target is a \string, this is a plain string-replace.
     If \p target is a \regexpattern, it's \regexmatch will be used to find a
     target string in \p s.
+    If \p target is a \regmatcharray, each match will be replaced in the target
+    string, \p s.
+    There is no difference between colr_replace() and colr_replace_all() when
+    a \regmatcharray is used.
 
     \details
     If a ColorArg or ColorText is used as \p repl, the appropriate
@@ -1630,22 +1642,26 @@ extern int colr_printf_esc_mod;
         char*: _Generic( \
             (target), \
                 char* : colr_str_replace_all, \
-                regex_t* : colr_str_replace_re_pat_all \
+                regex_t* : colr_str_replace_re_pat_all, \
+                regmatch_t** : colr_str_replace_re_matches \
             ), \
         ColorArg*: _Generic( \
             (target), \
                 char* : colr_str_replace_all_ColorArg, \
-                regex_t* : colr_str_replace_re_pat_all_ColorArg \
+                regex_t* : colr_str_replace_re_pat_all_ColorArg, \
+                regmatch_t** : colr_str_replace_re_matches_ColorArg \
             ), \
         ColorResult*: _Generic( \
             (target), \
                 char* : colr_str_replace_all_ColorResult, \
-                regex_t* : colr_str_replace_re_pat_all_ColorResult \
+                regex_t* : colr_str_replace_re_pat_all_ColorResult, \
+                regmatch_t** : colr_str_replace_re_matches_ColorResult \
             ), \
         ColorText*: _Generic( \
             (target), \
                 char* : colr_str_replace_all_ColorText, \
-                regex_t* : colr_str_replace_re_pat_all_ColorText \
+                regex_t* : colr_str_replace_re_pat_all_ColorText, \
+                regmatch_t** : colr_str_replace_re_matches_ColorText \
             ) \
     )(s, target, repl)
 
@@ -1859,93 +1875,6 @@ extern int colr_printf_esc_mod;
         ColorResult*: colr_str_replace_re_all_ColorResult, \
         ColorText*: colr_str_replace_re_all_ColorText \
     )(s, target, repl, flags)
-
-/*! \def colr_replace_re_matches
-    Replace all `regmatch_t` matches in a \string in \p s with another string,
-    ColorArg string, ColorResult string, or ColorText string.
-
-    \details
-    If a string (`char*`) is used as \p repl, this is just a wrapper around
-    colr_str_replace_re().
-
-    \details
-    If a ColorArg, ColorResult, or ColorText is used as \p repl, the appropriate
-    colr_str_replace_re_matches_\<type\> function is called. The function will create a
-    string of escape-codes/text to be used as a replacement.
-
-    \details
-    If \p repl is `NULL`, then an empty string (`""`) is used as the replacement,
-    which causes the \p target string to be removed.
-
-
-    \pi s      \parblock
-                   The string to operate on.
-                   \mustnull
-               \endparblock
-    \pi matches \parblock
-                   Pointers to \regexmatch to replace in \p s.
-                   \mustnull
-               \endparblock
-    \pi repl   \parblock
-                   A string, ColorArg, ColorResult, or ColorText to replace
-                   the target string with.
-                   If this is `NULL`, then an empty string is used (`""`) as
-                   the replacement.
-                   \colrwillfree
-               \endparblock
-
-    \return    \parblock
-                   An allocated string with the result.
-                   \mustfree
-                   \maybenullalloc
-               \endparblock
-
-    \sa colr_replace
-    \sa colr_replace_all
-    \sa colr_replace_re
-    \sa colr_replace_re_all
-    \sa colr_str_replace_re
-    \sa colr_str_replace_re_ColorArg
-    \sa colr_str_replace_re_ColorResult
-    \sa colr_str_replace_re_ColorText
-
-    \examplecodefor{colr_replace_re_matches,.c}
-        #include "colr.h"
-        int main(void) {
-            // Compile a regex pattern.
-            regex_t pat;
-            if (regcomp(&pat, "foo", 0)) {
-                regfree(&pat);
-                return EXIT_FAILURE;
-            }
-            // The string to operate on.
-            const char* s = "This foo is a foo string, foo?";
-            // Get all matches.
-            regmatch_t** matches = colr_re_matches(s, &pat);
-            if (!matches) {
-                // This should be impossible (for this example).
-                fprintf(stderr, "No matches?\n");
-                return EXIT_FAILURE;
-            }
-            char* replaced = colr_replace_re_matches(s, matches, Colr("bar", fore("red")));
-            if (!replaced) return EXIT_FAILURE;
-            puts(s);
-            puts(replaced);
-            // Free all of your resources.
-            free(replaced);
-            colr_free(matches);
-            regfree(&pat);
-        }
-    \endexamplecode
-*/
-#define colr_replace_re_matches(s, matches, repl) \
-    _Generic( \
-        (repl), \
-        char*: colr_str_replace_re_matches, \
-        ColorArg*: colr_str_replace_re_matches_ColorArg, \
-        ColorResult*: colr_str_replace_re_matches_ColorResult, \
-        ColorText*: colr_str_replace_re_matches_ColorText \
-    )(s, matches, repl)
 
 /*! \def colr_repr
     Transforms several ColrC objects into their string representations.
