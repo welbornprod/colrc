@@ -532,7 +532,7 @@ extern int colr_printf_esc_mod;
         __typeof(x) _bss_val = x; \
         ColorArg _bss_carg = back_arg(_bss_val); \
         size_t _bss_len = ColorArg_length(_bss_carg); \
-        char* _bss_codes = alloca(_bss_len); \
+        char* _bss_codes = alloca(_bss_len); /* Look at using a variable-length array. */ \
         ColorArg_to_esc_s(_bss_codes, _bss_carg); \
         _bss_codes; \
     })
@@ -2206,7 +2206,7 @@ extern int colr_printf_esc_mod;
         __typeof(x) _fss_val = x; \
         ColorArg _fss_carg = fore_arg(_fss_val); \
         size_t _fss_len = ColorArg_length(_fss_carg); \
-        char* _fss_codes = alloca(_fss_len); \
+        char* _fss_codes = alloca(_fss_len); /* Look at using a variable-length array. */ \
         ColorArg_to_esc_s(_fss_codes, _fss_carg); \
         _fss_codes; \
     })

@@ -3271,14 +3271,13 @@ char* colr_str_replace_re_match_i(const char* restrict ref, char* target, regmat
 char* colr_str_replace_re_matches(const char* restrict s, regmatch_t** matches, const char* restrict repl) {
     if (!(s && matches)) return NULL;
     if (s[0] == '\0') return NULL;
-    size_t repl_len = 0;
     size_t final_len = 0;
     // Count matches, this better be NULL-terminated!
     size_t cnt = 0;
     while (matches[cnt]) cnt++;
 
     if (repl) {
-        repl_len = strlen(repl);
+        size_t repl_len = strlen(repl);
         final_len = strlen(s) + (repl_len * cnt);
     } else {
         repl = "";
@@ -4357,6 +4356,7 @@ char* _colr_join(void* joinerp, ...) {
         // The callers of this function guard against this.
         // LCOV_EXCL_START
         free(final);
+        va_end(args);
         return NULL;
         // LCOV_EXCL_STOP
     }
@@ -5530,10 +5530,14 @@ char* ColorArgs_list_repr(ColorArg** lst) {
     repr[1] = '\n';
     repr += 2;
     for (size_t i = 0; i < count; i++) {
+        // If `repr` wasn't sized correctly, these sprintf's could overwrite
+        // the bounds. Technically their return value should be checked against
+        // `indent_len + strlen(strings[i])` (see below).
         /* cppcheck-suppress unreadVariable */
         sprintf(repr, "%s%s", indent, strings[i]);
         repr += indent_len + strlen(strings[i]);
         free(strings[i]);
+        // Again, the return value should be checked against `sep_len`.
         /* cppcheck-suppress unreadVariable */
         sprintf(repr, "%s", sep);
         // Skip past the separator string.

@@ -6,6 +6,12 @@
     -Christopher Welborn 08-30-2019
 """
 
+# TODO: Cache results. Only run `cppcheck` if the cache file is older than
+#       source files. Running `cppcheck` is slow. If I'm just filtering the
+#       same results over and over through different options, I don't want
+#       to run it if I don't have to.
+#       Save the results as JSON/Pickle, check the times on the source files.
+
 import json
 import os
 import re
