@@ -442,7 +442,7 @@ subdesc(colr_join_array) {
             ColorArg_to_ptr(ColorArg_empty())
         );
         char* s = colr_join_array(j, cargs);
-        ColorArgs_list_free(cargs);
+        ColorArgs_array_free(cargs);
         assert_str_eq(s, "joiner", "Empty arg lists should be like strdup(joiner)");
         free(s);
     }
@@ -768,7 +768,7 @@ subdesc(colr_repr) {
             colr_repr((void*)s),
         };
         // Free ColorArg list.
-        ColorArgs_list_free(colrargs);
+        ColorArgs_array_free(colrargs);
         // Free helper objects.
         colr_free(cargp);
         colr_free(ctextp);

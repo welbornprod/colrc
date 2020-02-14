@@ -61,8 +61,6 @@ The colr.h header defines `_GNU_SOURCE` if it's not already defined (see `man fe
 gcc -std=c11 -c myprogram.c colr.c -o myexecutable -lm
 ```
 
-ColrC is tested with `gcc` and `clang`.
-
 ## Files
 
 The only two files that are needed to use ColrC are colr.h and colr.c.

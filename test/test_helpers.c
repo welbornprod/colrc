@@ -479,6 +479,55 @@ subdesc(colr_mb_len) {
         );
     }
 }
+// colr_str_array_contains
+subdesc(colr_str_array_contains) {
+    it("detects str list elements") {
+        char** lst = NULL;
+        str_list_fill(
+            lst,
+            "test",
+            "this",
+            "out"
+        );
+        asserteq(colr_str_array_contains(lst, NULL), false);
+        asserteq(colr_str_array_contains(lst, ""), false);
+        assert(colr_str_array_contains(lst, "test"));
+        assert(colr_str_array_contains(lst, "this"));
+        assert(colr_str_array_contains(lst, "out"));
+        colr_str_array_free(lst);
+
+        str_list_fill(
+            lst,
+            ""
+        );
+        assert(colr_str_array_contains(lst, ""));
+        colr_str_array_free(lst);
+
+        str_list_fill(
+            lst,
+            "test",
+            "",
+            "this"
+        );
+        assert(colr_str_array_contains(lst, "this"));
+        assert(colr_str_array_contains(lst, ""));
+        colr_str_array_free(lst);
+    }
+}
+// colr_str_array_free
+subdesc(colr_str_array_free) {
+    it("frees string lists") {
+        // The real test is when is sent through valgrind.
+        char** lst = NULL;
+        str_list_fill(
+            lst,
+            "test",
+            "this",
+            "out"
+        );
+        colr_str_array_free(lst);
+    }
+}
 // colr_str_center
 subdesc(colr_str_center) {
     it("handles terminal width") {
@@ -797,20 +846,20 @@ subdesc(colr_str_get_codes) {
         char** code_list = colr_str_get_codes(waytoolong, false);
         assert_not_null(code_list);
         assert_str_list_size_eq_repr(
-            colr_str_list_len(code_list),
+            colr_str_array_len(code_list),
             (size_t)1,
             code_list
         );
-        colr_str_list_free(code_list);
+        colr_str_array_free(code_list);
 
         char** code_list_unique = colr_str_get_codes(waytoolong, true);
         assert_not_null(code_list_unique);
         assert_str_list_size_eq_repr(
-            colr_str_list_len(code_list_unique),
+            colr_str_array_len(code_list_unique),
             (size_t)1,
             code_list_unique
         );
-        colr_str_list_free(code_list_unique);
+        colr_str_array_free(code_list_unique);
 
         char* s = colr_cat(
             fore(RED),
@@ -829,7 +878,7 @@ subdesc(colr_str_get_codes) {
         // A reset code is appended when calling colr_cat() with ColorArgs.
         // So it's +1 for whatever items you see.
         assert_str_list_size_eq_repr(
-            colr_str_list_len(code_list),
+            colr_str_array_len(code_list),
             (size_t)9,
             code_list
         );
@@ -837,13 +886,13 @@ subdesc(colr_str_get_codes) {
         assert_str_list_contains(code_list, "\x1b[47m");
         assert_str_list_contains(code_list, "\x1b[1m");
         assert_str_list_contains(code_list, "\x1b[38;5;255m");
-        colr_str_list_free(code_list);
+        colr_str_array_free(code_list);
 
         assert_not_null(code_list_unique);
         // A reset code is appended when calling colr_cat() with ColorArgs.
         // So it's +1 for whatever *unique* items you see.
        assert_str_list_size_eq_repr(
-            colr_str_list_len(code_list_unique),
+            colr_str_array_len(code_list_unique),
             (size_t)5,
             code_list_unique
         );
@@ -851,7 +900,7 @@ subdesc(colr_str_get_codes) {
         assert_str_list_contains(code_list_unique, "\x1b[47m");
         assert_str_list_contains(code_list_unique, "\x1b[1m");
         assert_str_list_contains(code_list_unique, "\x1b[38;5;255m");
-        colr_str_list_free(code_list_unique);
+        colr_str_array_free(code_list_unique);
     }
 }
 // colr_str_has_codes
@@ -998,55 +1047,6 @@ subdesc(colr_str_is_digits) {
         for_each(tests, i) {
             asserteq(colr_str_is_digits(tests[i].s), tests[i].expected);
         }
-    }
-}
-// colr_str_list_contains
-subdesc(colr_str_list_contains) {
-    it("detects str list elements") {
-        char** lst = NULL;
-        str_list_fill(
-            lst,
-            "test",
-            "this",
-            "out"
-        );
-        asserteq(colr_str_list_contains(lst, NULL), false);
-        asserteq(colr_str_list_contains(lst, ""), false);
-        assert(colr_str_list_contains(lst, "test"));
-        assert(colr_str_list_contains(lst, "this"));
-        assert(colr_str_list_contains(lst, "out"));
-        colr_str_list_free(lst);
-
-        str_list_fill(
-            lst,
-            ""
-        );
-        assert(colr_str_list_contains(lst, ""));
-        colr_str_list_free(lst);
-
-        str_list_fill(
-            lst,
-            "test",
-            "",
-            "this"
-        );
-        assert(colr_str_list_contains(lst, "this"));
-        assert(colr_str_list_contains(lst, ""));
-        colr_str_list_free(lst);
-    }
-}
-// colr_str_list_free
-subdesc(colr_str_list_free) {
-    it("frees string lists") {
-        // The real test is when is sent through valgrind.
-        char** lst = NULL;
-        str_list_fill(
-            lst,
-            "test",
-            "this",
-            "out"
-        );
-        colr_str_list_free(lst);
     }
 }
 // colr_str_ljust

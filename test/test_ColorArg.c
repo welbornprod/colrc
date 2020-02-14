@@ -452,6 +452,42 @@ subdesc(ColorArg_to_ptr) {
 } // describe(ColorArg)
 
 describe(ColorArgs) {
+subdesc(ColorArgs_array_free) {
+    it("frees ColorArg lists") {
+        // The real test is when is sent through valgrind.
+        ColorArg** lst = NULL;
+        ColorArgs_list_fill(
+            lst,
+            fore(RED),
+            back(WHITE),
+            style(UNDERLINE)
+        );
+        ColorArgs_array_free(lst);
+    }
+}
+subdesc(ColorArgs_array_repr) {
+    it("handles NULL") {
+        char* nullrepr = ColorArgs_array_repr(NULL);
+        assert_str_eq(nullrepr, "NULL", "failed on NULL");
+        free(nullrepr);
+        ColorArg** emptylist = {NULL};
+        char* emptyrepr = ColorArgs_array_repr(emptylist);
+        assert_str_eq(emptyrepr, "NULL", "failed on empty list");
+        free(emptyrepr);
+
+        ColorArg** lst = NULL;
+        ColorArgs_list_fill(
+            lst,
+            fore(RED),
+            back(WHITE)
+        );
+        char* repr = ColorArgs_array_repr(lst);
+        assert_not_null(repr);
+        assert_not_null(strstr(repr, "RED"));
+        free(repr);
+        ColorArgs_array_free(lst);
+    }
+}
 subdesc(ColorArgs_from_str) {
     it("handles NULL") {
         bool do_unique = false;
@@ -472,52 +508,16 @@ subdesc(ColorArgs_from_str) {
         for_each(expected, i) {
             assert_ColorArgs_list_contains(cargs, expected[i]);
         }
-        assert_size_eq_repr(ColorArgs_list_len(cargs), 6, cargs);
-        ColorArgs_list_free(cargs);
+        assert_size_eq_repr(ColorArgs_array_len(cargs), 6, cargs);
+        ColorArgs_array_free(cargs);
 
         // Do unique codes.
         cargs = ColorArgs_from_str(escstr, true);
         for_each(expected, i) {
             assert_ColorArgs_list_contains(cargs, expected[i]);
         }
-        assert_size_eq_repr(ColorArgs_list_len(cargs), 4, cargs);
-        ColorArgs_list_free(cargs);
-    }
-}
-subdesc(ColorArgs_list_free) {
-    it("frees ColorArg lists") {
-        // The real test is when is sent through valgrind.
-        ColorArg** lst = NULL;
-        ColorArgs_list_fill(
-            lst,
-            fore(RED),
-            back(WHITE),
-            style(UNDERLINE)
-        );
-        ColorArgs_list_free(lst);
-    }
-}
-subdesc(ColorArgs_list_repr) {
-    it("handles NULL") {
-        char* nullrepr = ColorArgs_list_repr(NULL);
-        assert_str_eq(nullrepr, "NULL", "failed on NULL");
-        free(nullrepr);
-        ColorArg** emptylist = {NULL};
-        char* emptyrepr = ColorArgs_list_repr(emptylist);
-        assert_str_eq(emptyrepr, "NULL", "failed on empty list");
-        free(emptyrepr);
-
-        ColorArg** lst = NULL;
-        ColorArgs_list_fill(
-            lst,
-            fore(RED),
-            back(WHITE)
-        );
-        char* repr = ColorArgs_list_repr(lst);
-        assert_not_null(repr);
-        assert_not_null(strstr(repr, "RED"));
-        free(repr);
-        ColorArgs_list_free(lst);
+        assert_size_eq_repr(ColorArgs_array_len(cargs), 4, cargs);
+        ColorArgs_array_free(cargs);
     }
 }
 } // describe(ColorArgs)

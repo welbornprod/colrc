@@ -51,7 +51,7 @@
         } \
         if (!_a_ca_l_c_found) { \
             char* _a_ca_l_c_repr = test_repr(carg); \
-            char* _a_ca_l_c_lstrepr = ColorArgs_list_repr(lst); \
+            char* _a_ca_l_c_lstrepr = ColorArgs_array_repr(lst); \
             fail( \
                 "ColorArgs list does not contain: %s\n    List: %s\n", \
                 _a_ca_l_c_repr ? _a_ca_l_c_repr : "<alloc failed for repr>", \
@@ -879,9 +879,9 @@
 
 #define assert_str_list_contains(lst, s) \
     do { \
-        if (!colr_str_list_contains(lst, s)) { \
+        if (!colr_str_array_contains(lst, s)) { \
             char* _a_s_l_c_repr = colr_repr(s); \
-            char* _a_s_l_l_repr = colr_str_list_repr(lst); \
+            char* _a_s_l_l_repr = colr_str_array_repr(lst); \
             fail( \
                 #lst " does not contain: %s\n    List: %s", \
                 _a_s_l_c_repr, \
@@ -894,9 +894,9 @@
 
 #define assert_str_list_not_contains(lst, s) \
     do { \
-        if (colr_str_list_contains(lst, s)) { \
+        if (colr_str_array_contains(lst, s)) { \
             char* _a_s_l_c_repr = colr_repr(s); \
-            char* _a_s_l_l_repr = colr_str_list_repr(lst); \
+            char* _a_s_l_l_repr = colr_str_array_repr(lst); \
             fail( \
                 #lst " contains: %s\n    List: %s", \
                 _a_s_l_c_repr, \
@@ -914,7 +914,7 @@
 #define assert_str_list_size_op_repr(a, op, b, lst, msg) \
     do { \
         if (!(a op b)) { \
-            char* _a_s_op_r_repr = colr_str_list_repr(lst); \
+            char* _a_s_op_r_repr = colr_str_array_repr(lst); \
             fail( \
                 "%s: (" #a ") %zu " #op " (" #b ") %zu\n      Repr: %s", \
                 msg, \
@@ -1114,7 +1114,7 @@
         (x), \
         char: colr_char_repr, \
         char*: colr_str_repr, \
-        char**: colr_str_list_repr, \
+        char**: colr_str_array_repr, \
         int: int_repr, \
         unsigned int: uint_repr, \
         long: long_repr, \
@@ -1130,10 +1130,9 @@
         TermSize: TermSize_repr \
     )(x)
 
-size_t ColorArgs_list_len(ColorArg** lst);
-char* ColorArgs_list_repr(ColorArg** lst);
-size_t colr_str_list_len(char** lst);
-char* colr_str_list_repr(char** lst);
+size_t ColorArgs_array_len(ColorArg** lst);
+size_t colr_str_array_len(char** lst);
+char* colr_str_array_repr(char** lst);
 char* int_repr(int x);
 char* long_repr(long x);
 char* long_long_repr(long long x);

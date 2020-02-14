@@ -14,7 +14,7 @@
     \pi lst The ColorArg list to check.
     \return The number of non-null items.
 */
-size_t ColorArgs_list_len(ColorArg** lst) {
+size_t ColorArgs_array_len(ColorArg** lst) {
     if (!lst) return 0;
     size_t i = 0;
     while (lst[i]) i++;
@@ -27,7 +27,7 @@ size_t ColorArgs_list_len(ColorArg** lst) {
     \pi lst The string list to check.
     \return The number of non-null items.
 */
-size_t colr_str_list_len(char** lst) {
+size_t colr_str_array_len(char** lst) {
     if (!lst) return 0;
     size_t i = 0;
     while (lst[i]) i++;
@@ -40,7 +40,7 @@ size_t colr_str_list_len(char** lst) {
     \return An allocated string, or `NULL` if \p lst is `NULL`, or the allocation
             fails.
 */
-char* colr_str_list_repr(char** lst) {
+char* colr_str_array_repr(char** lst) {
     char* repr = NULL;
     if (!lst) {
         asprintf_or_return(NULL, &repr, "NULL");

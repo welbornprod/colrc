@@ -369,7 +369,7 @@ extern int colr_printf_esc_mod;
 #define alloc_basic() calloc(CODE_LEN, sizeof(char))
 
 /*! \def alloc_extended
-    Allocate enough for a extended code.
+    Allocate enough for an extended code.
 
     \return \parblock
                 Pointer to the allocated string, or NULL on error.
@@ -399,16 +399,6 @@ extern int colr_printf_esc_mod;
 */
 #define alloc_style() calloc(STYLE_LEN, sizeof(char))
 
-/*! \def argeq
-    Convenience macro for `!strcmp(arg, s1) || !strcmp(arg, s2)`
-
-    \pi arg String to check.
-    \pi s1  First string to compare against.
-    \pi s2  Second string to compare against.
-
-    \return Non-zero if \p arg matches either \p s1 or \p s2, otherwise `0`.
-*/
-#define argeq(arg, s1, s2) (!strcmp(arg, s1)) || (!strcmp(arg, s2))
 
 /*! \def asprintf_or_return
     Convenience macro for bailing out of a function when asprintf fails.
@@ -420,7 +410,7 @@ extern int colr_printf_esc_mod;
 
 
 /*! \def back
-    Create a back color suitable for use with the colr_cat() and Colr() macros.
+    Create a back color suitable for use with the \colrmacros.
 
 
     \details
@@ -711,7 +701,7 @@ extern int colr_printf_esc_mod;
 
 /*! \def Colr
     Returns a heap-allocated ColorText struct that can be used by itself,
-    or with the colr_cat() macro.
+    or with the \colrusingmacros.
 
     \details
     You must `free()` the resulting ColorText struct using ColorText_free(),
@@ -734,12 +724,11 @@ extern int colr_printf_esc_mod;
     Returns an initialized stack-allocated ColorText.
 
     \details
-    This cannot be passed to the \colrmacros.
-
-    \details
     If this ColorText is manually stored on the heap, and then sent through
     the colr macros, it's ColorArgs will be free'd. You cannot use the same
     ColorText twice inside the colr macros/functions.
+
+    \nocolrmacros
 
     \pi text String to colorize/style.
     \pi ...  No more than 3 ColorArg pointers for fore, back, and style in any order.
@@ -1153,7 +1142,7 @@ extern int colr_printf_esc_mod;
     _Generic( \
         (x), \
         ColorArg*: ColorArg_free, \
-        ColorArg**: ColorArgs_list_free, \
+        ColorArg**: ColorArgs_array_free, \
         ColorResult*: ColorResult_free, \
         ColorText*: ColorText_free, \
         regmatch_t**: colr_free_re_matches, \
@@ -1922,7 +1911,7 @@ extern int colr_printf_esc_mod;
     _Generic( \
         (x), \
         ColorArg: ColorArg_repr, \
-        ColorArg**: ColorArgs_list_repr, \
+        ColorArg**: ColorArgs_array_repr, \
         ColorJustify: ColorJustify_repr, \
         ColorJustifyMethod: ColorJustifyMethod_repr, \
         ColorResult: ColorResult_repr, \
@@ -2104,7 +2093,7 @@ extern int colr_printf_esc_mod;
 #define ext_RGB(rgbval) ExtendedValue_from_RGB(rgbval)
 
 /*! \def fore
-    Create a fore color suitable for use with the colr_cat() and Colr() macros.
+    Create a fore color suitable for use with the \colrmacros.
 
 
     \details
@@ -2269,7 +2258,7 @@ extern int colr_printf_esc_mod;
 #define rgb(r, g, b) ((RGB){.red=r, .green=g, .blue=b})
 
 /*! \def style
-    Create a style suitable for use with the colr_cat() and Colr() macros.
+    Create a style suitable for use with the \colrmacros.
 
     \details
     This macro accepts strings (style names) and StyleValues.
@@ -2378,31 +2367,6 @@ extern int colr_printf_esc_mod;
 */
 #define while_colr_va_arg(ap, vartype, x) while (x = va_arg(ap, vartype), !_colr_is_last_arg(x))
 
-/*! \def with_rgbs
-    Iterate over every possible rgb combination, 0-255 for red, green, and blue.
-
-    \details
-    This macro expects a block of code after it, where the values `r`, `g`, and
-    `b` are declared as `int` in the range `0`-`255`.
-
-    \examplecodefor{with_rgbs,.c}
-    with_rgbs() {
-        // You can do whatever you want with r, g, and b.
-        if ((r % 100 == 0) && (g % 100 == 0) && (b % 100 == 0)) {
-            RGB val = rgb(r, g, b);
-            char* repr = colr_repr(val);
-            char* s = colr_cat(fore(val), repr);
-            printf("Found RGB: %s\n", s);
-            free(repr);
-            free(s);
-        }
-    }
-    \endexamplecode
-*/
-#define with_rgbs() \
-    for (int r = 0; r < 256; r++) \
-        for (int g = 0; g < 256; g++) \
-            for (int b = 0; b < 256; b++) \
 
 /*! Basic color values, with a few convenience values for extended colors.
     \internal
@@ -2737,15 +2701,15 @@ typedef struct TermSize {
 } TermSize;
 
 #ifndef DOXYGEN_SKIP
-//! A list of BasicInfo items, used with BasicValue_from_str().
+//! An array of BasicInfo items, used with BasicValue_from_str().
 extern const BasicInfo basic_names[];
 //! Length of basic_names.
 extern const size_t basic_names_len;
-//! A list of ExtendedInfo, used with ExtendedValue_from_str().
+//! An array of ExtendedInfo, used with ExtendedValue_from_str().
 extern const ExtendedInfo extended_names[];
 //! Length of extended_names.
 extern const size_t extended_names_len;
-//! A list of StyleInfo items, used with StyleName_from_str().
+//! An array of StyleInfo items, used with StyleName_from_str().
 extern const StyleInfo style_names[];
 //! Length of style_names.
 extern const size_t style_names_len;
@@ -2808,6 +2772,8 @@ regmatch_t** colr_re_matches(const char* s, regex_t* repattern);
 bool colr_set_locale(void);
 bool colr_supports_rgb(void);
 
+bool colr_str_array_contains(char** lst, const char* s);
+void colr_str_array_free(char** ps);
 size_t colr_str_char_count(const char* s, const char c);
 size_t colr_str_char_lcount(const char* s, const char c);
 size_t colr_str_chars_lcount(const char* restrict s, const char* restrict chars);
@@ -2822,8 +2788,6 @@ ColrHash colr_str_hash(const char* s);
 bool colr_str_is_all(const char* s, const char c);
 bool colr_str_is_codes(const char* s);
 bool colr_str_is_digits(const char* s);
-bool colr_str_list_contains(char** lst, const char* s);
-void colr_str_list_free(char** ps);
 char* colr_str_ljust(const char* s, int width, const char padchar);
 void colr_str_lower(char* s);
 size_t colr_str_lstrip(char* restrict dest, const char* restrict s, size_t length, const char c);
@@ -2956,6 +2920,8 @@ char* ArgType_to_str(ArgType type);
     ColorArg functions that deal with an ArgType, and a ColorValue.
     \endinternal
 */
+void ColorArgs_array_free(ColorArg** ps);
+char* ColorArgs_array_repr(ColorArg** lst);
 ColorArg ColorArg_empty(void);
 bool ColorArg_eq(ColorArg a, ColorArg b);
 char* ColorArg_example(ColorArg carg, bool colorized);
@@ -2978,8 +2944,6 @@ char* ColorArg_to_esc(ColorArg carg);
 bool ColorArg_to_esc_s(char* dest, ColorArg carg);
 
 ColorArg** ColorArgs_from_str(const char* s, bool unique);
-void ColorArgs_list_free(ColorArg** ps);
-char* ColorArgs_list_repr(ColorArg** lst);
 
 /*! \internal
     ColorJustify functions that deal with colr/string justification.

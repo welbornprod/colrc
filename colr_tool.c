@@ -344,7 +344,7 @@ int list_codes(ColrOpts* opts) {
         free(carg_example);
     }
     // Free the ColorArgs, and the list of pointers.
-    ColorArgs_list_free(carg_list);
+    ColorArgs_array_free(carg_list);
     return EXIT_SUCCESS;
 }
 
