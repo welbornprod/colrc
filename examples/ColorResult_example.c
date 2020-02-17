@@ -36,7 +36,7 @@ int main(void) {
     */
     char* mine = strdup("I need this for later, don't free it.");
     if (!mine) return EXIT_FAILURE;
-    char* colorized = Colr_str(mine, fore(BLUE), back(WHITE));
+    char* colorized = colr(mine, fore(BLUE), back(WHITE));
     if (!colorized) return EXIT_FAILURE;
     printf("%s\n", colorized);
     // Your string is still good:

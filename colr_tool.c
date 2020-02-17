@@ -1276,13 +1276,13 @@ int translate_code(ColrOpts* opts) {
     if (!rgbstr) asprintf_or_return(EXIT_FAILURE, &rgbstr, "?");
     char* hexstr = RGB_to_hex(rgbval);
     if (!hexstr) asprintf_or_return(EXIT_FAILURE, &hexstr, "?");
-    char* blbl = Colr_str("basic:", style(UNDERLINE));
+    char* blbl = colr("basic:", style(UNDERLINE));
     if (!blbl) asprintf_or_return(EXIT_FAILURE, &blbl, "basic:");
-    char* elbl = Colr_str("ext:", style(UNDERLINE));
+    char* elbl = colr("ext:", style(UNDERLINE));
     if (!elbl) asprintf_or_return(EXIT_FAILURE, &elbl, "ext:");
-    char* rgblbl = Colr_str("rgb:", style(UNDERLINE));
+    char* rgblbl = colr("rgb:", style(UNDERLINE));
     if (!rgblbl) asprintf_or_return(EXIT_FAILURE, &rgblbl, "rgb:");
-    char* hexlbl = Colr_str("hex:", style(UNDERLINE));
+    char* hexlbl = colr("hex:", style(UNDERLINE));
     if (!hexlbl) asprintf_or_return(EXIT_FAILURE, &hexlbl, "hex:");
 
     char* transtr = NULL;

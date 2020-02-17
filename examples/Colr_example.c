@@ -37,9 +37,9 @@ int main(void) {
 
     /*
         If you don't need several Colr() calls, there is a shortcut for safely
-        creating colorized text using Colr_str().
+        creating colorized text using colr().
     */
-    char* fast = Colr_str(
+    char* fast = colr(
         "Hello from ColrC.",
         fore("#2500FF"),
         back(ext_hex("#353535")),

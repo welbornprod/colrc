@@ -998,7 +998,17 @@ extern int colr_printf_esc_mod;
         (ColorJustify){.method=JUST_RIGHT, .width=justwidth, .padchar=c} \
     )
 
-/*! \def Colr_str
+/*! \def ColrResult
+    Wraps an allocated string in a ColorResult, which marks it as "freeable" in
+    the colr macros.
+
+    \pi s   An allocated string.
+    \return An allocated ColorResult.
+            \colrmightfree
+*/
+#define ColrResult(s) ColorResult_to_ptr(ColorResult_new(s))
+
+/*! \def colr
     Create an allocated string directly from Colr() arguments.
 
     \details
@@ -1017,18 +1027,7 @@ extern int colr_printf_esc_mod;
                 \maybenullalloc
              \endparblock
 */
-#define Colr_str(text, ...) colr_cat(Colr(text, __VA_ARGS__))
-
-
-/*! \def ColrResult
-    Wraps an allocated string in a ColorResult, which marks it as "freeable" in
-    the colr macros.
-
-    \pi s   An allocated string.
-    \return An allocated ColorResult.
-            \colrmightfree
-*/
-#define ColrResult(s) ColorResult_to_ptr(ColorResult_new(s))
+#define colr(text, ...) colr_cat(Colr(text, __VA_ARGS__))
 
 /*! \def colr_cat
     Join ColorArg pointers, ColorResult pointers, ColorText pointers, and
@@ -1132,6 +1131,7 @@ extern int colr_printf_esc_mod;
         ColorArg: ColorArg_example, \
         ColorValue: ColorValue_example \
     )(x)
+
 
 /*! \def colr_free
     Calls the \<type\>_free functions for the supported types.

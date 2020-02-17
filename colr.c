@@ -1398,7 +1398,7 @@ bool colr_str_array_contains(char** lst, const char* s) {
     \pi ps A pointer to an array of strings.
 
     \examplecodefor{colr_str_array_free,.c}
-    char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
+    char* s = colr("Test", fore(RED), back(WHITE), style(BRIGHT));
     if (!s) exit(1);
     // Call something that creates an array of strings on the heap.
     char** code_array = colr_str_get_codes(s, false);
@@ -1437,7 +1437,7 @@ void colr_str_array_free(char** ps) {
     \sa colr_str_ljust colr_str_rjust colr_term_size
 
     \examplecodefor{colr_str_center,.c}
-    char* colorized = Colr_str("This.", fore(RED), back(WHITE));
+    char* colorized = colr("This.", fore(RED), back(WHITE));
     char* justified = colr_str_center(colorized, 9, ' ');
     free(colorized);
     // The string still has codes, but only 4 spaces were added.
@@ -1589,7 +1589,7 @@ size_t colr_str_chars_lcount(const char* restrict s, const char* restrict chars)
             doesn't contain any escape-codes.
 
     \examplecodefor{colr_str_code_count,.c}
-    char* s = Colr_str("Testing this out.", fore(RED), back(WHITE));
+    char* s = colr("Testing this out.", fore(RED), back(WHITE));
     if (!s) exit(1);
     size_t code_cnt = colr_str_code_count(s);
     assert(code_cnt == 3); // The reset code is also appended.
@@ -1637,7 +1637,7 @@ size_t colr_str_code_count(const char* s) {
             doesn't contain any escape-codes.
 
     \examplecodefor{colr_str_code_len,.c}
-    char* s = Colr_str("Testing this out.", fore(RED), back(WHITE));
+    char* s = colr("Testing this out.", fore(RED), back(WHITE));
     if (!s) exit(1);
     size_t code_len = colr_str_code_len(s);
     assert(code_len == 14); // The reset code is also appended.
@@ -2045,7 +2045,7 @@ bool colr_str_is_digits(const char* s) {
     \sa colr_str_center colr_str_rjust colr_term_size
 
     \examplecodefor{colr_str_ljust,.c}
-    char* colorized = Colr_str("This.", fore(RED), back(WHITE));
+    char* colorized = colr("This.", fore(RED), back(WHITE));
     char* justified = colr_str_ljust(colorized, 8, ' ');
     free(colorized);
     // The string still has codes, but only 3 spaces were added.
@@ -3881,7 +3881,7 @@ char* colr_str_repr(const char* s) {
     \sa colr_str_center colr_str_ljust colr_term_size
 
     \examplecodefor{colr_str_rjust,.c}
-    char* colorized = Colr_str("This.", fore(RED), back(WHITE));
+    char* colorized = colr("This.", fore(RED), back(WHITE));
     char* justified = colr_str_rjust(colorized, 8, ' ');
     free(colorized);
     // The string still has codes, but only 3 spaces were added.
@@ -5386,7 +5386,7 @@ ColorArg* ColorArg_to_ptr(ColorArg carg) {
     \pi ps A pointer to an array of ColorArgs, where `NULL` is the last item.
 
     \examplecodefor{ColorArgs_array_free,.c}
-    char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
+    char* s = colr("Test", fore(RED), back(WHITE), style(BRIGHT));
     if (!s) exit(1);
     // Call something that creates an array of ColorArgs on the heap.
     ColorArg** carg_array = ColorArgs_from_str(s, false);
@@ -5415,7 +5415,7 @@ void ColorArgs_array_free(ColorArg** ps) {
             fails.
 
     \examplecodefor{ColorArgs_array_repr,.c}
-    char* s = Colr_str("Test", fore(RED), back(WHITE), style(BRIGHT));
+    char* s = colr("Test", fore(RED), back(WHITE), style(BRIGHT));
     if (!s) exit(1);
     // Call something that creates an array of ColorArgs on the heap.
     ColorArg** carg_array = ColorArgs_from_str(s, false);

@@ -4,22 +4,39 @@
 
 **ColrC** is a C library for terminal colors/escape-codes on linux.
 
-It is designed to be easy to use. Calculations and allocations are done for you
-when it comes to the escape codes needed to colorize text. You are responsible
-for the text strings themselves (the words you want to colorize).
+It is designed to be flexible and easy to use. Colors can be specified using
+defined names (`RED`, `BLUE`, etc.), 256-colors (`ext(36)`),
+RGB colors (`rgb(0, 0, 55)`), hex colors (`hex(s)`, `hex("#ff0000")`), or known names (`"aliceblue"`).
+These colors can be used with `fore()` and `back()` to set the foreground/background
+colors (`fore(RED)`, `back(WHITE)`).
+Styles are specified with their defined names (`style(BRIGHT)`).
+
+Strings can be joined, replaced, colorized, and justified using a few
+functions/macros. `fore()`, `back()`, and `style()` are mostly optional
+and position doesn't matter.
+
+Ownership in **ColrC** is easy to remember. Strings (`char*`) are yours,
+everything else belongs to **ColrC**. If you create a **ColrC** object with one
+of the `Colr*` macros to use inside of the `colr*` macros (notice the casing),
+it will be released. The resulting strings that are returned from the `colr*`
+macros will not be released. You must `free()` those.
+
+If you use `colr_print` or `colr_puts` you won't have to manage the resulting
+string either.
+
 
 ## Including
-You must include colr.h and compile colr.c along with your
-program.
+You must include colr.h and compile colr.c along with your program.
 ```c
 #include "colr.h"
 
 int main(void) {
     // Simple usage:
-    char* s = Colr_str("Hello from ColrC!", fore("blueviolet"), back(WHITE));
+    char* s = colr("Hello from ColrC!", fore("blueviolet"), back(WHITE));
     if (!s) return EXIT_FAILURE;
-
     puts(s);
+    // Or just:
+    colr_puts("Hello again!", fore(rgb(255, 0, 0)), back("#ffff00"));
 
     // Fancier functions:
     char* s2 = colr_replace(
@@ -28,7 +45,7 @@ int main(void) {
         Colr_join(
             " ",
             Colr_cat(
-                Colr("Good", fore(BLUE), back(RESET)),
+                Colr("Good", fore(rgb(0, 0, 255)), back(RESET)),
                 Colr("bye", fore(CYAN))
             ),
             "and",
