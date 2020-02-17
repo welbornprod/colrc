@@ -81,6 +81,7 @@ function print_usage {
     Usage:
         $appscript -h | -v
         $appscript -l [-f pat]
+        $appscript [-t] -R
         $appscript [-f pat] [-e pat] [-t | FILE...] [-- ARGS...]
         $appscript [-E] [-t | FILE...] [-- ARGS...]
         $appscript [-t | FILE...] (-r | -x) [-- ARGS...]
@@ -98,6 +99,7 @@ function print_usage {
         -h,--help             : Show this message.
         -l,--errorlist        : List available error names/descs using:
                                 ${cppcheck_error_list[*]}
+        -R,--reportonly       : Generate HTML for previous cppcheck run.
         -r,--report           : Generate HTML report.
         -t,--test             : Run on test files.
         -V,--view             : View a previously generated HTML report.
@@ -122,6 +124,7 @@ in_exclude_arg=0
 do_errors=0
 do_listerrors=0
 do_report=0
+do_report_only=0
 do_test=0
 do_view=0
 do_xml=0
@@ -153,6 +156,10 @@ for arg; do
             ;;
         "-l" | "--errorlist")
             do_listerrors=1
+            ;;
+        "-R" | "--reportonly")
+            do_report=1
+            do_report_only=1
             ;;
         "-r" | "--report")
             do_report=1
@@ -250,14 +257,16 @@ declare -a report_cmd=(
         use_xml_dir=$test_xml_dir
         use_xml_file=$test_xml_file
     }
-    mkdir -p "$use_xml_dir" || fail "Failed to create report directory."
-    printf "\nGenerating cppcheck report for:\n"
-    for user_file in "${user_files[@]}"; do
-        printf "    %s\n" "$(readlink -f "$user_file")"
-    done
-    echo "${cppcheck_cmd[@]}" "${extra_args[@]}"
-    printf "\n"
-    "${cppcheck_cmd[@]}" "${extra_args[@]}" "${user_files[@]}" 1>"$use_xml_file" 2>&1
+    if ((!do_report_only)); then
+        mkdir -p "$use_xml_dir" || fail "Failed to create report directory."
+        printf "\nGenerating cppcheck report for:\n"
+        for user_file in "${user_files[@]}"; do
+            printf "    %s\n" "$(readlink -f "$user_file")"
+        done
+        echo "${cppcheck_cmd[@]}" "${extra_args[@]}"
+        printf "\n"
+        "${cppcheck_cmd[@]}" "${extra_args[@]}" "${user_files[@]}" 1>"$use_xml_file" 2>&1
+    fi
     [[ -e "$use_xml_file" ]] || fail "No xml file to generate report with: $use_xml_file"
     printf "\nGenerating cppcheck html...\n"
     echo "${report_cmd[@]}"

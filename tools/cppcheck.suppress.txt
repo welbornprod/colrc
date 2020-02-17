@@ -1,2 +1,4 @@
 // dbug() macro is causing problems for cppcheck. Just ignore it.
 ConfigurationNotChecked
+// Cppcheck can't find system headers. It claims that they're not needed anyway.
+missingIncludeSystem

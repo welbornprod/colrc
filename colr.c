@@ -5463,17 +5463,18 @@ char* ColorArgs_array_repr(ColorArg** lst) {
     repr[0] = '{';
     repr[1] = '\n';
     repr += 2;
+    size_t append_len = 0;
+    size_t written = 0;
     for (size_t i = 0; i < count; i++) {
-        // If `repr` wasn't sized correctly, these sprintf's could overwrite
-        // the bounds. Technically their return value should be checked against
-        // `indent_len + strlen(strings[i])` (see below).
-        /* cppcheck-suppress unreadVariable */
-        sprintf(repr, "%s%s", indent, strings[i]);
-        repr += indent_len + strlen(strings[i]);
+        append_len = indent_len + strlen(strings[i]);
+        written = sprintf(repr, "%s%s", indent, strings[i]);
         free(strings[i]);
-        // Again, the return value should be checked against `sep_len`.
-        /* cppcheck-suppress unreadVariable */
-        sprintf(repr, "%s", sep);
+        // Check return value of sprintf in debug mode.
+        assert((size_t)written == append_len);
+        repr += append_len;
+
+        written = sprintf(repr, "%s", sep);
+        assert((size_t)written == sep_len);
         // Skip past the separator string.
         repr += sep_len;
     }

@@ -490,10 +490,11 @@ extern int colr_printf_esc_mod;
 
     \details
     These are not constant strings, but they are stored on the stack.
-    A "statement expression" is used to build a string of the correct length
+    A \statementexpr is used to build a string of the correct length
     and content using ColorArg_to_esc_s().
 
     \gnuonly
+    \warn_alloca_statementexpr
 
     \pi x       A BasicValue, ExtendedValue, or RGB value.
     \return     A stack-allocated escape code string.
@@ -522,10 +523,17 @@ extern int colr_printf_esc_mod;
         __typeof(x) _bss_val = x; \
         ColorArg _bss_carg = back_arg(_bss_val); \
         size_t _bss_len = ColorArg_length(_bss_carg); \
-        char* _bss_codes = alloca(_bss_len); /* Look at using a variable-length array. */ \
+        char* _bss_codes = alloca(_bss_len); \
         ColorArg_to_esc_s(_bss_codes, _bss_carg); \
         _bss_codes; \
     })
+    /*  A Variable Length Array will not work here.
+        The space for `_bss_codes` would be deallocated before this statement
+        expression returns. Using `alloca` ensures that it will live at least
+        as long as the calling function.
+        See:
+            https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-_002a_005f_005fbuiltin_005falloca
+    */
 #endif // COLR_GNU
 
 /*! \def basic
@@ -2170,10 +2178,11 @@ extern int colr_printf_esc_mod;
 
     \details
     These are not constant strings, but they are stored on the stack.
-    A "statement expression" is used to build a string of the correct length
+    A \statementexpr is used to build a string of the correct length
     and content using ColorArg_to_esc_s().
 
     \gnuonly
+    \warn_alloca_statementexpr
 
     \pi x       A BasicValue, ExtendedValue, or RGB value.
     \return     A stack-allocated escape code string.
@@ -2202,10 +2211,17 @@ extern int colr_printf_esc_mod;
         __typeof(x) _fss_val = x; \
         ColorArg _fss_carg = fore_arg(_fss_val); \
         size_t _fss_len = ColorArg_length(_fss_carg); \
-        char* _fss_codes = alloca(_fss_len); /* Look at using a variable-length array. */ \
+        char* _fss_codes = alloca(_fss_len); \
         ColorArg_to_esc_s(_fss_codes, _fss_carg); \
         _fss_codes; \
     })
+    /*  A Variable Length Array will not work here.
+        The space for `_fss_codes` would be deallocated before this statement
+        expression returns. Using `alloca` ensures that it will live at least
+        as long as the calling function.
+        See:
+            https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html#index-_002a_005f_005fbuiltin_005falloca
+    */
 #endif // COLR_GNU
 
 

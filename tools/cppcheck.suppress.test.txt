@@ -1,5 +1,43 @@
+// Missing includes.
+ConfigurationNotChecked
+missingIncludeSystem
+
 // Suppress if (s == NULL) for string literals in tests.
 literalWithCharPtrCompare
 
 // Suppress 'explanation' var scope from snow.h. It's not a big deal.
 variableScope
+
+// Suppress for `back_str_static` and `fore_str_static`.
+// Variable Length Arrays will not work inside of a statement expression.
+// There is a warning in the documentation for those macros about `alloca`.
+allocaCalled
+
+// Certain macros check all strings for NULL, even string literals.
+// Not a big deal for tests.
+incorrectStringBooleanError
+
+// Not looking for errors in snow.h
+knownConditionTrueFalse:*/snow.h
+
+// Using NULL in the variadic macro arguments is not part of the API design.
+// Users of ColrC may need this warning, but the ColrC tests do not.
+// The tests check to see what would happen if someone accidentally passed
+// NULL to one of the ColrC macros/functions.
+// ColrC can handle it, as long as the system can handle it (sizeof(int) == sizeof(void*)).
+varFuncNullUB
+
+// This one actually kinda makes me mad (at cppcheck).
+// Expecting `unsigned long`, got `unsigned long`. WTF cppcheck?
+// %lu in format string (no. 3) requires 'unsigned long' but the argument type is 'size_t {aka unsigned long}'
+invalidPrintfArgType_uint
+
+// _snow_constructor_StyleValue, and every other `describe()` call.
+// snow.h causes this, but I really don't care if there is an unused function
+// in the tests.
+unusedFunction
+
+// This warning would be great if cppcheck's parser even knew what a variable was.
+// Seriously though, sprintf/snprintf return values probably need to be checked.
+// However, cppcheck thinks I'm assigned values to `free()`, `while`, and `do`?
+unreadVariable

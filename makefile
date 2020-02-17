@@ -403,7 +403,7 @@ help targets:
     coverageview      : View previously generated html coverage reports.\n\
                         This is only for the main binary, not the tests.\n\
                         See the \`testview\` target.\n\
-    cppcheck          : Run cppcheck on the tests.\n\
+    cppcheck          : Run \`cppcheck\` ($(cppcheck_cmd)).\n\
     cppcheckreport    : Generate a cppcheck HTML report.\n\
     cppcheckreportall : Generate a cppcheck HTML report.\n\
                         This will also generate a report for the tests.\n\
