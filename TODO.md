@@ -9,11 +9,7 @@
 
 ## Lints
 [ ] unreadVariable for sprintf() in ColorArgs_list_repr().
-    See notes in ColorArgs_list_repr() about checking the return value.
-
-## Features
-[ ] colr_str_replace_re_all(), replace *ALL* occurrences of a regex pattern with
-    a string, ColorArg, ColorResult, or ColorText.
+    See notes in ColorArgs_array_repr() about checking the return value.
 
 ## Tests
 Should have %100 coverage.

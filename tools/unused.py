@@ -6,12 +6,6 @@
     -Christopher Welborn 08-30-2019
 """
 
-# TODO: Cache results. Only run `cppcheck` if the cache file is older than
-#       source files. Running `cppcheck` is slow. If I'm just filtering the
-#       same results over and over through different options, I don't want
-#       to run it if I don't have to.
-#       Save the results as JSON/Pickle, check the times on the source files.
-
 import json
 import os
 import re
@@ -23,6 +17,7 @@ from collections import (
     UserList,
     UserString,
 )
+from functools import total_ordering
 
 from colr import (
     AnimatedProgress,
@@ -57,7 +52,7 @@ macro_pat = re.compile(r'#define ([\w_]+)([ \t]+)?\([^\(]')
 colr_auto_disable()
 
 NAME = 'ColrC - Usage Stats'
-VERSION = '0.0.5'
+VERSION = '0.0.6'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -115,20 +110,74 @@ CPPCHECK_ARGS = [
 ]
 if os.path.exists(SUPPRESS_FILE):
     CPPCHECK_ARGS.append(f'--suppressions-list={SUPPRESS_FILE}')
+# File to hold `get_cppcheck_names()` cached results.
+CPPCHECK_CACHE = os.path.join(SCRIPTDIR, 'cppcheck.cached.json')
+CPPCHECK_TEST_CACHE = os.path.join(SCRIPTDIR, 'cppcheck.cached.test.json')
+
+# Sort keys for Names.
+SORT_KEYS = {
+    None: {'func': str, 'desc': 'name'},
+    'colr': {
+        'func': lambda name: name.info['colr_cnt'],
+        'desc': 'colr.c usage',
+    },
+    'example': {
+        'func': lambda name: name.info['example_cnt'],
+        'desc': 'example usage',
+    },
+    'file': {
+        'func': lambda name: name.info['files'],
+        'desc': 'file list',
+    },
+    'name': {
+        'func': str,
+        'desc': 'name',
+    },
+    'label': {
+        'func': lambda name: str(name.label()),
+        'desc': 'label',
+    },
+    'test': {
+        'func': lambda name: name.info['test_cnt'],
+        'desc': 'test usage',
+    },
+    'tool': {
+        'func': lambda name: name.info['tool_cnt'],
+        'desc': 'colr-tool usage',
+    },
+    'total': {
+        'func': lambda name: name.info['total'],
+        'desc': 'total usage',
+    },
+    'type': {
+        'func': lambda name: type(name).__name__,
+        'desc': 'type',
+    },
+}
+ACCEPTED_SORT_KEYS = ', '.join(sorted(s for s in SORT_KEYS if s))
+# Sort key aliases.
+SORT_KEYS['c'] = SORT_KEYS['colr']
+SORT_KEYS['e'] = SORT_KEYS['example']
+SORT_KEYS['x'] = SORT_KEYS['example']
+SORT_KEYS['f'] = SORT_KEYS['file']
+SORT_KEYS['n'] = SORT_KEYS['name']
+SORT_KEYS['l'] = SORT_KEYS['label']
+SORT_KEYS['t'] = SORT_KEYS['test']
+SORT_KEYS['files'] = SORT_KEYS['file']
 
 USAGESTR = f"""{VERSIONSTR}
     Usage:
         {SCRIPT} [-h | -v]
         {SCRIPT} [-D] [-f] -b
         {SCRIPT} [-D] -l
-        {SCRIPT} [-D] (-c | -M) [-T] [-F] [-f | -n | -r]
+        {SCRIPT} [-D] (-c | -M) [-T] [-F] [-f | -n | -r] [-S key]
                  [-a] [-d] [-t] [-s | PATTERN]
         {SCRIPT} [-D] [-j file | -T] [-F | -M] -o file
         {SCRIPT} [-D] [-j file | -T] -s PATTERNS...
         {SCRIPT} [-D] [-j file | -T] [-F | -M] -N [-s | PATTERN]
-        {SCRIPT} [-D] [-j file | -T] [-F | -M] [-f | -n | -r]
+        {SCRIPT} [-D] [-j file | -T] [-F | -M] [-f | -n | -r] [-S key]
                  (-E | -e) [-s | PATTERN]
-        {SCRIPT} [-D] [-j file | -T] [-F | -M] [-f | -n | -r]
+        {SCRIPT} [-D] [-j file | -T] [-F | -M] [-f | -n | -r] [-S key]
                  [-a] [-d] [-t] [-s | PATTERN]
 
     Options:
@@ -157,6 +206,10 @@ USAGESTR = f"""{VERSIONSTR}
         -o file,--out file   : Write info in JSON format to a file.
                                This is like --all and --raw.
         -r,--raw             : Show raw info.
+        -S key,--sortby key  : Sort names. Can be one of:
+                               {ACCEPTED_SORT_KEYS}
+                               Names are always sorted alphabetically before
+                               applying a sort key.
         -s,--search          : Use `ag` to search for symbols in the project.
                                When combined with other options, all listed
                                names are searched for.
@@ -243,12 +296,12 @@ def main(argd):
         elif argd['--onlymacros']:
             names = get_macro_names(pat=pat, use_tests=argd['--checktests'])
         elif argd['--onlyfuncs']:
-            names = get_cppcheck_names(pat=pat, use_tests=argd['--checktests'])
+            names = get_cppcheck_cached(pat=pat, use_tests=argd['--checktests'])
             if not names:
                 print_err('No unused functions reported by cppcheck.')
                 return 1
         else:
-            names = get_cppcheck_names(pat=pat, use_tests=argd['--checktests'])
+            names = get_cppcheck_cached(pat=pat, use_tests=argd['--checktests'])
             names.extend(
                 get_macro_names(pat=pat, use_tests=argd['--checktests'])
             )
@@ -286,10 +339,12 @@ def main(argd):
         # Keep false-positives, but mark them as such.
         info.filter_used(mark_only=True)
 
+    sort_key = name_sort_key(sort_by=argd['--sortby'])
+
     if argd['--full']:
-        ret = print_full(info)
+        ret = print_full(info, sort_key=sort_key)
     elif argd['--names']:
-        ret = print_names(info)
+        ret = print_names(info, sort_key=sort_key)
     elif argd['--out']:
         ret = print_file(info, argd['--out'])
     elif argd['--raw']:
@@ -297,11 +352,53 @@ def main(argd):
     elif argd['--search']:
         return info.search()
     else:
-        ret = print_simple(info)
+        ret = print_simple(info, sort_key=sort_key)
     if not (argd['--raw'] or argd['--names'] or argd['--out']):
         print_footer(argd, info)
 
     return ret
+
+
+def cache_cppcheck_names(names):
+    """ Save cppcheck names to the cache file. """
+    if not names:
+        debug('No names to cache!')
+        return False
+    cache_file = CPPCHECK_CACHE
+    if isinstance(names[0], (TestFunctionName, TestMacroName)):
+        cache_file = CPPCHECK_TEST_CACHE
+        debug(f'Using test cache file: {cache_file}')
+    else:
+        debug(f'Using cache file: {cache_file}')
+
+    data = [n.as_json_obj() for n in names]
+    try:
+        with open(cache_file, 'w') as f:
+            json.dump(data, f, sort_keys=True, indent=4)
+    except EnvironmentError as ex:
+        debug_err(f'Unable to save cache file: {cache_file}\n{ex}')
+        return False
+    except ValueError as ex:
+        debug_err(f'Unable to serialize cache: {ex}')
+        return False
+    debug(f'cppcheck results were cached: {cache_file}')
+    return True
+
+
+def cache_old(use_tests=False):
+    """ Returns True if the cppcheck names cache is old. """
+    files = []
+    cache_file = CPPCHECK_CACHE
+    if use_tests:
+        files.extend(s for s in TEST_FILES if s.endswith('.c'))
+        cache_file = CPPCHECK_TEST_CACHE
+    else:
+        files.extend(s for s in COLRC_FILES if s.endswith('.c'))
+        files.extend(s for s in TOOL_FILES if s.endswith('.c'))
+
+    is_old = (not file_newer(cache_file, files))
+    debug(f'Cache is {"old" if is_old else "good"}: {cache_file}')
+    return is_old
 
 
 def check_file(filepath, names):
@@ -364,6 +461,35 @@ def check_files(filepaths, names):
     return counts
 
 
+def file_newer(filepath, others):
+    """ Returns True if `filepath` is a newer file than all the other files
+        in `others`.
+        On error, a debug message is printed and the "bad" file is skipped.
+        If `filepath` itself errors, `False` is returned.
+    """
+    if not os.path.exists(filepath):
+        return False
+
+    if isinstance(others, str):
+        others = [others]
+    try:
+        fstat = os.stat(filepath)
+    except EnvironmentError as ex:
+        debug(f'Stat failed for main file: {filepath}\n{ex}')
+        return False
+
+    for other in others:
+        try:
+            otherstat = os.stat(other)
+        except EnvironmentError as ex:
+            debug(f'Stat failed for check file: {other}\n{ex}')
+            continue
+        if otherstat.st_mtime > fstat.st_mtime:
+            debug(f'Other file is newer: {other}')
+            return False
+    return True
+
+
 def get_cfuncs_names(pat=None, use_tests=False, untested=False):
     exe = get_command('cfuncs')
     if not exe:
@@ -404,6 +530,32 @@ def get_command(cmdname):
     return None
 
 
+def get_cppcheck_cached(pat=None, use_tests=False):
+    if cache_old(use_tests=use_tests):
+        # Gonna have to call cppcheck for this.
+        return get_cppcheck_names(pat=pat, use_tests=use_tests)
+    # Load names from disk.
+    cache_file = CPPCHECK_TEST_CACHE if use_tests else CPPCHECK_CACHE
+    try:
+        with open(cache_file, 'r') as f:
+            data = json.load(f)
+    except EnvironmentError as ex:
+        debug_err(f'Unable to read cache file: {cache_file}\n{ex}')
+        return get_cppcheck_names(pat=pat, use_tests=use_tests)
+    except ValueError as ex:
+        debug_err(f'Unable to deserialize cache: {cache_file}\n{ex}')
+        return get_cppcheck_names(pat=pat, use_tests=use_tests)
+
+    names = []
+    for nameinf in data:
+        name = nameinf['name']
+        if pat and (pat.search(name) is None):
+            continue
+        names.append(Name.from_json_obj(nameinf))
+
+    return names
+
+
 def get_cppcheck_names(pat=None, use_tests=False):
     cmd = ['cppcheck']
     cmd.extend(CPPCHECK_ARGS)
@@ -426,7 +578,6 @@ def get_cppcheck_names(pat=None, use_tests=False):
     )
     with prog:
         for line in proc.iter_stderr():
-            debug(f'cppcheck: {line.decode()}')
             if not line.endswith(b'is never used.'):
                 continue
             _, _, name = line.partition(b'\'')
@@ -438,6 +589,8 @@ def get_cppcheck_names(pat=None, use_tests=False):
             if total % 10 == 0:
                 prog.text = f'Running cppcheck (names: {total})'
             names.append(cls(name))
+    # Cache the results for later.
+    cache_cppcheck_names(names)
     return names
 
 
@@ -516,6 +669,17 @@ def json_write(info, fd=sys.stdout):
 
     print(infostr, file=fd)
     return 1 if info else 0
+
+
+def name_sort_key(sort_by='name'):
+    sort_by = sort_by.strip().lower()
+    keyinfo = SORT_KEYS.get(sort_by, None)
+    if keyinfo is None:
+        accepted = ACCEPTED_SORT_KEYS
+        msg = f'Expecting one of ({accepted}), got: {sort_by}'
+        raise InvalidArg(msg)
+    debug(f'Sorting by: {keyinfo["desc"]}')
+    return keyinfo['func']
 
 
 def parse_test_desc(line):
@@ -608,9 +772,9 @@ def print_footer(argd, info):
     print(f'\nFound {CNum(namelen)} possibly {method} {plural}.')
 
 
-def print_full(info):
+def print_full(info, sort_key=str):
     colwidth = 30
-    for name in sorted(info):
+    for name in sort_names(info, key=sort_key):
         total = name.info['total']
         print(f'{C(name):<{colwidth}}  {CTotal(total)} ')
         for filepath in sorted(name.info['files']):
@@ -632,13 +796,13 @@ def print_legend():
     return 0
 
 
-def print_names(names):
-    for name in sorted(names):
+def print_names(names, sort_key=str):
+    for name in sort_names(names, key=sort_key):
         print(f'{C(name)}')
     return 0 if names else 1
 
 
-def print_simple(info):
+def print_simple(info, sort_key=str):
     def fmt_lbl(lbl, val):
         val_args = {
             'total': {'fore': 'yellow', 'style': 'bright'},
@@ -656,15 +820,17 @@ def print_simple(info):
         }.get(lbl, {'fore': 'blue', 'style': 'bright'})
         return C(': ').join(C(lbl, 'cyan'), C(val, **val_args)).ljust(11)
 
-    for name in sorted(info):
+    name_len = len(max(info, key=len))
+    for name in sort_names(info, key=sort_key):
         namefmt = name.fmt()
         print(C(' ').join(
-            namefmt.ljust(30),
+            namefmt.ljust(name_len),
             fmt_lbl('total', name.info['total']),
             fmt_lbl('colr', name.info['colr_cnt']),
             fmt_lbl('tool', name.info['tool_cnt']),
             fmt_lbl('test', name.info['test_cnt']),
             fmt_lbl('example', name.info['example_cnt']),
+            C(' ').join('-', name.fmt_class()(name.label())),
         ))
 
     return 1 if info else 0
@@ -676,6 +842,14 @@ def search(patterns):
     cmd = ['ag', '--cc', pattern, COLRC_DIR]
     debug(f'Running: {" ".join(cmd)}')
     return subprocess.check_call(cmd)
+
+
+def sort_names(names, key=str):
+    # Always sort by name.
+    lst = sorted(names, key=str)
+    if key.__name__ == 'str':
+        return lst
+    return sorted(lst, key=key)
 
 
 def strip_c_line(line):
@@ -713,15 +887,22 @@ class DebugFilterOp(object):
 
     def __exit__(self, exc, typ, tb):
         filtered = self.length - len(self.obj)
-        debug(f'Filtered {self.type} ({filtered}/{self.length})', level=1)
+        debug(f' Filtered {self.type} ({filtered}/{self.length})', level=1)
         return False
 
 
+@total_ordering
 class Files(UserDict):
     """ A collection of file names with Lines and counts for each file.
         Each Name has one or more file references. This is a collection of
         those references.
     """
+    def __eq__(self, other):
+        return self.data == other.data
+
+    def __lt__(self, other):
+        return list(self.data) < list(other.data)
+
     def as_json_obj(self):
         d = {}
         for filename, fileinfo in self.items():
@@ -827,19 +1008,70 @@ class Name(UserString):
     def __colr__(self):
         return C(self.data)
 
-    def fmt(self):
+    def as_json(self, sort_keys=True, indent=4):
+        """ Return this Name instance as a JSON string. """
+        return json.dumps(
+            self.as_json_obj(),
+            sort_keys=sort_keys,
+            indent=indent,
+        )
+
+    def as_json_obj(self):
+        """ Return a JSON-serializable dict for this Name instance. """
+        inf = {k: v for k, v in self.info.items()}
+        inf['files'] = self.info['files'].as_json_obj()
+        return {
+            'name': self.data,
+            'info': inf,
+            'false_positive': self.false_positive,
+            'class': type(self).__name__,
+        }
+
+    def fmt_class(self):
         if not self.fmt_classes:
             raise NotImplementedError('No fmt_classes implemented.')
         if self.false_positive:
-            return self.fmt_classes['false-positive'](self)
+            return self.fmt_classes['false-positive']
         elif self.is_test_dep():
-            return self.fmt_classes['test-dependency'](self)
+            return self.fmt_classes['test-dependency']
         elif self.is_untested():
-            return self.fmt_classes['untested'](self)
+            return self.fmt_classes['untested']
         elif self.is_unused():
-            return self.fmt_classes['unused'](self)
+            return self.fmt_classes['unused']
+        return C
 
-        return C(self)
+    def fmt(self):
+        return self.fmt_class()(self)
+
+    @classmethod
+    def from_json_obj(cls, d):
+        """ Create an initialized Name instance from a dict, usually created
+            by `self.as_json_obj()`.
+        """
+        clses = (FunctionName, TestFunctionName, MacroName, TestMacroName)
+        clsmap = {
+            c.__name__: c
+            for c in clses
+        }
+        inf = {k: v for k, v in d['info'].items()}
+        try:
+            files = Files.from_json_obj(inf['files'])
+            inf['files'] = files
+        except KeyError as ex:
+            raise ValueError(f'Missing \'info\' or \'files\' key!') from ex
+        try:
+            newcls = clsmap[d['class']]
+        except KeyError as ex:
+            raise ValueError('\n'.join((
+                f'Missing class for: {d["class"]!r}',
+                f'Dict: {d!r}',
+                f'Classes: {clsmap!r}',
+            ))) from ex
+
+        o = newcls(d['name'])
+        o.info = inf
+        o.false_positive = d['false_positive']
+        return o
 
     def is_example(self):
         return self.info['example_cnt'] > 0
@@ -868,6 +1100,17 @@ class Name(UserString):
     def is_used(self):
         return not self.is_unused()
 
+    def label(self):
+        if self.false_positive:
+            return 'false-positive'
+        elif self.is_test_dep():
+            return 'test dep.'
+        elif self.is_untested():
+            return 'untested'
+        elif self.is_unused():
+            return 'unused'
+        return 'normal'
+
     def set_counts(self):
         for filename, fileinfo in self.info['files'].items():
             filecount = fileinfo['count']
@@ -892,6 +1135,10 @@ class FunctionName(Name):
     def __colr__(self):
         return CName(self.data)
 
+    def label(self):
+        lbl = super().label()
+        return ' '.join((lbl, 'func.'))
+
 
 class TestFunctionName(FunctionName):
     def is_test(self):
@@ -902,6 +1149,10 @@ class TestFunctionName(FunctionName):
 
     def is_unused(self):
         return self.info['test_cnt'] < 3
+
+    def label(self):
+        lbl = super().label()
+        return ' '.join((lbl, 'test func.'))
 
 
 class MacroName(Name):
@@ -918,6 +1169,10 @@ class MacroName(Name):
     def is_macro(self):
         return True
 
+    def label(self):
+        lbl = super().label()
+        return ' '.join((lbl, 'macro'))
+
 
 class TestMacroName(MacroName):
     def is_macro(self):
@@ -931,6 +1186,10 @@ class TestMacroName(MacroName):
 
     def is_unused(self):
         return self.info['test_cnt'] < 2
+
+    def label(self):
+        lbl = super().label()
+        return ' '.join((lbl, 'test macro'))
 
 
 class TestDescribe(UserList):
@@ -1376,11 +1635,11 @@ class UnusedInfo(UserList):
         TestMacroName
     )
 
-    def as_json(self):
+    def as_json(self, sort_keys=True, indent=4):
         return json.dumps(
             self.as_json_obj(),
-            sort_keys=True,
-            indent=4
+            sort_keys=sort_keys,
+            indent=indent,
         )
 
     def as_json_obj(self):
@@ -1440,16 +1699,14 @@ class UnusedInfo(UserList):
         return self
 
     def filter_used_macros(self):
-        length = len(self)
-        debug(f'Filtering used macros ({length})...')
-        unused = []
-        for name in self:
-            if not isinstance(name, MacroName):
-                unused.append(name)
-            elif name.is_unused():
-                unused.append(name)
-        debug(f'Filtered used macros: {length - len(unused)}/{length}')
-        self.data = unused
+        with DebugFilterOp('used macros', self):
+            unused = []
+            for name in self:
+                if not isinstance(name, MacroName):
+                    unused.append(name)
+                elif name.is_unused():
+                    unused.append(name)
+            self.data = unused
         return self
 
     @classmethod
