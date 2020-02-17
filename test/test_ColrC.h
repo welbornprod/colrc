@@ -40,7 +40,7 @@
 */
 #define array_length(array) (sizeof(array) / sizeof(array[0]))
 
-#define assert_ColorArgs_list_contains(lst, carg) \
+#define assert_ColorArgs_array_contains(lst, carg) \
     do { \
         bool _a_ca_l_c_found = false; \
         for (size_t _a_ca_l_c_i = 0; lst[_a_ca_l_c_i]; _a_ca_l_c_i++) { \
@@ -877,7 +877,7 @@
 
 
 
-#define assert_str_list_contains(lst, s) \
+#define assert_str_array_contains(lst, s) \
     do { \
         if (!colr_str_array_contains(lst, s)) { \
             char* _a_s_l_c_repr = colr_repr(s); \
@@ -892,7 +892,7 @@
         }\
     } while (0)
 
-#define assert_str_list_not_contains(lst, s) \
+#define assert_str_array_not_contains(lst, s) \
     do { \
         if (colr_str_array_contains(lst, s)) { \
             char* _a_s_l_c_repr = colr_repr(s); \
@@ -908,10 +908,10 @@
     } while (0)
 
 // TODO: These should be covered already with assert_size_eq_repr().
-#define assert_str_list_size_eq_repr(a, b, lst) \
-    assert_str_list_size_op_repr(a, ==, b, lst, "List sizes are not equal")
+#define assert_str_array_size_eq_repr(a, b, lst) \
+    assert_str_array_size_op_repr(a, ==, b, lst, "List sizes are not equal")
 
-#define assert_str_list_size_op_repr(a, op, b, lst, msg) \
+#define assert_str_array_size_op_repr(a, op, b, lst, msg) \
     do { \
         if (!(a op b)) { \
             char* _a_s_op_r_repr = colr_str_array_repr(lst); \
@@ -1000,7 +1000,7 @@
     \pi lstname The name of the variable to use (`ColorArg**`).
     \pi ...         Strings to use.
 */
-#define ColorArgs_list_fill(lstname, ...) \
+#define ColorArgs_array_fill(lstname, ...) \
     do { \
         ColorArg* _ca_l_f_stack[] = { __VA_ARGS__, NULL }; \
         size_t _ca_l_f_len = array_length(_ca_l_f_stack); \
@@ -1083,7 +1083,7 @@
     \pi lstname The name of the variable to use (`char**`).
     \pi ...     Strings to use.
 */
-#define str_list_fill(lstname, ...) \
+#define str_array_fill(lstname, ...) \
     do { \
         char* _s_l_f_stack[] = { __VA_ARGS__, NULL }; \
         size_t _s_l_f_len = array_length(_s_l_f_stack); \

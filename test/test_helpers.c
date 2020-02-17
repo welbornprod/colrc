@@ -483,7 +483,7 @@ subdesc(colr_mb_len) {
 subdesc(colr_str_array_contains) {
     it("detects str list elements") {
         char** lst = NULL;
-        str_list_fill(
+        str_array_fill(
             lst,
             "test",
             "this",
@@ -496,14 +496,14 @@ subdesc(colr_str_array_contains) {
         assert(colr_str_array_contains(lst, "out"));
         colr_str_array_free(lst);
 
-        str_list_fill(
+        str_array_fill(
             lst,
             ""
         );
         assert(colr_str_array_contains(lst, ""));
         colr_str_array_free(lst);
 
-        str_list_fill(
+        str_array_fill(
             lst,
             "test",
             "",
@@ -519,7 +519,7 @@ subdesc(colr_str_array_free) {
     it("frees string lists") {
         // The real test is when is sent through valgrind.
         char** lst = NULL;
-        str_list_fill(
+        str_array_fill(
             lst,
             "test",
             "this",
@@ -843,23 +843,23 @@ subdesc(colr_str_get_codes) {
         assert_null(colr_str_get_codes("\x1b[38;2;255;255;2550m", true));
         // Need at least one good code to trigger the overflow handler.
         char* waytoolong = "\x1b[0m\x1b[38;2;255;255;2550101010101010101010101010101m";
-        char** code_list = colr_str_get_codes(waytoolong, false);
-        assert_not_null(code_list);
-        assert_str_list_size_eq_repr(
-            colr_str_array_len(code_list),
+        char** code_array = colr_str_get_codes(waytoolong, false);
+        assert_not_null(code_array);
+        assert_str_array_size_eq_repr(
+            colr_str_array_len(code_array),
             (size_t)1,
-            code_list
+            code_array
         );
-        colr_str_array_free(code_list);
+        colr_str_array_free(code_array);
 
-        char** code_list_unique = colr_str_get_codes(waytoolong, true);
-        assert_not_null(code_list_unique);
-        assert_str_list_size_eq_repr(
-            colr_str_array_len(code_list_unique),
+        char** code_array_unique = colr_str_get_codes(waytoolong, true);
+        assert_not_null(code_array_unique);
+        assert_str_array_size_eq_repr(
+            colr_str_array_len(code_array_unique),
             (size_t)1,
-            code_list_unique
+            code_array_unique
         );
-        colr_str_array_free(code_list_unique);
+        colr_str_array_free(code_array_unique);
 
         char* s = colr_cat(
             fore(RED),
@@ -871,36 +871,36 @@ subdesc(colr_str_get_codes) {
             style(BRIGHT),
             fore(ext(255))
         );
-        code_list = colr_str_get_codes(s, false);
-        code_list_unique = colr_str_get_codes(s, true);;
+        code_array = colr_str_get_codes(s, false);
+        code_array_unique = colr_str_get_codes(s, true);;
         free(s);
-        assert_not_null(code_list);
+        assert_not_null(code_array);
         // A reset code is appended when calling colr_cat() with ColorArgs.
         // So it's +1 for whatever items you see.
-        assert_str_list_size_eq_repr(
-            colr_str_array_len(code_list),
+        assert_str_array_size_eq_repr(
+            colr_str_array_len(code_array),
             (size_t)9,
-            code_list
+            code_array
         );
-        assert_str_list_contains(code_list, "\x1b[31m");
-        assert_str_list_contains(code_list, "\x1b[47m");
-        assert_str_list_contains(code_list, "\x1b[1m");
-        assert_str_list_contains(code_list, "\x1b[38;5;255m");
-        colr_str_array_free(code_list);
+        assert_str_array_contains(code_array, "\x1b[31m");
+        assert_str_array_contains(code_array, "\x1b[47m");
+        assert_str_array_contains(code_array, "\x1b[1m");
+        assert_str_array_contains(code_array, "\x1b[38;5;255m");
+        colr_str_array_free(code_array);
 
-        assert_not_null(code_list_unique);
+        assert_not_null(code_array_unique);
         // A reset code is appended when calling colr_cat() with ColorArgs.
         // So it's +1 for whatever *unique* items you see.
-       assert_str_list_size_eq_repr(
-            colr_str_array_len(code_list_unique),
+       assert_str_array_size_eq_repr(
+            colr_str_array_len(code_array_unique),
             (size_t)5,
-            code_list_unique
+            code_array_unique
         );
-        assert_str_list_contains(code_list_unique, "\x1b[31m");
-        assert_str_list_contains(code_list_unique, "\x1b[47m");
-        assert_str_list_contains(code_list_unique, "\x1b[1m");
-        assert_str_list_contains(code_list_unique, "\x1b[38;5;255m");
-        colr_str_array_free(code_list_unique);
+        assert_str_array_contains(code_array_unique, "\x1b[31m");
+        assert_str_array_contains(code_array_unique, "\x1b[47m");
+        assert_str_array_contains(code_array_unique, "\x1b[1m");
+        assert_str_array_contains(code_array_unique, "\x1b[38;5;255m");
+        colr_str_array_free(code_array_unique);
     }
 }
 // colr_str_has_codes

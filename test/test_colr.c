@@ -435,7 +435,7 @@ subdesc(colr_join_array) {
     it("handles empty objects") {
         char* j = "joiner";
         ColorArg** cargs = NULL;
-        ColorArgs_list_fill(
+        ColorArgs_array_fill(
             cargs,
             ColorArg_to_ptr(ColorArg_empty()),
             ColorArg_to_ptr(ColorArg_empty()),
@@ -734,7 +734,7 @@ subdesc(colr_join_array) {
 subdesc(colr_repr) {
     it("sends arguments to the correct _repr function") {
         ColorArg** colrargs = NULL;
-        ColorArgs_list_fill(colrargs, fore(RED), back(BLUE));
+        ColorArgs_array_fill(colrargs, fore(RED), back(BLUE));
 
         ColorArg* cargp = fore(YELLOW);
         ColorResult* cresp = Colr_cat("This is a ", Colr("test", fore(BLUE)), ".");

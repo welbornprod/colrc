@@ -456,7 +456,7 @@ subdesc(ColorArgs_array_free) {
     it("frees ColorArg lists") {
         // The real test is when is sent through valgrind.
         ColorArg** lst = NULL;
-        ColorArgs_list_fill(
+        ColorArgs_array_fill(
             lst,
             fore(RED),
             back(WHITE),
@@ -474,16 +474,19 @@ subdesc(ColorArgs_array_repr) {
         char* emptyrepr = ColorArgs_array_repr(emptylist);
         assert_str_eq(emptyrepr, "NULL", "failed on empty list");
         free(emptyrepr);
-
+    }
+    it("creates a ColorArgs array repr") {
         ColorArg** lst = NULL;
-        ColorArgs_list_fill(
+        ColorArgs_array_fill(
             lst,
             fore(RED),
             back(WHITE)
         );
         char* repr = ColorArgs_array_repr(lst);
         assert_not_null(repr);
-        assert_not_null(strstr(repr, "RED"));
+        assert_str_contains(repr, "RED");
+        assert_str_contains(repr, "WHITE");
+        assert_str_contains(repr, "NULL");
         free(repr);
         ColorArgs_array_free(lst);
     }
@@ -506,7 +509,7 @@ subdesc(ColorArgs_from_str) {
             style_arg(RESET_ALL)
         };
         for_each(expected, i) {
-            assert_ColorArgs_list_contains(cargs, expected[i]);
+            assert_ColorArgs_array_contains(cargs, expected[i]);
         }
         assert_size_eq_repr(ColorArgs_array_len(cargs), 6, cargs);
         ColorArgs_array_free(cargs);
@@ -514,7 +517,7 @@ subdesc(ColorArgs_from_str) {
         // Do unique codes.
         cargs = ColorArgs_from_str(escstr, true);
         for_each(expected, i) {
-            assert_ColorArgs_list_contains(cargs, expected[i]);
+            assert_ColorArgs_array_contains(cargs, expected[i]);
         }
         assert_size_eq_repr(ColorArgs_array_len(cargs), 4, cargs);
         ColorArgs_array_free(cargs);

@@ -5467,19 +5467,41 @@ char* ColorArgs_array_repr(ColorArg** lst) {
     size_t written = 0;
     for (size_t i = 0; i < count; i++) {
         append_len = indent_len + strlen(strings[i]);
-        written = sprintf(repr, "%s%s", indent, strings[i]);
+        written = snprintf(repr, append_len + 1, "%s%s", indent, strings[i]);
         free(strings[i]);
-        // Check return value of sprintf in debug mode.
-        assert((size_t)written == append_len);
+        if (written > append_len) {
+            // String was truncated. Something is wrong with `length` or `calloc`.
+            // LCOV_EXCL_START
+            for (size_t j = i + 1; j < count; j++) free(strings[j]);
+            free(repr);
+            return NULL;
+            // LCOV_EXCL_STOP
+        }
         repr += append_len;
 
-        written = sprintf(repr, "%s", sep);
-        assert((size_t)written == sep_len);
+        written = snprintf(repr, sep_len + 1, "%s", sep);
+        if (written > append_len) {
+            // String was truncated.
+            // LCOV_EXCL_START
+            for (size_t j = i + 1; j < count; j++) free(strings[j]);
+            free(repr);
+            return NULL;
+            // LCOV_EXCL_STOP
+        }
         // Skip past the separator string.
         repr += sep_len;
     }
-    /* cppcheck-suppress unreadVariable */
-    sprintf(repr, "%sNULL\n}", indent);
+
+    char* tail = "NULL\n}";
+    append_len = indent_len + strlen(tail);
+    written = snprintf(repr, append_len + 1, "%s%s", indent, tail);
+    if (written > append_len) {
+        // String was truncated.
+        // LCOV_EXCL_START
+        free(repr);
+        return NULL;
+        // LCOV_EXCL_STOP
+    }
     return repr_start;
 }
 
