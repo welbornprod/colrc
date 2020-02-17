@@ -180,7 +180,7 @@ help targets:
     coveragegui     : Compile the \`debug\` build, and view coverage with \`ggcov\`.\n\
     coveragesummary : View a summary of previously generated coverage reports.\n\
     coverageview    : View previously generated html coverage reports.\n\
-    cppcheck        : Run \`cppcheck\` on the tests.\n\
+    cppcheck        : Run \`cppcheck\` on the tests ($(cppcheck_cmd)).\n\
     cppcheckreport  : Generate a \`cppcheck\` HTML report.\n\
     cppcheckview    : View previously generated cppcheck HTML report.\n\
     debug           : Build the executable with debug symbols.\n\
