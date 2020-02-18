@@ -42,6 +42,8 @@ cppcheck_html=./cppcheck_report/index.html
 is_build_cmd=bash tools/is_build.sh
 make_help_fmt_cmd=python3 tools/make_help_fmter.py
 undoxy_md_cmd=python3 tools/undoxy_markdown.py
+readme_title="ColrC"
+readme_header="For full documentation see [welbornprod.com/colrc](https://welbornprod.com/colrc/index.html)"
 version_cmd=bash tools/get_version.sh
 dist_dir=./dist
 dist_files=colr.h colr.c
@@ -163,8 +165,8 @@ docs: $(docs_github_readme)
 $(docs_github_readme): $(docs_index_md)
 	@printf "\nGenerating the GitHub README: $(docs_github_readme)\n"
 	@$(undoxy_md_cmd) \
-		-t "ColrC" \
-		-H "For full documentation see [docs/index.html](docs/index.html)" \
+		-t $(readme_title) \
+		-H $(readme_header) \
 		$(docs_index_md) \
 		$(docs_github_readme)
 
@@ -323,6 +325,14 @@ docspdf: $(docs_pdf)
 
 .PHONY: docsreadme
 docsreadme: $(docs_github_readme)
+
+.PHONY: docsreadmepreview
+docsreadmepreview: $(docs_index_md)
+	@printf "\nPreviewing the GitHub README: $(docs_github_readme)\n"
+	@$(undoxy_md_cmd) \
+		-t $(readme_title) \
+		-H $(readme_header) \
+		$(docs_index_md)
 
 .PHONY: docsrebuild
 docsrebuild: cleandocs

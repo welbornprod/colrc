@@ -93,6 +93,7 @@ debug(f'Using ColrC dir: {COLR_DIR}')
 COLRC_FILE = os.path.join(COLR_DIR, 'colr.c')
 COLRH_FILE = os.path.join(COLR_DIR, 'colr.h')
 EXAMPLES_SRC = (COLRC_FILE, COLRH_FILE)
+README_FILE = os.path.join(COLR_DIR, 'doc_deps/index.md')
 
 usage_incl_lines = []
 for incltype in sorted(config['includes']):
@@ -456,6 +457,53 @@ def edit_snippet(filepath=None, text=None):
     return Snippet(''.join(codelines), name=name)
 
 
+def find_md_examples(*filepaths):
+    """ Look for C code blocks with a main() in all files and return a
+        dict of {filepath: [snippet...]}
+    """
+    # Future-proofing for-loop.
+    examples = {
+        s: find_md_file_examples(s)
+        for s in filepaths
+    }
+    return {k: v for k, v in examples.items() if v}
+
+
+def find_md_file_examples(filepath):
+    """ Look for C code blocks with a main() in them and return a list of
+        code snippets.
+    """
+    snippets = []
+    current_snippet = None
+    with open(filepath, 'r') as f:
+        for line in f:
+            linestrip = line.lstrip()
+            linetrim = linestrip.lower().replace(' ', '')
+            if current_snippet and linestrip.startswith('```'):
+                snippet = Snippet(
+                    ''.join(current_snippet),
+                    name=current_snippet[0]
+                )
+                if snippet.has_main():
+                    snippets.append(snippet)
+                current_snippet = None
+            elif linetrim.startswith('```c'):
+                current_snippet = [f'// README {len(snippets) + 1}\n']
+                tab_cnt = space_cnt = 0
+            elif current_snippet is not None:
+                if len(current_snippet) == 1:
+                    # First line. Get indent.
+                    tab_cnt, space_cnt = get_whitespace_cnt(line)
+                if line.startswith('\t'):
+                    trimmed = line[tab_cnt:]
+                elif line.startswith('    '):
+                    trimmed = line[space_cnt:]
+                else:
+                    trimmed = line
+                current_snippet.append(trimmed)
+    return snippets
+
+
 def find_src_examples():
     """ Look for \\examplecode tags in the source comments,
         and return a dict of {filename: [snippet, ...]}
@@ -495,14 +543,7 @@ def find_src_file_examples(filepath):
             elif current_snippet is not None:
                 if len(current_snippet) == 1:
                     # First line. Get indent.
-                    testline = line
-                    while testline.startswith('\t'):
-                        tab_cnt += 1
-                        testline = testline[1:]
-                    testline = line
-                    while testline.startswith(' '):
-                        space_cnt += 1
-                        testline = testline[1:]
+                    tab_cnt, space_cnt = get_whitespace_cnt(line)
                 if line.startswith('\t'):
                     trimmed = line[tab_cnt:]
                 elif line.startswith('    '):
@@ -537,7 +578,15 @@ def format_leader(code):
 
 def get_example_snippets(pat=None):
     snippetinfo = {'all': {'total': 0, 'skipped': 0}}
-    for filepath, snippets in find_src_examples().items():
+    all_snippets = {}
+    src_snippets = find_src_examples()
+    debug(f'Source files with examples: {len(src_snippets)}')
+    all_snippets.update(src_snippets)
+    readme_snippets = find_md_examples(README_FILE)
+    debug(f'README files with examples: {len(readme_snippets)}')
+    all_snippets.update(readme_snippets)
+
+    for filepath, snippets in all_snippets.items():
         filetotal = 0
         fileskipped = 0
         usesnippets = []
@@ -558,6 +607,7 @@ def get_example_snippets(pat=None):
         }
         snippetinfo['all']['total'] += filetotal
         snippetinfo['all']['skipped'] += fileskipped
+
     return snippetinfo
 
 
@@ -640,6 +690,21 @@ def get_obj_files():
     ]
 
 
+def get_whitespace_cnt(line):
+    """ Return a count of leading tabs/spaces as (tab_cnt, space_cnt). """
+    tab_cnt = 0
+    space_cnt = 0
+    testline = line
+    while testline.startswith('\t'):
+        tab_cnt += 1
+        testline = testline[1:]
+    testline = line
+    while testline.startswith(' '):
+        space_cnt += 1
+        testline = testline[1:]
+    return (tab_cnt, space_cnt)
+
+
 def highlight_snippet(s):
     """ Highlight a C code snippet using pygments. """
     return highlight(s, pyg_lexer, pyg_fmter).strip()
@@ -720,6 +785,7 @@ def last_snippet_write(code):
 def list_examples(name_pat=None, names_only=False):
     """ List all example snippets found in the source. """
     snippetinfo = find_src_examples()
+    snippetinfo.update(find_md_examples(README_FILE))
     if not snippetinfo:
         print_err('No example snippets found.')
         return 1
@@ -1602,6 +1668,14 @@ class Snippet(object):
         for line in lines:
             if defpat.search(line) is not None:
                 debug(f'Found define: {line}')
+                return True
+        return False
+
+    def has_main(self):
+        """ Return True if this Snippet appears to have a main() signature.
+        """
+        for line in self.code.splitlines():
+            if self.is_main_sig(line):
                 return True
         return False
 

@@ -46,7 +46,7 @@ int main(void) {
             " ",
             Colr_cat(
                 Colr("Good", fore(rgb(0, 0, 255)), back(RESET)),
-                Colr("bye", fore(CYAN))
+                Colr("bye", fore(CYAN), style(BRIGHT))
             ),
             "and",
             Colr("good luck", style(UNDERLINE))
