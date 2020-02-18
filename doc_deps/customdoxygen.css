@@ -1643,6 +1643,7 @@ div.examplecode-header {
 }
 .examplecode .fragment, .included-examplecode .fragment, .contents .textblock .fragment {
     background: linear-gradient(45deg, #272822, #272822de);
+    color: #FBFCFD;
 }
 .contents div.fragment {
     /* Source viewer */

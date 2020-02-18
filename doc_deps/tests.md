@@ -68,3 +68,8 @@ including the example code and source-file examples (the 'everything test'):
 make testeverything
 ```
 
+## Test Tool
+
+The `./test/run_tests.sh` script can run the `snow`-based tests, run `memcheck`
+on the examples, and run the `colrc` tool through `memcheck`. The "everything test"
+is implemented with this tool. Run `./test/run_test.sh -h` to see options for it.
