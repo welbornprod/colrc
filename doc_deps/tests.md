@@ -1,5 +1,4 @@
 # Tests {#tests}
-
 # ColrC Testing
 
 ColrC uses [snow](https://github.com/mortie/snow) for testing. There are
