@@ -437,7 +437,10 @@ extern int colr_printf_esc_mod;
                 \colrmightfree
             \endparblock
 
-    \sa back_arg back_str colr Colr
+    \sa back_arg
+    \sa back_str
+    \sa colr
+    \sa Colr
 
     \example back_example.c
 */
@@ -460,7 +463,8 @@ extern int colr_printf_esc_mod;
                 \mustfree
             \endparblock
 
-    \sa back back_str
+    \sa back
+    \sa back_str
 
 */
 #define back_arg(x) \
@@ -477,10 +481,13 @@ extern int colr_printf_esc_mod;
     Retrieve just the escape code string for a back color.
 
     \pi x A BasicValue, ExtendedValue, or RGB struct.
-    \return An allocated string.\n
-            \mustfree
+    \return \parblock
+                An allocated string.
+                \mustfree
+            \endparblock
 
-    \sa back back_arg
+    \sa back
+    \sa back_arg
 */
 #define back_str(x) ColorArg_to_esc(back_arg(x))
 
@@ -496,13 +503,17 @@ extern int colr_printf_esc_mod;
     \gnuonly
     \warn_alloca_statementexpr
 
+    \details
+    You can also create stack-allocated escape code strings using format_bg(),
+    format_bgx(), format_bg_RGB(), and format_bg_RGB_term().
+
     \pi x       A BasicValue, ExtendedValue, or RGB value.
     \return     A stack-allocated escape code string.
 
-    \sa basic_str_static
-    \sa ext_str_static ext_rgb_str_static ext_RGB_str_static
-    \sa RGB_str_static
+    \sa back_str_static
     \sa style_str_static
+    \sa format_fg
+    \sa format_bg
 
     \examplecodefor{back_str_static,.c}
     // This results in a call to sprintf(), to format an extended escape code.
@@ -542,7 +553,10 @@ extern int colr_printf_esc_mod;
     \pi x   Value to case to `BasicValue`.
     \return A BasicValue.
 
-    \sa fore back colr Colr
+    \sa fore
+    \sa back
+    \sa colr
+    \sa Colr
 */
 #define basic(x) ((BasicValue)(x))
 
@@ -695,8 +709,10 @@ extern int colr_printf_esc_mod;
              matches `val`, otherwise `false`.
 
     \sa ColorValue
-    \sa ColorValue_has_BasicValue ColorValue_has_ExtendedValue
-    \sa ColorValue_has_StyleValue ColorValue_has_RGB
+    \sa ColorValue_has_BasicValue
+    \sa ColorValue_has_ExtendedValue
+    \sa ColorValue_has_StyleValue
+    \sa ColorValue_has_RGB
 */
 #define ColorValue_has(cval, val) \
     _Generic( \
@@ -867,7 +883,10 @@ extern int colr_printf_esc_mod;
                    \colrmightfree
                 \endparblock
 
-    \sa ColorResult colr_join colr Colr
+    \sa ColorResult
+    \sa colr_join
+    \sa colr
+    \sa Colr
 
     \example ColorResult_example.c
 */
@@ -1268,7 +1287,8 @@ extern int colr_printf_esc_mod;
                    \mustfree
                \endparblock
 
-    \sa colr Colr
+    \sa colr
+    \sa Colr
 
     \example colr_join_example.c
 */
@@ -2042,7 +2062,14 @@ extern int colr_printf_esc_mod;
     \pi x   Value to cast to `unsigned char`/`ExtendedValue`.
     \return An ExtendedValue.
 
-    \sa fore back colr Colr ext_hex ext_hex_or ext_rgb ext_RGB
+    \sa fore
+    \sa back
+    \sa colr
+    \sa Colr
+    \sa ext_hex
+    \sa ext_hex_or
+    \sa ext_rgb
+    \sa ext_RGB
 */
 #define ext(x) ((ExtendedValue)x)
 
@@ -2052,7 +2079,10 @@ extern int colr_printf_esc_mod;
     \pi s   A hex string to convert.
     \return The closest matching ExtendedValue, or 0 for bad hex strings.
 
-    \sa ext ext_hex_or hex hex_or
+    \sa ext
+    \sa ext_hex_or
+    \sa hex
+    \sa hex_or
 */
 #define ext_hex(s) ext_hex_or(s, ext(0))
 
@@ -2067,7 +2097,10 @@ extern int colr_printf_esc_mod;
     \return           The closest matching ExtendedValue, or `default_value` for
                       bad hex strings.
 
-    \sa ext ext_hex hex hex_or
+    \sa ext
+    \sa ext_hex
+    \sa hex
+    \sa hex_or
 */
 #define ext_hex_or(s, default_value) ExtendedValue_from_hex_default(s, default_value)
 
@@ -2083,7 +2116,8 @@ extern int colr_printf_esc_mod;
     \pi b   The blue value.
     \return An ExtendedValue that closely matches the RGB value.
 
-    \sa ExtendedValue_from_RGB RGB_to_term_RGB
+    \sa ExtendedValue_from_RGB
+    \sa RGB_to_term_RGB
 */
 #define ext_rgb(r, g, b) ExtendedValue_from_RGB((RGB){.red=r, .green=g, .blue=b})
 
@@ -2096,7 +2130,8 @@ extern int colr_printf_esc_mod;
     \pi rgbval The RGB value to use.
     \return    An ExtendedValue that closely matches the RGB value.
 
-    \sa ExtendedValue_from_RGB RGB_to_term_RGB
+    \sa ExtendedValue_from_RGB
+    \sa RGB_to_term_RGB
 */
 #define ext_RGB(rgbval) ExtendedValue_from_RGB(rgbval)
 
@@ -2127,7 +2162,10 @@ extern int colr_printf_esc_mod;
                 \colrmightfree
             \endparblock
 
-    \sa fore_arg fore_str colr Colr
+    \sa fore_arg
+    \sa fore_str
+    \sa colr
+    \sa Colr
 
     \example fore_example.c
 */
@@ -2147,7 +2185,8 @@ extern int colr_printf_esc_mod;
             for the appropriate color type/value.
             For invalid values the `.value.type` may be set to TYPE_INVALID.
 
-    \sa fore fore_str
+    \sa fore
+    \sa fore_str
 */
 #define fore_arg(x) \
     _Generic( \
@@ -2160,15 +2199,16 @@ extern int colr_printf_esc_mod;
     )(FORE, x)
 
 /*! \def fore_str
-    Retrieve just the escape code string for a fore color.
+    Return just the escape code string for a fore color.
 
     \pi     x A BasicValue, ExtendedValue, or RGB struct.
     \return \parblock
-                An allocated ColorArg.
+                An allocated string.
                 \mustfree
             \endparblock
 
-    \sa fore fore_arg
+    \sa fore
+    \sa fore_arg
 */
 #define fore_str(x) ColorArg_to_esc(fore_arg(x))
 
@@ -2184,13 +2224,17 @@ extern int colr_printf_esc_mod;
     \gnuonly
     \warn_alloca_statementexpr
 
+    \details
+    You can also create stack-allocated escape code strings using format_fg(),
+    format_fgx(), format_fg_RGB(), and format_fg_RGB_term().
+
     \pi x       A BasicValue, ExtendedValue, or RGB value.
     \return     A stack-allocated escape code string.
 
-    \sa basic_str_static
-    \sa ext_str_static ext_rgb_str_static ext_RGB_str_static
-    \sa RGB_str_static
+    \sa back_str_static
     \sa style_str_static
+    \sa format_fg
+    \sa format_bg
 
     \examplecodefor{fore_str_static,.c}
     // This results in a call to sprintf(), to format an extended escape code.
@@ -2231,7 +2275,9 @@ extern int colr_printf_esc_mod;
     \pi s   A hex string to convert.
     \return A valid RGB value, or `rgb(0, 0, 0)` for bad hex strings.
 
-    \sa hex_or ext_hex ext_hex_or
+    \sa hex_or
+    \sa ext_hex
+    \sa ext_hex_or
 */
 #define hex(s) hex_or(s, rgb(0, 0, 0))
 
@@ -2242,7 +2288,9 @@ extern int colr_printf_esc_mod;
     \pi default_rgb  Default RGB value to use if the hex string is not valid.
     \return          A valid RGB value, or `default_rgb` for bad hex strings.
 
-    \sa hex ext_hex ext_hex_or
+    \sa hex
+    \sa ext_hex
+    \sa ext_hex_or
 */
 #define hex_or(s, default_rgb) RGB_from_hex_default(s, default_rgb)
 
@@ -2269,7 +2317,7 @@ extern int colr_printf_esc_mod;
     \pi b   `unsigned char` Green value.
     \return An RGB struct.
 
-    \sa fore back colr Colr
+    \sa rgb_safe
 */
 #define rgb(r, g, b) ((RGB){.red=r, .green=g, .blue=b})
 
@@ -2288,7 +2336,10 @@ extern int colr_printf_esc_mod;
                 \colrmightfree
             \endparblock
 
-    \sa style_arg style_str colr Colr
+    \sa style_arg
+    \sa style_str
+    \sa colr
+    \sa Colr
 
     \example style_example.c
 */
@@ -2303,7 +2354,8 @@ extern int colr_printf_esc_mod;
             for the appropriate color type/value.
             For invalid values the `.value.type` may be set to TYPE_INVALID.
 
-    \sa style style_str
+    \sa style
+    \sa style_str
 */
 #define style_arg(x) \
     _Generic( \
@@ -2321,7 +2373,8 @@ extern int colr_printf_esc_mod;
                 \mustfree
             \endparblock
 
-    \sa style style_arg
+    \sa style
+    \sa style_arg
 */
 #define style_str(x) ColorArg_to_esc(style_arg(x))
 
@@ -2339,7 +2392,10 @@ extern int colr_printf_esc_mod;
     \pi x   A StyleValue to use.
     \return A stack-allocated string.
 
-    \sa basic_str_static ext_str_static
+    \sa fore_str_static
+    \sa back_str_static
+    \sa format_fg
+    \sa format_bg
 
     \examplecodefor{style_str_static,.c}
     // This is optimized into a constant static string, even with -g3.
@@ -2787,6 +2843,7 @@ void colr_printf_register(void);
 regmatch_t** colr_re_matches(const char* s, regex_t* repattern);
 bool colr_set_locale(void);
 bool colr_supports_rgb(void);
+bool colr_supports_rgb_static(void);
 
 bool colr_str_array_contains(char** lst, const char* s);
 void colr_str_array_free(char** ps);

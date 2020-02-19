@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
     } else if (opts.translate_code) {
         return run_colr_cmd(translate_code, &opts);
     } else if (opts.is_disabled) {
-        // No need to colorize anything, colors were disabled. We are `cat` now.
+        // No need to colorize anything, colors were disabled. We are `cat` now, except worse.
         return run_colr_cmd(print_plain, &opts);
     }
 
@@ -51,7 +51,6 @@ int main(int argc, char* argv[]) {
     }
 
     ctext->just = opts.just;
-    // dbug_repr("Using", *ctext);
     char* text = ColorText_to_str(*ctext);
     if (opts.free_colr_text) free(ctext->text);
     if (!text) {

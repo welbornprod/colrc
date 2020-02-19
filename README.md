@@ -1,6 +1,6 @@
 # ColrC
 
-For full documentation see [docs/index.html](docs/index.html)
+For full documentation see [welbornprod.com/colrc](https://welbornprod.com/colrc/index.html)
 
 ## Getting Started
 **ColrC** is a C library for terminal colors/escape-codes on linux.
@@ -47,7 +47,7 @@ int main(void) {
             " ",
             Colr_cat(
                 Colr("Good", fore(rgb(0, 0, 255)), back(RESET)),
-                Colr("bye", fore(CYAN))
+                Colr("bye", fore(CYAN), style(BRIGHT))
             ),
             "and",
             Colr("good luck", style(UNDERLINE))
@@ -78,6 +78,7 @@ The colr.h header defines `_GNU_SOURCE` if it's not already defined (see `man fe
 gcc -std=c11 -c myprogram.c colr.c -o myexecutable -lm
 ```
 
+
 ## Files
 
 The only two files that are needed to use ColrC are colr.h and colr.c.
@@ -86,6 +87,17 @@ Name   | Description
 :----- | :---------------------------------------------
 colr.h | The interface to ColrC.
 colr.c | Where ColrC is implemented. This must be compiled/linked with your program.
+
+You can also create a shared library (`libcolr.so`) for your system. Clone the
+repo and run the make target:
+```bash
+make lib
+```
+
+If you link the library (and `libm`), you will only need to include the header (`colr.h`):
+```bash
+gcc -std=c11 -c myprogram.c -o myexecutable -lm -lcolr
+```
 
 ## Example Usage
 
@@ -99,7 +111,7 @@ building/printing of colorized strings (colr_puts() and colr_print()).
 int main(int argc, char** argv) {
     // Print-related macros, using Colr() to build colorized text:
     puts("\nColrC supports ");
-    char* joined = colr_join(
+    colr_puts(Colr_join(
         ", ",
         Colr("basic", fore(WHITE)),
         Colr("extended (256)", fore(ext(155))),
@@ -108,9 +120,7 @@ int main(int argc, char** argv) {
         Colr("extended hex", fore(ext_hex("#ff00bb"))),
         Colr("color names", fore("dodgerblue"), back("aliceblue")),
         Colr("and styles.", style(BRIGHT))
-    );
-    printf("%s\n", joined);
-    free(joined);
+    ));
 
     colr_puts(
         "Strings and ",
@@ -118,10 +128,21 @@ int main(int argc, char** argv) {
         " can be mixed in any order."
     );
 
-    // Create a string, using colr_cat(), instead of colr_puts() or colr_print().
-    char* mystr = colr_cat(Colr("Don't want to print this.", style(UNDERLINE)));
+    // Create a string, using colr(), instead of colr_puts() or colr_print().
+    char* mystr = colr("Don't want to print this.", style(UNDERLINE));
     printf("\nNow I do: %s\n", mystr);
     free(mystr);
+
+    // Concatenate existing strings with ColrC objects.
+    // Remember that the colr macro free ColrC objects, not strings.
+    // So I'm going to use the Colr* macros inside of this call (not colr*).
+    char* catted = colr_cat(
+        "Exhibit: ",
+        Colr("b", fore(BLUE)),
+        "\nThe ColorText/Colr was released."
+    );
+    puts(catted);
+    free(catted);
 
     // Create a ColorText, on the heap, for use with colr_cat(), colr_print(),
     // or colr_puts().
@@ -136,8 +157,15 @@ int main(int argc, char** argv) {
     // colr_cat() already called ColorText_free(ctext).
     free(userstr);
 
+    // Create a joined string (a "[warning]" label).
+    char* warning_label = colr_join(Colr("warning", fore(YELLOW)), "[", "]");
+    // Simulate multiple uses of the string.
+    for (int i = 1; i < 4; i++) printf("%s This is #%d\n", warning_label, i);
+    // Okay, now we're done with the colorized string.
+    free(warning_label);
+
     // Colorize an existing string by replacing a word.
-    char* logtext = "[warning] This is awesome.";
+    char* logtext = "[warning] This is an awesome warning.";
     char* colorized = colr_replace(
         logtext,
         "warning",
@@ -163,6 +191,21 @@ int main(int argc, char** argv) {
     if (!colorized) return EXIT_FAILURE;
     puts(colorized);
     free(colorized);
+
+    // Or maybe you want to replace ALL of the occurrences?
+    char* logtext2 = "[warning] This is an awesome warning.";
+    // There is also a colr_replace_re_all() if you'd rather use a regex pattern.
+    char* colorizedall = colr_replace_all(
+        logtext2,
+        "warning",
+        Colr("WARNING", fore(YELLOW))
+    );
+    // Failed to allocate for new string?
+    if (!colorizedall) return EXIT_FAILURE;
+    puts(colorizedall);
+    // You have to free the resulting string.
+    free(colorizedall);
+
 }
 ```
 
@@ -183,7 +226,7 @@ fore             | [fore_example.c](examples/fore_example.c)
 back             | [back_example.c](examples/back_example.c)
 style            | [style_example.c](examples/style_example.c)
 
-All of these examples can be built with the `examples` target:
+All of the examples can be built with the `examples` target:
 ```bash
 make examples
 ```
@@ -201,7 +244,7 @@ code snippets found in the ColrC source code itself:
 ./tools/snippet.py --examples
 ```
 
-To see the source-based examples in the terminal you can run:
+To see a list of source-based examples in the terminal you can run:
 ```bash
 ./tools/snippet.py --listnames [NAME_PATTERN]
 ```
@@ -219,9 +262,7 @@ ColrC is the `C` version of [Colr](https://github.com/welbornprod/colr)
 The programming styles vary because `C` doesn't allow easy method chaining,
 and instead leans towards nested function calls.
 
-There are other terminal color libraries out there, but I'm not fond of the
-approach that they take (wrapping file descriptors, and manually concatenating).
-At least, in the libraries that I've seen so far.
+This is an attempt to create a flexible and easy version for `C`.
 
 ## Future
 

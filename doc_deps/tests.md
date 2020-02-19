@@ -2,7 +2,7 @@
 # ColrC Testing
 
 ColrC uses [snow](https://github.com/mortie/snow) for testing. There are
-several test targets in the `makefile` that do diferent things. Some of them
+several test targets in the `makefile` that do different things. Some of them
 are for quick sanity-checking, some use compiler protections, and some use
 Valgrind. There is also a test runner (`run_tests.sh`) that provides an easy
 way to run tests through a wrapper program like `valgrind` or `kdbg`/`gdb`.

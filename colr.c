@@ -100,7 +100,8 @@ const size_t style_names_len = sizeof(style_names) / sizeof(style_names[0]);
     \details
     This is used in several RGB/ExtendedValue functions.
 
-    \sa ExtendedValue_from_RGB RGB_to_term_RGB
+    \sa ExtendedValue_from_RGB
+    \sa RGB_to_term_RGB
 
     \examplecodefor{ext2rgb_map,.c}
     // Fast map an ExtendedValue to an RGB value.
@@ -1034,7 +1035,8 @@ bool colr_char_should_escape(const char c) {
     \pi p      A pointer to check, to see if it starts with the marker.
     \return    `true` if all bytes match the marker, otherwise `false`.
 
-    \sa ColorArg_is_ptr ColorText_is_ptr
+    \sa ColorArg_is_ptr
+    \sa ColorText_is_ptr
 
     \examplecodefor{colr_check_marker,.c}
     // This is actually used with void pointer, where the type is not known.
@@ -1114,7 +1116,8 @@ void colr_free_re_matches(regmatch_t** matches) {
     \retval (size_t)-1 if an invalid multibyte sequence is found at the start
                        of \p s.
 
-    \sa colr_str_mb_len colr_is_valid_mblen
+    \sa colr_str_mb_len
+    \sa colr_is_valid_mblen
 
     \examplecodefor{colr_mb_len,.c}
     #include "colr.h"
@@ -1434,7 +1437,9 @@ void colr_str_array_free(char** ps) {
                     \maybenullalloc
                 \endparblock
 
-    \sa colr_str_ljust colr_str_rjust colr_term_size
+    \sa colr_str_ljust
+    \sa colr_str_rjust
+    \sa colr_term_size
 
     \examplecodefor{colr_str_center,.c}
     char* colorized = colr("This.", fore(RED), back(WHITE));
@@ -1509,6 +1514,12 @@ char* colr_str_center(const char* s, int width, const char padchar) {
           \endparblock
 
     \return The number of times \p c occurs in \p s.
+
+    \examplecodefor{colr_str_char_count,.c}
+    size_t ps = colr_str_char_count("apple", 'p');
+    assert(ps == 2);
+    printf("Found %lu 'p' characters.\n", ps)
+    \endexamplecode
 */
 size_t colr_str_char_count(const char* s, const char c) {
     if (!(s && c)) return 0;
@@ -1539,6 +1550,13 @@ size_t colr_str_char_count(const char* s, const char c) {
           \endparblock
 
     \return The number of times \p c occurs at the start of \p s.
+
+    \examplecodefor{colr_str_char_lcount,.c}
+    size_t xs = colr_str_char_lcount("xxApple", 'x');
+    assert(xs == 2);
+    printf("Found %lu 'x' characters.\n", xs)
+    \endexamplecode
+
 */
 size_t colr_str_char_lcount(const char* s, const char c) {
     if (!(s && c)) return 0;
@@ -1568,6 +1586,13 @@ size_t colr_str_char_lcount(const char* s, const char c) {
 
     \return   The number of times a character in \p chars occurs at the start
               of \p s.
+
+    \examplecodefor{colr_str_chars_lcount,.c}
+    size_t chars = colr_str_chars_lcount("cbaabcbbccApple", "abc");
+    assert(chars == 10);
+    printf("Found %lu 'a', 'b', or 'c' characters.\n", chars)
+    \endexamplecode
+
 */
 size_t colr_str_chars_lcount(const char* restrict s, const char* restrict chars) {
     if (!(s && chars)) return 0;
@@ -1694,12 +1719,16 @@ size_t colr_str_code_len(const char* s) {
     \details
     \p src and \p dest must not overlap.
 
-    \pi dest   Memory allocated for new string.
-               <em>Must have room for `strlen(src) + 1` or `length + 1`</em>.
+    \pi dest   \parblock
+                    Memory allocated for new string.
+                    <em>Must have room for `strlen(src) + 1` or `length + 1`</em>.
+               \endparblock
     \pi src    Source string to copy.
-    \pi length Maximum characters to copy.
-               <em>This does not include the null-terminator</em>.
-
+    \pi length \parblock
+                    Maximum characters to copy.
+                    <em>This does not include the null-terminator</em>.
+                    Usually set to `strlen(dest)`.
+               \endparblock
     \returns On success, a pointer to dest is returned.
 
     \examplecodefor{colr_str_copy,.c}
@@ -1715,6 +1744,12 @@ size_t colr_str_code_len(const char* s) {
     // Copy only 4 bytes:
     colr_str_copy(dest, s, 4);
     assert(strcmp(dest, "test") == 0);
+    printf("Truncated: %s\n", dest);
+
+    // String gets truncated when dest is too small:
+    colr_str_copy(dest, "this is too long.", length);
+    assert(strcmp(dest, "this is") == 0);
+    assert(dest[length] == '\0');
     printf("Truncated: %s\n", dest);
     free(dest);
     \endexamplecode
@@ -2042,7 +2077,9 @@ bool colr_str_is_digits(const char* s) {
                     \maybenullalloc
                 \endparblock
 
-    \sa colr_str_center colr_str_rjust colr_term_size
+    \sa colr_str_center
+    \sa colr_str_rjust
+    \sa colr_term_size
 
     \examplecodefor{colr_str_ljust,.c}
     char* colorized = colr("This.", fore(RED), back(WHITE));
@@ -3810,7 +3847,8 @@ char* colr_str_replace_re_pat_ColorText(const char* restrict s, regex_t* repatte
                 \maybenullalloc
             \endparblock
 
-    \sa colr_char_should_escape colr_char_escape_char
+    \sa colr_char_should_escape
+    \sa colr_char_escape_char
 
     \examplecodefor{colr_str_repr,.c}
     char* s = colr_str_repr("This\nhas \bspecial\tchars.");
@@ -3878,7 +3916,9 @@ char* colr_str_repr(const char* s) {
                     \maybenullalloc
                 \endparblock
 
-    \sa colr_str_center colr_str_ljust colr_term_size
+    \sa colr_str_center
+    \sa colr_str_ljust
+    \sa colr_term_size
 
     \examplecodefor{colr_str_rjust,.c}
     char* colorized = colr("This.", fore(RED), back(WHITE));
@@ -4071,6 +4111,20 @@ bool colr_supports_rgb(void) {
     // char* testcode = "\x1b[38:2:255:255:255m\x1bP$qm\x1b\\\n";
     // Should get: 2:255:255:255m
     return false;
+}
+
+/*! Same as colr_supports_rgb(), but the environment is only checked on the
+    first call. All other calls return the same result as the first call.
+
+    \return `true` if 24-bit (true color, or "rgb") support is detected, otherwise `false`.
+*/
+bool colr_supports_rgb_static(void) {
+    static int support_state = 0;
+    // If we've already checked, return the previous result.
+    if (support_state) return (support_state == 1);
+    // Check for rgb support, and store the result for later calls.
+    support_state = colr_supports_rgb() ? 1 : -1;
+    return (support_state == 1);
 }
 
 /*! Attempts to retrieve the row/column size of the terminal and returns a TermSize.
@@ -4489,7 +4543,10 @@ size_t _colr_join_size(void* joinerp, va_list args) {
     size_t i = 0;
     while (words[i]) ColorText_free(words[i++]);
     \endexamplecode
-    \sa colr colr_join colr_join_arrayn
+
+    \sa colr
+    \sa colr_join
+    \sa colr_join_arrayn
 */
 char* colr_join_array(void* joinerp, void* ps) {
     if (!(joinerp && ps)) return 0;
@@ -4528,7 +4585,9 @@ char* colr_join_array(void* joinerp, void* ps) {
     // Don't forget to free the ColorTexts/ColorArgs.
     for (size_t i = 0; i < arr_length; i++) ColorText_free(words[i]);
     \endexamplecode
-    \sa colr colr_join
+
+    \sa colr
+    \sa colr_join
 */
 char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
     if (!(joinerp && ps && count)) return NULL;
@@ -4622,7 +4681,9 @@ char* colr_join_arrayn(void* joinerp, void* ps, size_t count) {
     \return     The number of bytes needed to allocate the result of
                 colr_join_arrayn(), possibly `0`.
 
-    \sa colr colr_join colr_join_array
+    \sa colr
+    \sa colr_join
+    \sa colr_join_array
 */
 size_t _colr_join_arrayn_size(void* joinerp, void* ps, size_t count) {
     if (!(joinerp && ps && count)) return 0;
@@ -4857,7 +4918,8 @@ char* ArgType_to_str(ArgType type) {
 
     \return `(ColorArg){.type=ARGTYPE_NONE, .value.type=TYPE_NONE}`
 
-    \sa ColorArg_is_empty ColorValue_empty
+    \sa ColorArg_is_empty
+    \sa ColorValue_empty
 */
 ColorArg ColorArg_empty(void) {
     return (ColorArg){
@@ -5075,8 +5137,11 @@ ColorArg ColorArg_from_RGB(ArgType type, RGB value) {
 
     \sa ColorArg
     \sa colr_str_get_codes
-    \sa ColorValue_from_esc BasicValue_from_esc ExtendedValue_from_esc
-    \sa StyleValue_from_esc RGB_from_esc
+    \sa ColorValue_from_esc
+    \sa BasicValue_from_esc
+    \sa ExtendedValue_from_esc
+    \sa StyleValue_from_esc
+    \sa RGB_from_esc
 */
 ColorArg ColorArg_from_esc(const char* s) {
     ColorValue cval = ColorValue_from_esc(s);
@@ -5615,7 +5680,8 @@ bool ColorJustify_eq(ColorJustify a, ColorJustify b) {
     \pi cjust The ColorJustify to check.
     \return   `true` if the ColorJustify is empty, otherwise `false`.
 
-    \sa ColorJustify ColorJustify_empty
+    \sa ColorJustify
+    \sa ColorJustify_empty
 */
 bool ColorJustify_is_empty(ColorJustify cjust) {
     return cjust.method == JUST_NONE;
@@ -6001,7 +6067,8 @@ bool ColorText_has_args(ColorText ctext) {
     \pi ctext The ColorText to check.
     \return   `true` if the ColorText is empty, otherwise `false`.
 
-    \sa ColorText ColorText_empty
+    \sa ColorText
+    \sa ColorText_empty
 */
 bool ColorText_is_empty(ColorText ctext) {
     return (
@@ -6445,7 +6512,10 @@ char* ColorType_to_str(ColorType type) {
 
     \return `(ColorValue){.type=TYPE_NONE, .basic=0, .ext=0, .rgb=(RGB){0, 0, 0}}`
 
-    \sa ColorArg ColorArg_empty ColorArg_is_empty ColorValue_is_empty
+    \sa ColorArg
+    \sa ColorArg_empty
+    \sa ColorArg_is_empty
+    \sa ColorValue_is_empty
 */
 ColorValue ColorValue_empty(void) {
     return (ColorValue){
@@ -6537,7 +6607,8 @@ char* ColorValue_example(ColorValue cval) {
              - TYPE_INVALID_EXT_RANGE
              - TYPE_INVALID_RGB_RANGE
 
-    \sa ColorValue ColorArg_from_esc
+    \sa ColorValue
+    \sa ColorArg_from_esc
 */
 ColorValue ColorValue_from_esc(const char* s) {
     if (!s || s[0] == '\0') return ColorValue_from_value(TYPE_INVALID, NULL);
@@ -6735,7 +6806,10 @@ bool ColorValue_has_RGB(ColorValue cval, RGB rgb) {
     \pi cval ColorValue to check.
     \return  `true` if the ColorValue is "empty", otherwise `false`.
 
-    \sa ColorValue ColorValue_empty ColorArg_empty ColorArg_is_empty
+    \sa ColorValue
+    \sa ColorValue_empty
+    \sa ColorArg_empty
+    \sa ColorArg_is_empty
 */
 bool ColorValue_is_empty(ColorValue cval) {
     return (cval.type == TYPE_NONE);
@@ -8424,9 +8498,8 @@ RGB rainbow_step(double freq, size_t offset) {
         libm's sin() function works on every machine, gives better results
         than any hand-written sin() that I've found, and is faster.
 
-        Something like this produces ugly "steps" in the rainbow, and `i`
-        would have to be large enough for the entire string that is being
-        "rainbowized". Just keep libm:
+        Something like this produces ugly "steps" in the rainbow,
+        just keep libm:
             float sin(float x) {
                 float res = 0, pow = x, fact = 1;
                 for(int i = 0; i < 5; ++i) {

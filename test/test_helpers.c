@@ -362,6 +362,22 @@ subdesc(colr_supports_rgb) {
         if (original) setenv("COLORTERM", original, 1);
     }
 }
+// colr_supports_rgb_static
+subdesc(colr_supports_rgb_static) {
+    it("detects rgb support, with only 1 environment check") {
+        char* original = getenv("COLORTERM");
+        setenv("COLORTERM", "truecolor", 1);
+        bool is_supported = colr_supports_rgb_static();
+        assert(is_supported);
+        // Set a bad environment var value.
+        setenv("COLORTERM", "NOTAVALIDVALUE", 1);
+        // This should still succeed. Even though the environment changed,
+        // we stored the result of the previous call.
+        assert(colr_supports_rgb_static());
+        // Reset the original value, just in case.
+        if (original) setenv("COLORTERM", original, 1);
+    }
+}
 // colr_term_size
 // colr_win_size
 // colr_win_size_env

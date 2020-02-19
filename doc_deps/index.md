@@ -77,6 +77,7 @@ The colr.h header defines `_GNU_SOURCE` if it's not already defined (see `man fe
 gcc -std=c11 -c myprogram.c colr.c -o myexecutable -lm
 ```
 
+
 \anchor files
 ## Files
 
@@ -86,6 +87,17 @@ Name   | Description
 :----- | :---------------------------------------------
 colr.h | The interface to ColrC.
 colr.c | Where ColrC is implemented. This must be compiled/linked with your program.
+
+You can also create a shared library (`libcolr.so`) for your system. Clone the
+repo and run the make target:
+```bash
+make lib
+```
+
+If you link the library (and `libm`), you will only need to include the header (`colr.h`):
+```bash
+gcc -std=c11 -c myprogram.c -o myexecutable -lm -lcolr
+```
 
 \anchor example-usage
 ## Example Usage
@@ -113,7 +125,7 @@ Name                  | Example
 \ref back             | \ref back_example.c
 \ref style            | \ref style_example.c
 
-All of these examples can be built with the `examples` target:
+All of the examples can be built with the `examples` target:
 ```bash
 make examples
 ```
@@ -131,7 +143,7 @@ code snippets found in the ColrC source code itself:
 ./tools/snippet.py --examples
 ```
 
-To see the source-based examples in the terminal you can run:
+To see a list of source-based examples in the terminal you can run:
 ```bash
 ./tools/snippet.py --listnames [NAME_PATTERN]
 ```
@@ -150,9 +162,7 @@ ColrC is the `C` version of [Colr](https://github.com/welbornprod/colr)
 The programming styles vary because `C` doesn't allow easy method chaining,
 and instead leans towards nested function calls.
 
-There are other terminal color libraries out there, but I'm not fond of the
-approach that they take (wrapping file descriptors, and manually concatenating).
-At least, in the libraries that I've seen so far.
+This is an attempt to create a flexible and easy version for `C`.
 
 \anchor future
 ## Future
