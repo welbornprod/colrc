@@ -63,6 +63,7 @@ docs_deps=$(docs_config) $(docs_html_config) $(docs_examples) $(docs_css) $(docs
 docs_pdf=$(docs_dir)/ColrC-manual.pdf
 docs_cj_src=$(docs_dir)/html
 docs_cj_dir=$(realpath ../../../cjwelborn.github.io/colrc)
+docs_cj_main_file=$(docs_cj_dir)/index.html
 latex_dir=$(docs_dir)/latex
 latex_header=$(doc_dep_dir)/header.tex
 latex_style=$(doc_dep_dir)/doxygen.sty
@@ -160,6 +161,7 @@ $(binary): $(objects)
 
 # Build all docs (html and pdf) if needed.
 docs: $(docs_main_file)
+docs: $(docs_cj_main_file)
 docs: $(docs_pdf)
 docs: $(docs_github_readme)
 
@@ -177,8 +179,6 @@ $(docs_main_file): $(source) $(headers) $(docs_deps)
 	@printf "\nBuilding html doxygen docs...\n    Target: $@\n    For: $?\n    "
 	@(cat $(docs_html_config); $(version_cmd) -p) | doxygen -
 	@printf "\n"
-# Copy docs to cjwelborn.github.io, to make them public.
-$(docs_main_file): docsdist
 
 # Build the doxygen latex docs, without example code (latex_pdf and docs_pdf need this).
 # The example code (custom html-wrapper aliases) cause latex to fail.
@@ -196,6 +196,29 @@ $(docs_pdf): $(latex_pdf)
 	@./tools/gen_latex_pdf.sh && \
 		[[ -e "$(docs_pdf)" ]] && \
 			printf "\nPDF manual: $(docs_pdf)\n"
+
+# This will copy the html docs to cjwelborn.github.io, to make them public.
+$(docs_cj_main_file): $(docs_main_file)
+	@if [[ -n "$(docs_cj_dir)" ]] && [[ -d "$(docs_cj_dir)" ]]; then \
+		if [[ -f "$(docs_dir)/ColrC-manual.pdf" ]]; then \
+			printf "\nCopying docs for cjwelborn.github.io.\n"; \
+			cp -r "$(docs_cj_src)"/* "$(docs_cj_dir)"; \
+			printf "Copying PDF for cjwelborn.github.io.\n"; \
+			cp "$(docs_dir)/ColrC-manual.pdf" "$(docs_cj_dir)/ColrC-manual.pdf"; \
+		else \
+			printf "\nColrC PDF missing: %s\n" "$(docs_dir)/ColrC-manual.pdf"; \
+		fi; \
+	else \
+		if [[ -n "$(docs_cj_dir)" ]]; then \
+			if [[ "$$NAME" == "cj" ]]; then \
+				printf "\nSite dir missing: %s\n" $(docs_cj_dir) 1>&2; \
+			else \
+				printf "\nSkipping \`docsdist\`, for user %s\n" "$$USER"; \
+			fi; \
+		else \
+			printf "\nSite dir missing, \`docsdist\` is not for everyone.\n" 1>&2; \
+		fi; \
+	fi;
 
 tags: $(source) $(headers)
 	@printf "Building ctags...\n    "
@@ -300,29 +323,8 @@ distsrc:
 	@$(make_dist_cmd) -d $(dist_dir) $(dist_files)
 
 
-# This will copy the html docs to cjwelborn.github.io, to make them public.
 .PHONY: docsdist
-docsdist:
-	@if [[ -n "$(docs_cj_dir)" ]] && [[ -d "$(docs_cj_dir)" ]]; then \
-		if [[ -f "$(docs_dir)/ColrC-manual.pdf" ]]; then \
-			printf "\nCopying docs for cjwelborn.github.io.\n"; \
-			cp -r "$(docs_cj_src)"/* "$(docs_cj_dir)"; \
-			printf "Copying PDF for cjwelborn.github.io.\n"; \
-			cp "$(docs_dir)/ColrC-manual.pdf" "$(docs_cj_dir)/ColrC-manual.pdf"; \
-		else \
-			printf "\nColrC PDF missing: %s\n" "$(docs_dir)/ColrC-manual.pdf"; \
-		fi; \
-	else \
-		if [[ -n "$(docs_cj_dir)" ]]; then \
-			if [[ "$$NAME" == "cj" ]]; then \
-				printf "\nSite dir missing: %s\n" $(docs_cj_dir) 1>&2; \
-			else \
-				printf "\nSkipping \`docsdist\`, for user %s\n" "$$USER"; \
-			fi; \
-		else \
-			printf "\nSite dir missing, \`docsdist\` is not for everyone.\n" 1>&2; \
-		fi; \
-	fi;
+docsdist: $(docs_cj_main_file)
 
 .PHONY: docshtml
 docshtml: $(docs_main_file)

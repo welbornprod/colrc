@@ -35,7 +35,7 @@
 #define COLR_H
 
 //! Current version for ColrC.
-#define COLR_VERSION "0.3.5"
+#define COLR_VERSION "0.3.6"
 
 /* Tell gcc to ignore clang pragmas, for linting. */
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
