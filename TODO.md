@@ -1,7 +1,9 @@
 # ColrC Todo List
 
 ## Docs
-[ ] Need Colr Tool build instructions
+[ ] Colr Tool build instructions
+[ ] Colr Tool install instructions
+[ ] Downloads page with the dist package and the PDF manual.
 
 ## Install
-[ ] Need `make install`
+[ ] `make install`
