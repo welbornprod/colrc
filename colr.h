@@ -478,7 +478,7 @@ extern int colr_printf_esc_mod;
     )(BACK, x)
 
 /*! \def back_str
-    Retrieve just the escape code string for a back color.
+    Return just the escape code string for a back color.
 
     \pi x A BasicValue, ExtendedValue, or RGB struct.
     \return \parblock
@@ -2012,16 +2012,16 @@ extern int colr_printf_esc_mod;
     )(x)
 
 #ifndef DOXYGEN_SKIP
-#if defined(DEBUG) && defined(dbug)
+#if defined(DEBUG) && defined(DBUG_H) && defined(dbug)
     /*! \def dbug_repr
         Uses colr_repr() to build a string representation of a ColrC object,
         dbug prints it, and calls free() when it's done.
 
         \details
-        Without `COLR_DEBUG` and `dbug.h` (defines dbug()) and `DEBUG` these
+        Without `COLR_DEBUG`, `dbug.h` (defines dbug()), and `DEBUG` these
         calls will be disabled.
         This is for debugging purposes, and is a no-op when `COLR_DEBUG` and
-        `DEBUG` are not defined.
+        `DEBUG` are undefined.
 
         \pi lbl Label text for the dbug print.
         \pi x   Any object supported by colr_repr().
@@ -2365,7 +2365,7 @@ extern int colr_printf_esc_mod;
     )(STYLE, x)
 
 /*! \def style_str
-    Retrieve just the escape code string for a style.
+    Return just the escape code string for a style.
 
     \pi x   StyleValue to use.
     \return \parblock

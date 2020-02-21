@@ -294,6 +294,27 @@ subdesc(ColorValue_length) {
             assert_size_eq(length, tests[i].expected);
         }
     }
+    it("handles invalid ColorValues") {
+        ColorValue invalid = ColorValue_empty();
+        invalid.type = TYPE_INVALID;
+        BasicValue bval = RED;
+        struct {
+            ArgType type;
+            ColorValue cval;
+            size_t expected;
+        } tests[] = {
+            {FORE, invalid, 1},
+            {BACK, invalid, 1},
+            {STYLE, invalid, 1},
+            {ARGTYPE_NONE, color_val(bval), 1},
+            {ARGTYPE_NONE, invalid, 1},
+        };
+
+        for_each(tests, i) {
+            size_t length = ColorValue_length(tests[i].type, tests[i].cval);
+            assert_size_eq(length, tests[i].expected);
+        }
+    }
 }
 subdesc(ColorValue_repr) {
     it("creates a ColorValue repr") {
@@ -344,6 +365,26 @@ subdesc(ColorValue_to_esc) {
             free(s);
         }
     }
+    it("handles invalid ColorValues") {
+        ColorValue invalid = ColorValue_empty();
+        invalid.type = TYPE_INVALID;
+        BasicValue bval = RED;
+        struct {
+            ArgType type;
+            ColorValue cval;
+        } tests[] = {
+            {FORE, invalid},
+            {BACK, invalid},
+            {STYLE, invalid},
+            {ARGTYPE_NONE, color_val(bval)},
+            {ARGTYPE_NONE, invalid},
+        };
+
+        for_each(tests, i) {
+            char* s = ColorValue_to_esc(tests[i].type, tests[i].cval);
+            assert_null(s);
+        }
+    }
 }
 subdesc(ColorValue_to_esc_s) {
     it("fills with escape codes from ColorValues") {
@@ -380,6 +421,29 @@ subdesc(ColorValue_to_esc_s) {
                 assert(success);
             }
             assert_str_eq(dest, tests[i].expected, "Failed to fill with escape-code.");
+        }
+    }
+    it("handles invalid ColorValues") {
+        ColorValue invalid = ColorValue_empty();
+        invalid.type = TYPE_INVALID;
+        BasicValue bval = RED;
+        struct {
+            ArgType type;
+            ColorValue cval;
+            bool expected;
+        } tests[] = {
+            {FORE, invalid, false},
+            {BACK, invalid, false},
+            {STYLE, invalid, false},
+            {ARGTYPE_NONE, color_val(bval), false},
+            {ARGTYPE_NONE, invalid, false},
+        };
+
+        for_each(tests, i) {
+            char s[CODE_ANY_LEN];
+            bool result = ColorValue_to_esc_s(s, tests[i].type, tests[i].cval);
+            assert_false(result);
+            assert_str_empty(s);
         }
     }
 }

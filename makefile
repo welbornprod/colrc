@@ -61,7 +61,8 @@ docs_css=$(doc_dep_dir)/customdoxygen.css
 docs_examples=$(wildcard examples/*.c)
 docs_deps=$(docs_config) $(docs_html_config) $(docs_examples) $(docs_css) $(docs_md)
 docs_pdf=$(docs_dir)/ColrC-manual.pdf
-docs_cj_dir=$(realpath ../../cjwelborn.github.io/colrc)
+docs_cj_src=$(docs_dir)/html
+docs_cj_dir=$(realpath ../../../cjwelborn.github.io/colrc)
 latex_dir=$(docs_dir)/latex
 latex_header=$(doc_dep_dir)/header.tex
 latex_style=$(doc_dep_dir)/doxygen.sty
@@ -176,8 +177,8 @@ $(docs_main_file): $(source) $(headers) $(docs_deps)
 	@printf "\nBuilding html doxygen docs...\n    Target: $@\n    For: $?\n    "
 	@(cat $(docs_html_config); $(version_cmd) -p) | doxygen -
 	@printf "\n"
-# NOT READY FOR THIS YET:
-#$(docs_main_file): docscj
+# Copy docs to cjwelborn.github.io, to make them public.
+$(docs_main_file): docsdist
 
 # Build the doxygen latex docs, without example code (latex_pdf and docs_pdf need this).
 # The example code (custom html-wrapper aliases) cause latex to fail.
@@ -299,19 +300,27 @@ distsrc:
 	@$(make_dist_cmd) -d $(dist_dir) $(dist_files)
 
 
-# TODO: When ColrC is published, this needs to be added to the `docs` target
-#       like the rest of the docs targets. It will "update" the documentation
-#       site.
-.PHONY: docscj
-docscj:
+# This will copy the html docs to cjwelborn.github.io, to make them public.
+.PHONY: docsdist
+docsdist:
 	@if [[ -n "$(docs_cj_dir)" ]] && [[ -d "$(docs_cj_dir)" ]]; then \
-		printf "\nCopying docs for cjwelborn.github.io.\n"; \
-		cp -r "$(docs_dir)" "$(docs_cj_dir)"; \
+		if [[ -f "$(docs_dir)/ColrC-manual.pdf" ]]; then \
+			printf "\nCopying docs for cjwelborn.github.io.\n"; \
+			cp -r "$(docs_cj_src)"/* "$(docs_cj_dir)"; \
+			printf "Copying PDF for cjwelborn.github.io.\n"; \
+			cp "$(docs_dir)/ColrC-manual.pdf" "$(docs_cj_dir)/ColrC-manual.pdf"; \
+		else \
+			printf "\nColrC PDF missing: %s\n" "$(docs_dir)/ColrC-manual.pdf"; \
+		fi; \
 	else \
 		if [[ -n "$(docs_cj_dir)" ]]; then \
-			printf "\nSite dir missing: %s\n" $(docs_cj_dir) 1>&2; \
+			if [[ "$$NAME" == "cj" ]]; then \
+				printf "\nSite dir missing: %s\n" $(docs_cj_dir) 1>&2; \
+			else \
+				printf "\nSkipping \`docsdist\`, for user %s\n" "$$USER"; \
+			fi; \
 		else \
-			printf "\nSite dir missing, this make target is not for everyone.\n" 1>&2; \
+			printf "\nSite dir missing, \`docsdist\` is not for everyone.\n" 1>&2; \
 		fi; \
 	fi;
 

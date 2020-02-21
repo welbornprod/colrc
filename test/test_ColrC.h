@@ -311,6 +311,13 @@
         } \
     } while (0)
 
+#define assert_false(x) \
+    do { \
+        if (x) { \
+            fail("Not false: " #x); \
+        } \
+    } while (0)
+
 #define assert_fmt_op(a, op, b, fmt, msg) \
     do { \
         if (!(a op b)) { \

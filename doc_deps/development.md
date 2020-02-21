@@ -12,3 +12,5 @@ They are not required reading for an average user of colr.h and colr.c.
 - \subpage tests "Testing": How ColrC is tested.
 - \subpage make "Make": Make targets to build/test ColrC.
 - \subpage tools "Tools": Tools to help with ColrC development.
+- \subpage examples_dev "Examples": Examples provided by the ColrC documentation.
+- \subpage compatibility "Compatibility": Notes about ColrC system compatibility.

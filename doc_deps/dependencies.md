@@ -32,7 +32,7 @@ system dependencies:
     - Used to generate test coverage reports.
 - `doxygen`
     - Documentation for ColrC is generated with Doxygen.
-    Doxygen 1.8+ is recommended.
+    - Doxygen 1.8+ is recommended.
 - `doxygen-latex`
     - Extras to generate the PDF manual.
 - `texlive-lang-cyrillic`
@@ -47,12 +47,13 @@ system dependencies:
 ## Python
 
 There are several helper tools in the ColrC repo. They are responsible for
-running tests, generating documentation, formatting `make` help, running
-`valgrind`, and other conveniences. The python-based tools have their own
-dependencies:
+running tests, generating documentation, running `valgrind`, and other
+conveniences.
+The python-based tools have their own dependencies:
 
 - [colr](https://pypi.org/project/colr)
     - Provides terminal colors and the `colr-run` tool.
+    - This was also the inspiration for ColrC.
 - [docopt](https://pypi.org/project/docopt)
     - Provides argument parsing.
 - [easysettings](https://pypi.org/project/easysettings)
@@ -62,9 +63,9 @@ dependencies:
 - [outputcatcher](https://pypi.org/project/outputcatcher)
     - Provides stdout/stderr blocking/catching.
 - [printdebug](https://pypi.org/project/printdebug)
-    - Provides debug information.
+    - Provides debug information while running the tools.
 - [pygments](https://pypi.org/project/pygments)
-    - Provides syntax highlighting.
+    - Provides syntax highlighting for code listed with the tools.
 
 There is a `requirements.txt` in the `./tools` directory for easy installation
 of these packages (`pip install -r requirements.txt`).

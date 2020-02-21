@@ -252,6 +252,9 @@ if ((count)); then
     plural="examples"
     ((count == 1)) && plural="example"
     echo_status "\nRan %s %s" "$count" "$plural"
+    if [[ -n "$wrapper" ]]; then
+        echo_status " through \`%s\`," "$wrapper"
+    fi
     if ((${#patterns[@]})); then
         echo_status " matching: %s\n" "${matched_patterns[*]}"
         ((${#unmatched_patterns[@]})) && echo_status "No matches for: %s\n" "${unmatched_patterns[*]}"

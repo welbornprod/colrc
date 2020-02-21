@@ -3,7 +3,8 @@
 For full documentation see [welbornprod.com/colrc](https://welbornprod.com/colrc/index.html)
 
 ## Getting Started
-**ColrC** is a C library for terminal colors/escape-codes on linux.
+**ColrC** <small>(<i><b>kuh</b>·lr·see</i>, feels like heresy)</small>
+is a C library for terminal colors/escape-codes on linux.
 
 It is designed to be flexible and easy to use. Colors can be specified using
 defined names (`RED`, `BLUE`, etc.), 256-colors (`ext(36)`),
