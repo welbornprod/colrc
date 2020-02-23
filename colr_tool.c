@@ -13,7 +13,7 @@
 int main(int argc, char* argv[]) {
     ColrOpts opts = ColrOpts_new();
     int parse_ret = parse_args(argc, argv, &opts);
-    // print_opts_repr(opts);
+    print_opts_repr(opts);
     // Any non-negative return means we should stop right here.
     if (parse_ret >= 0) {
         ColrOpts_cleanup(&opts);
@@ -1210,12 +1210,30 @@ int strip_codes(ColrOpts* opts) {
     return EXIT_SUCCESS;
 }
 
+/*! Replace ending newlines with '\0' in a string.
+
+    \details
+    This will modify the string in-place.
+
+    \attention
+    This is only for allocated strings.
+
+    \po s  The string to operate on.
+*/
+void strip_nl(char* s) {
+    if (!s || (s[0] == '\0')) return;
+    for (int i = strlen(s) - 1; (i >= 0) && (s[i] == '\n'); i--) s[i] = '\0';
+}
+
 /*! Translate a user's color argument into all color types.
 
     \pi opts ColrOpts to get the text/options from.
     \return  `EXIT_SUCCESS` on success, otherwise `EXIT_FAILURE`.
 */
 int translate_code(ColrOpts* opts) {
+    // Remove newlines, in case this came from stdin.
+    strip_nl(opts->text);
+    // Use the user's color to build a ColorArg.
     ColorArg* carg = fore(opts->text);
     if (!validate_color_arg(*carg, opts->text)) {
         free(carg);

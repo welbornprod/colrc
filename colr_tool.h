@@ -71,11 +71,11 @@
         free(_p_o_r_s); \
     } while (0)
 
-/*! \def print_repr
+/*! \def colr_print_repr
     Print a representation of a ColorArg to stdout.
     \pi x Any value with a type supported by colr_repr().
 */
-#define print_repr(x) \
+#define colr_print_repr(x) \
     do { \
         char* _pcar_valrepr = colr_repr(x); \
         printf("%s\n", _pcar_valrepr); \
@@ -203,6 +203,7 @@ char* read_file_arg(const char* filepath);
 char* read_stdin_arg(void);
 int run_colr_cmd(colr_tool_cmd func, ColrOpts* opts);
 int strip_codes(ColrOpts* opts);
+void strip_nl(char* s);
 int translate_code(ColrOpts* opts);
 bool validate_color_arg(ColorArg carg, const char* name);
 #endif // COLR_TOOL_H
