@@ -159,10 +159,10 @@ $(binary): $(objects)
 	@printf "\nCompiling $<...\n    ";
 	$(CC) -c $< $(CFLAGS)
 
-# Build all docs (html and pdf) if needed.
+# Build all docs (html and pdf) if needed (docs_cj_main_file must come after docs_pdf).
 docs: $(docs_main_file)
-docs: $(docs_cj_main_file)
 docs: $(docs_pdf)
+docs: $(docs_cj_main_file)
 docs: $(docs_github_readme)
 
 # Build the github-friendly README.
@@ -254,6 +254,11 @@ cleandebug: debug
 cleandocs: cleanhtml
 cleandocs: cleanlatex
 cleandocs: cleanpdf
+cleandocs: cleandocsdist
+
+.PHONY: cleandocsdist
+cleandocsdist:
+	@./tools/clean.sh -D "$(docs_cj_dir)"
 
 PHONY: cleanhtml
 cleanhtml:
