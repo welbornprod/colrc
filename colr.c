@@ -6660,7 +6660,18 @@ ColorValue ColorValue_from_esc(const char* s) {
 */
 ColorValue ColorValue_from_str(const char* s) {
     if (!s || s[0] == '\0') return ColorValue_from_value(TYPE_INVALID, NULL);
-
+    // Hex colors should be converted to RGB first.
+    if (s[0] == '#') {
+        // This ensure that translations always show the correct RGB,
+        // even though the ExtendedValue will be fudged to the closest match.
+        RGB rgbhex;
+        int rgb_ret = RGB_from_str(s, &rgbhex);
+        if (rgb_ret == COLOR_INVALID_RANGE) {
+            return ColorValue_from_value(TYPE_INVALID_RGB_RANGE, NULL);
+        } else if (rgb_ret != TYPE_INVALID) {
+            return ColorValue_from_value(TYPE_RGB, &rgbhex);
+        }
+    }
     // Basic color name?
     int b_ret = BasicValue_from_str(s);
     if (BasicValue_is_valid(b_ret)) {
@@ -6684,7 +6695,7 @@ ColorValue ColorValue_from_str(const char* s) {
         StyleValue sval = (StyleValue)s_ret;
         return ColorValue_from_value(TYPE_STYLE, &sval);
     }
-    // RGB string, or known name?
+    // RGB strings?
     RGB rgb;
     int rgb_ret = RGB_from_str(s, &rgb);
     if (rgb_ret == COLOR_INVALID_RANGE) {
@@ -6692,6 +6703,7 @@ ColorValue ColorValue_from_str(const char* s) {
     } else if (rgb_ret != TYPE_INVALID) {
         return ColorValue_from_value(TYPE_RGB, &rgb);
     }
+
     return ColorValue_from_value(TYPE_INVALID, NULL);
 }
 

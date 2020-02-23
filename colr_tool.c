@@ -1221,6 +1221,7 @@ int translate_code(ColrOpts* opts) {
         free(carg);
         return EXIT_FAILURE;
     }
+    // dbug_repr("Using ColorArg", *carg);
     ColorValue cval = carg->value;
     free(carg);
     BasicValue bval = cval.basic;
@@ -1228,7 +1229,6 @@ int translate_code(ColrOpts* opts) {
     RGB rgbval = cval.rgb;
 
     if (cval.type == TYPE_BASIC) {
-        dbug("Using BasicValue for: %s\n", opts->text);
         rgbval = RGB_from_BasicValue(bval);
         eval = ExtendedValue_from_BasicValue(bval);
     } else if (cval.type == TYPE_EXTENDED) {
@@ -1243,20 +1243,20 @@ int translate_code(ColrOpts* opts) {
     }
 
     if (bval == BASIC_NONE) {
-        dbug("Converting to BasicValue from ExtendedValue: %d\n", eval);
-        // Only convert the first 16 ext values to basic.
+        // Only convert the first 16 ext values to basic, except 231 is a
+        // special case (for WHITE, 231, rgb(255,255,255), "#ffffff").
         BasicValue trybval = BasicValue_from_str(opts->text);
         if (BasicValue_is_invalid(trybval)){
             trybval = BASIC_NONE;
             if (eval < 8) trybval = basic(eval);
             else if (eval < 16) trybval = basic(eval + 2);
+            else if (eval == 231) trybval = WHITE;
             else {
                 for (size_t i = 0; i < colr_name_data_len; i++) {
                     ColorNameData item = colr_name_data[i];
                     if (item.ext == eval) {
                         // Try the normal color names and light color names.
                         trybval = BasicValue_from_str(item.name);
-                        dbug("FOUND IT: %d\n", trybval);
                         break;
                     }
                 }
