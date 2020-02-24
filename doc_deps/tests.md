@@ -1,5 +1,5 @@
 # Tests {#tests}
-# ColrC Testing
+# About
 
 ColrC uses [snow](https://github.com/mortie/snow) for testing. There are
 several test targets in the `makefile` that do different things. Some of them
@@ -7,7 +7,7 @@ are for quick sanity-checking, some use compiler protections, and some use
 Valgrind. There is also a test runner (`run_tests.sh`) that provides an easy
 way to run tests through a wrapper program like `valgrind` or `kdbg`/`gdb`.
 
-## Basic Test:
+# Basic Test:
 If you want to run them you will have to download/clone the source and
 build/run them:
 ```bash
@@ -17,14 +17,14 @@ make test
 
 This will build all of the tests using the latest `colr.c` and run them.
 
-## Memcheck Test:
+# Memcheck Test:
 You can also run the tests through `valgrind` with the `testmemcheck` target:
 ```bash
 # Removes the `-fsanitize` options, to let `valgrind` do it's thing:
 make testmemcheck
 ```
 
-## Quick Testing
+# Quick Testing
 
 During development, I usually use the `testfast` target for small changes,
 followed by a `testfull` to use the address sanitizer and other protection
@@ -41,7 +41,7 @@ make testfull
 make testeverything
 ```
 
-## Test Everything
+# Test Everything
 The 'everything test' builds the colr tool and unit tests, both debug and
 release mode (some bugs only show up in release mode), and runs them through
 `valgrind` and `-fsanitize` (`libasan`).
@@ -68,7 +68,7 @@ including the example code and source-file examples (the 'everything test'):
 make testeverything
 ```
 
-## Test Tool
+# Test Tool
 
 The `./test/run_tests.sh` script can run the `snow`-based tests, run `memcheck`
 on the examples, and run the `colrc` tool through `memcheck`. The "everything test"

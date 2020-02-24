@@ -64,7 +64,7 @@ function ln_colrc {
             rm "$colrc_ln" || fail "Failed to remove old symlink: $colrc_ln"
         else
             print_label "Symlink already exists" "$colrc_ln" 1>&2
-            return 1
+            return 0
         fi
     }
     ln -s "$src" "$colrc_ln" || fail "Failed to create symlink: $colrc_ln"

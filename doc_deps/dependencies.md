@@ -1,7 +1,6 @@
 # Dependencies {#dependencies}
-# ColrC Dependencies
 
-## System
+# System
 
 To compile the `colrc` tool, or use the helper tools, you will need a few
 system dependencies:
@@ -44,7 +43,7 @@ system dependencies:
 - `texlive-binaries`
     - Provides the `makeindex` command to generate the PDF manual.
 
-## Python
+# Python
 
 There are several helper tools in the ColrC repo. They are responsible for
 running tests, generating documentation, running `valgrind`, and other

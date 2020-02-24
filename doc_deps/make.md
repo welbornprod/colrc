@@ -37,7 +37,7 @@ didn't break anything.
 All make targets can be listed with `make help` or `make targets`. I've listed
 the main targets here.
 
-## Build
+# Build
 
 - `make clean`
     - Remove any object files or binaries to force a fresh build.
@@ -47,7 +47,7 @@ the main targets here.
 - `make release`
     - Build a non-debug build for the `colrc` tool.
 
-## Test
+# Test
 
 - `make test`
     - Build and run the tests using the address sanitizer options (slowest build time).
@@ -70,7 +70,7 @@ the main targets here.
 - `make cppcheckview`
     - Open the cppcheck report in a browser.
 
-## Document
+# Document
 
 - `make docshtml`
     - Build the HTML documentation.
@@ -80,7 +80,7 @@ the main targets here.
 - `make cleandocs`
     - Remove all generated doc files, to start fresh.
 
-## Examples
+# Examples
 
 - `make examples`
     - Build all examples in `./examples`.

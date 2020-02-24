@@ -1,14 +1,17 @@
 # Tool {#tool}
-# ColrC Tool
+# About
 
-The ColrC repo includes the "ColrC Tool", which is a program that colorizes
+The ColrC repo includes the "**ColrC Tool**", which is a program that colorizes
 text from the command line. It offers all of the important features from
 the [original colr tool](https://pypi.org/project/colr), but operates
 *much* faster because it was written in a compiled language. You can have both
 of these installed at the same time. The ColrC version is known as `colrc`,
 where the original is known as `colr`.
 
-It can be used in shell scripts or as a standalone application in a variety of ways.
+If you would like to use the ColrC tool, you will have to \subpage tool_building "build it".
+
+The ColrC tool can be used in shell scripts or as a standalone application in
+a variety of ways.
 Long options are used in the examples, but they all have a single-letter short
 form as well:
 
@@ -38,11 +41,8 @@ colrc "Hello World" --style underline
 ```
 
 ## Rainbows
-The Colr tool can make "rainbowized" text, much like `lolcat`.
-`lolcat` was a huge inspiration for the Colr tool. ColrC happens to be faster
-because `lolcat` was written in Ruby, and like the Python-based Colr tool it
-has to pull in some dependencies and do a lot of extra stuff for the interpreter
-itself.
+The Colr tool can make "rainbowized" text, much like [`lolcat`](https://github.com/busyloop/lolcat)
+except faster (only because of the language choice).
 
 The options for ColrC do not match `lolcat` exactly, but if you would like to
 "rainbowize" some text, all you have to do is set the fore or back color to `rainbow`:
@@ -54,6 +54,16 @@ One of the most common uses is to pipe some output to ColrC to make it prettier:
 ```bash
 # "Display a rainbow cookie."
 fortune | colrc - rainbow
+```
+
+You can also "rainbowize" the background, and optionally set the fore color and style
+at the same time:
+```bash
+# Just the background:
+fortune | colrc - --back rainbow
+
+# Fix the foreground and style so the words are more visible:
+fortune | colrc - black rainbow bright
 ```
 
 ## Stripping Colorized Output

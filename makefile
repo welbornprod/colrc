@@ -39,6 +39,7 @@ optional_flags=$(foreach header, $(optional_headers), -include $(header))
 cov_dir=coverage
 cppcheck_cmd=bash ./tools/cppcheck_run.sh
 cppcheck_html=./cppcheck_report/index.html
+install_cmd=bash ./tools/install.sh
 is_build_cmd=bash tools/is_build.sh
 make_help_fmt_cmd=python3 tools/make_help_fmter.py
 undoxy_md_cmd=python3 tools/undoxy_markdown.py
@@ -369,6 +370,14 @@ docsviewpdf:
 examples: $(examples_source)
 	@cd examples && $(MAKE) --no-print-directory $(COLR_ARGS)
 
+.PHONY: install
+install: $(binary)
+	@$(install_cmd)
+
+.PHONY: installlink
+installlink: $(binary)
+	@$(install_cmd) -l
+
 .PHONY: memcheck
 memcheck: debug
 memcheck:
@@ -445,6 +454,8 @@ help targets:
     docsview          : View previously generated HTML docs in your browser.\n\
     docsviewpdf       : View previously generated PDF docs in your viewer.\n\
     examples          : Build example executables in $(examples_dir).\n\
+    install           : Install the \`colrc\` executable.\n\
+    installlink       : Install the \`colrc\` executable as a symlink.\n\
     release           : Build the executable with optimization, and strip it.\n\
     release2          : Same as \`release\` target, but with -O2 instead of -O3.\n\
     run               : Run the executable. Args are set with COLR_ARGS.\n\

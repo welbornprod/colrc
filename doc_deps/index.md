@@ -5,6 +5,8 @@
 **ColrC** <small>(<i><b>kuh</b>·lr·see</i>, feels like heresy)</small>
 is a C library for terminal colors/escape-codes on linux.
 
+There is also a command-line tool ([colr tool](tool.html)) based on **ColrC**.
+
 It is designed to be flexible and easy to use. Colors can be specified using
 defined names (`RED`, `BLUE`, etc.), 256-colors (`ext(36)`),
 RGB colors (`rgb(0, 0, 55)`), hex colors (`hex(s)`, `hex("#ff0000")`), or known names (`"aliceblue"`).
