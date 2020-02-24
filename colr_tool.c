@@ -13,7 +13,7 @@
 int main(int argc, char* argv[]) {
     ColrOpts opts = ColrOpts_new();
     int parse_ret = parse_args(argc, argv, &opts);
-    print_opts_repr(opts);
+    // print_opts_repr(opts);
     // Any non-negative return means we should stop right here.
     if (parse_ret >= 0) {
         ColrOpts_cleanup(&opts);
@@ -648,9 +648,12 @@ int parse_args(int argc, char** argv, ColrOpts* opts) {
         } else if (!opts->fore) {
             if (colr_str_eq(argv[optind], "rainbow")) {
                 opts->rainbow_fore = true;
+                // Set to empty so the next pass doesn't come down this branch.
+                opts->fore = ColorArg_to_ptr(ColorArg_empty());
             } else if (colr_str_eq(argv[optind], "rainbowterm")) {
                 opts->rainbow_fore = true;
                 opts->rainbow_term = true;
+                opts->fore = ColorArg_to_ptr(ColorArg_empty());
             } else {
                 opts->fore = fore(argv[optind]);
                 if (!validate_color_arg(*(opts->fore), argv[optind])) return EXIT_FAILURE;
@@ -659,9 +662,12 @@ int parse_args(int argc, char** argv, ColrOpts* opts) {
         } else if (!opts->back) {
             if (colr_str_eq(argv[optind], "rainbow")) {
                 opts->rainbow_back = true;
+                // Set to empty so the next pass doesn't come down this branch.
+                opts->back = ColorArg_to_ptr(ColorArg_empty());
             } else if (colr_str_eq(argv[optind], "rainbowterm")) {
                 opts->rainbow_back = true;
                 opts->rainbow_term = true;
+                opts->back = ColorArg_to_ptr(ColorArg_empty());
             } else {
                 opts->back = back(argv[optind]);
                 if (!validate_color_arg(*(opts->back), argv[optind])) return EXIT_FAILURE;

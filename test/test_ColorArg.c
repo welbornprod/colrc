@@ -225,6 +225,30 @@ subdesc(ColorArg_from_str) {
             );
         }
     }
+    it("handles mismatched names") {
+        // Passing a valid color name as a style, or a style name as a color
+        // should set the appropriate "TYPE_INVALID" types.
+        struct {
+            ArgType type;
+            char* name;
+            ColorType expected;
+        } tests[] = {
+            {FORE, "bright", TYPE_INVALID},
+            {FORE, "underline", TYPE_INVALID},
+            {BACK, "bright", TYPE_INVALID},
+            {BACK, "underline", TYPE_INVALID},
+            {STYLE, "white", TYPE_INVALID_STYLE},
+            {STYLE, "255;255;255", TYPE_INVALID_STYLE},
+        };
+        for_each(tests, i) {
+            ColorArg carg = ColorArg_from_str(tests[i].type, tests[i].name);
+            assert_colr_eq(
+                carg.value.type,
+                tests[i].expected
+            );
+        }
+    }
+
 }
 subdesc(ColorArg_from_StyleValue) {
     it("creates StyleValue args") {

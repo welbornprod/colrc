@@ -5202,6 +5202,14 @@ ColorArg ColorArg_from_str(ArgType type, const char* colorname) {
             .type=STYLE,
             .value=cval,
         };
+    } else if (((type == BACK) || (type == FORE)) && (cval.type == TYPE_STYLE)) {
+        // Trying to use a valid style name for a color.
+        cval.type = TYPE_INVALID;
+        return (ColorArg){
+            .marker=COLORARG_MARKER,
+            .type=type,
+            .value=cval,
+        };
     }
     return (ColorArg){
         .marker=COLORARG_MARKER,
