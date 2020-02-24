@@ -25,7 +25,7 @@ debug_err = debugprinter.debug_err
 colr_auto_disable()
 
 NAME = 'ColrC - Markdown Generator'
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -49,6 +49,8 @@ USAGESTR = f"""{VERSIONSTR}
                                  into an h2 header.
         -v,--version           : Show version.
 """
+
+SITE_ROOT = 'https://welbornprod.com/colrc'
 
 
 def main(argd):
@@ -150,14 +152,15 @@ def print_err(*args, **kwargs):
 
 
 def replace_func(line):
-    """ Returns a list of replacement lines if the line contains one of the
+    """ Returns a replacement line if the line contains one of the
         patterns in REPLACE_PATS.
         If there is no match, None is returned.
     """
+    # TODO: This will only apply one replacement per line.
     for pat, func in REPLACE_PATS.items():
         if pat.search(line) is not None:
             return pat.sub(func, line)
-    return []
+    return None
 
 
 def replace_includesrc(match):
@@ -200,6 +203,15 @@ def replace_includesrc(match):
         return []
     lines.append('```\n')
     return ''.join(lines)
+
+
+def replace_rel_link(match):
+    text, pagename = match.groups()
+    root = SITE_ROOT
+    if not pagename.startswith('/'):
+        root = f'{root}/'
+    url = f'{root}{pagename}.html'
+    return f'[{text}]({url})'
 
 
 def replace_ref(match):
@@ -249,6 +261,7 @@ class InvalidArg(ValueError):
 REPLACE_PATS = {
     r'\\includesrc\{.+\}': replace_includesrc,
     r'\\ref ([\w_\-\. ]+) ?("[\w\. ]+")?': replace_ref,
+    r'\[(.+)\]\((\w+)\.html\)': replace_rel_link,
 }
 REPLACE_PATS = {re.compile(k): v for k, v in REPLACE_PATS.items()}
 
