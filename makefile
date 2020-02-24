@@ -65,6 +65,7 @@ docs_pdf=$(docs_dir)/ColrC-manual.pdf
 docs_cj_src=$(docs_dir)/html
 docs_cj_dir=$(realpath ../../../cjwelborn.github.io/colrc)
 docs_cj_main_file=$(docs_cj_dir)/index.html
+dist_cj_dir=$(docs_cj_dir)/dist
 latex_dir=$(docs_dir)/latex
 latex_header=$(doc_dep_dir)/header.tex
 latex_style=$(doc_dep_dir)/doxygen.sty
@@ -207,17 +208,17 @@ $(docs_cj_main_file): $(docs_main_file)
 			printf "Copying PDF for cjwelborn.github.io.\n"; \
 			cp "$(docs_dir)/ColrC-manual.pdf" "$(docs_cj_dir)/ColrC-manual.pdf"; \
 		else \
-			printf "\nColrC PDF missing: %s\n" "$(docs_dir)/ColrC-manual.pdf"; \
+			printf "\nColrC PDF missing: %s\n" "$(docs_dir)/ColrC-manual.pdf" 1>&2; \
 		fi; \
 	else \
 		if [[ -n "$(docs_cj_dir)" ]]; then \
 			if [[ "$$NAME" == "cj" ]]; then \
 				printf "\nSite dir missing: %s\n" $(docs_cj_dir) 1>&2; \
 			else \
-				printf "\nSkipping \`docsdist\`, for user %s\n" "$$USER"; \
+				printf "\nSkipping \`distdocs\`, for user %s\n" "$$USER" 1>&2; \
 			fi; \
 		else \
-			printf "\nSite dir missing, \`docsdist\` is not for everyone.\n" 1>&2; \
+			printf "\nSite dir missing, \`distdocs\` is not for everyone.\n" 1>&2; \
 		fi; \
 	fi;
 
@@ -255,10 +256,10 @@ cleandebug: debug
 cleandocs: cleanhtml
 cleandocs: cleanlatex
 cleandocs: cleanpdf
-cleandocs: cleandocsdist
+cleandocs: cleandistdocs
 
-.PHONY: cleandocsdist
-cleandocsdist:
+.PHONY: cleandistdocs
+cleandistdocs:
 	@./tools/clean.sh -D "$(docs_cj_dir)"
 
 PHONY: cleanhtml
@@ -324,13 +325,34 @@ cppcheckview:
 cppcheckviewall:
 	@$(cppcheck_cmd) --view && $(cppcheck_cmd) -t --view
 
+.PHONY:
+distcj: dist
+	@if [[ -n "$(dist_cj_dir)" ]] && [[ -d "$(dist_cj_dir)" ]]; then \
+		printf "\nCleaning existing public dist files...\n"; \
+		rm "$(dist_cj_dir)"/*.tar.gz || { \
+			printf "\nFailed to remove public dist files!" 1>&2; \
+		}; \
+		if cp "$(dist_dir)"/* "$(dist_cj_dir)"; then \
+			printf "\nCopied dist files to public dir: %s\n" "$(dist_cj_dir)"; \
+		else \
+			printf "\nFailed to copy dist files to public dir!: %s\n" "$(dist_cj_dir)" 1>&2; \
+		fi; \
+	else \
+		printf "\nMissing public dist dir: %s\n" "$(dist_cj_dir)" 1>&2; \
+	fi;
+	@$(make_dist_cmd) -p -d $(dist_dir) $(dist_files)
+
+.PHONY: distdocs
+distdocs: $(docs_cj_main_file)
+
 .PHONY: distsrc
 distsrc:
-	@$(make_dist_cmd) -d $(dist_dir) $(dist_files)
+	@$(make_dist_cmd) -P -d $(dist_dir) $(dist_files)
 
-
-.PHONY: docsdist
-docsdist: $(docs_cj_main_file)
+.PHONY: distall
+distall: distdocs
+distall: distsrc
+distall: distcj
 
 .PHONY: docshtml
 docshtml: $(docs_main_file)
@@ -416,6 +438,11 @@ strip:
 		printf "\nError stripping executable: %s\n" "$(binary)" 1>&2; \
 	fi;
 
+.PHONY: uninstall
+uninstall:
+	@$(install_cmd) --uninstall
+
+
 .PHONY: help, targets
 help targets:
 	-@printf "Make targets available:\n\
@@ -456,6 +483,7 @@ help targets:
     examples          : Build example executables in $(examples_dir).\n\
     install           : Install the \`colrc\` executable.\n\
     installlink       : Install the \`colrc\` executable as a symlink.\n\
+    memcheck          : Run \`valgrind --tool=memcheck\` on the executable.\n\
     release           : Build the executable with optimization, and strip it.\n\
     release2          : Same as \`release\` target, but with -O2 instead of -O3.\n\
     run               : Run the executable. Args are set with COLR_ARGS.\n\
@@ -483,7 +511,7 @@ help targets:
                         and run the tests with \`--quiet\`.\n\
     testsummary       : View a summary of previously built test coverage reports.\n\
     testview          : View previously generated html test coverage reports.\n\
-    memcheck          : Run \`valgrind --tool=memcheck\` on the executable.\n\
+    uninstall         : Uninstall a previously installed \`colrc\` executable.\n\
 " | $(make_help_fmt_cmd);
 
 .PHONY: cleantest

@@ -24,6 +24,8 @@ commands, and all of them support the `-h`/`--help` options.
     - Generates the PDF manual from Doxygen's LaTeX output.
 - `get_version.sh`
     - Report the current ColrC version (based on the source files).
+- `install.sh`
+    - Installs and uninstalls the `colrc` executable.
 - `is_build.sh`
     - Determines the current build type for `colrc` and `test_colrc`
     (`debug`, `release`, `sanitize`).

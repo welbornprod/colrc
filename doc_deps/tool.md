@@ -8,7 +8,8 @@ the [original colr tool](https://pypi.org/project/colr), but operates
 of these installed at the same time. The ColrC version is known as `colrc`,
 where the original is known as `colr`.
 
-If you would like to use the ColrC tool, you will have to \subpage tool_building "build it".
+If you would like to use the ColrC tool, you will have to \subpage tool_building "build it"
+and install it.
 
 The ColrC tool can be used in shell scripts or as a standalone application in
 a variety of ways.

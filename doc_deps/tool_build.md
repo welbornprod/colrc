@@ -25,16 +25,22 @@ The build process doesn't take very long, and when it's done there will be a
 `colrc` executable in the project directory.
 
 # Install
-ColrC doesn't have an install script at the moment. There's not much to install
-though. It's just one executable file.
-
-You can symlink or the `colrc` executable to a directory that's in your `$PATH`:
+Installing is just copying or symlinking the executable somewhere in `$PATH`.
+There is a `make` target that will let you choose an install path, and do the
+rest for you:
 ```bash
-ln -s "$PWD"/colrc ~/.local/bin/colrc
+make install
+
+# Install as a symlink instead of a copy:
+make installlink
 ```
 
-Or, since `colrc` doesn't have any real dependencies itself, you could just
-copy it to `/usr/bin`:
+By default, it will ask for confirmation before installing or overwriting
+anything.
+
+# Uninstall
+If `colrc` was installed somewhere in `$PATH`, you can simply run the install
+script with `--uninstall`, or just:
 ```bash
-sudo cp colrc /usr/bin/colrc
+make uninstall
 ```

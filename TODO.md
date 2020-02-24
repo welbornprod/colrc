@@ -1,9 +1,6 @@
 # ColrC Todo List
 
-## Docs
-[ ] Colr Tool build instructions
-[ ] Colr Tool install instructions
-[ ] Downloads page with the dist package and the PDF manual.
+## Maybe
+[ ] Python extension or ColrC-based Colr.
+[ ] Windows 10+ support.
 
-## Install
-[ ] `make install`

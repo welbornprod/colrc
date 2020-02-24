@@ -6,6 +6,8 @@ For full documentation see [welbornprod.com/colrc](https://welbornprod.com/colrc
 **ColrC** <small>(<i><b>kuh</b>·lr·see</i>, feels like heresy)</small>
 is a C library for terminal colors/escape-codes on linux.
 
+There is also a command-line tool ([colr tool](https://welbornprod.com/colrc/tool.html)) based on **ColrC**.
+
 It is designed to be flexible and easy to use. Colors can be specified using
 defined names (`RED`, `BLUE`, etc.), 256-colors (`ext(36)`),
 RGB colors (`rgb(0, 0, 55)`), hex colors (`hex(s)`, `hex("#ff0000")`), or known names (`"aliceblue"`).
@@ -64,7 +66,7 @@ int main(void) {
 
 ```
 
-There are plenty of examples in the [documentation](examples.html), and
+There are plenty of examples in the [documentation](https://welbornprod.com/colrc/examples.html), and
 [on this page](#example-usage).
 
 ## Compiling
@@ -213,7 +215,7 @@ int main(int argc, char** argv) {
 
 ### Example Files
 
-For all examples, check the [documentation](examples.html).
+For all examples, check the [documentation](https://welbornprod.com/colrc/examples.html).
 Here is a table of the most common usage examples:
 
 Name                  | Example
