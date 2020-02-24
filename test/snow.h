@@ -107,27 +107,27 @@
  */
 
 #ifndef SNOW_COLOR_BOLD
-#define SNOW_COLOR_BOLD "\033[1m"
+#define SNOW_COLOR_BOLD "\x1b[1m"
 #endif
 
 #ifndef SNOW_COLOR_RESET
-#define SNOW_COLOR_RESET "\033[0m"
+#define SNOW_COLOR_RESET "\x1b[0m"
 #endif
 
 #ifndef SNOW_COLOR_SUCCESS
-#define SNOW_COLOR_SUCCESS "\033[32m"
+#define SNOW_COLOR_SUCCESS "\x1b[32m"
 #endif
 
 #ifndef SNOW_COLOR_FAIL
-#define SNOW_COLOR_FAIL "\033[31m"
+#define SNOW_COLOR_FAIL "\x1b[31m"
 #endif
 
 #ifndef SNOW_COLOR_MAYBE
-#define SNOW_COLOR_MAYBE "\033[35m"
+#define SNOW_COLOR_MAYBE "\x1b[35m"
 #endif
 
 #ifndef SNOW_COLOR_DESC
-#define SNOW_COLOR_DESC SNOW_COLOR_BOLD "\033[33m"
+#define SNOW_COLOR_DESC SNOW_COLOR_BOLD "\x1b[33m"
 #endif
 
 /*

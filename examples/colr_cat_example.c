@@ -2,21 +2,23 @@
 
 int main(void) {
     /*
-        You can build your strings with colr().
+        You can build your strings with colr_cat().
         Using a Colr (ColorText), or sprinkling fore(), back(), and style() calls,
         you can build multi-color strings and only worry about allocating/freeing
         the text.
 
         The order/number of arguments does not matter.
-        colr() accepts ColorTexts, ColorArgs, and strings (char*).
+        colr_cat() accepts ColorTexts, ColorArgs, and strings (char*).
     */
-    char *colorized = colr(
+    char *colorized = colr_cat(
         "This is plain.\n",
         Colr("This is styled.\n", fore(rgb(255, 0, 155))),
         fore(RED),
         "This was styled by the previous ColorArg.\n",
         NC,
-        "This is normal because of the 'reset code' that came before it."
+        "This is normal because of the 'reset code' that came before it.\n",
+        // See the colr_join example for more about this:
+        Colr_join(Colr("This was joined", fore(RED)), "[", "]")
     );
 
     // Prints a colorized, joined, version of all the strings above.
@@ -30,11 +32,17 @@ int main(void) {
     char *allocated;
     asprintf(&allocated, "\nThis is my string #%d\n", 1);
 
-    char *colored = colr(
+    char *colored = colr_cat(
         Colr(allocated, fore(ext(255)), style(UNDERLINE)),
         "This one should not be free'd though.\n"
     );
     printf("%s", colored);
     free(colored);
     free(allocated);
+
+    /*
+        For throw-away/nested results that will be used in ColrC functions/macros,
+        you can use the Colr_cat variant.
+    */
+    colr_puts(Colr_cat("No leaks: ", Colr("see", fore(RED)), "?"));
 }

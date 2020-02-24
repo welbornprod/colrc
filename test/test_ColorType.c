@@ -14,6 +14,24 @@
     } while (0)
 
 describe(ColorType) {
+subdesc(ColorType_eq) {
+    struct {
+        ColorType a;
+        ColorType b;
+        bool expected;
+    } tests[] = {
+        {TYPE_NONE, TYPE_NONE, true},
+        {TYPE_BASIC, TYPE_BASIC, true},
+        {TYPE_EXTENDED, TYPE_EXTENDED, true},
+        {TYPE_NONE, TYPE_BASIC, false},
+        {TYPE_BASIC, TYPE_EXTENDED, false},
+        {TYPE_EXTENDED, TYPE_NONE, false},
+    };
+    for_each(tests, i) {
+        bool result = ColorType_eq(tests[i].a, tests[i].b);
+        assert(result == tests[i].expected);
+    }
+}
 subdesc(ColorType_from_str) {
     it("recognizes bad values") {
         struct TestItem {
@@ -29,11 +47,13 @@ subdesc(ColorType_from_str) {
             {"xlightblue", TYPE_EXTENDED},
             {"1", TYPE_EXTENDED},
             {"255", TYPE_EXTENDED},
-            {"-1", TYPE_INVALID_EXTENDED_RANGE},
+            {"-1", TYPE_INVALID_EXT_RANGE},
             {"--1", TYPE_INVALID},
-            {"256", TYPE_INVALID_EXTENDED_RANGE},
+            {"256", TYPE_INVALID_EXT_RANGE},
             {"234,234,234", TYPE_RGB},
             {"355,255,255", TYPE_INVALID_RGB_RANGE},
+            {"underline", TYPE_STYLE},
+            {"bright", TYPE_STYLE},
         };
         for_each(tests, i) {
             const char* arg = tests[i].arg;
@@ -48,6 +68,29 @@ subdesc(ColorType_from_str) {
             assert_ColorType_name_equal(name, (ColorType)TYPE_BASIC);
         }
     }
+    it("honors the style_names mapping") {
+        // Test all style names, in case of some weird regression.
+        char* known_basic[] = {"none", "normal", "reset"};
+        for_len(style_names_len, i) {
+            bool known_duplicate = false;
+            for_each(known_basic, j) {
+                if (colr_str_eq(style_names[i].name, known_basic[j])) {
+                    // This is a known thing.
+                    // "none"/"reset", and others are also a BasicValue names,
+                    // and ColorType_from_str honors them first.
+                    // TODO: This may be re-worked so that the style comes first,
+                    //       but then the "honors basic_names" tests would fail too.
+                    known_duplicate = true;
+                    break;
+                }
+
+            }
+            if (known_duplicate) continue;
+
+            char* name = style_names[i].name;
+            assert_ColorType_name_equal(name, (ColorType)TYPE_STYLE);
+        }
+    }
 }
 subdesc(ColorType_is_invalid) {
     it("detects invalid ColorTypes") {
@@ -60,6 +103,7 @@ subdesc(ColorType_is_invalid) {
             {"xwhite", false},
             {"255;255;255", false},
             {"#aabbcc", false},
+            {"aliceblue", false},
         };
         for_each(tests, i) {
             ColorType type = ColorType_from_str(tests[i].name);
@@ -82,6 +126,7 @@ subdesc(ColorType_is_valid) {
             {"xwhite", true},
             {"255;255;255", true},
             {"#aabbcc", true},
+            {"aliceblue", true},
         };
         for_each(tests, i) {
             ColorType type = ColorType_from_str(tests[i].name);
@@ -106,12 +151,35 @@ subdesc(ColorType_repr) {
             {TYPE_STYLE, "TYPE_STYLE"},
             {TYPE_INVALID, "TYPE_INVALID"},
             {TYPE_INVALID_STYLE, "TYPE_INVALID_STYLE"},
-            {TYPE_INVALID_EXTENDED_RANGE, "TYPE_INVALID_EXTENDED_RANGE"},
+            {TYPE_INVALID_EXT_RANGE, "TYPE_INVALID_EXT_RANGE"},
             {TYPE_INVALID_RGB_RANGE, "TYPE_INVALID_RGB_RANGE"},
         };
         for_each(tests, i) {
             char* s = ColorType_repr(tests[i].type);
             assert_str_eq(s, tests[i].repr, "ColorType_repr() failed!");
+            free(s);
+        }
+    }
+}
+subdesc(ColorType_to_str) {
+    it("creates a ColorType string") {
+        struct {
+            ColorType type;
+            char* repr;
+        } tests[] = {
+            {TYPE_NONE, "none"},
+            {TYPE_BASIC, "basic"},
+            {TYPE_EXTENDED, "ext"},
+            {TYPE_RGB, "rgb"},
+            {TYPE_STYLE, "style"},
+            {TYPE_INVALID, "invalid"},
+            {TYPE_INVALID_STYLE, "invalid style"},
+            {TYPE_INVALID_EXT_RANGE, "invalid ext"},
+            {TYPE_INVALID_RGB_RANGE, "invalid rgb"},
+        };
+        for_each(tests, i) {
+            char* s = ColorType_to_str(tests[i].type);
+            assert_str_eq(s, tests[i].repr, "ColorType_to_str() failed!");
             free(s);
         }
     }

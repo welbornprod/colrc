@@ -10,7 +10,7 @@ CFLAGS=-Wall -Wextra -Wenum-compare -Wfloat-equal -Winline -Wlogical-op \
        -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 \
        -D_GNU_SOURCE \
        -std=c11
-CFLAGS+=-g3 -DDEBUG
+CFLAGS+=-gdwarf-4 -g3 -DDEBUG -DCOLR_DEBUG
 LIBS=-lm
 INCLUDES=-iquote../
 example_source:=$(wildcard *.c)
@@ -21,6 +21,7 @@ example_objects=$(example_source:.c=.o)
 binobjects=$(example_objects) colr.o
 objects:=$(source:.c=.o)
 binaries=$(basename $(notdir $(example_objects)))
+make_help_fmt_cmd=python3 ../tools/make_help_fmter.py
 
 .PHONY: all
 all: $(binaries)
@@ -49,7 +50,7 @@ $(example_objects): $(example_source) $(example_headers)
 		: # printf "\nNot compiling $$cfile ($? changed).\n"; \
 	fi;
 
-.PHONY: clang, clangrelease
+.PHONY: clang
 clang: CC=clang
 clang: CFLAGS+=-Wno-unknown-warning-option -Wliblto
 clang: all
@@ -57,6 +58,10 @@ clang: all
 .PHONY: clean
 clean:
 	-@../tools/clean.sh - $(binaries) $(example_objects) colr.o
+
+.PHONY: cleanquiet
+cleanquiet:
+	-@../tools/clean.sh --quiet - $(binaries) $(example_objects) colr.o
 
 .PHONY: run
 run: all
@@ -66,6 +71,6 @@ run:
 .PHONY: help, targets
 help targets:
 	-@printf "Make targets available:\n\
-	all       : Compile all examples.\n\
-	clean     : Delete previous build files.\n\
-	";
+    all       : Compile all examples.\n\
+    clean     : Delete previous build files.\n\
+" | $(make_help_fmt_cmd);

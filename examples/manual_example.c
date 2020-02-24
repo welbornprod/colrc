@@ -2,7 +2,7 @@
 
 int main(void) {
     // Basic colors:
-    char* s = colr(
+    char* s = colr_cat(
         fore(RED),
         "This is a test ",
         back(BLUE),

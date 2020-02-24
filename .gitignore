@@ -13,3 +13,10 @@ deleteme.*
 callgrind.*
 cachegrind.*
 images/*.xcf
+libcolr.so
+cppcheck_report
+colrc-[0-9]*.[0-9]*.*[0-9]
+snippet.last.*
+snippet.colr.*.c
+unused.json
+cppcheck.cached*.json

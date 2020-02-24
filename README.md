@@ -1,20 +1,75 @@
-# Documentation {#index}
+# ColrC
 
-# Getting Started
-**ColrC** is a C library for terminal colors/escape-codes on linux.
+For full documentation see [welbornprod.com/colrc](https://welbornprod.com/colrc/index.html)
 
-It is designed to be easy to use. Calculations and allocations are done for you
-when it comes to the escape codes needed to colorize text. You are responsible
-for the text strings themselves (the words you want to colorize).
+## Getting Started
+**ColrC** <small>(<i><b>kuh</b>·lr·see</i>, feels like heresy)</small>
+is a C library for terminal colors/escape-codes on linux.
 
-## Compiling
-You must include colr.h and link colr.c in with your
-program.
+There is also a command-line tool ([colr tool](https://welbornprod.com/colrc/tool.html)) based on **ColrC**.
+
+It is designed to be flexible and easy to use. Colors can be specified using
+defined names (`RED`, `BLUE`, etc.), 256-colors (`ext(36)`),
+RGB colors (`rgb(0, 0, 55)`), hex colors (`hex(s)`, `hex("#ff0000")`), or known names (`"aliceblue"`).
+These colors can be used with `fore()` and `back()` to set the foreground/background
+colors (`fore(RED)`, `back(WHITE)`).
+Styles are specified with their defined names (`style(BRIGHT)`).
+
+Strings can be joined, replaced, colorized, and justified using a few
+functions/macros. `fore()`, `back()`, and `style()` are mostly optional
+and position doesn't matter.
+
+Ownership in **ColrC** is easy to remember. Strings (`char*`) are yours,
+everything else belongs to **ColrC**. If you create a **ColrC** object with one
+of the `Colr*` macros to use inside of the `colr*` macros (notice the casing),
+it will be released. The resulting strings that are returned from the `colr*`
+macros will not be released. You must `free()` those.
+
+If you use `colr_print` or `colr_puts` you won't have to manage the resulting
+string either.
+
+
+## Including
+You must include colr.h and compile colr.c along with your program.
 ```c
 #include "colr.h"
 
-// ..use ColrC functions/macros/etc.
+int main(void) {
+    // Simple usage:
+    char* s = colr("Hello from ColrC!", fore("blueviolet"), back(WHITE));
+    if (!s) return EXIT_FAILURE;
+    puts(s);
+    // Or just:
+    colr_puts("Hello again!", fore(rgb(255, 0, 0)), back("#ffff00"));
+
+    // Fancier functions:
+    char* s2 = colr_replace(
+        s,
+        "Hello",
+        Colr_join(
+            " ",
+            Colr_cat(
+                Colr("Good", fore(rgb(0, 0, 255)), back(RESET)),
+                Colr("bye", fore(CYAN), style(BRIGHT))
+            ),
+            "and",
+            Colr("good luck", style(UNDERLINE))
+        )
+    );
+    free(s);
+    if (!s2) return EXIT_FAILURE;
+    puts(s2);
+    free(s2);
+
+    return EXIT_SUCCESS;
+}
+
 ```
+
+There are plenty of examples in the [documentation](https://welbornprod.com/colrc/examples.html), and
+[on this page](#example-usage).
+
+## Compiling
 
 ColrC uses a couple glibc features, which may not be compatible with your system.
 Most linux distros are compatible.
@@ -26,6 +81,7 @@ The colr.h header defines `_GNU_SOURCE` if it's not already defined (see `man fe
 gcc -std=c11 -c myprogram.c colr.c -o myexecutable -lm
 ```
 
+
 ## Files
 
 The only two files that are needed to use ColrC are colr.h and colr.c.
@@ -34,45 +90,146 @@ Name   | Description
 :----- | :---------------------------------------------
 colr.h | The interface to ColrC.
 colr.c | Where ColrC is implemented. This must be compiled/linked with your program.
-dbug.h | Some debugging support for the colr tool executable, only enabled when compiled with `-DDEBUG`.
+
+You can also create a shared library (`libcolr.so`) for your system. Clone the
+repo and run the make target:
+```bash
+make lib
+```
+
+If you link the library (and `libm`), you will only need to include the header (`colr.h`):
+```bash
+gcc -std=c11 -c myprogram.c -o myexecutable -lm -lcolr
+```
 
 ## Example Usage
 
-You use colr(), colr_join(), and Colr(), along with fore(), back(), and style()
-to build colorized strings.
+You use colr_cat(), colr_join(), and Colr(), along with fore(), back(), and style()
+to build colorized strings. There are some print-related functions, for quick
+building/printing of colorized strings (colr_puts() and colr_print()).
 
-\includesrc{examples/Colr_example.c}
+```c
+#include "colr.h"
 
-If you find yourself typing the same thing over and over to join by a common
-element, just use colr_join():
+int main(int argc, char** argv) {
+    // Print-related macros, using Colr() to build colorized text:
+    puts("\nColrC supports ");
+    colr_puts(Colr_join(
+        ", ",
+        Colr("basic", fore(WHITE)),
+        Colr("extended (256)", fore(ext(155))),
+        Colr("rgb", fore(rgb(155, 25, 195))),
+        Colr("hex", fore(hex("#ff00bb"))),
+        Colr("extended hex", fore(ext_hex("#ff00bb"))),
+        Colr("color names", fore("dodgerblue"), back("aliceblue")),
+        Colr("and styles.", style(BRIGHT))
+    ));
 
-\includesrc{examples/colr_join_example.c}
+    colr_puts(
+        "Strings and ",
+        Colr("colors", fore(LIGHTBLUE)),
+        " can be mixed in any order."
+    );
 
-If you prefer to manually insert the escape codes in an arbitrary order,
-you can use fore(), back(), and style() directly inside a colr() call:
+    // Create a string, using colr(), instead of colr_puts() or colr_print().
+    char* mystr = colr("Don't want to print this.", style(UNDERLINE));
+    printf("\nNow I do: %s\n", mystr);
+    free(mystr);
 
-\includesrc{examples/manual_example.c}
+    // Concatenate existing strings with ColrC objects.
+    // Remember that the colr macro free ColrC objects, not strings.
+    // So I'm going to use the Colr* macros inside of this call (not colr*).
+    char* catted = colr_cat(
+        "Exhibit: ",
+        Colr("b", fore(BLUE)),
+        "\nThe ColorText/Colr was released."
+    );
+    puts(catted);
+    free(catted);
 
+    // Create a ColorText, on the heap, for use with colr_cat(), colr_print(),
+    // or colr_puts().
+    ColorText* ctext = NULL;
+    if (argc == 1) {
+        ctext = Colr("<nothing>", fore(RED));
+    } else {
+        ctext = Colr(argv[1], fore(GREEN));
+    }
+    char* userstr = colr_cat("Argument: ", ctext);
+    puts(userstr);
+    // colr_cat() already called ColorText_free(ctext).
+    free(userstr);
 
-Finally, if you are going to be making your own Colrs outside of the macros,
-you're going to need to know how to `free()` them:
+    // Create a joined string (a "[warning]" label).
+    char* warning_label = colr_join(Colr("warning", fore(YELLOW)), "[", "]");
+    // Simulate multiple uses of the string.
+    for (int i = 1; i < 4; i++) printf("%s This is #%d\n", warning_label, i);
+    // Okay, now we're done with the colorized string.
+    free(warning_label);
 
-\includesrc{examples/Colr_manual_example.c}
+    // Colorize an existing string by replacing a word.
+    char* logtext = "[warning] This is an awesome warning.";
+    char* colorized = colr_replace(
+        logtext,
+        "warning",
+        Colr("warning", fore(YELLOW))
+    );
+    // Failed to allocate for new string?
+    if (!colorized) return EXIT_FAILURE;
+    puts(colorized);
+    // You have to free the resulting string.
+    free(colorized);
+
+    // Or colorize an existing string by replacing a regex pattern.
+    colorized = colr_replace_re(
+        logtext,
+        "\\[\\w+\\]",
+        Colr_join(
+            Colr("ok", style(BRIGHT)),
+            "(",
+            ")"
+        ),
+        REG_EXTENDED
+    );
+    if (!colorized) return EXIT_FAILURE;
+    puts(colorized);
+    free(colorized);
+
+    // Or maybe you want to replace ALL of the occurrences?
+    char* logtext2 = "[warning] This is an awesome warning.";
+    // There is also a colr_replace_re_all() if you'd rather use a regex pattern.
+    char* colorizedall = colr_replace_all(
+        logtext2,
+        "warning",
+        Colr("WARNING", fore(YELLOW))
+    );
+    // Failed to allocate for new string?
+    if (!colorizedall) return EXIT_FAILURE;
+    puts(colorizedall);
+    // You have to free the resulting string.
+    free(colorizedall);
+
+}
+```
+
 
 ### Example Files
 
-There are more examples in the documentation:
+For all examples, check the [documentation](https://welbornprod.com/colrc/examples.html).
+Here is a table of the most common usage examples:
 
-Name           | Example
-:------------- | :-----------------
-\ref colr      | \ref colr_example.c
-\ref colr_join | \ref colr_join_example.c
-\ref Colr      | \ref Colr_example.c
-\ref fore      | \ref fore_example.c
-\ref back      | \ref back_example.c
-\ref style     | \ref style_example.c
+Name                  | Example
+:-------------------- | :-----------------------------
+Colr             | [Colr_example.c](examples/Colr_example.c)
+colr_cat         | [colr_cat_example.c](examples/colr_cat_example.c)
+colr_join        | [colr_join_example.c](examples/colr_join_example.c)
+colr_replace     | [colr_replace_example.c](examples/colr_replace_example.c)
+colr_replace_re  | [colr_replace_re_example.c](examples/colr_replace_re_example.c)
+fore             | [fore_example.c](examples/fore_example.c)
+back             | [back_example.c](examples/back_example.c)
+style            | [style_example.c](examples/style_example.c)
 
-All of these examples can be built with the `examples` target:
+All of the examples can be built with the `examples` target:
 ```bash
 make examples
 ```
@@ -84,15 +241,20 @@ target (`make runexamples`), or with the example runner:
 ```
 
 There is also a "snippet runner" that can build and run
-arbitrary C code snippets, but is useful for building and running all example
+arbitrary C code snippets, mainly used for building and running all example
 code snippets found in the ColrC source code itself:
 ```bash
 ./tools/snippet.py --examples
 ```
 
-To see the source-based examples in the terminal you can run:
+To see a list of source-based examples in the terminal you can run:
 ```bash
-./tools/snippet.py --listexamples
+./tools/snippet.py --listnames [NAME_PATTERN]
+```
+
+To view the source code for those examples, you can run:
+```bash
+./tools/snippet.py --listexamples [NAME_PATTERN]
 ```
 
 ## Why
@@ -103,51 +265,10 @@ ColrC is the `C` version of [Colr](https://github.com/welbornprod/colr)
 The programming styles vary because `C` doesn't allow easy method chaining,
 and instead leans towards nested function calls.
 
-There are other terminal color libraries out there, but I'm not fond of the
-approach that they take (wrapping file descriptors, and manually concatenating).
-At least, in the libraries that I've seen so far.
-
+This is an attempt to create a flexible and easy version for `C`.
 
 ## Future
 
 In the future there may be a shared library or a python extension based on
 ColrC, but for now I'm finishing out the basic features and testing.
-
-## Tests
-
-ColrC uses [snow](https://github.com/mortie/snow) for testing.
-If you want to run them you will have to download/clone the source and
-build/run them:
-```bash
-make test
-```
-
-This will build all of the tests using the latest `colr.c` and run them.
-
-You can also run the tests through `valgrind` with the `testmemcheck` target:
-```bash
-make testmemcheck
-```
-
-The 'everything test' builds the colr tool and unit tests, both debug and
-release mode (some bugs only show up in release mode), and runs them through
-`valgrind`.
-The examples are built and ran through `valgrind`, including the examples found
-in the source code (see `snippet.py --examples`).
-The coverage target is built (with the html report).
-Finally, the binaries may be rebuilt if they are in a different state than
-when the process started (switch back to debug build for development).
-
-If any of those things fail, the process is stopped and there
-is probably a bug worth fixing. Errors are always reported, but the
-noise from all of those steps can be silenced with `--quiet`.
-
-Each of these steps has found one or more bugs in the code or documentation
-while developing ColrC. I don't mind running this before committing my changes.
-
-If you'd like to run every possible compile target, with tests and memcheck,
-including the example code and source-file examples (the 'everything test'):
-```bash
-./test/run_tests.sh --all --quiet
-```
 

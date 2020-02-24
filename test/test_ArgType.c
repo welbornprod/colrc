@@ -6,6 +6,24 @@
 #include "test_ColrC.h"
 
 describe(ArgType) {
+subdesc(ArgType_eq) {
+    struct {
+        ArgType a;
+        ArgType b;
+        bool expected;
+    } tests[] = {
+        {ARGTYPE_NONE, ARGTYPE_NONE, true},
+        {FORE, FORE, true},
+        {BACK, BACK, true},
+        {ARGTYPE_NONE, FORE, false},
+        {FORE, BACK, false},
+        {BACK, ARGTYPE_NONE, false},
+    };
+    for_each(tests, i) {
+        bool result = ArgType_eq(tests[i].a, tests[i].b);
+        assert(result == tests[i].expected);
+    }
+}
 subdesc(ArgType_repr) {
     it("creates a ArgType_repr") {
         char* s = ArgType_repr(ARGTYPE_NONE);

@@ -125,6 +125,10 @@ a {
 	text-decoration: none;
 }
 
+.contents a {
+    font-weight: bold;
+}
+
 .contents a:visited {
 	color: #3D3D3D;
 }
@@ -196,7 +200,7 @@ div.line {
 	font-family: "DejaVu Sans Mono", "Source Code Pro", monospace, fixed;
     font-size: 13px;
 	min-height: 13px;
-	line-height: 1.0;
+	line-height: 1.2; /* Default: 1.0; */
 	text-wrap: unrestricted;
 	white-space: -moz-pre-wrap; /* Moz */
 	white-space: -pre-wrap;     /* Opera 4-6 */
@@ -883,7 +887,7 @@ div.directory {
     background-position: 0px -4px;
     background-repeat: repeat-y;
     vertical-align:top;
-    display: inline-block;
+    display: none; /* inline-block; */
 }
 
 table.directory {
@@ -1170,7 +1174,7 @@ dl.section dd {
 
 #projectlogo {
 	text-align: center;
-	/* vertical-align: bottom; */
+	vertical-align: middle;
 	border-collapse: separate;
 }
 
@@ -1639,6 +1643,7 @@ div.examplecode-header {
 }
 .examplecode .fragment, .included-examplecode .fragment, .contents .textblock .fragment {
     background: linear-gradient(45deg, #272822, #272822de);
+    color: #FBFCFD;
 }
 .contents div.fragment {
     /* Source viewer */

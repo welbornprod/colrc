@@ -3,17 +3,30 @@
 # Generates a PDF from Doxygen's LaTeX output.
 # -Christopher Welborn 07-08-2019
 appname="gen_latex_pdf"
-appversion="0.0.1"
+appversion="0.0.2"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
-appdir="${apppath%/*}/.."
+appdir="${apppath%/*}"
 
-latex_dir="${appdir}/docs/latex"
+colrc_dir="${appdir}/.."
+latex_dir="${colrc_dir}/docs/latex"
 doxy_tex="${latex_dir}/refman.tex"
 ref_pdf="${latex_dir}/refman.pdf"
-doc_pdf="${appdir}/docs/ColrC-manual.pdf"
-doxy_config="${appdir}/Doxyfile_latex"
+doc_pdf="${colrc_dir}/docs/ColrC-manual.pdf"
+doxy_config="${colrc_dir}/doc_deps/Doxyfile_latex"
 
+declare -A script_deps=(
+    ["doxygen"]="doxygen"
+    ["pdflatex"]="texlive-latex-base"
+    ["makeindex"]="texlive-binaries"
+)
+for script_dep in "${!script_deps[@]}"; do
+    hash "$script_dep" &>/dev/null || {
+        printf "\nMissing \`%s\` command.\n" "$script_dep" 1>&2
+        printf "Install the \`%s\` package with your package manager.\n" "${script_deps[$script_dep]}" 1>&2
+        exit 1
+    }
+done
 shopt -s nullglob
 
 
@@ -188,8 +201,11 @@ do_ref=0
 do_clean_doxy=0
 do_clean_pdf=0
 no_colr=0
-hash colr-run &>/dev/null || no_colr=1
-
+hash colr-run &>/dev/null || {
+    printf "\nOutput would be a lot prettier if you installed colr-run:\n" 2>&1
+    printf "    pip install colr\n" 2>&1
+    no_colr=1
+}
 for arg; do
     case "$arg" in
         "-Cc" | "-cC" | "-CC" | "-cc")
