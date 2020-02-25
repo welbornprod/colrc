@@ -20,3 +20,4 @@ snippet.last.*
 snippet.colr.*.c
 unused.json
 cppcheck.cached*.json
+*.srctrl*

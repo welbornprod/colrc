@@ -78,7 +78,7 @@
                      stdio.h: asprintf()
                     locale.h: uselocale(), LC_GLOBAL_LOCALE
                     string.h: strndup(), strdup(), strcmp(), strcasecmp(), strnlen()
-                      math.h: M_PI
+                      math.h: sin(), M_PI
 
         */
         #define _GNU_SOURCE
@@ -155,7 +155,7 @@
 #include <stdarg.h> // Variadic functions and `va_list`.
 #include <stdbool.h>
 #include <stdint.h> // marker integers for colr structs
-#include <stdio.h> // snprintf, etc.
+#include <stdio.h> // snprintf, isatty, etc.
 #include <stdlib.h> // calloc, free, malloc, etc.
 #include <string.h> // strcat
 #include <sys/ioctl.h> //  For `struct winsize` and the `ioctl()` call to use it.
