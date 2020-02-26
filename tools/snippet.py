@@ -52,7 +52,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.3.0'
+VERSION = '0.3.1'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -134,6 +134,10 @@ USAGESTR = f"""{VERSIONSTR}
 
     Options:
         ARGS                   : Extra arguments for the compiler.
+                                 You can also add a single-line comment in the
+                                 snippet that starts with 'args:', followed by
+                                 the extra compiler arguments.
+                                 Like: // args: -Wall -pthread
         CODE                   : Code to compile. It is auto-wrapped in a main()
                                  function if no main() signature is found.
                                  Auto-includes are included unless include
@@ -426,6 +430,9 @@ def edit_snippet(filepath=None, text=None):
         '    You may also write "cancel" at the top of the file, or insert a',
         '    single/block comment with the first word as "cancel" anywhere in',
         '    the file to cancel compilation.',
+        '    You can add compiler arguments to the defaults by starting the',
+        '    line with "args:" inside of a comment, or on a single-line',
+        '    comment. Like: "// args: -Wall -pthread"',
         '*/\n',
     ))
     if text:
@@ -1537,6 +1544,7 @@ class Snippet(object):
             self.name = str(CName(self.name))
         # Set when code is written to a temp file:
         self.src_file = None
+        self.script_args = self.parse_args()
 
     def __bool__(self):
         return bool(self.code)
@@ -1573,6 +1581,9 @@ class Snippet(object):
         if not self.code:
             # No code to compile.
             raise CompileError(self.src_file, reason='no code to compile')
+
+        user_args = user_args or []
+        user_args.extend(self.script_args)
 
         status(C(': ').join(
             C('Compiling', 'cyan'),
@@ -1689,9 +1700,40 @@ class Snippet(object):
             line.startswith('main(')
         )
 
+    def parse_args(self):
+        """ Look for comments with 'args:' in them, and return a list of
+            any compiler arguments found.
+            Returns [] if none are found.
+        """
+        level = 0
+        args = []
+        for line in self.code.splitlines():
+            stripped = line.strip()
+            if '/*' in line:
+                level += 1
+            # This would also include single-line comments inside of block
+            # comments, but I'm not trying to write a full parser just to
+            # add some compiler flags in a little code snippet.
+            # If you put 'args:' at the start of a line, inside a comment,
+            # then it counts. That's it.
+            if level or stripped.startswith('//'):
+                # Inside a comment.
+                line = stripped.lstrip('/').lstrip()
+                if line.startswith('args:'):
+                    _, _, rest = line.partition(':')
+                    args.extend(rest.strip().split(' '))
+            if '*/' in line:
+                level -= 1
+        if args:
+            debug(f'Found script args: {" ".join(args)}')
+        return args
+
     def preprocess(self, user_args=None, make_target=None):
         """ Run this snippet through gcc's preprocessor and print the output.
         """
+        user_args = user_args or []
+        user_args.extend(self.script_args)
+
         status(C(': ').join(
             C('Compiling', 'cyan'),
             self.name,

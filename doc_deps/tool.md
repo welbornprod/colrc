@@ -1,7 +1,7 @@
 # Tool {#tool}
 # About
 
-The ColrC repo includes the "**ColrC Tool**", which is a program that colorizes
+The ColrC repo includes the **ColrC Tool**, which is a program that colorizes
 text from the command line. It offers all of the important features from
 the [original colr tool](https://pypi.org/project/colr), but operates
 *much* faster because it was written in a compiled language. You can have both
