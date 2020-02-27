@@ -16,12 +16,11 @@
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
 /* Tell clang to ignore this unused inclusion macro. */
 #pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wnounused-macros"
 #pragma clang diagnostic ignored "-Wunused-macros"
 //! Name of this library.
 #define DBUG_NAME "dbug"
 //! Version for this library.
-#define DBUG_VERSION "0.0.3"
+#define DBUG_VERSION "0.0.4"
 //! Long version string for this library.
 #define DBUG_VERSION_STR DBUG_NAME " v. " DBUG_VERSION
 
@@ -71,9 +70,11 @@
         \pi ... Format string and all other arguments to satisfy the format string.
     */
     #define dbug_msg(...) \
-        fprintf(stderr, "%s", DBUG_COLOR_GREEN); \
-        fprintf(stderr, __VA_ARGS__); \
-        fprintf(stderr, "%s", DBUG_COLOR_NONE);
+        do { \
+            fprintf(stderr, "%s", DBUG_COLOR_GREEN); \
+            fprintf(stderr, __VA_ARGS__); \
+            fprintf(stderr, "%s", DBUG_COLOR_NONE); \
+        } while (0)
 
     /*! Macro for printing an error message.
 
@@ -83,9 +84,11 @@
         \pi ... Format string and all other arguments to satisfy the format string.
     */
     #define dbug_msg_err(...) \
-        fprintf(stderr, "%s", DBUG_COLOR_RED); \
-        fprintf(stderr, __VA_ARGS__); \
-        fprintf(stderr, "%s", DBUG_COLOR_NONE);
+        do { \
+            fprintf(stderr, "%s", DBUG_COLOR_RED); \
+            fprintf(stderr, __VA_ARGS__); \
+            fprintf(stderr, "%s", DBUG_COLOR_NONE); \
+        } while (0)
 
     /*! Macro for printing debug information.
 
@@ -95,8 +98,10 @@
         \pi ... Format string and all other arguments to satisfy the format string.
     */
     #define dbug(...) \
-        dbug_lineinfo(); \
-        dbug_msg(__VA_ARGS__);
+        do { \
+            dbug_lineinfo(); \
+            dbug_msg(__VA_ARGS__); \
+        } while (0)
     /*! Macro for printing debug error information.
 
         \details
@@ -105,8 +110,10 @@
         \pi ... Format string and all other arguments to satisfy the format string.
     */
     #define debugerr(...) \
-        dbug_lineinfo(); \
-        dbug_msg_err(__VA_ARGS__);
+        do { \
+            dbug_lineinfo(); \
+            dbug_msg_err(__VA_ARGS__); \
+        } while (0)
 
     /* Warn for any other unused macros, for gcc and clang. */
     #pragma clang diagnostic pop
