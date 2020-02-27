@@ -79,7 +79,6 @@
                     locale.h: uselocale(), LC_GLOBAL_LOCALE
                     string.h: strndup(), strdup(), strcmp(), strcasecmp(), strnlen()
                       math.h: sin(), M_PI
-
         */
         #define _GNU_SOURCE
     #elif _GNU_SOURCE < 1
@@ -155,7 +154,7 @@
 #include <stdarg.h> // Variadic functions and `va_list`.
 #include <stdbool.h>
 #include <stdint.h> // marker integers for colr structs
-#include <stdio.h> // snprintf, isatty, etc.
+#include <stdio.h> // snprintf, fileno, etc.
 #include <stdlib.h> // calloc, free, malloc, etc.
 #include <string.h> // strcat
 #include <sys/ioctl.h> //  For `struct winsize` and the `ioctl()` call to use it.
@@ -328,8 +327,15 @@
 //! Seed value for colr_str_hash().
 #define COLR_HASH_SEED 5381
 
-//! Format character string suitable for use in the printf-family of functions.
-#define COLR_FMT "R"
+/*! Format character string suitable for use in the printf-family of functions.
+    This can be defined to any single-char string before including colr.h if
+    you don't want to use the default value.
+*/
+#ifndef COLR_FMT
+    #define COLR_FMT "R"
+#endif
+#pragma info "Set COLR_FMT=" COLR_FMT
+
 //! Character used in printf format strings for Colr objects.
 #define COLR_FMT_CHAR COLR_FMT[0]
 //! Modifier for Colr printf character to produce escaped output.

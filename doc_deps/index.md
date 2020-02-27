@@ -39,7 +39,7 @@ int main(void) {
     if (!s) return EXIT_FAILURE;
     puts(s);
     // Or just:
-    colr_puts("Hello again!", fore(rgb(255, 0, 0)), back("#ffff00"));
+    colr_puts(Colr("Hello again!", fore(rgb(255, 0, 0)), back("#ffff00")));
 
     // Fancier functions:
     char* s2 = colr_replace(

@@ -1330,6 +1330,7 @@ void colr_printf_register(void) {
     if (is_registered) return;
     // Do the actual registering, if not done already.
     register_printf_specifier(COLR_FMT_CHAR, colr_printf_handler, colr_printf_info);
+    printf("REGISTERED: %c\n", COLR_FMT_CHAR);
     // Register the '/' modifier for escaped output.
     colr_printf_esc_mod = register_printf_modifier(L"/");
     is_registered = true;
@@ -4406,7 +4407,7 @@ char* _colr_join(void* joinerp, ...) {
         joiner = (char* )joinerp;
     }
     if (!joiner) {
-        // The callers of this function guard against this.
+        // This is mostly impossible because of the first NULL check.
         // LCOV_EXCL_START
         free(final);
         va_end(args);

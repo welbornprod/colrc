@@ -655,6 +655,10 @@ def get_gcc_cmd(
     if c_files:
         # Remove linker options from c-file command.
         cmd = [s for s in cmd if not s.startswith('-l')]
+    else:
+        # Auto-include libm if colr.o is being compiled.
+        if ('colr.o' in input_files) and ('-lm' not in cmd):
+            cmd.append('-lm')
     cmd.insert(0, compiler)
     return cmd
 
