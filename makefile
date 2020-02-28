@@ -60,7 +60,8 @@ docs_md=$(wildcard $(doc_dep_dir)/*.md)
 docs_main_file=$(docs_dir)/html/index.html
 docs_css=$(doc_dep_dir)/customdoxygen.css
 docs_examples=$(wildcard examples/*.c)
-docs_deps=$(docs_config) $(docs_html_config) $(docs_examples) $(docs_css) $(docs_md)
+docs_deps=$(docs_config) $(docs_html_config) $(docs_examples) $(docs_css) $(docs_md) \
+			$(doc_dep_dir)/header.html $(doc_dep_dir)/footer.html
 docs_pdf=$(docs_dir)/ColrC-manual.pdf
 docs_cj_src=$(docs_dir)/html
 docs_cj_dir=$(realpath ../../../cjwelborn.github.io/colrc)
@@ -340,14 +341,13 @@ distcj: dist
 	else \
 		printf "\nMissing public dist dir: %s\n" "$(dist_cj_dir)" 1>&2; \
 	fi;
-	@$(make_dist_cmd) -p -d $(dist_dir) $(dist_files)
 
 .PHONY: distdocs
 distdocs: $(docs_cj_main_file)
 
 .PHONY: distsrc
-distsrc:
-	@$(make_dist_cmd) -P -d $(dist_dir) $(dist_files)
+distsrc: $(dist_files)
+	@$(make_dist_cmd) -d $(dist_dir) $(dist_files)
 
 .PHONY: distall
 distall: distdocs

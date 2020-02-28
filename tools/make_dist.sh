@@ -19,6 +19,7 @@ if ! colrc_version="$(bash "$get_ver_script")"; then
     exit 1
 fi
 pkg_name="colrc-$colrc_version.tar.gz"
+pkg_name_latest="colrc-latest.tar.gz"
 
 # Defaults (shouldn't really be used. Be explicit.)
 default_dir="$(readlink -f ../dist)"
@@ -38,9 +39,6 @@ declare -a tar_cmd=(
     "--auto-compress"
     "--file"
 )
-
-downloads_page_in="$src_dir/doc_deps/downloads.md.in"
-downloads_page_out="$src_dir/doc_deps/downloads.md"
 
 function echo_err {
     # Echo to stderr.
@@ -75,15 +73,7 @@ function fail_usage {
     exit 1
 }
 
-function fix_downloads_page {
-    local latest_pkg=$1
-    [[ -n "$latest_pkg" ]] || fail "No package path provided to \`fix_downloads_page\`."
-    latest_pkg="${latest_pkg##*/}"
-    sed "s/{latest_package}/$latest_pkg/" "$downloads_page_in" > "$downloads_page_out" || {
-        fail "Failed to fix downloads page: $downloads_page_in"
-    }
-    printf "\nFixed downloads page: %s\n" "$downloads_page_out"
-}
+
 
 function print_usage {
     # Show usage reason if first arg is available.
@@ -93,7 +83,7 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
-        $appscript [-P | -p] [-d dir] [FILES...]
+        $appscript [-d dir] [FILES...]
 
     Options:
         FILES             : Files to include in the package.
@@ -101,8 +91,6 @@ function print_usage {
         -d dir,--dir dir  : Destination directory.
                             Default: $default_dir
         -h,--help         : Show this message.
-        -P,--nodlpage     : Don't fix the downloads page.
-        -p,--dlpage       : Just fix the downloads page.
         -v,--version      : Show $appname version and exit.
     "
 }
@@ -111,8 +99,6 @@ function print_usage {
 declare -a user_files
 in_dir_arg=0
 user_dir=""
-do_dl_page_only=0
-no_dl_page=0
 
 for arg; do
     case "$arg" in
@@ -122,14 +108,6 @@ for arg; do
         "-h" | "--help")
             print_usage ""
             exit 0
-            ;;
-        "-P" | "--nodlpage")
-            do_dl_page_only=0
-            no_dl_page=1
-            ;;
-        "-p" | "--dlpage")
-            do_dl_page_only=1
-            no_dl_page=0
             ;;
         "-v" | "--version")
             echo -e "$appname v. $appversion\n"
@@ -164,15 +142,16 @@ fi
 ensure_files "${user_files[@]}"
 ensure_dir "$user_dir"
 pkg_path="$user_dir/$pkg_name"
-if ((!do_dl_page_only)); then
-    [[ -e "$pkg_path" ]] && {
-        printf "Overwriting previous package: %s\n" "$pkg_path" 1>&2
-    }
-    cd "$src_dir" || fail "Cannot cd to: $src_dir"
-    "${tar_cmd[@]}" "$pkg_path" "${user_files[@]}" || fail "Failed to create package: $pkg_path"
-    plural="files"
-    ((${#user_files[@]} == 1)) && plural="file"
-    printf "\nCreated dist package (%s %s):\n    %s\n" "${#user_files[@]}" "$plural" "$pkg_path"
-fi
-((no_dl_page)) || fix_downloads_page "$pkg_path"
+pkg_path_latest="$user_dir/$pkg_name_latest"
+
+[[ -e "$pkg_path" ]] && {
+    printf "Overwriting previous package: %s\n" "$pkg_path" 1>&2
+}
+cd "$src_dir" || fail "Cannot cd to: $src_dir"
+"${tar_cmd[@]}" "$pkg_path" "${user_files[@]}" || fail "Failed to create package: $pkg_path"
+cp "$pkg_path" "$pkg_path_latest" || fail "Failed to copy package: $pkg_path_latest"
+plural="files"
+((${#user_files[@]} == 1)) && plural="file"
+printf "\nCreated dist package (%s %s):\n    %s\n" "${#user_files[@]}" "$plural" "$pkg_path"
+printf "Latest package updated: %s\n" "$pkg_path_latest"
 exit 0

@@ -11,4 +11,4 @@ This documentation is available in a PDF:
 ## Source Files
 The **ColrC** header and source file can be downloaded if you don't want to
 clone the github repo:
-- [Source Package](https://welbornprod.com/colrc/dist/colrc-0.3.6.tar.gz)
+- [Source Package](https://welbornprod.com/colrc/dist/colrc-latest.tar.gz)
