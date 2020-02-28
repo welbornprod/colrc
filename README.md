@@ -88,8 +88,8 @@ The only two files that are needed to use ColrC are colr.h and colr.c.
 
 Name   | Description
 :----- | :---------------------------------------------
-colr.h | The interface to ColrC.
-colr.c | Where ColrC is implemented. This must be compiled/linked with your program.
+[colr.h](https://welbornprod.com/colrc/colr_8h.html) | The interface to ColrC.
+[colr.c](https://welbornprod.com/colrc/colr_8c.html) | Where ColrC is implemented. This must be compiled/linked with your program.
 
 You can also create a shared library (`libcolr.so`) for your system. Clone the
 repo and run the make target:

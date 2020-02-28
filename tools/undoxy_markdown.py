@@ -231,6 +231,13 @@ def replace_ref(match):
     return f'{ref}{end}'
 
 
+def replace_src_table(match):
+    srcfile = match.groups()[0]
+    lnkfile = srcfile.replace('.', '_8')
+    lnk = f'https://welbornprod.com/colrc/{lnkfile}.html'
+    return f'[{srcfile}]({lnk}) |'
+
+
 def write_file(filepath, output=None, replace_header=None):
     out_file = sys.stdout
     if output:
@@ -262,7 +269,9 @@ REPLACE_PATS = {
     r'\\includesrc\{.+\}': replace_includesrc,
     r'\\ref ([\w_\-\. ]+) ?("[\w\. ]+")?': replace_ref,
     r'\[(.+)\]\((\w+)\.html\)': replace_rel_link,
+    r'(colr\.[ch]) \|': replace_src_table,
 }
+
 REPLACE_PATS = {re.compile(k): v for k, v in REPLACE_PATS.items()}
 
 if __name__ == '__main__':
