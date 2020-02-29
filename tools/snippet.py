@@ -52,7 +52,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.3.1'
+VERSION = '0.4.0'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -90,9 +90,41 @@ else:
 # TODO: This tool cannot be used with other projects because of this:
 COLR_DIR = os.path.abspath(os.path.join(os.path.abspath(SCRIPTDIR), '..'))
 debug(f'Using ColrC dir: {COLR_DIR}')
-COLRC_FILE = os.path.join(COLR_DIR, 'colr.c')
-COLRH_FILE = os.path.join(COLR_DIR, 'colr.h')
-EXAMPLES_SRC = (COLRC_FILE, COLRH_FILE)
+try:
+    ALL_FILES = os.listdir(COLR_DIR)
+except EnvironmentError as ex:
+    print(
+        f'Unable to list dir: {COLR_DIR}\n{ex}',
+        file=sys.stderr,
+    )
+    sys.exit(1)
+COLRC_FILES = [
+    os.path.join(COLR_DIR, s)
+    for s in ALL_FILES
+    if (
+        s.startswith('colr') and
+        s.endswith('.c') and
+        (not s.endswith('_tool.c'))
+    )
+]
+debug(f'Found C files: {", ".join(os.path.split(s)[-1] for s in COLRC_FILES)}')
+COLRH_FILES = [
+    os.path.join(COLR_DIR, s)
+    for s in ALL_FILES
+    if (
+        s.startswith('colr') and
+        s.endswith('.h') and
+        (not s.endswith('_tool.h'))
+    )
+]
+debug(f'Found headers: {", ".join(os.path.split(s)[-1] for s in COLRH_FILES)}')
+COLR_OBJS = [
+    f'{os.path.splitext(os.path.split(s)[-1])[0]}.o'
+    for s in COLRC_FILES
+]
+EXAMPLES_SRC = []
+EXAMPLES_SRC.extend(COLRC_FILES)
+EXAMPLES_SRC.extend(COLRH_FILES)
 README_FILE = os.path.join(COLR_DIR, 'doc_deps/index.md')
 
 usage_incl_lines = []
@@ -520,7 +552,9 @@ def find_src_examples():
         s: find_src_file_examples(s)
         for s in EXAMPLES_SRC
     }
-    return {k: v for k, v in examples.items() if v}
+    valid = {k: v for k, v in examples.items() if v}
+    debug(f'Valid examples: {len(valid)}')
+    return valid
 
 
 def find_src_file_examples(filepath):
@@ -1102,7 +1136,10 @@ def run_examples(
                 run=run,
             )
         snipscnt = snippetinfo['total'] - snippetinfo['skipped']
-        success += snipscnt - errs
+        if snipscnt == 1:
+            success = 1 if errs == 0 else 0
+        else:
+            success += snipscnt - errs
 
     status(C(' ').join(
         C(': ').join(
@@ -1122,7 +1159,10 @@ def run_examples(
                 ),
                 C(': ').join(
                     C('Error', 'cyan'),
-                    C(errs, 'red' if errs else 'dimgrey', style='bright')
+                    C(
+                        f'{errs} returned' if snipscnt == 1 else errs,
+                        'red' if errs else 'dimgrey', style='bright'
+                    )
                 ),
             ).join('(', ')'),
         )
@@ -1601,14 +1641,10 @@ class Snippet(object):
         objname = f'{basename}.o'
         cfiles = [self.src_file]
         if self.do_wrap:
-            cfiles.append(COLRC_FILE)
-        colrobj = 'colr.o'
-        if self.do_wrap and os.path.exists(colrobj):
-            try:
-                os.remove(colrobj)
-                debug(f'Removed existing: {colrobj}')
-            except EnvironmentError as ex:
-                print_err(f'Unable to remove {colrobj}: {ex}')
+            cfiles.extend(COLRC_FILES)
+
+        if self.do_wrap:
+            self.remove_existing_objs()
 
         cmd = get_gcc_cmd(cfiles, user_args=user_args, make_target=make_target)
         try:
@@ -1628,7 +1664,7 @@ class Snippet(object):
         objnames = []
         objnames.extend(tmpobjnames)
         if self.do_wrap:
-            objnames.append(colrobj)
+            objnames.extend(COLR_OBJS)
         binaryname = temp_file_name(ext='.binary')
         linkcmd = get_gcc_cmd(
             objnames,
@@ -1746,7 +1782,8 @@ class Snippet(object):
         filepath = self.write_code(self.wrap_code(self.code), ext='.c')
         config['last_c_file'] = filepath
         last_snippet_write(self.code)
-        cfiles = [filepath, COLRC_FILE]
+        cfiles = [filepath]
+        cfiles.extend(COLRC_FILES)
         cmd = get_gcc_cmd(
             cfiles,
             user_args=user_args,
@@ -1763,6 +1800,16 @@ class Snippet(object):
             if compret != 0:
                 raise CompileError(filepath)
         return 0
+
+    def remove_existing_objs(self):
+        """ Remove any existing ColrC object files. """
+        for colrobj in COLR_OBJS:
+            if os.path.exists(colrobj):
+                try:
+                    os.remove(colrobj)
+                    debug(f'Removed existing: {colrobj}')
+                except EnvironmentError as ex:
+                    print_err(f'Unable to remove {colrobj}: {ex}')
 
     def wrap_code(self, code):
         """ Wrap a C snippet in a main() definition, with colr.h included.

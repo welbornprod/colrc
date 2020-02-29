@@ -1157,6 +1157,19 @@ extern int colr_printf_esc_mod;
         ColorValue: ColorValue_example \
     )(x)
 
+/*! \def colr_fprint
+    Create a string from a colr_cat() call, print it to \p file (without a newline), and free it.
+
+    \pi ... Arguments for colr_cat().
+
+*/
+#define colr_fprint(file, ...) \
+    do { \
+        char* _c_p_s = colr_cat(__VA_ARGS__); \
+        if (!_c_p_s) break; \
+        fprintf(file, "%s", _c_p_s); \
+        colr_free(_c_p_s); \
+    } while (0)
 
 /*! \def colr_free
     Calls the \<type\>_free functions for the supported types.
@@ -3042,6 +3055,7 @@ char* ColorJustifyMethod_repr(ColorJustifyMethod meth);
 ColorResult ColorResult_empty(void);
 bool ColorResult_eq(ColorResult a, ColorResult b);
 void ColorResult_free(ColorResult* p);
+ColorResult ColorResult_from_str(const char* s);
 bool ColorResult_is_ptr(void* p);
 size_t ColorResult_length(ColorResult cres);
 ColorResult ColorResult_new(char* s);

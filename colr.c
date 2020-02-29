@@ -5829,6 +5829,21 @@ void ColorResult_free(ColorResult* p) {
     free(p);
 }
 
+/*! Allocates a copy of a string, and creates a ColorResult from it.
+
+    \pi s   The string to copy.
+    \return \parblock
+                An initialized ColorResult.
+                The ColorResult may be "empty" if \p s is `NULL`.
+            \endparblock
+
+    \sa ColorResult
+*/
+ColorResult ColorResult_from_str(const char* s) {
+    char* copied = strdup(s);
+    return ColorResult_new(copied);
+}
+
 /*! Checks a void pointer to see if it contains a ColorResult struct.
 
     \details The first member of a ColorResult is a marker.
@@ -5865,7 +5880,10 @@ size_t ColorResult_length(ColorResult cres) {
 /*! Initialize a new ColorResult with an allocated \string.
 
     \pi s   An allocated string to use for the `.result` member.
-    \return An initialized ColorResult.
+    \return \parblock
+                An initialized ColorResult.
+                The ColorResult will be considered "empty" if \p s is `NULL`
+            \endparblock
 
     \sa ColorResult
 */
