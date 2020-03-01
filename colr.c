@@ -35,10 +35,11 @@ const BasicInfo basic_names[] = {
     {"lightwhite", LIGHTWHITE},
     {"lightnormal", LIGHTWHITE},
     {"lightyellow", LIGHTYELLOW},
+    {NULL, RESET},
 };
 
 //! Length of basic_names.
-const size_t basic_names_len = sizeof(basic_names) / sizeof(basic_names[0]);
+const size_t basic_names_len = (sizeof(basic_names) / sizeof(basic_names[0])) - 1;
 
 
 //! An array of ExtendedInfo, used with ExtendedValue_from_str().
@@ -60,10 +61,11 @@ const ExtendedInfo extended_names[] = {
     {"xlightwhite", XLIGHTWHITE},
     {"xlightnormal", XLIGHTWHITE},
     {"xlightcyan", XLIGHTCYAN},
+    {NULL, RESET},
 };
 
 //! Length of extended_names.
-const size_t extended_names_len = sizeof(extended_names) / sizeof(extended_names[0]);
+const size_t extended_names_len = (sizeof(extended_names) / sizeof(extended_names[0])) - 1;
 
 //! An array of StyleInfo items, used with StyleName_from_str().
 const StyleInfo style_names[] = {
@@ -89,10 +91,11 @@ const StyleInfo style_names[] = {
     {"encircle", ENCIRCLE},
     {"circle", ENCIRCLE},
     {"overline", OVERLINE},
+    {NULL, RESET_ALL},
 };
 
 //! Length of style_names.
-const size_t style_names_len = sizeof(style_names) / sizeof(style_names[0]);
+const size_t style_names_len = (sizeof(style_names) / sizeof(style_names[0])) - 1;
 
 /*! A map from ExtendedValue (256-color) to RGB value, where the index is the
     is the ExtendedValue, and the value is the RGB.
