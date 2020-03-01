@@ -1162,7 +1162,8 @@ extern int colr_printf_esc_mod;
 /*! \def colr_fprint
     Create a string from a colr_cat() call, print it to \p file (without a newline), and free it.
 
-    \pi ... Arguments for colr_cat().
+    \pi file FILE stream for output.
+    \pi ...  Arguments for colr_cat().
 
 */
 #define colr_fprint(file, ...) \

@@ -1,4 +1,4 @@
-/*! \file colr.c
+/*! \file colr.controls.c
     Implements everything in the colr.controls.h header.
 
     \internal
@@ -150,7 +150,7 @@ ColorResult* Colr_move_return(void) {
     \details
     Columns start at `1`.
 
-    \pi columns \parblock
+    \pi column  \parblock
                     The column to move to.
                     Using `0` is the same as using `1`.
                 \endparblock

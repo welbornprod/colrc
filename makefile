@@ -29,10 +29,11 @@ FFLAGS=-fno-omit-frame-pointer -fstack-protector-strong \
     -fsanitize=address -fsanitize=leak -fsanitize=undefined
 
 binary=colrc
-colr_source=colr.c
+colr_source=colr.c colr.controls.c
 source=colr_tool.c $(colr_source)
 objects:=$(source:.c=.o)
-colr_headers=colr.h
+lib_objects=$(colr_source:.c=.o)
+colr_headers=colr.h colr.controls.h
 headers=colr_tool.h $(colr_headers)
 optional_headers=dbug.h
 optional_flags=$(foreach header, $(optional_headers), -include $(header))
@@ -47,7 +48,7 @@ readme_title="ColrC"
 readme_header="For full documentation see [welbornprod.com/colrc](https://welbornprod.com/colrc/index.html)"
 version_cmd=bash tools/get_version.sh
 dist_dir=./dist
-dist_files=colr.h colr.c
+dist_files=colr.h colr.c colr.controls.h colr.controls.c
 make_dist_cmd=bash tools/make_dist.sh
 doc_dep_dir=doc_deps
 docs_config=$(doc_dep_dir)/Doxyfile_common
@@ -126,9 +127,9 @@ debug: $(binary)
 .PHONY: lib
 lib: cleancolrobjects
 lib: CFLAGS+=-fpic
-lib: colr.o
+lib: $(lib_objects)
 lib:
-	$(CC) -shared -o libcolr.so colr.o
+	$(CC) -shared -o libcolr.so $(lib_objects)
 
 .PHONY: libdebug
 libdebug: CFLAGS+=-g3 -DDEBUG -DCOLR_DEBUG
