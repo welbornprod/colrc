@@ -1333,7 +1333,6 @@ void colr_printf_register(void) {
     if (is_registered) return;
     // Do the actual registering, if not done already.
     register_printf_specifier(COLR_FMT_CHAR, colr_printf_handler, colr_printf_info);
-    printf("REGISTERED: %c\n", COLR_FMT_CHAR);
     // Register the '/' modifier for escaped output.
     colr_printf_esc_mod = register_printf_modifier(L"/");
     is_registered = true;
@@ -5843,7 +5842,7 @@ void ColorResult_free(ColorResult* p) {
     \sa ColorResult
 */
 ColorResult ColorResult_from_str(const char* s) {
-    char* copied = strdup(s);
+    char* copied = s ? strdup(s) : NULL;
     return ColorResult_new(copied);
 }
 
