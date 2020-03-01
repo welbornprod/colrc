@@ -52,7 +52,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.4.0'
+VERSION = '0.4.1'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -154,11 +154,11 @@ USAGESTR = f"""{VERSIONSTR}
         {SCRIPT} [-D] -c
         {SCRIPT} [-D] (-L | -N) [PATTERN]
         {SCRIPT} [-D] [-n] [-q] [-w] -V
-        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe] -b
-        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -R | -s] [-t name] -x [PATTERN] [-- ARGS...]
-        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -s] [-M | -t name] [CODE] [-- ARGS...]
-        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -s] [-M | -t name] [-f file...] [-- ARGS...]
-        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -s] [-M | -t name] [-w] (-e [CODE] | -l) [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -S] -b
+        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -R | -S | -s] [-t name] -x [PATTERN] [-- ARGS...]
+        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -S | -s] [-M | -t name] [CODE] [-- ARGS...]
+        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -S | -s] [-M | -t name] [-f file...] [-- ARGS...]
+        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -S | -s] [-M | -t name] [-w] (-e [CODE] | -l) [-- ARGS...]
         {SCRIPT} [-D] -E [-M | -t name] -x [PATTERN] [-- ARGS...]
         {SCRIPT} [-D] [-W] -E [-M | -t name] [CODE] [-- ARGS...]
         {SCRIPT} [-D] [-W] -E [-M | -t name] [-f file...] [-- ARGS...]
@@ -207,6 +207,7 @@ USAGESTR = f"""{VERSIONSTR}
                                  Just compile it.
         -r exe,--run exe       : Run a program on the compiled binary, like
                                  `gdb` or `kdbg`.
+        -S,--system            : Run the binary through os.system().
         -s,--sanitize          : Use -fsanitize compiler arguments.
         -t name,--target name  : Make target to get compiler flags from.
         -V,--viewlast          : View the last snippet that was compiled.
@@ -283,6 +284,7 @@ def main(argd):
             show_name=argd['--name'],
             memcheck=argd['--memcheck'],
             quiet=argd['--quiet'],
+            system_run=argd['--system'],
         )
         status_runtime(procresult['duration'])
         return 1 if procresult['returncode'] else 0
@@ -359,6 +361,7 @@ def main(argd):
         quiet=argd['--quiet'],
         make_target=Disabled if argd['--nomake'] else argd['--target'],
         run=not argd['--norun'],
+        system_run=argd['--system'],
     )
 
 
@@ -1002,7 +1005,7 @@ def run_compile_cmd(filepath, args):
 
 def run_compiled_exe(
         filepath, exe=None, src_file=None, show_name=False,
-        memcheck=False, quiet=False):
+        memcheck=False, quiet=False, system_run=False):
     """ Run an executable (the compiled snippet). """
     if not filepath.startswith(TMPDIR):
         newpath = os.path.join(TMPDIR, os.path.split(filepath)[-1])
@@ -1060,31 +1063,44 @@ def run_compiled_exe(
         cmd = [filepath]
     debug(f'Trying to run: {" ".join(cmd)}')
     try:
-        proc = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        if system_run:
+            sysret = os.system(' '.join(cmd))
+            stdout = None
+            stderr = None
+        else:
+            sysret = None
+            proc = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
         duration = (time() - start_time) if start_time else None
     except subprocess.CalledProcessError:
         duration = None
         print_err('Snippet failed to run!')
         return 1
-    try:
-        stdout = proc.stdout.decode(errors='replace')
-    except UnicodeDecodeError:
-        stdout = f'Unable to decode stdout:\n    {proc.stdout!r}\n'
-    try:
-        stderr = proc.stderr.decode(errors='replace')
-    except UnicodeDecodeError:
-        stderr = f'Unable to decode stderr:\n    {proc.stderr!r}\n'
-    if not (stdout or stderr):
-        stderr = None if quiet else no_output_str(filepath, src_file=src_file)
+    if not system_run:
+        try:
+            stdout = proc.stdout.decode(errors='replace')
+        except UnicodeDecodeError:
+            stdout = f'Unable to decode stdout:\n    {proc.stdout!r}\n'
+        try:
+            stderr = proc.stderr.decode(errors='replace')
+        except UnicodeDecodeError:
+            stderr = f'Unable to decode stderr:\n    {proc.stderr!r}\n'
+        if not (stdout or stderr):
+            stderr = None if quiet else no_output_str(
+                filepath,
+                src_file=src_file,
+            )
     if stdout:
         print(stdout)
     if stderr:
         print(stderr, file=sys.stderr)
-    return {'returncode': proc.returncode, 'duration': duration}
+    return {
+        'returncode': proc.returncode if sysret is None else sysret,
+        'duration': duration
+    }
 
 
 def run_examples(
@@ -1191,7 +1207,7 @@ def run_examples(
 def run_snippets(
         snippets, exe=None, show_name=False, compiler_args=None,
         disasm=False, memcheck=False, quiet=False, make_target=None,
-        run=True):
+        run=True, system_run=False):
     """ Compile and run several c code snippets. """
     errs = 0
     sniplen = len(snippets)
@@ -1210,6 +1226,7 @@ def run_snippets(
                 show_name=show_name,
                 memcheck=memcheck,
                 quiet=quiet,
+                system_run=system_run,
             )
             if procresult['returncode']:
                 debug(f'Snippet process returned: {procresult["returncode"]}')

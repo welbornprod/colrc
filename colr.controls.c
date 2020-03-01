@@ -340,95 +340,55 @@ ColorResult* Colr_pos_save(void) {
     return ColorResult_to_ptr(ColorResult_from_str(COLR_ESC "s"));
 }
 
-/* ------------------------- Colr Control Objects ------------------------- */
+/*! Returns an allocated ColorResult that will scroll the cursor down a number
+    of lines when printed. New lines are added to the top.
 
-/*! A ColrCursor object with methods to return allocated ColorResults.
+    \pi lines   \parblock
+                    The number of lines to scroll.
+                    Using `0` is the same as using `1`.
+                \endparblock
+    \return     \parblock
+                    An allocated ColorResult.
+                    \maybenullalloc
+                    \colrmightfree
+                \endparblock
 
-    \examplecodefor{ColrCursor,.c}
+    \examplecodefor{Colr_scroll_down,.c}
     #include "colr.controls.h"
 
     int main(void) {
-        puts("Hiding the cursor.");
-        colr_control(ColrCursor.hide());
-        puts("About to show the cursor.");
-        colr_control(ColrCursor.show());
+        colr_control("Start here.\n");
+        for (int i = 0; i < 5; i++) {
+            printf("Line: 1-%d\n", i);
+        }
+        colr_control(Colr_scroll_down(5), "Back again.\n");
+        for (int i = 0; i < 5; i++) {
+            printf("Line: 2-%d\n", i);
+        }
     }
     \endexamplecode
 */
-struct ColrCursor ColrCursor = {
-    Colr_cursor_hide,
-    Colr_cursor_show,
-};
+ColorResult* Colr_scroll_down(unsigned int lines) {
+    char* codes = NULL;
+    asprintf_or_return(NULL, &codes, COLR_ESC "%dT", lines ? lines : 1);
+    return ColorResult_to_ptr(ColorResult_new(codes));
+}
 
-/*! A ColrErase object with methods to return allocated ColorResults.
+/*! Returns an allocated ColorResult that will scroll the cursor up a number
+    of lines when printed. New lines are added to the bottom.
 
-    \examplecodefor{ColrErase,.c}
-    #include "colr.controls.h"
-
-    int main(void) {
-        colr_control(
-            "About to erase the display.",
-            ColrErase.display(ALL_MOVE),
-            "About to replace this line.",
-            ColrErase.line(ALL_MOVE),
-            ColrMove.ret(),
-            Colr("Line was erased.", fore(RED))
-        );
-    }
-    \endexamplecode
+    \pi lines   \parblock
+                    The number of lines to scroll.
+                    Using `0` is the same as using `1`.
+                \endparblock
+    \return     \parblock
+                    An allocated ColorResult.
+                    \maybenullalloc
+                    \colrmightfree
+                \endparblock
 */
-struct ColrErase ColrErase = {
-    Colr_erase_display,
-    Colr_erase_line,
-};
-
-/*! A ColrMove object with methods to return allocated ColorResults.
-
-    \examplecodefor{ColrMove,.c}
-    #include "colr.controls.h"
-
-    int main(void) {
-        colr_control(
-            "Colr was",
-            ColrMove.backward(3),
-            "is awesome.",
-            ColrMove.ret(),
-            ColrMove.forward(4),
-            Colr("C", fore(BLUE), style(BRIGHT)), " is even better!\n"
-        );
-    }
-    \endexamplecode
-*/
-struct ColrMove ColrMove = {
-    Colr_move_back,
-    Colr_move_return,
-    Colr_move_column,
-    Colr_move_down,
-    Colr_move_forward,
-    Colr_move_next,
-    Colr_move_pos,
-    Colr_move_prev,
-    Colr_move_up,
-};
-
-/*! A ColrPosition object with methods to return allocated ColorResults.
-
-    \examplecodefor{ColrPosition,.c}
-    #include "colr.controls.h"
-
-    int main(void) {
-        printf("Writing some text...");
-        colr_control(ColrPosition.save());
-        printf("Writing some more.");
-        colr_control(
-            ColrPosition.restore(),
-            "<--",
-            Colr("..And we're back.", fore(RED))
-        );
-    }
-    \endexamplecode
-*/
-struct ColrPosition ColrPosition = {
-    Colr_pos_restore,
-    Colr_pos_save,
-};
+ColorResult* Colr_scroll_up(unsigned int lines) {
+    char* codes = NULL;
+    asprintf_or_return(NULL, &codes, COLR_ESC "%dS", lines ? lines : 1);
+    return ColorResult_to_ptr(ColorResult_new(codes));
+}
