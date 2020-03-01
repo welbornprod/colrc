@@ -250,11 +250,16 @@ def main(argd):
     if argd['--clean']:
         return clean_tmp()
     elif argd['--listexamples'] or argd['--listnames']:
-        pat = try_repat(argd['PATTERN'])
-        return list_examples(name_pat=pat, names_only=argd['--listnames'])
+        filepat, pat = try_repat(argd['PATTERN'])
+        return list_examples(
+            file_pat=filepat,
+            name_pat=pat,
+            names_only=argd['--listnames'],
+        )
     elif argd['--examples']:
-        pat = try_repat(argd['PATTERN'])
+        filepat, pat = try_repat(argd['PATTERN'])
         return run_examples(
+            file_pat=filepat,
             pat=pat,
             exe=argd['--run'],
             compiler_args=argd['ARGS'],
@@ -634,7 +639,7 @@ def get_example_snippets(pat=None):
         for snippet in snippets:
             filetotal += 1
             if (pat is not None) and (pat.search(snippet.name) is None):
-                debug(f'Skipping snippet for pattern: {snippet.name}')
+                debug(f'Skipping snippet ({pat.pattern!r}): {snippet.name}')
                 fileskipped += 1
                 continue
             usesnippets.append(snippet)
@@ -827,7 +832,7 @@ def last_snippet_write(code):
     return False
 
 
-def list_examples(name_pat=None, names_only=False):
+def list_examples(file_pat=None, name_pat=None, names_only=False):
     """ List all example snippets found in the source. """
     snippetinfo = find_src_examples()
     snippetinfo.update(find_md_examples(README_FILE))
@@ -840,6 +845,10 @@ def list_examples(name_pat=None, names_only=False):
     for filepath in sorted(snippetinfo):
         snippets = snippetinfo[filepath]
         length += len(snippets)
+        if file_pat and (file_pat.search(filepath) is None):
+            debug(f'Skipping non-matching file: {filepath}')
+            skipped += len(snippets)
+            continue
         printed_file = False
         for snippet in snippets:
             if (
@@ -1079,7 +1088,7 @@ def run_compiled_exe(
 
 
 def run_examples(
-        pat=None, exe=None, show_name=False, compiler_args=None,
+        file_pat=None, pat=None, exe=None, show_name=False, compiler_args=None,
         disasm=False, memcheck=False, preprocess=False,
         quiet=False, make_target=None, run=True):
     """ Compile and run source examples, with optional filtering pattern.
@@ -1088,7 +1097,16 @@ def run_examples(
     success = 0
     skipped = 0
     total = 0
+    snipscnt = 0
     for filepath, snippetinfo in get_example_snippets(pat=pat).items():
+        if file_pat and (file_pat.search(filepath) is None):
+            debug(f'Skipping non-matching file: {filepath}')
+            snippetlen = snippetinfo['total']
+            skipped += snippetlen
+            total += snippetlen
+            snipscnt = 0
+            continue
+
         if filepath == 'all':
             total = snippetinfo['total']
             skipped = snippetinfo['skipped']
@@ -1247,19 +1265,38 @@ def temp_file_name(ext=None, extra_prefix=None):
 
 
 def try_repat(s):
-    """ Try compiling a regex pattern.
-        If None is passed, None is returned.
+    """ Try compiling a regex pattern for filtering examples/snippets.
+        If None is passed, (None, None) is returned.
+        If the pattern has ':' in it, the first part is treated as a file name
+        pattern.
         On errors, a message is printed and the program exits.
-        On success, a compiled regex pattern is returned.
+        On success, (file_repat, reg_repat) is returned.
     """
     if not s:
-        return None
-    try:
-        p = re.compile(s)
-    except re.error as ex:
-        print('\nInvalid pattern: {}\n{}'.format(s, ex))
-        sys.exit(1)
-    return p
+        return (None, None)
+    strf, _, strp = s.partition(':')
+    if not strp:
+        if ':' in s:
+            # Just a file pattern given.
+            strp = None
+        else:
+            strp = strf
+            strf = None
+    if strp:
+        try:
+            pats = re.compile(strp)
+        except re.error as ex:
+            raise InvalidArg(f'bad pattern: {strp}\n{ex}')
+    else:
+        pats = None
+    if strf:
+        try:
+            patf = re.compile(strf)
+        except re.error as ex:
+            raise InvalidArg(f'bad file pattern: {strf}\n{ex}')
+    else:
+        patf = None
+    return patf, pats
 
 
 def view_examples(pat=None, show_name=False, quiet=False):

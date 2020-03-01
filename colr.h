@@ -796,7 +796,7 @@ extern int colr_printf_esc_mod;
                 \colrwillfree
             \endparblock
     \return \parblock
-                An allocated ColorResult with all arguments joined together.\n
+                An allocated ColorResult with all arguments joined together.
                 \mustfree
                 \maybenullalloc
                 \colrmightfree
@@ -1028,8 +1028,10 @@ extern int colr_printf_esc_mod;
     the colr macros.
 
     \pi s   An allocated string.
-    \return An allocated ColorResult.
-            \colrmightfree
+    \return \parblock
+                An allocated ColorResult.
+                \colrmightfree
+            \endparblock
 */
 #define ColrResult(s) ColorResult_to_ptr(ColorResult_new(s))
 

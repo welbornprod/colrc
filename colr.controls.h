@@ -70,6 +70,17 @@ ColorResult* Colr_cursor_hide(void);
 ColorResult* Colr_cursor_show(void);
 ColorResult* Colr_erase_display(EraseMethod method);
 ColorResult* Colr_erase_line(EraseMethod method);
+ColorResult* Colr_move_back(unsigned int columns);
+ColorResult* Colr_move_return(void);
+ColorResult* Colr_move_column(unsigned int column);
+ColorResult* Colr_move_down(unsigned int lines);
+ColorResult* Colr_move_forward(unsigned int columns);
+ColorResult* Colr_move_next(unsigned int lines);
+ColorResult* Colr_move_pos(unsigned int line, unsigned int column);
+ColorResult* Colr_move_prev(unsigned int lines);
+ColorResult* Colr_move_up(unsigned int lines);
+ColorResult* Colr_pos_restore(void);
+ColorResult* Colr_pos_save(void);
 
 
 /* ---------------------------- Function Types ---------------------------- */
@@ -81,6 +92,14 @@ typedef ColorResult* (*ColorResult_void_func)(void);
 /*! A function type that knows how to return an allocated ColorResult with an EraseMethod.
 */
 typedef ColorResult* (*ColorResult_erase_func)(EraseMethod);
+
+/*! A function type that knows how to return an allocated ColorResult with an unsigned int.
+*/
+typedef ColorResult* (*ColorResult_uint_func)(unsigned int);
+
+/*! A function type that knows how to return an allocated ColorResult with two unsigned ints.
+*/
+typedef ColorResult* (*ColorResult_uint2_func)(unsigned int, unsigned int);
 
 /* ------------------------ Colr Control Objects. ------------------------ */
 
@@ -105,9 +124,42 @@ struct ColrErase {
     ColorResult_erase_func line;
 };
 
+/*! An object that has methods to return allocated ColorResults that will
+    move the cursor when their results are printed.
+
+    \details
+    This is used to implement ColrMove. You should use it instead.
+*/
+struct ColrMove {
+    ColorResult_uint_func backward;
+    ColorResult_void_func ret;
+    ColorResult_uint_func column;
+    ColorResult_uint_func down;
+    ColorResult_uint_func forward;
+    ColorResult_uint_func next;
+    ColorResult_uint2_func pos;
+    ColorResult_uint_func prev;
+    ColorResult_uint_func up;
+};
+
+/*! An object that has methods to return allocated ColorResults that will
+    save/restore the cursor position when their results are printed.
+
+    \details
+    This is used to implement ColrPosition. You should use it instead.
+*/
+struct ColrPosition {
+    ColorResult_void_func restore;
+    ColorResult_void_func save;
+};
+
 //! An initialized ColrCursor struct. This is set in colr.controls.c.
 extern struct ColrCursor ColrCursor;
 //! An initialized ColrErase struct. This is set in colr.controls.c.
 extern struct ColrErase ColrErase;
+//! An initialized ColrMove struct. This is set in colr.controls.c.
+extern struct ColrMove ColrMove;
+//! An initialized ColrPosition struct. This is set in colr.controls.c.
+extern struct ColrPosition ColrPosition;
 
 #endif // COLR_CONTROLS_H
