@@ -9,7 +9,26 @@
 #include "colr.h"
 
 /*! Integer to test for the presence of the "escaped output modifier" in
-    colr_printf_handler. This is set in colr_printf_register.
+    colr_printf_handler. It is used to trigger "escaped output mode" when
+    printing ColrC objects, where the color codes are escaped so you can see
+    what they look like (instead of affecting the terminal).
+
+    \details
+    The character used as the "escaped output modifier" is COLR_FMT_MOD_ESC,
+    from colr.h.
+
+    \warning
+    This is for ColrC only. You should have no reason to use or modify
+    this variable.
+
+    \details
+    This is set in colr_printf_register when the modifier is registered.
+    On a successful call to register_printf_modifier, it will be a positive
+    number representing the bit set in the USER field in 'struct printf_info'.
+    So later on, in colr_printf_handler():
+    \code
+        using_escape_modifier = (info->user & colr_printf_esc_mod);
+    \endcode
 */
 int colr_printf_esc_mod = 0;
 
@@ -38,9 +57,8 @@ const BasicInfo basic_names[] = {
     {NULL, RESET},
 };
 
-//! Length of basic_names.
+//! Length of usable values basic_names.
 const size_t basic_names_len = (sizeof(basic_names) / sizeof(basic_names[0])) - 1;
-
 
 //! An array of ExtendedInfo, used with ExtendedValue_from_str().
 const ExtendedInfo extended_names[] = {
@@ -64,7 +82,7 @@ const ExtendedInfo extended_names[] = {
     {NULL, RESET},
 };
 
-//! Length of extended_names.
+//! Length of usable values in extended_names.
 const size_t extended_names_len = (sizeof(extended_names) / sizeof(extended_names[0])) - 1;
 
 //! An array of StyleInfo items, used with StyleName_from_str().
@@ -94,7 +112,7 @@ const StyleInfo style_names[] = {
     {NULL, RESET_ALL},
 };
 
-//! Length of style_names.
+//! Length of usable values in style_names.
 const size_t style_names_len = (sizeof(style_names) / sizeof(style_names[0])) - 1;
 
 /*! A map from ExtendedValue (256-color) to RGB value, where the index is the
