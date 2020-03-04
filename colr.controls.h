@@ -4,14 +4,15 @@
     \internal
     \author Christopher Welborn
     \date 02-29-20
+    \endinternal
 
     \details
-    To use ColrC in your project, you will need to include colr.h
-    and compile colr.c with the rest of your files.
+    To use ColrC in your project, you will need to include colr.controls.h
+    and compile both colr.c and colr.controls.c with the rest of your files.
 
     <em>Don't forget to compile with `colr.c` and `-lm`</em>.
     \code{.sh}
-    gcc -std=c11 -c your_program.c colr.c -lm
+    gcc -std=c11 -c your_program.c colr.c colr.controls.c -lm
     \endcode
 */
 
@@ -35,6 +36,26 @@
         fflush(stdout); \
     } while (0)
 
+/*! \def colr_print_inplace
+    Save the cursor position, print exactly like colr_control(), and then restore
+    the cursor position.
+
+    \pi ... Arguments for colr_control() to print.
+*/
+#define colr_print_inplace(...) \
+    do { \
+        colr_control(Colr_pos_save(), __VA_ARGS__, Colr_pos_restore()); \
+    } while (0)
+
+/*! \def colr_print_overwrite
+    Erase the current line, move to column 1 and print exactly like colr_control().
+
+    \pi ... Arguments for colr_control() to print.
+*/
+#define colr_print_overwrite(...) \
+    do { \
+        colr_control(Colr_erase_line(ALL), Colr_move_column(1), __VA_ARGS__); \
+    } while (0)
 
 /*! Returns a static string representation for an EraseMethod.
 
@@ -63,7 +84,9 @@ typedef enum EraseMethod {
     /*! Clear all, move home, and erase scrollback buffer.
         This is a feature of ColrC. It is not standard.
     */
-    ALL_MOVE_ERASE
+    ALL_MOVE_ERASE,
+    //! This is an alias for ALL_MOVE, when using the erase_line functions.
+    ALL
 } EraseMethod;
 
 ColorResult* Colr_cursor_hide(void);

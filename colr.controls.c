@@ -67,6 +67,7 @@ ColorResult* Colr_cursor_show(void) {
     \endexamplecode
 */
 ColorResult* Colr_erase_display(EraseMethod method) {
+    if (method == ALL) method = ALL_MOVE;
     char* methstr = EraseMethod_to_str(method);
     if (!methstr) return NULL;
     size_t finallen = COLR_ESC_LEN + 2;
@@ -102,6 +103,7 @@ ColorResult* Colr_erase_display(EraseMethod method) {
 
 */
 ColorResult* Colr_erase_line(EraseMethod method) {
+    if (method == ALL) method = ALL_MOVE;
     assert(method < 3);
     char* methstr = EraseMethod_to_str(method);
     if (!methstr) return NULL;
