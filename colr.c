@@ -789,6 +789,33 @@ const ColorNameData colr_name_data[] = {
 //! Length of colr_name_data.
 const size_t colr_name_data_len = sizeof(colr_name_data) / sizeof(colr_name_data[0]);
 
+/*! Allocate and format a string like `asprintf`, but wrap it in an allocated
+    ColorResult.
+
+    \pi fmt  Format string for `asprintf`.
+    \pi ...  Other arguments for `asprintf`.
+    \return  \parblock
+                An allocated ColorResult.
+                \maybenull
+                \colrmightfree
+             \endparblock
+*/
+ColorResult* Colr_fmt_str(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    va_list argcopy;
+    va_copy(argcopy, args);
+    char* s = NULL;
+    if (vasprintf(&s, fmt, argcopy) < 0) {
+        va_end(argcopy);
+        va_end(args);
+        return NULL;
+    }
+    va_end(argcopy);
+    va_end(args);
+    return ColorResult_to_ptr(ColorResult_new(s));
+}
+
 /*! Allocates space for a regmatch_t, initializes it, and returns a pointer
     to it.
     \pi match A `regmatch_t` to allocate for and copy.
@@ -5801,6 +5828,44 @@ char* ColorJustifyMethod_repr(ColorJustifyMethod meth) {
     return repr;
 }
 
+/*! Colorize a ColorResult, and return a new allocated ColorResult. This is like
+    ColorText_from_value(), except it accepts an allocated ColorResult as the
+    first argument.
+
+    \pi cres  \parblock
+                An allocated ColorResult to colorize.
+                This will be released to create the new ColorResult.
+              \endparblock
+    \pi ...   \parblock
+                One or more fore(), back(), or style() arguments (ColorArgs).
+                The last argument must be _ColrLastArg.
+                The allocated ColorArgs will be `free()`'d.
+              \endparblock
+    \return   \parblock
+                An allocated ColorResult.
+                \maybenull
+                \colrmightfree
+              \endparblock
+
+    \sa ColorResult
+*/
+ColorResult* ColorResult_Colr(ColorResult* cres, ...) {
+    // Last argument must be _ColrLastArg.
+    char* s = ColorResult_to_str(*cres);
+    if (!s) return cres;
+    va_list args;
+    va_start(args, cres);
+    va_list argcopy;
+    va_copy(argcopy, args);
+    ColorText ctext = ColorText_from_valuesv(s, argcopy);
+    va_end(argcopy);
+    va_end(args);
+    char* final = ColorText_to_str(ctext);
+    ColorResult_free(cres);
+    ColorText_free_args(&ctext);
+    return ColorResult_to_ptr(ColorResult_new(final));
+}
+
 /*! Creates a ColorResult with `.result=NULL` and `.length=-1`, with the
     appropriate struct marker.
 
@@ -6027,20 +6092,50 @@ void ColorText_free_args(ColorText* p) {
     ColorArg_free(p->style);
     p->style = NULL;
 }
+
+
 /*! Builds a ColorText from 1 mandatory \string, and optional fore, back, and
     style args (pointers to ColorArgs).
     \pi text Text to colorize (a regular string).
-    \pi ... ColorArgs for fore, back, and style, in any order.
+    \pi ... \parblock
+                ColorArgs for fore, back, and style, in any order.
+                The last argument must be _ColrLastArg. The Colr() macro
+                takes care of this for you.
+            \endparblock
     \return An initialized ColorText struct.
 
     \sa ColorText
 */
 ColorText ColorText_from_values(char* text, ...) {
-    // Argument list must have ColorArg with NULL members at the end.
-    ColorText ctext = ColorText_empty();
-    ctext.text = text;
+    // Argument list must have ColorArg with _ColrLastArg at the end.
     va_list args;
     va_start(args, text);
+    va_list argcopy;
+    va_copy(argcopy, args);
+    ColorText ctext = ColorText_from_valuesv(text, argcopy);
+    va_end(argcopy);
+    va_end(args);
+    return ctext;
+}
+
+/*! Builds a ColorText from 1 mandatory \string, and a `va_list` with optional
+    fore, back, and style args (pointers to ColorArgs).
+
+    \pi text Text to colorize (a regular string).
+    \pi args \parblock
+                `va_list` with ColorArgs for fore, back, and style, in any order.
+                The last argument must be _ColrLastArg.
+                The Colr() macro takes care of this for you, and should be used
+                for basic text colorization.
+             \endparblock
+    \return An initialized ColorText struct.
+
+    \sa ColorText
+*/
+ColorText ColorText_from_valuesv(char* text, va_list args) {
+    // Argument list must have ColorArg with _ColorLastArg at the end.
+    ColorText ctext = ColorText_empty();
+    ctext.text = text;
 
     ColorArg *arg = NULL;
     while_colr_va_arg(args, ColorArg*, arg) {
@@ -6064,7 +6159,6 @@ ColorText ColorText_from_values(char* text, ...) {
             }
         }
     }
-    va_end(args);
     return ctext;
 }
 

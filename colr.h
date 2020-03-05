@@ -868,6 +868,29 @@ extern int colr_printf_esc_mod;
         (ColorJustify){.method=JUST_CENTER, .width=justwidth, .padchar=c} \
     )
 
+/*! \def Colr_fmt
+    Format and colorize a value like the `printf`-family.
+
+    \details
+    Unlike `printf`, this only accepts one value to format.
+    The other arguments are for coloring/styling the value.
+
+    \pi fmt    The format string.
+    \pi value  The value to format.
+    \pi ...    At least one of fore(), back(), or style() arguments in any order.
+    \return    \parblock
+                    An allocated ColorResult.
+                    \maybenull
+                    \colrmightfree
+               \endparblock
+*/
+#define Colr_fmt(fmt, value, ...) \
+    ColorResult_Colr( \
+        Colr_fmt_str(fmt, value), \
+        __VA_ARGS__, \
+        _ColrLastArg \
+    )
+
 /*! \def Colr_join
     Joins Colr objects and strings, exactly like colr_join(), but returns
     an allocated ColorResult that the \colrmacros will automatically `free()`
@@ -2842,6 +2865,8 @@ static const struct _ColrLastArg_s* const _ColrLastArg = &_ColrLastArgValue;
     Common macros and definitions are found here in colr.h,
     however the functions are documented in colr.c.
 */
+ColorResult* Colr_fmt_str(const char* fmt, ...) __attribute__ ((__format__ (__printf__, 1, 2)));
+
 regmatch_t* colr_alloc_regmatch(regmatch_t match);
 void colr_append_reset(char* s);
 
@@ -2859,7 +2884,8 @@ size_t colr_mb_len(const char* s, size_t length);
 #ifdef COLR_GNU
 int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *const *args);
 int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, int *sz);
-void colr_printf_register(void);
+// The contructor attribute isn't used because not everyone needs this.
+void colr_printf_register(void); // __attribute__((constructor))
 #endif
 
 regmatch_t** colr_re_matches(const char* s, regex_t* repattern);
@@ -3055,6 +3081,7 @@ char* ColorJustifyMethod_repr(ColorJustifyMethod meth);
     ColorResult functions that deal with allocated colr results.
     \endinternal
 */
+ColorResult* ColorResult_Colr(ColorResult* cres, ...);
 ColorResult ColorResult_empty(void);
 bool ColorResult_eq(ColorResult a, ColorResult b);
 void ColorResult_free(ColorResult* p);
@@ -3075,6 +3102,7 @@ ColorText ColorText_empty(void);
 void ColorText_free(ColorText* p);
 void ColorText_free_args(ColorText* p);
 ColorText ColorText_from_values(char* text, ...);
+ColorText ColorText_from_valuesv(char* text, va_list args);
 bool ColorText_has_arg(ColorText ctext, ColorArg carg);
 bool ColorText_has_args(ColorText ctext);
 bool ColorText_is_empty(ColorText ctext);
