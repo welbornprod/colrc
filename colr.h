@@ -796,7 +796,7 @@ extern int colr_printf_esc_mod;
                 \colrwillfree
             \endparblock
     \return \parblock
-                An allocated ColorResult with all arguments joined together.\n
+                An allocated ColorResult with all arguments joined together.
                 \mustfree
                 \maybenullalloc
                 \colrmightfree
@@ -866,6 +866,29 @@ extern int colr_printf_esc_mod;
 #define Colr_center_char(text, justwidth, c, ...) ColorText_set_just( \
         Colr(text, __VA_ARGS__), \
         (ColorJustify){.method=JUST_CENTER, .width=justwidth, .padchar=c} \
+    )
+
+/*! \def Colr_fmt
+    Format and colorize a value like the `printf`-family.
+
+    \details
+    Unlike `printf`, this only accepts one value to format.
+    The other arguments are for coloring/styling the value.
+
+    \pi fmt    The format string.
+    \pi value  The value to format.
+    \pi ...    At least one of fore(), back(), or style() arguments in any order.
+    \return    \parblock
+                    An allocated ColorResult.
+                    \maybenull
+                    \colrmightfree
+               \endparblock
+*/
+#define Colr_fmt(fmt, value, ...) \
+    ColorResult_Colr( \
+        Colr_fmt_str(fmt, value), \
+        __VA_ARGS__, \
+        _ColrLastArg \
     )
 
 /*! \def Colr_join
@@ -1028,8 +1051,10 @@ extern int colr_printf_esc_mod;
     the colr macros.
 
     \pi s   An allocated string.
-    \return An allocated ColorResult.
-            \colrmightfree
+    \return \parblock
+                An allocated ColorResult.
+                \colrmightfree
+            \endparblock
 */
 #define ColrResult(s) ColorResult_to_ptr(ColorResult_new(s))
 
@@ -1157,6 +1182,20 @@ extern int colr_printf_esc_mod;
         ColorValue: ColorValue_example \
     )(x)
 
+/*! \def colr_fprint
+    Create a string from a colr_cat() call, print it to \p file (without a newline), and free it.
+
+    \pi file FILE stream for output.
+    \pi ...  Arguments for colr_cat().
+
+*/
+#define colr_fprint(file, ...) \
+    do { \
+        char* _c_p_s = colr_cat(__VA_ARGS__); \
+        if (!_c_p_s) break; \
+        fprintf(file, "%s", _c_p_s); \
+        colr_free(_c_p_s); \
+    } while (0)
 
 /*! \def colr_free
     Calls the \<type\>_free functions for the supported types.
@@ -2826,6 +2865,8 @@ static const struct _ColrLastArg_s* const _ColrLastArg = &_ColrLastArgValue;
     Common macros and definitions are found here in colr.h,
     however the functions are documented in colr.c.
 */
+ColorResult* Colr_fmt_str(const char* fmt, ...) __attribute__ ((__format__ (__printf__, 1, 2)));
+
 regmatch_t* colr_alloc_regmatch(regmatch_t match);
 void colr_append_reset(char* s);
 
@@ -2843,7 +2884,8 @@ size_t colr_mb_len(const char* s, size_t length);
 #ifdef COLR_GNU
 int colr_printf_handler(FILE *fp, const struct printf_info *info, const void *const *args);
 int colr_printf_info(const struct printf_info *info, size_t n, int *argtypes, int *sz);
-void colr_printf_register(void);
+// The contructor attribute isn't used because not everyone needs this.
+void colr_printf_register(void); // __attribute__((constructor))
 #endif
 
 regmatch_t** colr_re_matches(const char* s, regex_t* repattern);
@@ -3039,9 +3081,11 @@ char* ColorJustifyMethod_repr(ColorJustifyMethod meth);
     ColorResult functions that deal with allocated colr results.
     \endinternal
 */
+ColorResult* ColorResult_Colr(ColorResult* cres, ...);
 ColorResult ColorResult_empty(void);
 bool ColorResult_eq(ColorResult a, ColorResult b);
 void ColorResult_free(ColorResult* p);
+ColorResult ColorResult_from_str(const char* s);
 bool ColorResult_is_ptr(void* p);
 size_t ColorResult_length(ColorResult cres);
 ColorResult ColorResult_new(char* s);
@@ -3058,6 +3102,7 @@ ColorText ColorText_empty(void);
 void ColorText_free(ColorText* p);
 void ColorText_free_args(ColorText* p);
 ColorText ColorText_from_values(char* text, ...);
+ColorText ColorText_from_valuesv(char* text, va_list args);
 bool ColorText_has_arg(ColorText ctext, ColorArg carg);
 bool ColorText_has_args(ColorText ctext);
 bool ColorText_is_empty(ColorText ctext);

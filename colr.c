@@ -9,7 +9,26 @@
 #include "colr.h"
 
 /*! Integer to test for the presence of the "escaped output modifier" in
-    colr_printf_handler. This is set in colr_printf_register.
+    colr_printf_handler. It is used to trigger "escaped output mode" when
+    printing ColrC objects, where the color codes are escaped so you can see
+    what they look like (instead of affecting the terminal).
+
+    \details
+    The character used as the "escaped output modifier" is COLR_FMT_MOD_ESC,
+    from colr.h.
+
+    \warning
+    This is for ColrC only. You should have no reason to use or modify
+    this variable.
+
+    \details
+    This is set in colr_printf_register when the modifier is registered.
+    On a successful call to register_printf_modifier, it will be a positive
+    number representing the bit set in the USER field in 'struct printf_info'.
+    So later on, in colr_printf_handler():
+    \code
+        using_escape_modifier = (info->user & colr_printf_esc_mod);
+    \endcode
 */
 int colr_printf_esc_mod = 0;
 
@@ -35,11 +54,11 @@ const BasicInfo basic_names[] = {
     {"lightwhite", LIGHTWHITE},
     {"lightnormal", LIGHTWHITE},
     {"lightyellow", LIGHTYELLOW},
+    {NULL, RESET},
 };
 
-//! Length of basic_names.
-const size_t basic_names_len = sizeof(basic_names) / sizeof(basic_names[0]);
-
+//! Length of usable values basic_names.
+const size_t basic_names_len = (sizeof(basic_names) / sizeof(basic_names[0])) - 1;
 
 //! An array of ExtendedInfo, used with ExtendedValue_from_str().
 const ExtendedInfo extended_names[] = {
@@ -60,10 +79,11 @@ const ExtendedInfo extended_names[] = {
     {"xlightwhite", XLIGHTWHITE},
     {"xlightnormal", XLIGHTWHITE},
     {"xlightcyan", XLIGHTCYAN},
+    {NULL, RESET},
 };
 
-//! Length of extended_names.
-const size_t extended_names_len = sizeof(extended_names) / sizeof(extended_names[0]);
+//! Length of usable values in extended_names.
+const size_t extended_names_len = (sizeof(extended_names) / sizeof(extended_names[0])) - 1;
 
 //! An array of StyleInfo items, used with StyleName_from_str().
 const StyleInfo style_names[] = {
@@ -89,10 +109,11 @@ const StyleInfo style_names[] = {
     {"encircle", ENCIRCLE},
     {"circle", ENCIRCLE},
     {"overline", OVERLINE},
+    {NULL, RESET_ALL},
 };
 
-//! Length of style_names.
-const size_t style_names_len = sizeof(style_names) / sizeof(style_names[0]);
+//! Length of usable values in style_names.
+const size_t style_names_len = (sizeof(style_names) / sizeof(style_names[0])) - 1;
 
 /*! A map from ExtendedValue (256-color) to RGB value, where the index is the
     is the ExtendedValue, and the value is the RGB.
@@ -767,6 +788,33 @@ const ColorNameData colr_name_data[] = {
 
 //! Length of colr_name_data.
 const size_t colr_name_data_len = sizeof(colr_name_data) / sizeof(colr_name_data[0]);
+
+/*! Allocate and format a string like `asprintf`, but wrap it in an allocated
+    ColorResult.
+
+    \pi fmt  Format string for `asprintf`.
+    \pi ...  Other arguments for `asprintf`.
+    \return  \parblock
+                An allocated ColorResult.
+                \maybenull
+                \colrmightfree
+             \endparblock
+*/
+ColorResult* Colr_fmt_str(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    va_list argcopy;
+    va_copy(argcopy, args);
+    char* s = NULL;
+    if (vasprintf(&s, fmt, argcopy) < 0) {
+        va_end(argcopy);
+        va_end(args);
+        return NULL;
+    }
+    va_end(argcopy);
+    va_end(args);
+    return ColorResult_to_ptr(ColorResult_new(s));
+}
 
 /*! Allocates space for a regmatch_t, initializes it, and returns a pointer
     to it.
@@ -5780,6 +5828,44 @@ char* ColorJustifyMethod_repr(ColorJustifyMethod meth) {
     return repr;
 }
 
+/*! Colorize a ColorResult, and return a new allocated ColorResult. This is like
+    ColorText_from_value(), except it accepts an allocated ColorResult as the
+    first argument.
+
+    \pi cres  \parblock
+                An allocated ColorResult to colorize.
+                This will be released to create the new ColorResult.
+              \endparblock
+    \pi ...   \parblock
+                One or more fore(), back(), or style() arguments (ColorArgs).
+                The last argument must be _ColrLastArg.
+                The allocated ColorArgs will be `free()`'d.
+              \endparblock
+    \return   \parblock
+                An allocated ColorResult.
+                \maybenull
+                \colrmightfree
+              \endparblock
+
+    \sa ColorResult
+*/
+ColorResult* ColorResult_Colr(ColorResult* cres, ...) {
+    // Last argument must be _ColrLastArg.
+    char* s = ColorResult_to_str(*cres);
+    if (!s) return cres;
+    va_list args;
+    va_start(args, cres);
+    va_list argcopy;
+    va_copy(argcopy, args);
+    ColorText ctext = ColorText_from_valuesv(s, argcopy);
+    va_end(argcopy);
+    va_end(args);
+    char* final = ColorText_to_str(ctext);
+    ColorResult_free(cres);
+    ColorText_free_args(&ctext);
+    return ColorResult_to_ptr(ColorResult_new(final));
+}
+
 /*! Creates a ColorResult with `.result=NULL` and `.length=-1`, with the
     appropriate struct marker.
 
@@ -5828,6 +5914,21 @@ void ColorResult_free(ColorResult* p) {
     free(p);
 }
 
+/*! Allocates a copy of a string, and creates a ColorResult from it.
+
+    \pi s   The string to copy.
+    \return \parblock
+                An initialized ColorResult.
+                The ColorResult may be "empty" if \p s is `NULL`.
+            \endparblock
+
+    \sa ColorResult
+*/
+ColorResult ColorResult_from_str(const char* s) {
+    char* copied = s ? strdup(s) : NULL;
+    return ColorResult_new(copied);
+}
+
 /*! Checks a void pointer to see if it contains a ColorResult struct.
 
     \details The first member of a ColorResult is a marker.
@@ -5864,7 +5965,10 @@ size_t ColorResult_length(ColorResult cres) {
 /*! Initialize a new ColorResult with an allocated \string.
 
     \pi s   An allocated string to use for the `.result` member.
-    \return An initialized ColorResult.
+    \return \parblock
+                An initialized ColorResult.
+                The ColorResult will be considered "empty" if \p s is `NULL`
+            \endparblock
 
     \sa ColorResult
 */
@@ -5988,20 +6092,50 @@ void ColorText_free_args(ColorText* p) {
     ColorArg_free(p->style);
     p->style = NULL;
 }
+
+
 /*! Builds a ColorText from 1 mandatory \string, and optional fore, back, and
     style args (pointers to ColorArgs).
     \pi text Text to colorize (a regular string).
-    \pi ... ColorArgs for fore, back, and style, in any order.
+    \pi ... \parblock
+                ColorArgs for fore, back, and style, in any order.
+                The last argument must be _ColrLastArg. The Colr() macro
+                takes care of this for you.
+            \endparblock
     \return An initialized ColorText struct.
 
     \sa ColorText
 */
 ColorText ColorText_from_values(char* text, ...) {
-    // Argument list must have ColorArg with NULL members at the end.
-    ColorText ctext = ColorText_empty();
-    ctext.text = text;
+    // Argument list must have ColorArg with _ColrLastArg at the end.
     va_list args;
     va_start(args, text);
+    va_list argcopy;
+    va_copy(argcopy, args);
+    ColorText ctext = ColorText_from_valuesv(text, argcopy);
+    va_end(argcopy);
+    va_end(args);
+    return ctext;
+}
+
+/*! Builds a ColorText from 1 mandatory \string, and a `va_list` with optional
+    fore, back, and style args (pointers to ColorArgs).
+
+    \pi text Text to colorize (a regular string).
+    \pi args \parblock
+                `va_list` with ColorArgs for fore, back, and style, in any order.
+                The last argument must be _ColrLastArg.
+                The Colr() macro takes care of this for you, and should be used
+                for basic text colorization.
+             \endparblock
+    \return An initialized ColorText struct.
+
+    \sa ColorText
+*/
+ColorText ColorText_from_valuesv(char* text, va_list args) {
+    // Argument list must have ColorArg with _ColorLastArg at the end.
+    ColorText ctext = ColorText_empty();
+    ctext.text = text;
 
     ColorArg *arg = NULL;
     while_colr_va_arg(args, ColorArg*, arg) {
@@ -6025,7 +6159,6 @@ ColorText ColorText_from_values(char* text, ...) {
             }
         }
     }
-    va_end(args);
     return ctext;
 }
 
