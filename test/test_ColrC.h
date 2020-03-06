@@ -722,6 +722,27 @@
         } \
     } while (0)
 
+/*! \def assert_str_contains_ColorArg
+    Ensure a string contains a `ColorArg*`.
+
+    \pi s      The string to search.
+    \pi carg   The ColorArg to generate escape codes to look for.
+*/
+#define assert_str_contains_ColorArg(s, carg) \
+    do { \
+        assert_not_null(s); \
+        assert_not_null(carg); \
+        assert_str_not_empty(s); \
+        assert(!ColorArg_is_empty(*carg)); \
+        if (!colr_str_has_ColorArg(s, carg)) { \
+            char* _a_s_c_ca_repr = test_repr(s); \
+            char* _a_s_c_ca_ca_repr = test_repr(*carg); \
+            fail("String does not contain ColorArg:\n    %s\n    %s", _a_s_c_ca_repr, _a_s_c_ca_ca_repr); \
+            free(_a_s_c_ca_repr); \
+            free(_a_s_c_ca_ca_repr); \
+        } \
+    } while (0)
+
 /*! \def assert_str_either
     Assert that a string is equal with either of two other strings, with a nice
     message with string reprs.

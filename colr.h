@@ -738,7 +738,7 @@ extern int colr_printf_esc_mod;
     unless you pass it to colr_cat(), which will `free()` it for you.
 
     \pi text String to colorize/style.
-    \pi ...  No more than 3 ColorArg pointers for fore, back, and style in any order.
+    \pi ...  One to three ColorArg pointers for fore, back, and style in any order.
 
     \return \parblock
                 An allocated ColorText.
@@ -1057,6 +1057,26 @@ extern int colr_printf_esc_mod;
             \endparblock
 */
 #define ColrResult(s) ColorResult_to_ptr(ColorResult_new(s))
+
+/*! \def ColrResult_Colr
+    Like Colr(), but it operates on a ColorResult itself to generate a new
+    colorized ColorResult.
+
+    \pi cres \parblock
+                An allocated ColorResult to colorize.
+                This will be `free()`'d to create the new ColorResult.
+             \endparblock
+    \pi ...  \parblock
+                One to three fore(), back(), or style() arguments (`ColorArg`s).
+                The `ColorArg`s will be `free()`'d to generate the new ColorResult.
+             \endparblock
+    \return \parblock
+                An allocated ColorResult.
+                \maybenull
+                \colrmightfree
+            \endparblock
+*/
+#define ColrColorResult(cres, ...) ColorResult_Colr(cres, __VA_ARGS__, _ColrLastArg)
 
 /*! \def colr
     Create an allocated string directly from Colr() arguments.
@@ -2904,6 +2924,7 @@ size_t colr_str_code_len(const char* s);
 char* colr_str_copy(char* restrict dest, const char* restrict src, size_t length);
 bool colr_str_ends_with(const char* restrict s, const char* restrict suffix);
 char** colr_str_get_codes(const char* s, bool unique);
+bool colr_str_has_ColorArg(const char* s, ColorArg* carg);
 bool colr_str_has_codes(const char* s);
 ColrHash colr_str_hash(const char* s);
 bool colr_str_is_all(const char* s, const char c);

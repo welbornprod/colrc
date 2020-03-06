@@ -6,6 +6,27 @@
 #include "test_ColrC.h"
 
 describe(ColorResult) {
+subdesc(ColorResult_Colr) {
+    it("handles NULL") {
+        ColorResult* cres = ColrColorResult(NULL, fore(RED));
+        assert_null(cres);
+    }
+    it("colorizes ColorResults") {
+        // Not much of a test, but at least it's something.
+        ColorResult* cres = Colr_join("\n", "test", "this");
+        ColorResult* cres_res = ColrColorResult(cres, fore(RED), back(BLUE));
+        // `cres` was already released by ColorResult_Colr.
+        char* s = ColorResult_to_str(*cres_res);
+        assert_str_contains(s, "test\nthis");
+        ColorArg* cargred = fore(RED);
+        ColorArg* cargblue = back(BLUE);
+        assert_str_contains_ColorArg(s, cargred);
+        assert_str_contains_ColorArg(s, cargblue);
+        colr_free(cargred);
+        colr_free(cargblue);
+        colr_free(cres_res);
+    }
+}
 subdesc(ColorResult_empty) {
     it("creates an empty ColorResult") {
         ColorResult empty = ColorResult_empty();

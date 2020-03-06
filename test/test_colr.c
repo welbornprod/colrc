@@ -5,10 +5,100 @@
 */
 
 #include "test_ColrC.h"
+#pragma GCC diagnostic ignored "-Wformat-extra-args"
+#pragma clang diagnostic ignored "-Wformat-extra-args"
+// Colr
+describe(Colr) {
+    subdesc(Colr_fmt) {
+        it("handles NULL") {
+            ColorResult* cres = Colr_fmt(NULL, 1, fore(RED));
+            assert_null(cres);
+        }
+        it("formats and colorizes single values") {
+           ColorResult* cres = Colr_fmt("%d", 1337, fore(RED));
+           char* s = ColorResult_to_str(*cres);
+           assert_str_contains(s, "1337");
+           ColorArg* cargred = fore(RED);
+           assert_str_contains_ColorArg(s, cargred);
+           colr_free(cargred);
+           colr_free(cres);
+        }
+    }
+    subdesc(Colr_fmt_str) {
+        it("handles NULL") {
+            ColorResult* cres = Colr_fmt_str(NULL, 1);
+            assert_null(cres);
+        }
+        it("formats single values") {
+            // Char
+            ColorResult* cres = NULL;
+            cres = Colr_fmt_str("%c", 97);
+            assert_not_null(cres);
+            assert_str_eq(cres->result, "a", "Bad result for Colr_fmt_str()!");
+            colr_free(cres);
+            // Str
+            cres = Colr_fmt_str("%s", "1337");
+            assert_not_null(cres);
+            assert_str_eq(cres->result, "1337", "Bad result for Colr_fmt_str()!");
+            colr_free(cres);
+            // Int
+            cres = Colr_fmt_str("%d", 1337);
+            assert_not_null(cres);
+            assert_str_eq(cres->result, "1337", "Bad result for Colr_fmt_str()!");
+            colr_free(cres);
+            cres = Colr_fmt_str("%i", 1337);
+            assert_not_null(cres);
+            assert_str_eq(cres->result, "1337", "Bad result for Colr_fmt_str()!");
+            colr_free(cres);
+            // Oct
+            cres = Colr_fmt_str("%o", 735);
+            assert_not_null(cres);
+            assert_str_eq(cres->result, "1337", "Bad result for Colr_fmt_str()!");
+            colr_free(cres);
+            // Hex
+            cres = Colr_fmt_str("%x", 50001337);
+            assert_not_null(cres);
+            assert_str_eq(cres->result, "2faf5b9", "Bad result for Colr_fmt_str()!");
+            colr_free(cres);
+            cres = Colr_fmt_str("%X", 50001337);
+            assert_not_null(cres);
+            assert_str_eq(cres->result, "2FAF5B9", "Bad result for Colr_fmt_str()!");
+            colr_free(cres);
+            // Unsigned
+            cres = Colr_fmt_str("%u", 2600);
+            assert_not_null(cres);
+            assert_str_eq(cres->result, "2600", "Bad result for Colr_fmt_str()!");
+            colr_free(cres);
+            // Float
+            cres = Colr_fmt_str("%0.3f", 1.337);
+            assert_not_null(cres);
+            assert_str_eq(cres->result, "1.337", "Bad result for Colr_fmt_str()!");
+            colr_free(cres);
+            cres = Colr_fmt_str("%0.3e", 1.337);
+            assert_not_null(cres);
+            assert_str_eq(cres->result, "1.337e+00", "Bad result for Colr_fmt_str()!");
+            colr_free(cres);
+            cres = Colr_fmt_str("%0.3a", 1.337);
+            assert_not_null(cres);
+            assert_str_eq(cres->result, "0x1.564p+0", "Bad result for Colr_fmt_str()!");
+            colr_free(cres);
+            cres = Colr_fmt_str("%0.3g", 1.337);
+            assert_not_null(cres);
+            assert_str_eq(cres->result, "1.34", "Bad result for Colr_fmt_str()!");
+            // Pointer
+            ColorResult* cresp = cres;
+            cres = Colr_fmt_str("%p", (void*)cresp);
+            colr_free(cresp);
+            assert_not_null(cres);
+            assert_str_starts_with(cres->result, "0x");
+            colr_free(cres);
+        }
+    }
+} // Colr
 
 describe(colr) {
-// colr
-subdesc(colr) {
+// colr_cat
+subdesc(colr_cat) {
     it("handles NULL") {
         char* s = colr_cat(NULL, "that");
         assert_str_eq(s, "that", "Should act like strdup() with a NULL argument.");
@@ -932,3 +1022,7 @@ subdesc(colr_to_str) {
     }
 }
 } // describe(colr)
+
+// Re-enable some warnings that were specific to the tests (Colr_fmt, Colr_fmt_str).
+#pragma GCC diagnostic warning "-Wformat-extra-args"
+#pragma clang diagnostic warning "-Wformat-extra-args"

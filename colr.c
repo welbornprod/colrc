@@ -795,21 +795,25 @@ const size_t colr_name_data_len = sizeof(colr_name_data) / sizeof(colr_name_data
     \pi fmt  Format string for `asprintf`.
     \pi ...  Other arguments for `asprintf`.
     \return  \parblock
-                An allocated ColorResult.
+                An allocated ColorResult, or `NULL` if \p fmt is `NULL`.
                 \maybenull
                 \colrmightfree
              \endparblock
 */
 ColorResult* Colr_fmt_str(const char* fmt, ...) {
+    if (!fmt) return NULL;
     va_list args;
     va_start(args, fmt);
     va_list argcopy;
     va_copy(argcopy, args);
     char* s = NULL;
     if (vasprintf(&s, fmt, argcopy) < 0) {
+        // Allocation failed. Clean up the va_arg stuff and return.
+        // LCOV_EXCL_START
         va_end(argcopy);
         va_end(args);
         return NULL;
+        // LCOV_EXCL_STOP
     }
     va_end(argcopy);
     va_end(args);
@@ -1956,6 +1960,25 @@ char** colr_str_get_codes(const char* s, bool unique) {
     // Set the last item to NULL, even if it's the first item.
     code_array[array_pos] = NULL;
     return array_start;
+}
+
+/*! Determines whether a string contains a specific color code.
+
+    \pi s     The string to check.
+    \pi carg  The fore(), back(), or style() ColorArg to check for.
+    \return   \parblock
+                `true` if the string contains the escape codes formed by the
+                `ColorArg*` given, otherwise `false`.
+                If \p s is `NULL`/empty, or \p carg is `NULL`/empty, this will return `false`.
+              \endparblock
+*/
+bool colr_str_has_ColorArg(const char* s, ColorArg* carg) {
+    if (!(s && carg)) return false;
+    if (s[0] == '\0') return false;
+    char codes[CODE_ANY_LEN];
+    if (!ColorArg_to_esc_s(codes, *carg)) return false;
+    if (!strstr(s, codes)) return false;
+    return true;
 }
 
 /*! Determines if a \string has ANSI escape codes in it.
@@ -5842,7 +5865,7 @@ char* ColorJustifyMethod_repr(ColorJustifyMethod meth) {
                 The allocated ColorArgs will be `free()`'d.
               \endparblock
     \return   \parblock
-                An allocated ColorResult.
+                An allocated ColorResult, or `NULL` if \p cres is `NULL`.
                 \maybenull
                 \colrmightfree
               \endparblock
@@ -5851,6 +5874,7 @@ char* ColorJustifyMethod_repr(ColorJustifyMethod meth) {
 */
 ColorResult* ColorResult_Colr(ColorResult* cres, ...) {
     // Last argument must be _ColrLastArg.
+    if (!cres) return NULL;
     char* s = ColorResult_to_str(*cres);
     if (!s) return cres;
     va_list args;

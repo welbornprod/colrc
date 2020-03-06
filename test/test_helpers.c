@@ -919,6 +919,40 @@ subdesc(colr_str_get_codes) {
         colr_str_array_free(code_array_unique);
     }
 }
+// colr_str_has_ColorArg
+subdesc(colr_str_has_ColorArg) {
+    it("handles NULL") {
+        ColorArg* arg = fore(RED);
+        assert_false(colr_str_has_ColorArg(NULL, arg));
+        assert_false(colr_str_has_ColorArg("test", NULL));
+        // Empty string.
+        assert_false(colr_str_has_ColorArg("", arg));
+        colr_free(arg);
+        // Empty ColorArg.
+        arg = ColorArg_to_ptr(ColorArg_empty());
+        assert_false(colr_str_has_ColorArg("test", arg));
+        colr_free(arg);
+    }
+    it("detects ColorArgs") {
+        struct {
+            char* s;
+            ColorArg* carg;
+            bool expected;
+        } tests[] = {
+            {colr("test", fore(RED)), fore(RED), true},
+            {colr("test", fore(RED), back(BLUE)), back(BLUE), true},
+            {colr("test", fore(RED), style(BRIGHT)), style(BRIGHT), true},
+            {colr("test", fore(BLUE), back(RED)), fore(RED), false},
+            {colr("test", fore(RED), back(RED), style(BRIGHT)), fore(BLUE), false},
+        };
+        for_each(tests, i) {
+            bool result = colr_str_has_ColorArg(tests[i].s, tests[i].carg);
+            asserteq(result, tests[i].expected);
+            free(tests[i].s);
+            colr_free(tests[i].carg);
+        }
+    }
+}
 // colr_str_has_codes
 subdesc(colr_str_has_codes) {
     it("should detect escape codes") {
