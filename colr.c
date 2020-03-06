@@ -799,6 +799,12 @@ const size_t colr_name_data_len = sizeof(colr_name_data) / sizeof(colr_name_data
                 \maybenull
                 \colrmightfree
              \endparblock
+
+    \examplecodefor{Colr_fmt_str,.c}
+    int i = 2600;
+    double d = 1.337;
+    colr_puts(Colr_fmt_str("<%d> <%0.3f>", i, d));
+    \endexamplecode
 */
 ColorResult* Colr_fmt_str(const char* fmt, ...) {
     if (!fmt) return NULL;
@@ -1971,6 +1977,30 @@ char** colr_str_get_codes(const char* s, bool unique) {
                 `ColorArg*` given, otherwise `false`.
                 If \p s is `NULL`/empty, or \p carg is `NULL`/empty, this will return `false`.
               \endparblock
+
+    \examplecodefor{colr_str_has_ColorArg,.c}
+    ColorArg* forered = fore(RED);
+    char* s = colr("Testing", fore(RED));
+    if (colr_str_has_ColorArg(s, forered)) {
+        puts("Yep, there's a fore:red in there.");
+    } else {
+        puts("Hmmm...no red?");
+    }
+    // That ColorArg was allocated, free() it.
+    colr_free(forered);
+
+    ColorArg* backblue = back(BLUE);
+    if (colr_str_has_ColorArg(s, backblue)) {
+        fprintf(stderr, "Illegal back:blue found in a red string!\n");
+    }
+    // Free this one too.
+    // If it was used inside of a colr/Colr macro call, we wouldn't have to do this.
+    colr_free(backblue);
+
+    // Free the string we created to test with.
+    free(s);
+
+    \endexamplecode
 */
 bool colr_str_has_ColorArg(const char* s, ColorArg* carg) {
     if (!(s && carg)) return false;

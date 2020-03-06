@@ -68,6 +68,7 @@
         method == ALL_MOVE ? "2" : \
         method == ALL_ERASE ? "3" : \
         method == ALL_MOVE_ERASE ? "4" : \
+        method == ALL ? "2" : \
         NULL \
     )
 

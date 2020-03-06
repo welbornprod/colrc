@@ -872,7 +872,7 @@ extern int colr_printf_esc_mod;
     Format and colorize a value like the `printf`-family.
 
     \details
-    Unlike `printf`, this only accepts one value to format.
+    Unlike `printf`, this only accepts a <strong>single value</strong> to format.
     The other arguments are for coloring/styling the value.
 
     \pi fmt    The format string.
@@ -883,6 +883,20 @@ extern int colr_printf_esc_mod;
                     \maybenull
                     \colrmightfree
                \endparblock
+
+    \examplecodefor{Colr_fmt,.c}
+    // Format a number:
+    for (int i = 1; i < 4; i++) {
+        colr_puts("Printing line ", Colr_fmt("%d", i, fore(BLUE)));
+    }
+
+    // Format a string:
+    char* s = "test";
+    // The coloring/styling applies to the final string value, "[test]".
+    colr_puts(Colr_fmt("[%s]", s, fore(RED)));
+    // If you don't want that, use the _join or _cat functions:
+    colr_puts(Colr_join(Colr(s, fore(RED)), "[", "]"));
+    \endexamplecode
 */
 #define Colr_fmt(fmt, value, ...) \
     ColorResult_Colr( \
@@ -1059,7 +1073,7 @@ extern int colr_printf_esc_mod;
 #define ColrResult(s) ColorResult_to_ptr(ColorResult_new(s))
 
 /*! \def ColrResult_Colr
-    Like Colr(), but it operates on a ColorResult itself to generate a new
+    Like Colr(), but it operates on a ColorResult to generate a new
     colorized ColorResult.
 
     \pi cres \parblock
@@ -1075,6 +1089,10 @@ extern int colr_printf_esc_mod;
                 \maybenull
                 \colrmightfree
             \endparblock
+
+    \examplecodefor{ColrColorResult,.c}
+    colr_puts(ColrColorResult(Colr_join("test", "[", "]"), fore(BLUE)));
+    \endexamplecode
 */
 #define ColrColorResult(cres, ...) ColorResult_Colr(cres, __VA_ARGS__, _ColrLastArg)
 

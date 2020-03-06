@@ -9,7 +9,7 @@
 
 #include "colr.controls.h"
 
-/*! Creates an allocated ColorResult that hides the cursor when printed.
+/*! Returns an allocated ColorResult that hides the cursor when printed.
 
     \return \parblock
                 An allocated ColorResult.
@@ -32,7 +32,7 @@ ColorResult* Colr_cursor_hide(void) {
     return ColorResult_to_ptr(ColorResult_from_str(COLR_ESC "?25l"));
 }
 
-/*! Creates an allocated ColorResult that shows the cursor when printed.
+/*! Returns an allocated ColorResult that shows the cursor when printed.
 
     \return \parblock
                 An allocated ColorResult.
@@ -94,7 +94,7 @@ ColorResult* Colr_erase_display(EraseMethod method) {
         // Force flush with colr_control, so we see the first line.
         colr_control(
             "This is a line.",
-            Colr_erase_line(ALL_MOVE),
+            Colr_erase_line(ALL),
             Colr_move_return(),
             Colr("This is a blue line.", fore(BLUE))
         );
@@ -299,7 +299,7 @@ ColorResult* Colr_move_up(unsigned int lines) {
     return ColorResult_to_ptr(ColorResult_new(codes));
 }
 
-/*! Creates an allocated ColorResult that restores a previously saved cursor
+/*! Returns an allocated ColorResult that restores a previously saved cursor
     position when printed.
 
     \details
@@ -327,7 +327,7 @@ ColorResult* Colr_pos_restore(void) {
     return ColorResult_to_ptr(ColorResult_from_str(COLR_ESC "u"));
 }
 
-/*! Creates an allocated ColorResult that saves the cursor position when printed.
+/*! Returns an allocated ColorResult that saves the cursor position when printed.
 
     \details
     This only saves the column position, not the line position.
