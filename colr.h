@@ -1192,6 +1192,7 @@ extern int colr_printf_esc_mod;
         BasicValue: BasicValue_eq, \
         ColorArg: ColorArg_eq, \
         ColorJustify: ColorJustify_eq, \
+        ColorResult: ColorResult_eq, \
         ColorType: ColorType_eq, \
         ColorValue: ColorValue_eq, \
         ExtendedValue: ExtendedValue_eq, \
@@ -3126,6 +3127,7 @@ ColorResult ColorResult_empty(void);
 bool ColorResult_eq(ColorResult a, ColorResult b);
 void ColorResult_free(ColorResult* p);
 ColorResult ColorResult_from_str(const char* s);
+ColorResult* ColorResult_from_stra(const char* s);
 bool ColorResult_is_ptr(void* p);
 size_t ColorResult_length(ColorResult cres);
 ColorResult ColorResult_new(char* s);

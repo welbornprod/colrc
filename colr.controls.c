@@ -29,7 +29,7 @@
     \endexamplecode
 */
 ColorResult* Colr_cursor_hide(void) {
-    return ColorResult_to_ptr(ColorResult_from_str(COLR_ESC "?25l"));
+    return ColorResult_from_stra(COLR_ESC "?25l");
 }
 
 /*! Returns an allocated ColorResult that shows the cursor when printed.
@@ -41,7 +41,7 @@ ColorResult* Colr_cursor_hide(void) {
             \endparblock
 */
 ColorResult* Colr_cursor_show(void) {
-    return ColorResult_to_ptr(ColorResult_from_str(COLR_ESC "?25h"));
+    return ColorResult_from_stra(COLR_ESC "?25h");
 }
 
 /*! Returns an allocated ColorResult that will erase the display or part of the display
@@ -68,13 +68,20 @@ ColorResult* Colr_cursor_show(void) {
 */
 ColorResult* Colr_erase_display(EraseMethod method) {
     if (method == ALL) method = ALL_MOVE;
+    if (method == ALL_MOVE_ERASE) {
+        // ALL_MOVE + ALL_ERASE
+        // finallen *= 2;
+        // char dblcodes[finallen];
+        char* methstr_move = EraseMethod_to_str(ALL_MOVE);
+        char* methstr_erase = EraseMethod_to_str(ALL_ERASE);
+        return Colr_cat(COLR_ESC, methstr_move, "J;" COLR_ESC, methstr_erase, "J");
+    }
     char* methstr = EraseMethod_to_str(method);
     if (!methstr) return NULL;
     size_t finallen = COLR_ESC_LEN + 2;
     char codes[finallen];
     snprintf(codes, finallen, COLR_ESC "%sJ", methstr);
-    if (method < 4) return ColorResult_to_ptr(ColorResult_from_str(codes));
-    return Colr_join(";", Colr_erase_display(ALL_MOVE), Colr_erase_display(ALL_ERASE));
+    return ColorResult_from_stra(codes);
 }
 
 /*! Returns an allocated ColorResult that will erase line or part of a line when printed.
@@ -104,13 +111,13 @@ ColorResult* Colr_erase_display(EraseMethod method) {
 */
 ColorResult* Colr_erase_line(EraseMethod method) {
     if (method == ALL) method = ALL_MOVE;
-    assert(method < 3);
+    assert((method == END) || (method == START) || (method == ALL_MOVE));
     char* methstr = EraseMethod_to_str(method);
     if (!methstr) return NULL;
     size_t finallen = COLR_ESC_LEN + 2;
     char codes[finallen];
     snprintf(codes, finallen, COLR_ESC "%sK", methstr);
-    return ColorResult_to_ptr(ColorResult_from_str(codes));
+    return ColorResult_from_stra(codes);
 
 }
 
@@ -143,7 +150,7 @@ ColorResult* Colr_move_back(unsigned int columns) {
                 \endparblock
 */
 ColorResult* Colr_move_return(void) {
-    return ColorResult_to_ptr(ColorResult_from_str("\r"));
+    return ColorResult_from_stra("\r");
 }
 
 /*! Returns an allocated ColorResult that will move the cursor to a specific
@@ -324,7 +331,7 @@ ColorResult* Colr_move_up(unsigned int lines) {
     \endexamplecode
 */
 ColorResult* Colr_pos_restore(void) {
-    return ColorResult_to_ptr(ColorResult_from_str(COLR_ESC "u"));
+    return ColorResult_from_stra(COLR_ESC "u");
 }
 
 /*! Returns an allocated ColorResult that saves the cursor position when printed.
@@ -339,7 +346,7 @@ ColorResult* Colr_pos_restore(void) {
             \endparblock
 */
 ColorResult* Colr_pos_save(void) {
-    return ColorResult_to_ptr(ColorResult_from_str(COLR_ESC "s"));
+    return ColorResult_from_stra(COLR_ESC "s");
 }
 
 /*! Returns an allocated ColorResult that will scroll the cursor down a number

@@ -28,6 +28,10 @@
 
 /*! Like colr_fprint(stdout, ...) except it flushes stdout after it prints.
 
+    \details
+    You may not want to flush stdout after every call. You can use colr_print()
+    with the exact same arguments as colr_control() for those times.
+
     \pi ... Arguments for colr_fprintf.
 */
 #define colr_control(...) \

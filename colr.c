@@ -5983,6 +5983,34 @@ ColorResult ColorResult_from_str(const char* s) {
     return ColorResult_new(copied);
 }
 
+/*! Allocates a copy of a string, and creates an allocated ColorResult from it.
+
+    \pi s   The string to copy.
+    \return \parblock
+                An allocated ColorResult.
+                The ColorResult may be "empty" if \p s is `NULL`.
+                \maybenullalloc
+                \colrmightfree
+            \endparblock
+
+    \sa ColorResult
+*/
+ColorResult* ColorResult_from_stra(const char* s) {
+    if (!s) return ColorResult_to_ptr(ColorResult_empty());
+
+    size_t length = strlen(s) + 1;
+    char* copied = calloc(length, sizeof(char));
+    if (!copied) return NULL;
+    colr_str_copy(copied, s, length);
+    ColorResult* cresp = malloc(sizeof(ColorResult));
+    *cresp = (ColorResult) {
+        .marker=COLORRESULT_MARKER,
+        .result=copied,
+        .length=length,
+    };
+    return cresp;
+}
+
 /*! Checks a void pointer to see if it contains a ColorResult struct.
 
     \details The first member of a ColorResult is a marker.
@@ -6067,7 +6095,7 @@ char* ColorResult_repr(ColorResult cres) {
     \sa ColorResult
 */
 ColorResult* ColorResult_to_ptr(ColorResult cres) {
-    ColorResult *p = malloc(sizeof(cres));
+    ColorResult *p = malloc(sizeof(ColorResult));
     if (!p) return NULL;
     cres.marker = COLORRESULT_MARKER;
     *p = cres;

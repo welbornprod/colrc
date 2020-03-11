@@ -26,6 +26,7 @@
 #pragma clang diagnostic warning "-Wunused-macros"
 
 #include "../colr.h"
+#include "../colr.controls.h"
 
 // snow redefines the `assert()` macro. It's better though.
 #undef assert
@@ -39,6 +40,34 @@
     \return   `sizeof(array) / sizeof(array[0])`
 */
 #define array_length(array) (sizeof(array) / sizeof(array[0]))
+
+/*! Call asprintf, but fail the test if the allocation fails or there is an error.
+
+    \pi target  The \string to fill.
+    \pi fmt     Format string for asprintf.
+    \pi ...     Arguments for asprintf.
+*/
+#define assert_asprintf(target, fmt, ...) \
+    do { \
+        if (asprintf(target, fmt, __VA_ARGS__) < 0) { \
+            fail("Failed to allocate for asprintf!: %s", fmt); \
+        } \
+    } while (0)
+
+/*! Call asprintf, and return the filled string, but fail the test if the
+    allocation fails or there is an error.
+
+    \gnuonly
+
+    \pi fmt     Format string for asprintf.
+    \pi ...     Arguments for asprintf.
+*/
+#define asserted_asprintf(fmt, ...) \
+    __extension__ ({ \
+        char* _a_s = NULL; \
+        assert_asprintf(&_a_s, fmt, __VA_ARGS__); \
+        _a_s; \
+    })
 
 #define assert_ColorArgs_array_contains(lst, carg) \
     do { \
@@ -1151,6 +1180,7 @@
         unsigned long long: ulong_long_repr, \
         ColorArg: ColorArg_repr, \
         ColorJustify: ColorJustify_repr, \
+        ColorResult: ColorResult_repr, \
         ColorText: ColorText_repr, \
         ColorValue: ColorValue_repr, \
         ExtendedValue: ExtendedValue_repr, \
