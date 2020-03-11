@@ -1918,7 +1918,7 @@ char** colr_str_get_codes(const char* s, bool unique) {
     size_t array_pos = 0;
     size_t i = 0;
     char current_code[CODE_RGB_LEN] = {0};
-    // Length of code, minus the 'm'.
+    // Length of code, minus the 'm' and the '\0'.
     size_t code_max = CODE_RGB_LEN - 2;
     while (s[i]) {
         // Skip past non code stuff, if any.

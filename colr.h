@@ -35,7 +35,7 @@
 #define COLR_H
 
 //! Current version for ColrC.
-#define COLR_VERSION "0.3.6"
+#define COLR_VERSION "0.3.7"
 
 /* Tell gcc to ignore clang pragmas, for linting. */
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
@@ -2470,10 +2470,11 @@ extern int colr_printf_esc_mod;
     literal `int` values are accepted.
 
     \details
-    The resulting expression will be optimized into a constant static string.
+    The resulting expression will be optimized into a constant static string
+    (https://gcc.godbolt.org/z/TkoWtc).
 
     \pi x   A StyleValue to use.
-    \return A stack-allocated string.
+    \return A stack-allocated (read-only) string.
 
     \sa fore_str_static
     \sa back_str_static

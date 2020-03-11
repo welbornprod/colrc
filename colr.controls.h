@@ -59,8 +59,15 @@
 
 /*! Returns a static string representation for an EraseMethod.
 
+    \details
+    This will be optimized away into a static string, placed in the read-only
+    data section (https://gcc.godbolt.org/z/c3nzTz).
+
     \pi method The EraseMethod value to get a string representation for.
-    \return    A static string with the result, or `NULL` if the method was unknown.
+    \return    \parblock
+                    A stack-allocated (read-only) string with the result, or
+                    `NULL` if the method was unknown.
+               \parblock
 */
 #define EraseMethod_to_str(method) ( \
         method == END ? "0" : \
