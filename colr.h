@@ -880,7 +880,7 @@ extern int colr_printf_esc_mod;
     \pi ...    At least one of fore(), back(), or style() arguments in any order.
     \return    \parblock
                     An allocated ColorResult.
-                    \maybenull
+                    \maybenullalloc
                     \colrmightfree
                \endparblock
 
@@ -1072,7 +1072,7 @@ extern int colr_printf_esc_mod;
 */
 #define ColrResult(s) ColorResult_to_ptr(ColorResult_new(s))
 
-/*! \def ColrResult_Colr
+/*! \def ColrColorResult
     Like Colr(), but it operates on a ColorResult to generate a new
     colorized ColorResult.
 
@@ -1086,7 +1086,7 @@ extern int colr_printf_esc_mod;
              \endparblock
     \return \parblock
                 An allocated ColorResult.
-                \maybenull
+                \maybenullalloc
                 \colrmightfree
             \endparblock
 
@@ -2905,7 +2905,13 @@ static const struct _ColrLastArg_s* const _ColrLastArg = &_ColrLastArgValue;
     Common macros and definitions are found here in colr.h,
     however the functions are documented in colr.c.
 */
-ColorResult* Colr_fmt_str(const char* fmt, ...) __attribute__ ((__format__ (__printf__, 1, 2)));
+#ifdef DOXYGEN_SKIP
+    // This is strictly for Doxygen, because it doesn't know what __attribute__ is,
+    // even if you tell it with `PREDEFINED = __attribute__(x)=`
+    ColorResult* Colr_fmt_str(const char* fmt, ...);
+#else
+    ColorResult* Colr_fmt_str(const char* fmt, ...) __attribute__((__format__(__printf__, 1, 2)));
+#endif
 
 regmatch_t* colr_alloc_regmatch(regmatch_t match);
 void colr_append_reset(char* s);
@@ -2918,7 +2924,9 @@ bool colr_char_should_escape(const char c);
 
 bool colr_check_marker(uint32_t marker, void* p);
 char* colr_empty_str(void);
+void colr_free_argsv(va_list args);
 void colr_free_re_matches(regmatch_t** matches);
+bool colr_is_colr_ptr(void* p);
 size_t colr_mb_len(const char* s, size_t length);
 
 #ifdef COLR_GNU

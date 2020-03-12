@@ -66,8 +66,7 @@ subdesc(ColorResult_from_str) {
         assert_size_eq(ColorResult_length(cres), 0);
     }
     it("makes a copy of the result string") {
-        char* original = NULL;
-        asprintf(&original, "Test");
+        char* original = asserted_asprintf("%s", "Test");
         ColorResult* cres = ColorResult_to_ptr(ColorResult_from_str(original));
         assert_str_eq(cres->result, original, "Bad strdup!?");
         // Should have a new pointer for the result string.

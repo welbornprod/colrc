@@ -350,6 +350,46 @@ subdesc(colr_empty_str) {
         free(s);
     }
 }
+// colr_free_argsv
+subdesc(colr_free_argsv) {
+    it("only releases ColrC objects") {
+        // Run this through valgrind to check for leaks and other violations.
+        char* not_colrc = asserted_asprintf("%s", "Testing");
+        test_colr_free_argsv(
+            NULL,
+            // Should leak if you're not careful:
+            not_colrc,
+            // Should not leak:
+            fore(RED),
+            back(BLUE),
+            style(BRIGHT),
+            Colr("Test", fore(RED)),
+            Colr_join(";", Colr("this", fore(BLUE)), Colr("thing", fore(GREEN))),
+            _ColrLastArg
+        );
+        assert_str_eq(not_colrc, "Testing", "String was changed!");
+        free(not_colrc);
+    }
+}
+// colr_is_colr_ptr
+subdesc(colr_is_colr_ptr) {
+    it("recognizes ColrC objects") {
+        ColorArg* carg = fore(RED);
+        assert(colr_is_colr_ptr(carg));
+        colr_free(carg);
+        ColorText* ctext = Colr("test", fore(RED));
+        assert(colr_is_colr_ptr(ctext));
+        colr_free(ctext);
+        ColorResult* cres = Colr_join(" ", "This", "test", "here");
+        assert(colr_is_colr_ptr(cres));
+        colr_free(cres);
+    }
+    it("does not recognize other objects") {
+        assert_false(colr_is_colr_ptr("Testing"));
+        int x = 2600;
+        assert_false(colr_is_colr_ptr(&x));
+    }
+}
 // colr_supports_rgb
 subdesc(colr_supports_rgb) {
     it("detects rgb support") {

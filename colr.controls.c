@@ -5,6 +5,16 @@
     \author Christopher Welborn
     \date 02-29-20
     \endinternal
+
+    \details
+    To use ColrC Controls in your project, you will need to include colr.controls.h
+    and compile both colr.c and colr.controls.c with the rest of your files.
+
+    <em>Don't forget to compile with `colr.c` and `-lm`</em>.
+    \code{.sh}
+    gcc -std=c11 -c your_program.c colr.c colr.controls.c -lm
+    \endcode
+
 */
 
 #include "colr.controls.h"

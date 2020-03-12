@@ -7,7 +7,7 @@
     \endinternal
 
     \details
-    To use ColrC in your project, you will need to include colr.controls.h
+    To use ColrC Controls in your project, you will need to include colr.controls.h
     and compile both colr.c and colr.controls.c with the rest of your files.
 
     <em>Don't forget to compile with `colr.c` and `-lm`</em>.
@@ -71,7 +71,7 @@
     \return    \parblock
                     A stack-allocated (read-only) string with the result, or
                     `NULL` if the method was unknown.
-               \parblock
+               \endparblock
 */
 #define EraseMethod_to_str(method) ( \
         method == END ? "0" : \

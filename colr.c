@@ -792,11 +792,15 @@ const size_t colr_name_data_len = sizeof(colr_name_data) / sizeof(colr_name_data
 /*! Allocate and format a string like `asprintf`, but wrap it in an allocated
     ColorResult.
 
+    \details
+    This is declared with `__attribute__((__format__(__printf__, 1, 2)))` so
+    the compiler can check for bad format strings.
+
     \pi fmt  Format string for `asprintf`.
     \pi ...  Other arguments for `asprintf`.
     \return  \parblock
                 An allocated ColorResult, or `NULL` if \p fmt is `NULL`.
-                \maybenull
+                \maybenullalloc
                 \colrmightfree
              \endparblock
 
@@ -1143,6 +1147,20 @@ char* colr_empty_str(void) {
     return s;
 }
 
+/*! Free any ColrC objects (\colrfreetypes) passed in through a `va_list`.
+
+    \pi args  \parblock
+                The `va_list` with ColrC objects (\colrfreetypes).
+                The last argument must be `_ColrLastArg`.
+              \endparblock
+*/
+void colr_free_argsv(va_list args) {
+    void* arg;
+    while_colr_va_arg(args, void*, arg) {
+        if (colr_is_colr_ptr(arg)) colr_free(arg);
+    }
+}
+
 /*! Free an array of allocated `regmatch_t`, like the return from
     colr_re_matches().
 
@@ -1156,6 +1174,19 @@ void colr_free_re_matches(regmatch_t** matches) {
         matches[cnt++] = NULL;
     }
     free(matches);
+}
+
+/*! Determines whether a void pointer is a \colrfreetypes.
+
+    \pi p    A pointer to a possible ColrC object.
+    \return  `true` if \p p is a \colrfreetypes, otherwise `false`.
+*/
+bool colr_is_colr_ptr(void* p) {
+    return (
+        ColorArg_is_ptr(p) ||
+        ColorText_is_ptr(p) ||
+        ColorResult_is_ptr(p)
+    );
 }
 
 /*! Like `mbrlen`, except it will return the length of the next N (`length`)
@@ -5350,12 +5381,14 @@ ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value) {
     \pi colrtype ColorType value, to mark the type of ColorValue.
     \pi p        A pointer to either a BasicValue, ExtendedValue, or a RGB.
 
-    \return A ColorArg struct with the appropriate `.value.type` member set for
-            the value that was passed. For invalid types the `.value.type` member may
-            be set to one of:
-        - TYPE_INVALID
-        - TYPE_INVALID_EXT_RANGE
-        - TYPE_INVALID_RGB_RANGE
+    \return \parblock
+                A ColorArg struct with the appropriate `.value.type` member set for
+                the value that was passed. For invalid types the `.value.type` member may
+                be set to one of:
+                - TYPE_INVALID
+                - TYPE_INVALID_EXT_RANGE
+                - TYPE_INVALID_RGB_RANGE
+            \endparblock
 
     \sa ColorArg
 */
@@ -5896,7 +5929,7 @@ char* ColorJustifyMethod_repr(ColorJustifyMethod meth) {
               \endparblock
     \return   \parblock
                 An allocated ColorResult, or `NULL` if \p cres is `NULL`.
-                \maybenull
+                \maybenullalloc
                 \colrmightfree
               \endparblock
 
@@ -5904,13 +5937,26 @@ char* ColorJustifyMethod_repr(ColorJustifyMethod meth) {
 */
 ColorResult* ColorResult_Colr(ColorResult* cres, ...) {
     // Last argument must be _ColrLastArg.
-    if (!cres) return NULL;
-    char* s = ColorResult_to_str(*cres);
-    if (!s) return cres;
     va_list args;
     va_start(args, cres);
     va_list argcopy;
     va_copy(argcopy, args);
+    if (!cres) {
+        colr_free_argsv(argcopy);
+        va_end(argcopy);
+        va_end(args);
+        return NULL;
+    }
+    char* s = ColorResult_to_str(*cres);
+    if (!s) {
+        // Allocation failure.
+        // LCOV_EXCL_START
+        colr_free_argsv(argcopy);
+        va_end(argcopy);
+        va_end(args);
+        return cres;
+        // LCOV_EXCL_STOP
+    }
     ColorText ctext = ColorText_from_valuesv(s, argcopy);
     va_end(argcopy);
     va_end(args);

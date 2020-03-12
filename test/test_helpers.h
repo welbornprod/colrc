@@ -28,4 +28,20 @@
 #define STYLE_CODE_BRIGHT_LEN strlen(STYLE_CODE_BRIGHT)
 #define STYLE_CODE_UL "\x1b[4m"
 #define STYLE_CODE_UL_LEN strlen(STYLE_CODE_UL)
+
+/*! Wrapper to help test colr_free_argsv.
+
+    \pi unused Nothing, just pass NULL.
+    \pi ...    ColrC object pointers.
+*/
+void test_colr_free_argsv(void* unused, ...) {
+    va_list args;
+    va_start(args, unused);
+    va_list argcopy;
+    va_copy(argcopy, args);
+    colr_free_argsv(argcopy);
+    va_end(argcopy);
+    va_end(args);
+}
+
 #endif // TEST_HELPERS_H
