@@ -96,7 +96,7 @@ tags: $(source) $(headers)
 		printf "Building ctags...\n    "; \
 		ctags $(source) $(headers); \
 	else \
-		printf "No \`ctags\` available!" 1>&2; \
+		printf "No \`ctags\` available!\n" 1>&2; \
 	fi;
 
 .PHONY: clang
