@@ -14,7 +14,9 @@ jobs:
       working-directory: ./
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2
+
     - name: Build
       run: make debug
       shell: bash
@@ -28,7 +30,9 @@ jobs:
       working-directory: ./
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2
+
     - name: Fast Test
       run: make testfast
       shell: bash
@@ -41,7 +45,8 @@ jobs:
       working-directory: ./
 
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2
 
     - name: Cache Pip
       uses: actions/cache@v1
