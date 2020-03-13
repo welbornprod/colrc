@@ -343,6 +343,12 @@ distcj: dist
 		else \
 			printf "\nFailed to copy dist files to public dir!: %s\n" "$(dist_cj_dir)" 1>&2; \
 		fi; \
+	elif [[ -n "$(dist_cj_dir)" ]] && [[ "$$USER" == "cj" ]] && mkdir -p "$(dist_cj_dir)"; then \
+		if cp "$(dist_dir)"/* "$(dist_cj_dir)"; then \
+			printf "\nCopied dist files to new public dir: %s\n" "$(dist_cj_dir)"; \
+		else \
+			printf "\nFailed to copy dist files to public dir!: %s\n" "$(dist_cj_dir)" 1>&2; \
+		fi; \
 	else \
 		printf "\nMissing public dist dir: %s\n" "$(dist_cj_dir)" 1>&2; \
 	fi;
