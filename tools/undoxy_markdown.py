@@ -65,7 +65,7 @@ def main(argd):
 
     repl_header = [argd['--title']] if argd['--title'] else []
     if argd['--header'] and repl_header:
-        repl_header.extend(argd['--header'])
+        repl_header.extend(parse_header_lines(argd['--header']))
 
     write_file(argd['FILE'], output=argd['OUTPUT'], replace_header=repl_header)
     return 0
@@ -83,6 +83,12 @@ def parse_file(filepath, replace_header=None):
     else:
         with open(filepath, 'r') as f:
             yield from parse_lines(f, replace_header=replace_header)
+
+
+def parse_header_lines(lines):
+    if not lines:
+        return []
+    return [s.replace('\\n', '\n') for s in lines]
 
 
 def parse_lines(iterable, replace_header=None):

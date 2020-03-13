@@ -1,5 +1,7 @@
 # ColrC
 
+![CI](https://github.com/welbornprod/colrc/workflows/CI/badge.svg?event=push)
+
 For full documentation see [welbornprod.com/colrc](https://welbornprod.com/colrc/index.html)
 
 ## Getting Started

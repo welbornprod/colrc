@@ -45,7 +45,7 @@ is_build_cmd=bash tools/is_build.sh
 make_help_fmt_cmd=python3 tools/make_help_fmter.py
 undoxy_md_cmd=python3 tools/undoxy_markdown.py
 readme_title="ColrC"
-readme_header="For full documentation see [welbornprod.com/colrc](https://welbornprod.com/colrc/index.html)"
+readme_header="![CI](https://github.com/welbornprod/colrc/workflows/CI/badge.svg?event=push)\n\nFor full documentation see [welbornprod.com/colrc](https://welbornprod.com/colrc/index.html)"
 version_cmd=bash tools/get_version.sh
 dist_dir=./dist
 dist_files=colr.h colr.c colr.controls.h colr.controls.c
@@ -252,7 +252,7 @@ cleanquiet:
 
 .PHONY: cleancolrobjects
 cleancolrobjects:
-	@./tools/clean.sh -m "Colr Objects" colr.o
+	@./tools/clean.sh -m "Colr Objects" $(lib_objects)
 
 .PHONY: cleandebug
 cleandebug: clean
