@@ -58,6 +58,13 @@ jobs:
           path: "~/ctags"
           key: ${{secrets.CTAGS_VERSION}}
 
+    - name: Cache LibC-Debug
+      uses: actions/cache@v1.0.3
+      id: cache-libc-dbg
+      with:
+          path: "~/libc-dbg"
+          key: ${{secrets.LIBCDEBUG_VERSION}}
+
     - name: Cache Valgrind
       uses: actions/cache@v1.0.3
       id: cache-valgrind
@@ -88,6 +95,20 @@ jobs:
           fi
       working-directory: ${{env.working-directory}}
 
+    - name: Install LibC-Debug
+      env:
+        CACHE_HIT: ${{steps.cache-libc-dbg.outputs.cache-hit}}
+        LIBCDEBUG_VERSION: ${{secrets.LIBCDEBUG_VERSION}}
+      run: |
+          if [[ "$CACHE_HIT" == 'true' ]]; then
+            sudo cp --verbose --force --recursive ~/libc-dbg/* /
+          else
+            sudo apt-get install --yes libc6-dbg=${{env.LIBCDEBUG_VERSION}}
+            mkdir -p ~/libc-dbg
+            sudo dpkg -L libc6-dbg | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/libc-dbg/
+          fi
+      working-directory: ${{env.working-directory}}
+
     - name: Install Valgrind
       env:
         CACHE_HIT: ${{steps.cache-valgrind.outputs.cache-hit}}
@@ -100,10 +121,6 @@ jobs:
             mkdir -p ~/valgrind
             sudo dpkg -L valgrind | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/valgrind/
           fi
-      working-directory: ${{env.working-directory}}
-
-    - name: Install CTags
-      run: sudo apt-get install --yes exuberant-ctags
       working-directory: ${{env.working-directory}}
 
     - name: Test Everything
