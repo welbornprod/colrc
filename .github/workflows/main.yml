@@ -108,6 +108,7 @@ jobs:
       working-directory: ./
 
     steps:
+    - uses: actions/checkout@v2
     - name: Build
       run: make debug
       working-directory: ${{env.working-directory}}
@@ -120,6 +121,7 @@ jobs:
       working-directory: ./
 
     steps:
+    - uses: actions/checkout@v2
     - name: Fast Test
       run: make testfast
       working-directory: ${{env.working-directory}}
@@ -131,6 +133,7 @@ jobs:
       working-directory: ./
 
     steps:
+    - uses: actions/checkout@v2
     - name: Test Everything
       run: make github_testeverything
       working-directory: ${{env.working-directory}}
