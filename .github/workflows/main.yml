@@ -45,9 +45,7 @@ jobs:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
     - uses: actions/cache@v1
       with:
@@ -55,12 +53,22 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
+
+    - name: Setup Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+
     - name: Cache Valgrind
       uses: actions/cache@v1.0.3
       id: cache-valgrind
       with:
           path: "~/valgrind"
           key: ${{secrets.VALGRIND_VERSION}}
+
+    - name: Install Pip Dependencies
+      run: pip install -r tools/requirements.txt
+
     - name: Install Valgrind
       env:
         CACHE_HIT: ${{steps.cache-valgrind.outputs.cache-hit}}
@@ -73,5 +81,6 @@ jobs:
             mkdir -p ~/valgrind
             sudo dpkg -L valgrind | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/valgrind/
           fi
+
     - name: Test Everything
       run: make github_testeverything
