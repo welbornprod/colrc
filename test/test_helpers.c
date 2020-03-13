@@ -350,6 +350,46 @@ subdesc(colr_empty_str) {
         free(s);
     }
 }
+// colr_free_argsv
+subdesc(colr_free_argsv) {
+    it("only releases ColrC objects") {
+        // Run this through valgrind to check for leaks and other violations.
+        char* not_colrc = asserted_asprintf("%s", "Testing");
+        test_colr_free_argsv(
+            NULL,
+            // Should leak if you're not careful:
+            not_colrc,
+            // Should not leak:
+            fore(RED),
+            back(BLUE),
+            style(BRIGHT),
+            Colr("Test", fore(RED)),
+            Colr_join(";", Colr("this", fore(BLUE)), Colr("thing", fore(GREEN))),
+            _ColrLastArg
+        );
+        assert_str_eq(not_colrc, "Testing", "String was changed!");
+        free(not_colrc);
+    }
+}
+// colr_is_colr_ptr
+subdesc(colr_is_colr_ptr) {
+    it("recognizes ColrC objects") {
+        ColorArg* carg = fore(RED);
+        assert(colr_is_colr_ptr(carg));
+        colr_free(carg);
+        ColorText* ctext = Colr("test", fore(RED));
+        assert(colr_is_colr_ptr(ctext));
+        colr_free(ctext);
+        ColorResult* cres = Colr_join(" ", "This", "test", "here");
+        assert(colr_is_colr_ptr(cres));
+        colr_free(cres);
+    }
+    it("does not recognize other objects") {
+        assert_false(colr_is_colr_ptr("Testing"));
+        int x = 2600;
+        assert_false(colr_is_colr_ptr(&x));
+    }
+}
 // colr_supports_rgb
 subdesc(colr_supports_rgb) {
     it("detects rgb support") {
@@ -917,6 +957,40 @@ subdesc(colr_str_get_codes) {
         assert_str_array_contains(code_array_unique, "\x1b[1m");
         assert_str_array_contains(code_array_unique, "\x1b[38;5;255m");
         colr_str_array_free(code_array_unique);
+    }
+}
+// colr_str_has_ColorArg
+subdesc(colr_str_has_ColorArg) {
+    it("handles NULL") {
+        ColorArg* arg = fore(RED);
+        assert_false(colr_str_has_ColorArg(NULL, arg));
+        assert_false(colr_str_has_ColorArg("test", NULL));
+        // Empty string.
+        assert_false(colr_str_has_ColorArg("", arg));
+        colr_free(arg);
+        // Empty ColorArg.
+        arg = ColorArg_to_ptr(ColorArg_empty());
+        assert_false(colr_str_has_ColorArg("test", arg));
+        colr_free(arg);
+    }
+    it("detects ColorArgs") {
+        struct {
+            char* s;
+            ColorArg* carg;
+            bool expected;
+        } tests[] = {
+            {colr("test", fore(RED)), fore(RED), true},
+            {colr("test", fore(RED), back(BLUE)), back(BLUE), true},
+            {colr("test", fore(RED), style(BRIGHT)), style(BRIGHT), true},
+            {colr("test", fore(BLUE), back(RED)), fore(RED), false},
+            {colr("test", fore(RED), back(RED), style(BRIGHT)), fore(BLUE), false},
+        };
+        for_each(tests, i) {
+            bool result = colr_str_has_ColorArg(tests[i].s, tests[i].carg);
+            asserteq(result, tests[i].expected);
+            free(tests[i].s);
+            colr_free(tests[i].carg);
+        }
     }
 }
 // colr_str_has_codes

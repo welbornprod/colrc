@@ -35,7 +35,7 @@
 #define COLR_H
 
 //! Current version for ColrC.
-#define COLR_VERSION "0.3.6"
+#define COLR_VERSION "0.3.7"
 
 /* Tell gcc to ignore clang pragmas, for linting. */
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
@@ -738,7 +738,7 @@ extern int colr_printf_esc_mod;
     unless you pass it to colr_cat(), which will `free()` it for you.
 
     \pi text String to colorize/style.
-    \pi ...  No more than 3 ColorArg pointers for fore, back, and style in any order.
+    \pi ...  One to three ColorArg pointers for fore, back, and style in any order.
 
     \return \parblock
                 An allocated ColorText.
@@ -872,7 +872,7 @@ extern int colr_printf_esc_mod;
     Format and colorize a value like the `printf`-family.
 
     \details
-    Unlike `printf`, this only accepts one value to format.
+    Unlike `printf`, this only accepts a <strong>single value</strong> to format.
     The other arguments are for coloring/styling the value.
 
     \pi fmt    The format string.
@@ -880,9 +880,23 @@ extern int colr_printf_esc_mod;
     \pi ...    At least one of fore(), back(), or style() arguments in any order.
     \return    \parblock
                     An allocated ColorResult.
-                    \maybenull
+                    \maybenullalloc
                     \colrmightfree
                \endparblock
+
+    \examplecodefor{Colr_fmt,.c}
+    // Format a number:
+    for (int i = 1; i < 4; i++) {
+        colr_puts("Printing line ", Colr_fmt("%d", i, fore(BLUE)));
+    }
+
+    // Format a string:
+    char* s = "test";
+    // The coloring/styling applies to the final string value, "[test]".
+    colr_puts(Colr_fmt("[%s]", s, fore(RED)));
+    // If you don't want that, use the _join or _cat functions:
+    colr_puts(Colr_join(Colr(s, fore(RED)), "[", "]"));
+    \endexamplecode
 */
 #define Colr_fmt(fmt, value, ...) \
     ColorResult_Colr( \
@@ -1058,6 +1072,30 @@ extern int colr_printf_esc_mod;
 */
 #define ColrResult(s) ColorResult_to_ptr(ColorResult_new(s))
 
+/*! \def ColrColorResult
+    Like Colr(), but it operates on a ColorResult to generate a new
+    colorized ColorResult.
+
+    \pi cres \parblock
+                An allocated ColorResult to colorize.
+                This will be `free()`'d to create the new ColorResult.
+             \endparblock
+    \pi ...  \parblock
+                One to three fore(), back(), or style() arguments (`ColorArg`s).
+                The `ColorArg`s will be `free()`'d to generate the new ColorResult.
+             \endparblock
+    \return \parblock
+                An allocated ColorResult.
+                \maybenullalloc
+                \colrmightfree
+            \endparblock
+
+    \examplecodefor{ColrColorResult,.c}
+    colr_puts(ColrColorResult(Colr_join("test", "[", "]"), fore(BLUE)));
+    \endexamplecode
+*/
+#define ColrColorResult(cres, ...) ColorResult_Colr(cres, __VA_ARGS__, _ColrLastArg)
+
 /*! \def colr
     Create an allocated string directly from Colr() arguments.
 
@@ -1154,6 +1192,7 @@ extern int colr_printf_esc_mod;
         BasicValue: BasicValue_eq, \
         ColorArg: ColorArg_eq, \
         ColorJustify: ColorJustify_eq, \
+        ColorResult: ColorResult_eq, \
         ColorType: ColorType_eq, \
         ColorValue: ColorValue_eq, \
         ExtendedValue: ExtendedValue_eq, \
@@ -2432,10 +2471,11 @@ extern int colr_printf_esc_mod;
     literal `int` values are accepted.
 
     \details
-    The resulting expression will be optimized into a constant static string.
+    The resulting expression will be optimized into a constant static string
+    (https://gcc.godbolt.org/z/TkoWtc).
 
     \pi x   A StyleValue to use.
-    \return A stack-allocated string.
+    \return A stack-allocated (read-only) string.
 
     \sa fore_str_static
     \sa back_str_static
@@ -2865,7 +2905,13 @@ static const struct _ColrLastArg_s* const _ColrLastArg = &_ColrLastArgValue;
     Common macros and definitions are found here in colr.h,
     however the functions are documented in colr.c.
 */
-ColorResult* Colr_fmt_str(const char* fmt, ...) __attribute__ ((__format__ (__printf__, 1, 2)));
+#ifdef DOXYGEN_SKIP
+    // This is strictly for Doxygen, because it doesn't know what __attribute__ is,
+    // even if you tell it with `PREDEFINED = __attribute__(x)=`
+    ColorResult* Colr_fmt_str(const char* fmt, ...);
+#else
+    ColorResult* Colr_fmt_str(const char* fmt, ...) __attribute__((__format__(__printf__, 1, 2)));
+#endif
 
 regmatch_t* colr_alloc_regmatch(regmatch_t match);
 void colr_append_reset(char* s);
@@ -2878,7 +2924,9 @@ bool colr_char_should_escape(const char c);
 
 bool colr_check_marker(uint32_t marker, void* p);
 char* colr_empty_str(void);
+void colr_free_argsv(va_list args);
 void colr_free_re_matches(regmatch_t** matches);
+bool colr_is_colr_ptr(void* p);
 size_t colr_mb_len(const char* s, size_t length);
 
 #ifdef COLR_GNU
@@ -2904,6 +2952,7 @@ size_t colr_str_code_len(const char* s);
 char* colr_str_copy(char* restrict dest, const char* restrict src, size_t length);
 bool colr_str_ends_with(const char* restrict s, const char* restrict suffix);
 char** colr_str_get_codes(const char* s, bool unique);
+bool colr_str_has_ColorArg(const char* s, ColorArg* carg);
 bool colr_str_has_codes(const char* s);
 ColrHash colr_str_hash(const char* s);
 bool colr_str_is_all(const char* s, const char c);
@@ -3086,6 +3135,7 @@ ColorResult ColorResult_empty(void);
 bool ColorResult_eq(ColorResult a, ColorResult b);
 void ColorResult_free(ColorResult* p);
 ColorResult ColorResult_from_str(const char* s);
+ColorResult* ColorResult_from_stra(const char* s);
 bool ColorResult_is_ptr(void* p);
 size_t ColorResult_length(ColorResult cres);
 ColorResult ColorResult_new(char* s);

@@ -792,24 +792,38 @@ const size_t colr_name_data_len = sizeof(colr_name_data) / sizeof(colr_name_data
 /*! Allocate and format a string like `asprintf`, but wrap it in an allocated
     ColorResult.
 
+    \details
+    This is declared with `__attribute__((__format__(__printf__, 1, 2)))` so
+    the compiler can check for bad format strings.
+
     \pi fmt  Format string for `asprintf`.
     \pi ...  Other arguments for `asprintf`.
     \return  \parblock
-                An allocated ColorResult.
-                \maybenull
+                An allocated ColorResult, or `NULL` if \p fmt is `NULL`.
+                \maybenullalloc
                 \colrmightfree
              \endparblock
+
+    \examplecodefor{Colr_fmt_str,.c}
+    int i = 2600;
+    double d = 1.337;
+    colr_puts(Colr_fmt_str("<%d> <%0.3f>", i, d));
+    \endexamplecode
 */
 ColorResult* Colr_fmt_str(const char* fmt, ...) {
+    if (!fmt) return NULL;
     va_list args;
     va_start(args, fmt);
     va_list argcopy;
     va_copy(argcopy, args);
     char* s = NULL;
     if (vasprintf(&s, fmt, argcopy) < 0) {
+        // Allocation failed. Clean up the va_arg stuff and return.
+        // LCOV_EXCL_START
         va_end(argcopy);
         va_end(args);
         return NULL;
+        // LCOV_EXCL_STOP
     }
     va_end(argcopy);
     va_end(args);
@@ -1133,6 +1147,20 @@ char* colr_empty_str(void) {
     return s;
 }
 
+/*! Free any ColrC objects (\colrfreetypes) passed in through a `va_list`.
+
+    \pi args  \parblock
+                The `va_list` with ColrC objects (\colrfreetypes).
+                The last argument must be `_ColrLastArg`.
+              \endparblock
+*/
+void colr_free_argsv(va_list args) {
+    void* arg;
+    while_colr_va_arg(args, void*, arg) {
+        if (colr_is_colr_ptr(arg)) colr_free(arg);
+    }
+}
+
 /*! Free an array of allocated `regmatch_t`, like the return from
     colr_re_matches().
 
@@ -1146,6 +1174,19 @@ void colr_free_re_matches(regmatch_t** matches) {
         matches[cnt++] = NULL;
     }
     free(matches);
+}
+
+/*! Determines whether a void pointer is a \colrfreetypes.
+
+    \pi p    A pointer to a possible ColrC object.
+    \return  `true` if \p p is a \colrfreetypes, otherwise `false`.
+*/
+bool colr_is_colr_ptr(void* p) {
+    return (
+        ColorArg_is_ptr(p) ||
+        ColorText_is_ptr(p) ||
+        ColorResult_is_ptr(p)
+    );
 }
 
 /*! Like `mbrlen`, except it will return the length of the next N (`length`)
@@ -1908,7 +1949,7 @@ char** colr_str_get_codes(const char* s, bool unique) {
     size_t array_pos = 0;
     size_t i = 0;
     char current_code[CODE_RGB_LEN] = {0};
-    // Length of code, minus the 'm'.
+    // Length of code, minus the 'm' and the '\0'.
     size_t code_max = CODE_RGB_LEN - 2;
     while (s[i]) {
         // Skip past non code stuff, if any.
@@ -1956,6 +1997,49 @@ char** colr_str_get_codes(const char* s, bool unique) {
     // Set the last item to NULL, even if it's the first item.
     code_array[array_pos] = NULL;
     return array_start;
+}
+
+/*! Determines whether a string contains a specific color code.
+
+    \pi s     The string to check.
+    \pi carg  The fore(), back(), or style() ColorArg to check for.
+    \return   \parblock
+                `true` if the string contains the escape codes formed by the
+                `ColorArg*` given, otherwise `false`.
+                If \p s is `NULL`/empty, or \p carg is `NULL`/empty, this will return `false`.
+              \endparblock
+
+    \examplecodefor{colr_str_has_ColorArg,.c}
+    ColorArg* forered = fore(RED);
+    char* s = colr("Testing", fore(RED));
+    if (colr_str_has_ColorArg(s, forered)) {
+        puts("Yep, there's a fore:red in there.");
+    } else {
+        puts("Hmmm...no red?");
+    }
+    // That ColorArg was allocated, free() it.
+    colr_free(forered);
+
+    ColorArg* backblue = back(BLUE);
+    if (colr_str_has_ColorArg(s, backblue)) {
+        fprintf(stderr, "Illegal back:blue found in a red string!\n");
+    }
+    // Free this one too.
+    // If it was used inside of a colr/Colr macro call, we wouldn't have to do this.
+    colr_free(backblue);
+
+    // Free the string we created to test with.
+    free(s);
+
+    \endexamplecode
+*/
+bool colr_str_has_ColorArg(const char* s, ColorArg* carg) {
+    if (!(s && carg)) return false;
+    if (s[0] == '\0') return false;
+    char codes[CODE_ANY_LEN];
+    if (!ColorArg_to_esc_s(codes, *carg)) return false;
+    if (!strstr(s, codes)) return false;
+    return true;
 }
 
 /*! Determines if a \string has ANSI escape codes in it.
@@ -5297,12 +5381,14 @@ ColorArg ColorArg_from_StyleValue(ArgType type, StyleValue value) {
     \pi colrtype ColorType value, to mark the type of ColorValue.
     \pi p        A pointer to either a BasicValue, ExtendedValue, or a RGB.
 
-    \return A ColorArg struct with the appropriate `.value.type` member set for
-            the value that was passed. For invalid types the `.value.type` member may
-            be set to one of:
-        - TYPE_INVALID
-        - TYPE_INVALID_EXT_RANGE
-        - TYPE_INVALID_RGB_RANGE
+    \return \parblock
+                A ColorArg struct with the appropriate `.value.type` member set for
+                the value that was passed. For invalid types the `.value.type` member may
+                be set to one of:
+                - TYPE_INVALID
+                - TYPE_INVALID_EXT_RANGE
+                - TYPE_INVALID_RGB_RANGE
+            \endparblock
 
     \sa ColorArg
 */
@@ -5842,8 +5928,8 @@ char* ColorJustifyMethod_repr(ColorJustifyMethod meth) {
                 The allocated ColorArgs will be `free()`'d.
               \endparblock
     \return   \parblock
-                An allocated ColorResult.
-                \maybenull
+                An allocated ColorResult, or `NULL` if \p cres is `NULL`.
+                \maybenullalloc
                 \colrmightfree
               \endparblock
 
@@ -5851,12 +5937,28 @@ char* ColorJustifyMethod_repr(ColorJustifyMethod meth) {
 */
 ColorResult* ColorResult_Colr(ColorResult* cres, ...) {
     // Last argument must be _ColrLastArg.
-    char* s = ColorResult_to_str(*cres);
-    if (!s) return cres;
     va_list args;
     va_start(args, cres);
     va_list argcopy;
     va_copy(argcopy, args);
+
+    if (!cres) {
+        colr_free_argsv(argcopy);
+        va_end(argcopy);
+        va_end(args);
+        return NULL;
+    }
+    char* s = ColorResult_to_str(*cres);
+    if (!s) {
+        // Allocation failure.
+        // LCOV_EXCL_START
+        colr_free_argsv(argcopy);
+        va_end(argcopy);
+        va_end(args);
+        return cres;
+        // LCOV_EXCL_STOP
+    }
+
     ColorText ctext = ColorText_from_valuesv(s, argcopy);
     va_end(argcopy);
     va_end(args);
@@ -5927,6 +6029,34 @@ void ColorResult_free(ColorResult* p) {
 ColorResult ColorResult_from_str(const char* s) {
     char* copied = s ? strdup(s) : NULL;
     return ColorResult_new(copied);
+}
+
+/*! Allocates a copy of a string, and creates an allocated ColorResult from it.
+
+    \pi s   The string to copy.
+    \return \parblock
+                An allocated ColorResult.
+                The ColorResult may be "empty" if \p s is `NULL`.
+                \maybenullalloc
+                \colrmightfree
+            \endparblock
+
+    \sa ColorResult
+*/
+ColorResult* ColorResult_from_stra(const char* s) {
+    if (!s) return ColorResult_to_ptr(ColorResult_empty());
+
+    size_t length = strlen(s) + 1;
+    char* copied = calloc(length, sizeof(char));
+    if (!copied) return NULL;
+    colr_str_copy(copied, s, length);
+    ColorResult* cresp = malloc(sizeof(ColorResult));
+    *cresp = (ColorResult) {
+        .marker=COLORRESULT_MARKER,
+        .result=copied,
+        .length=length,
+    };
+    return cresp;
 }
 
 /*! Checks a void pointer to see if it contains a ColorResult struct.
@@ -6013,7 +6143,7 @@ char* ColorResult_repr(ColorResult cres) {
     \sa ColorResult
 */
 ColorResult* ColorResult_to_ptr(ColorResult cres) {
-    ColorResult *p = malloc(sizeof(cres));
+    ColorResult *p = malloc(sizeof(ColorResult));
     if (!p) return NULL;
     cres.marker = COLORRESULT_MARKER;
     *p = cres;

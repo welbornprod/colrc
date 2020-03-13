@@ -52,7 +52,7 @@ pyg_fmter = Terminal256Formatter(bg='dark', style='monokai')
 colr_auto_disable()
 
 NAME = 'ColrC - Snippet Runner'
-VERSION = '0.3.1'
+VERSION = '0.4.1'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
@@ -90,9 +90,41 @@ else:
 # TODO: This tool cannot be used with other projects because of this:
 COLR_DIR = os.path.abspath(os.path.join(os.path.abspath(SCRIPTDIR), '..'))
 debug(f'Using ColrC dir: {COLR_DIR}')
-COLRC_FILE = os.path.join(COLR_DIR, 'colr.c')
-COLRH_FILE = os.path.join(COLR_DIR, 'colr.h')
-EXAMPLES_SRC = (COLRC_FILE, COLRH_FILE)
+try:
+    ALL_FILES = os.listdir(COLR_DIR)
+except EnvironmentError as ex:
+    print(
+        f'Unable to list dir: {COLR_DIR}\n{ex}',
+        file=sys.stderr,
+    )
+    sys.exit(1)
+COLRC_FILES = [
+    os.path.join(COLR_DIR, s)
+    for s in ALL_FILES
+    if (
+        s.startswith('colr') and
+        s.endswith('.c') and
+        (not s.endswith('_tool.c'))
+    )
+]
+debug(f'Found C files: {", ".join(os.path.split(s)[-1] for s in COLRC_FILES)}')
+COLRH_FILES = [
+    os.path.join(COLR_DIR, s)
+    for s in ALL_FILES
+    if (
+        s.startswith('colr') and
+        s.endswith('.h') and
+        (not s.endswith('_tool.h'))
+    )
+]
+debug(f'Found headers: {", ".join(os.path.split(s)[-1] for s in COLRH_FILES)}')
+COLR_OBJS = [
+    f'{os.path.splitext(os.path.split(s)[-1])[0]}.o'
+    for s in COLRC_FILES
+]
+EXAMPLES_SRC = []
+EXAMPLES_SRC.extend(COLRC_FILES)
+EXAMPLES_SRC.extend(COLRH_FILES)
 README_FILE = os.path.join(COLR_DIR, 'doc_deps/index.md')
 
 usage_incl_lines = []
@@ -122,11 +154,11 @@ USAGESTR = f"""{VERSIONSTR}
         {SCRIPT} [-D] -c
         {SCRIPT} [-D] (-L | -N) [PATTERN]
         {SCRIPT} [-D] [-n] [-q] [-w] -V
-        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe] -b
-        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -R | -s] [-t name] -x [PATTERN] [-- ARGS...]
-        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -s] [-M | -t name] [CODE] [-- ARGS...]
-        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -s] [-M | -t name] [-f file...] [-- ARGS...]
-        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -s] [-M | -t name] [-w] (-e [CODE] | -l) [-- ARGS...]
+        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -S] -b
+        {SCRIPT} [-D] [-n] [-q] [-d | -m | -r exe | -R | -S | -s] [-t name] -x [PATTERN] [-- ARGS...]
+        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -S | -s] [-M | -t name] [CODE] [-- ARGS...]
+        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -S | -s] [-M | -t name] [-f file...] [-- ARGS...]
+        {SCRIPT} [-D] [-W] [-n] [-q] [-d | -m | -r exe | -R | -S | -s] [-M | -t name] [-w] (-e [CODE] | -l) [-- ARGS...]
         {SCRIPT} [-D] -E [-M | -t name] -x [PATTERN] [-- ARGS...]
         {SCRIPT} [-D] [-W] -E [-M | -t name] [CODE] [-- ARGS...]
         {SCRIPT} [-D] [-W] -E [-M | -t name] [-f file...] [-- ARGS...]
@@ -175,6 +207,7 @@ USAGESTR = f"""{VERSIONSTR}
                                  Just compile it.
         -r exe,--run exe       : Run a program on the compiled binary, like
                                  `gdb` or `kdbg`.
+        -S,--system            : Run the binary through os.system().
         -s,--sanitize          : Use -fsanitize compiler arguments.
         -t name,--target name  : Make target to get compiler flags from.
         -V,--viewlast          : View the last snippet that was compiled.
@@ -218,11 +251,16 @@ def main(argd):
     if argd['--clean']:
         return clean_tmp()
     elif argd['--listexamples'] or argd['--listnames']:
-        pat = try_repat(argd['PATTERN'])
-        return list_examples(name_pat=pat, names_only=argd['--listnames'])
+        filepat, pat = try_repat(argd['PATTERN'])
+        return list_examples(
+            file_pat=filepat,
+            name_pat=pat,
+            names_only=argd['--listnames'],
+        )
     elif argd['--examples']:
-        pat = try_repat(argd['PATTERN'])
+        filepat, pat = try_repat(argd['PATTERN'])
         return run_examples(
+            file_pat=filepat,
             pat=pat,
             exe=argd['--run'],
             compiler_args=argd['ARGS'],
@@ -246,6 +284,7 @@ def main(argd):
             show_name=argd['--name'],
             memcheck=argd['--memcheck'],
             quiet=argd['--quiet'],
+            system_run=argd['--system'],
         )
         status_runtime(procresult['duration'])
         return 1 if procresult['returncode'] else 0
@@ -322,6 +361,7 @@ def main(argd):
         quiet=argd['--quiet'],
         make_target=Disabled if argd['--nomake'] else argd['--target'],
         run=not argd['--norun'],
+        system_run=argd['--system'],
     )
 
 
@@ -520,7 +560,9 @@ def find_src_examples():
         s: find_src_file_examples(s)
         for s in EXAMPLES_SRC
     }
-    return {k: v for k, v in examples.items() if v}
+    valid = {k: v for k, v in examples.items() if v}
+    debug(f'Valid examples: {len(valid)}')
+    return valid
 
 
 def find_src_file_examples(filepath):
@@ -600,7 +642,7 @@ def get_example_snippets(pat=None):
         for snippet in snippets:
             filetotal += 1
             if (pat is not None) and (pat.search(snippet.name) is None):
-                debug(f'Skipping snippet for pattern: {snippet.name}')
+                debug(f'Skipping snippet ({pat.pattern!r}): {snippet.name}')
                 fileskipped += 1
                 continue
             usesnippets.append(snippet)
@@ -793,7 +835,7 @@ def last_snippet_write(code):
     return False
 
 
-def list_examples(name_pat=None, names_only=False):
+def list_examples(file_pat=None, name_pat=None, names_only=False):
     """ List all example snippets found in the source. """
     snippetinfo = find_src_examples()
     snippetinfo.update(find_md_examples(README_FILE))
@@ -806,6 +848,10 @@ def list_examples(name_pat=None, names_only=False):
     for filepath in sorted(snippetinfo):
         snippets = snippetinfo[filepath]
         length += len(snippets)
+        if file_pat and (file_pat.search(filepath) is None):
+            debug(f'Skipping non-matching file: {filepath}')
+            skipped += len(snippets)
+            continue
         printed_file = False
         for snippet in snippets:
             if (
@@ -959,7 +1005,7 @@ def run_compile_cmd(filepath, args):
 
 def run_compiled_exe(
         filepath, exe=None, src_file=None, show_name=False,
-        memcheck=False, quiet=False):
+        memcheck=False, quiet=False, system_run=False):
     """ Run an executable (the compiled snippet). """
     if not filepath.startswith(TMPDIR):
         newpath = os.path.join(TMPDIR, os.path.split(filepath)[-1])
@@ -1017,35 +1063,48 @@ def run_compiled_exe(
         cmd = [filepath]
     debug(f'Trying to run: {" ".join(cmd)}')
     try:
-        proc = subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        if system_run:
+            sysret = os.system(' '.join(cmd))
+            stdout = None
+            stderr = None
+        else:
+            sysret = None
+            proc = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
         duration = (time() - start_time) if start_time else None
     except subprocess.CalledProcessError:
         duration = None
         print_err('Snippet failed to run!')
         return 1
-    try:
-        stdout = proc.stdout.decode(errors='replace')
-    except UnicodeDecodeError:
-        stdout = f'Unable to decode stdout:\n    {proc.stdout!r}\n'
-    try:
-        stderr = proc.stderr.decode(errors='replace')
-    except UnicodeDecodeError:
-        stderr = f'Unable to decode stderr:\n    {proc.stderr!r}\n'
-    if not (stdout or stderr):
-        stderr = None if quiet else no_output_str(filepath, src_file=src_file)
+    if not system_run:
+        try:
+            stdout = proc.stdout.decode(errors='replace')
+        except UnicodeDecodeError:
+            stdout = f'Unable to decode stdout:\n    {proc.stdout!r}\n'
+        try:
+            stderr = proc.stderr.decode(errors='replace')
+        except UnicodeDecodeError:
+            stderr = f'Unable to decode stderr:\n    {proc.stderr!r}\n'
+        if not (stdout or stderr):
+            stderr = None if quiet else no_output_str(
+                filepath,
+                src_file=src_file,
+            )
     if stdout:
         print(stdout)
     if stderr:
         print(stderr, file=sys.stderr)
-    return {'returncode': proc.returncode, 'duration': duration}
+    return {
+        'returncode': proc.returncode if sysret is None else sysret,
+        'duration': duration
+    }
 
 
 def run_examples(
-        pat=None, exe=None, show_name=False, compiler_args=None,
+        file_pat=None, pat=None, exe=None, show_name=False, compiler_args=None,
         disasm=False, memcheck=False, preprocess=False,
         quiet=False, make_target=None, run=True):
     """ Compile and run source examples, with optional filtering pattern.
@@ -1054,7 +1113,16 @@ def run_examples(
     success = 0
     skipped = 0
     total = 0
+    snipscnt = 0
     for filepath, snippetinfo in get_example_snippets(pat=pat).items():
+        if file_pat and (file_pat.search(filepath) is None):
+            debug(f'Skipping non-matching file: {filepath}')
+            snippetlen = snippetinfo['total']
+            skipped += snippetlen
+            total += snippetlen
+            snipscnt = 0
+            continue
+
         if filepath == 'all':
             total = snippetinfo['total']
             skipped = snippetinfo['skipped']
@@ -1102,7 +1170,10 @@ def run_examples(
                 run=run,
             )
         snipscnt = snippetinfo['total'] - snippetinfo['skipped']
-        success += snipscnt - errs
+        if snipscnt == 1:
+            success = 1 if errs == 0 else 0
+        else:
+            success += snipscnt - errs
 
     status(C(' ').join(
         C(': ').join(
@@ -1122,7 +1193,10 @@ def run_examples(
                 ),
                 C(': ').join(
                     C('Error', 'cyan'),
-                    C(errs, 'red' if errs else 'dimgrey', style='bright')
+                    C(
+                        f'{errs} returned' if snipscnt == 1 else errs,
+                        'red' if errs else 'dimgrey', style='bright'
+                    )
                 ),
             ).join('(', ')'),
         )
@@ -1133,7 +1207,7 @@ def run_examples(
 def run_snippets(
         snippets, exe=None, show_name=False, compiler_args=None,
         disasm=False, memcheck=False, quiet=False, make_target=None,
-        run=True):
+        run=True, system_run=False):
     """ Compile and run several c code snippets. """
     errs = 0
     sniplen = len(snippets)
@@ -1152,6 +1226,7 @@ def run_snippets(
                 show_name=show_name,
                 memcheck=memcheck,
                 quiet=quiet,
+                system_run=system_run,
             )
             if procresult['returncode']:
                 debug(f'Snippet process returned: {procresult["returncode"]}')
@@ -1207,19 +1282,38 @@ def temp_file_name(ext=None, extra_prefix=None):
 
 
 def try_repat(s):
-    """ Try compiling a regex pattern.
-        If None is passed, None is returned.
+    """ Try compiling a regex pattern for filtering examples/snippets.
+        If None is passed, (None, None) is returned.
+        If the pattern has ':' in it, the first part is treated as a file name
+        pattern.
         On errors, a message is printed and the program exits.
-        On success, a compiled regex pattern is returned.
+        On success, (file_repat, reg_repat) is returned.
     """
     if not s:
-        return None
-    try:
-        p = re.compile(s)
-    except re.error as ex:
-        print('\nInvalid pattern: {}\n{}'.format(s, ex))
-        sys.exit(1)
-    return p
+        return (None, None)
+    strf, _, strp = s.partition(':')
+    if not strp:
+        if ':' in s:
+            # Just a file pattern given.
+            strp = None
+        else:
+            strp = strf
+            strf = None
+    if strp:
+        try:
+            pats = re.compile(strp)
+        except re.error as ex:
+            raise InvalidArg(f'bad pattern: {strp}\n{ex}')
+    else:
+        pats = None
+    if strf:
+        try:
+            patf = re.compile(strf)
+        except re.error as ex:
+            raise InvalidArg(f'bad file pattern: {strf}\n{ex}')
+    else:
+        patf = None
+    return patf, pats
 
 
 def view_examples(pat=None, show_name=False, quiet=False):
@@ -1601,14 +1695,10 @@ class Snippet(object):
         objname = f'{basename}.o'
         cfiles = [self.src_file]
         if self.do_wrap:
-            cfiles.append(COLRC_FILE)
-        colrobj = 'colr.o'
-        if self.do_wrap and os.path.exists(colrobj):
-            try:
-                os.remove(colrobj)
-                debug(f'Removed existing: {colrobj}')
-            except EnvironmentError as ex:
-                print_err(f'Unable to remove {colrobj}: {ex}')
+            cfiles.extend(COLRC_FILES)
+
+        if self.do_wrap:
+            self.remove_existing_objs()
 
         cmd = get_gcc_cmd(cfiles, user_args=user_args, make_target=make_target)
         try:
@@ -1628,7 +1718,7 @@ class Snippet(object):
         objnames = []
         objnames.extend(tmpobjnames)
         if self.do_wrap:
-            objnames.append(colrobj)
+            objnames.extend(COLR_OBJS)
         binaryname = temp_file_name(ext='.binary')
         linkcmd = get_gcc_cmd(
             objnames,
@@ -1746,7 +1836,8 @@ class Snippet(object):
         filepath = self.write_code(self.wrap_code(self.code), ext='.c')
         config['last_c_file'] = filepath
         last_snippet_write(self.code)
-        cfiles = [filepath, COLRC_FILE]
+        cfiles = [filepath]
+        cfiles.extend(COLRC_FILES)
         cmd = get_gcc_cmd(
             cfiles,
             user_args=user_args,
@@ -1763,6 +1854,16 @@ class Snippet(object):
             if compret != 0:
                 raise CompileError(filepath)
         return 0
+
+    def remove_existing_objs(self):
+        """ Remove any existing ColrC object files. """
+        for colrobj in COLR_OBJS:
+            if os.path.exists(colrobj):
+                try:
+                    os.remove(colrobj)
+                    debug(f'Removed existing: {colrobj}')
+                except EnvironmentError as ex:
+                    print_err(f'Unable to remove {colrobj}: {ex}')
 
     def wrap_code(self, code):
         """ Wrap a C snippet in a main() definition, with colr.h included.

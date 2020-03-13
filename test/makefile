@@ -27,9 +27,9 @@ is_build_cmd=bash ../tools/is_build.sh $(binary)
 make_help_fmt_cmd=python3 ../tools/make_help_fmter.py
 valgrind_cmd=bash ../tools/valgrind_run.sh
 test_source:=$(wildcard *.c)
-source:=$(test_source) ../colr.c
+source:=$(test_source) ../colr.c ../colr.controls.c
 test_headers:=$(wildcard *.h)
-headers:=$(test_headers) ../colr.h
+headers:=$(test_headers) ../colr.h ../colr.controls.h
 test_objects=$(test_source:.c=.o)
 objects:=$(source:.c=.o)
 binobjects:=$(notdir $(objects))
@@ -80,6 +80,10 @@ $(binary): $(binobjects)
 colr.o: ../colr.c ../colr.h
 	@printf "\nCompiling colr.c from parent dir for tests...\n    "
 	$(CC) -c $< -o colr.o $(CFLAGS) $(INCLUDES)
+
+colr.controls.o: ../colr.controls.c ../colr.controls.h
+	@printf "\nCompiling colr.controls.c from parent dir for tests...\n    "
+	$(CC) -c $< -o colr.controls.o $(CFLAGS) $(INCLUDES)
 
 $(test_objects): $(test_source) $(test_headers)
 	@objpath="$@"; \

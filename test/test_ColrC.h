@@ -26,6 +26,7 @@
 #pragma clang diagnostic warning "-Wunused-macros"
 
 #include "../colr.h"
+#include "../colr.controls.h"
 
 // snow redefines the `assert()` macro. It's better though.
 #undef assert
@@ -39,6 +40,34 @@
     \return   `sizeof(array) / sizeof(array[0])`
 */
 #define array_length(array) (sizeof(array) / sizeof(array[0]))
+
+/*! Call asprintf, but fail the test if the allocation fails or there is an error.
+
+    \pi target  The \string to fill.
+    \pi fmt     Format string for asprintf.
+    \pi ...     Arguments for asprintf.
+*/
+#define assert_asprintf(target, fmt, ...) \
+    do { \
+        if (asprintf(target, fmt, __VA_ARGS__) < 0) { \
+            fail("Failed to allocate for asprintf!: %s", fmt); \
+        } \
+    } while (0)
+
+/*! Call asprintf, and return the filled string, but fail the test if the
+    allocation fails or there is an error.
+
+    \gnuonly
+
+    \pi fmt     Format string for asprintf.
+    \pi ...     Arguments for asprintf.
+*/
+#define asserted_asprintf(fmt, ...) \
+    __extension__ ({ \
+        char* _a_s = NULL; \
+        assert_asprintf(&_a_s, fmt, __VA_ARGS__); \
+        _a_s; \
+    })
 
 #define assert_ColorArgs_array_contains(lst, carg) \
     do { \
@@ -722,6 +751,27 @@
         } \
     } while (0)
 
+/*! \def assert_str_contains_ColorArg
+    Ensure a string contains a `ColorArg*`.
+
+    \pi s      The string to search.
+    \pi carg   The ColorArg to generate escape codes to look for.
+*/
+#define assert_str_contains_ColorArg(s, carg) \
+    do { \
+        assert_not_null(s); \
+        assert_not_null(carg); \
+        assert_str_not_empty(s); \
+        assert(!ColorArg_is_empty(*carg)); \
+        if (!colr_str_has_ColorArg(s, carg)) { \
+            char* _a_s_c_ca_repr = test_repr(s); \
+            char* _a_s_c_ca_ca_repr = test_repr(*carg); \
+            fail("String does not contain ColorArg:\n    %s\n    %s", _a_s_c_ca_repr, _a_s_c_ca_ca_repr); \
+            free(_a_s_c_ca_repr); \
+            free(_a_s_c_ca_ca_repr); \
+        } \
+    } while (0)
+
 /*! \def assert_str_either
     Assert that a string is equal with either of two other strings, with a nice
     message with string reprs.
@@ -1130,6 +1180,7 @@
         unsigned long long: ulong_long_repr, \
         ColorArg: ColorArg_repr, \
         ColorJustify: ColorJustify_repr, \
+        ColorResult: ColorResult_repr, \
         ColorText: ColorText_repr, \
         ColorValue: ColorValue_repr, \
         ExtendedValue: ExtendedValue_repr, \

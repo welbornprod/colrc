@@ -108,11 +108,12 @@ IMAGE_PATH             =
 REFERENCED_BY_RELATION = YES
 # Preprocessing settings -----------------------------------------------------
 ENABLE_PREPROCESSING   = YES
+EXPAND_ONLY_PREDEF     = YES
 PREDEFINED             = DEBUG=1 \
                          _GNU_SOURCE=1 \
                          __GNUC__=1 \
-                         DOXYGEN_SKIP=1
-
+                         DOXYGEN_SKIP=1 \
+                         __attribute__(x)=
 # Graph settings -------------------------------------------------------------
 DOT_FONTNAME           = Arial
 INCLUDE_GRAPH          = NO

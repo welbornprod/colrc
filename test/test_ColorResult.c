@@ -6,6 +6,27 @@
 #include "test_ColrC.h"
 
 describe(ColorResult) {
+subdesc(ColorResult_Colr) {
+    it("handles NULL") {
+        ColorResult* cres = ColrColorResult(NULL, fore(RED));
+        assert_null(cres);
+    }
+    it("colorizes ColorResults") {
+        // Not much of a test, but at least it's something.
+        ColorResult* cres = Colr_join("\n", "test", "this");
+        ColorResult* cres_res = ColrColorResult(cres, fore(RED), back(BLUE));
+        // `cres` was already released by ColorResult_Colr.
+        char* s = ColorResult_to_str(*cres_res);
+        assert_str_contains(s, "test\nthis");
+        ColorArg* cargred = fore(RED);
+        ColorArg* cargblue = back(BLUE);
+        assert_str_contains_ColorArg(s, cargred);
+        assert_str_contains_ColorArg(s, cargblue);
+        colr_free(cargred);
+        colr_free(cargblue);
+        colr_free(cres_res);
+    }
+}
 subdesc(ColorResult_empty) {
     it("creates an empty ColorResult") {
         ColorResult empty = ColorResult_empty();
@@ -34,6 +55,27 @@ subdesc(ColorResult_free) {
     it("frees it's resources") {
         ColorResult* p = Colr_join("-", Colr("test", fore(RED)), fore(WHITE));
         ColorResult_free(p);
+    }
+}
+subdesc(ColorResult_from_str) {
+    it("handles NULL") {
+        ColorResult cres = ColorResult_from_str(NULL);
+        assert_null(cres.result);
+        assert_size_eq(cres.length, 0);
+        // Just another way of testing the length calculations for _new() and _length().
+        assert_size_eq(ColorResult_length(cres), 0);
+    }
+    it("makes a copy of the result string") {
+        char* original = asserted_asprintf("%s", "Test");
+        ColorResult* cres = ColorResult_to_ptr(ColorResult_from_str(original));
+        assert_str_eq(cres->result, original, "Bad strdup!?");
+        // Should have a new pointer for the result string.
+        assert(original != cres->result);
+        assert_size_eq(cres->length, 5);
+        // Just another way of testing the length calculations for _new() and _length().
+        assert_size_eq(ColorResult_length(*cres), 5);
+        free(original);
+        ColorResult_free(cres);
     }
 }
 subdesc(ColorResult_is_ptr) {
