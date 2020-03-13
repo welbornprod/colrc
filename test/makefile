@@ -92,8 +92,12 @@ $(test_objects): $(test_source) $(test_headers)
 	$(CC) -c $$cfile -o $@ $(CFLAGS) $(INCLUDES)
 
 tags: $(source) $(headers)
-	@printf "Building ctags...\n    ";
-	ctags $(source) $(headers);
+	@if hash ctags &>/dev/null; then \
+		printf "Building ctags...\n    "; \
+		ctags $(source) $(headers); \
+	else \
+		printf "No \`ctags\` available!" 1>&2; \
+	fi;
 
 .PHONY: clang
 clang: CC=clang
