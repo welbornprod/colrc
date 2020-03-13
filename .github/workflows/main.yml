@@ -74,4 +74,4 @@ jobs:
             sudo dpkg -L valgrind | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/valgrind/
           fi
     - name: Test Everything
-      run: make testeverything
+      run: make github_testeverything
