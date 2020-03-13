@@ -224,6 +224,10 @@ test:
 testeverything:
 	@./run_tests.sh --all --quiet
 
+.PHONY: github_testeverything
+github_testeverything:
+	@./run_tests.sh --all --quiet --github
+
 .PHONY: testfast
 testfast: clean
 testfast: debug

@@ -61,6 +61,10 @@ function colr_anim {
 
 function echo_err {
     # Echo to stderr.
+    ((github_friendly)) && {
+        echo -e "$@" 1>&2
+        return 0
+    }
     printf "%s" "$RED" 1>&2
     echo -e "$@" 1>&2
     printf "%s" "$NC" 1>&2
@@ -71,8 +75,16 @@ function echo_status {
     shift
     declare -a val=("$@")
     if ((${#val[@]} == 0)); then
+        ((github_friendly)) && {
+            printf "\n%s\n" "$lbl" 1>&2
+            return 0
+        }
         printf "\n%s%s%s\n" "$blue" "$lbl" "$NC" 1>&2
     else
+        ((github_friendly)) && {
+            printf "\n%s: %s\n" "$lbl" "${val[*]}"
+            return 0
+        }
         printf "\n%s%s%s: %s%s\n" "$blue" "$lbl" "$green" "${val[*]}" "$NC" 1>&2
     fi
 }
@@ -225,10 +237,10 @@ function run_colrc_cmds {
 
     local cmdarg colrfeedcmd inputarg
     declare -a colrfeedcmd
-    declare -a cmdargs=(
-        "--stripcodes"
-        "--listcodes"
-    )
+    declare -a cmdargs=("--stripcodes")
+    # Github workflow is not kind to --listcodes.
+    ((github_friendly)) || cmdargs+=("--listcodes")
+
     local cmdmarker="XXX" use_text
     declare -a colrc_inputs=(
         "Testing ${BLUE}${cmdmarker}${NC} in ${GREEN}${run_mode}${NC} mode."
@@ -470,6 +482,8 @@ do_colrc_examples_mode=0
 do_colors_mode=0
 do_examples_mode=0
 do_source_mode=0
+# Set with -g,--github to disable colored output and certain tests.
+github_friendly=0
 
 hash colr-run &>/dev/null || no_colr=1
 
@@ -500,6 +514,10 @@ for arg; do
             else
                 flagargs+=("$arg")
             fi
+            ;;
+        "-g" | "--github")
+            github_friendly=1
+            no_colr=1
             ;;
         "-h" | "--help")
             print_usage ""
@@ -546,6 +564,8 @@ done
 
 # colr-run animations are only used when in quiet mode.
 ((do_quiet)) || no_colr=1
+# No color animations on github.
+((github_friendly)) && no_colr=1
 
 # Just run the binary in the different "modes"
 # The '?' just runs the binary in it's current state.

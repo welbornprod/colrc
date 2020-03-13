@@ -553,6 +553,11 @@ testeverything:
 	@cd test && \
 		$(MAKE) --no-print-directory testeverything;
 
+.PHONY: github_testeverything
+github_testeverything:
+	@cd test && \
+		$(MAKE) --no-print-directory github_testeverything;
+
 .PHONY: testfast
 testfast:
 	@cd test && \
