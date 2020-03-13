@@ -63,9 +63,9 @@ jobs:
           if [[ "$CACHE_HIT" == 'true' ]]; then
             sudo cp --verbose --force --recursive ~/ctags/* /
           else
-            sudo apt-get install --yes exhuberant-ctags=${{env.CTAGS_VERSION}}
+            sudo apt-get install --yes exuberant-ctags=${{env.CTAGS_VERSION}}
             mkdir -p ~/ctags
-            sudo dpkg -L exhuberant-ctags | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/ctags/
+            sudo dpkg -L exuberant-ctags | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/ctags/
           fi
       working-directory: ${{env.working-directory}}
 
