@@ -21,7 +21,6 @@ jobs:
       working-directory: ${{env.working-directory}}
 
   test:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
     env:
       working-directory: ./
@@ -34,7 +33,7 @@ jobs:
       shell: bash
       working-directory: ${{env.working-directory}}
 
-  fulltest:
+  testsanitize:
     runs-on: ubuntu-latest
     env:
       working-directory: ./
@@ -42,88 +41,88 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Cache Pip
-      uses: actions/cache@v1
-      id: cache-pip
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+    # - name: Cache Pip
+    #   uses: actions/cache@v1
+    #   id: cache-pip
+    #   with:
+    #     path: ~/.cache/pip
+    #     key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+    #     restore-keys: |
+    #       ${{ runner.os }}-pip-
 
-    - name: Cache CTags
-      uses: actions/cache@v1.0.3
-      id: cache-ctags
-      with:
-          path: "~/ctags"
-          key: ${{secrets.CTAGS_VERSION}}
+    # - name: Cache CTags
+    #   uses: actions/cache@v1.0.3
+    #   id: cache-ctags
+    #   with:
+    #       path: "~/ctags"
+    #       key: ${{secrets.CTAGS_VERSION}}
 
-    - name: Cache LibC
-      uses: actions/cache@v1.0.3
-      id: cache-libc
-      with:
-          path: "~/libc"
-          key: ${{secrets.LIBC_VERSION}}
+    # - name: Cache LibC
+    #   uses: actions/cache@v1.0.3
+    #   id: cache-libc
+    #   with:
+    #       path: "~/libc"
+    #       key: ${{secrets.LIBC_VERSION}}
 
-    - name: Cache Valgrind
-      uses: actions/cache@v1.0.3
-      id: cache-valgrind
-      with:
-          path: "~/valgrind"
-          key: ${{secrets.VALGRIND_VERSION}}
+    # - name: Cache Valgrind
+    #   uses: actions/cache@v1.0.3
+    #   id: cache-valgrind
+    #   with:
+    #       path: "~/valgrind"
+    #       key: ${{secrets.VALGRIND_VERSION}}
 
-    - name: Setup Python
-      uses: actions/setup-python@v1
-      with:
-        python-version: '3.x'
+    # - name: Setup Python
+    #   uses: actions/setup-python@v1
+    #   with:
+    #     python-version: '3.x'
 
-    - name: Install Pip Dependencies
-      run: pip install -r tools/requirements.txt
-      working-directory: ${{env.working-directory}}
+    # - name: Install Pip Dependencies
+    #   run: pip install -r tools/requirements.txt
+    #   working-directory: ${{env.working-directory}}
 
-    - name: Install CTags
-      env:
-        CACHE_HIT: ${{steps.cache-ctags.outputs.cache-hit}}
-        CTAGS_VERSION: ${{secrets.CTAGS_VERSION}}
-      run: |
-          if [[ "$CACHE_HIT" == 'true' ]]; then
-            sudo cp --verbose --force --recursive ~/ctags/* /
-          else
-            sudo apt-get install --yes exuberant-ctags=${{env.CTAGS_VERSION}}
-            mkdir -p ~/ctags
-            sudo dpkg -L exuberant-ctags | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/ctags/
-          fi
-      working-directory: ${{env.working-directory}}
+    # - name: Install CTags
+    #   env:
+    #     CACHE_HIT: ${{steps.cache-ctags.outputs.cache-hit}}
+    #     CTAGS_VERSION: ${{secrets.CTAGS_VERSION}}
+    #   run: |
+    #       if [[ "$CACHE_HIT" == 'true' ]]; then
+    #         sudo cp --verbose --force --recursive ~/ctags/* /
+    #       else
+    #         sudo apt-get install --yes exuberant-ctags=${{env.CTAGS_VERSION}}
+    #         mkdir -p ~/ctags
+    #         sudo dpkg -L exuberant-ctags | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/ctags/
+    #       fi
+    #   working-directory: ${{env.working-directory}}
 
-    - name: Install LibC
-      env:
-        CACHE_HIT: ${{steps.cache-libc.outputs.cache-hit}}
-        LIBC_VERSION: ${{secrets.LIBC_VERSION}}
-      run: |
-          if [[ "$CACHE_HIT" == 'true' ]]; then
-            sudo cp --verbose --force --recursive ~/libc/* /
-          else
-            sudo apt-get install --yes libc6-dev=${{env.LIBC_VERSION}}
-            mkdir -p ~/libc
-            sudo dpkg -L libc6-dev | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/libc/
-          fi
-      working-directory: ${{env.working-directory}}
+    # - name: Install LibC
+    #   env:
+    #     CACHE_HIT: ${{steps.cache-libc.outputs.cache-hit}}
+    #     LIBC_VERSION: ${{secrets.LIBC_VERSION}}
+    #   run: |
+    #       if [[ "$CACHE_HIT" == 'true' ]]; then
+    #         sudo cp --verbose --force --recursive ~/libc/* /
+    #       else
+    #         sudo apt-get install --yes libc6-dev=${{env.LIBC_VERSION}}
+    #         mkdir -p ~/libc
+    #         sudo dpkg -L libc6-dev | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/libc/
+    #       fi
+    #   working-directory: ${{env.working-directory}}
 
-    - name: Install Valgrind
-      env:
-        CACHE_HIT: ${{steps.cache-valgrind.outputs.cache-hit}}
-        VALGRIND_VERSION: ${{secrets.VALGRIND_VERSION}}
-      run: |
-          if [[ "$CACHE_HIT" == 'true' ]]; then
-            sudo cp --verbose --force --recursive ~/valgrind/* /
-          else
-            sudo apt-get install --yes valgrind=${{env.VALGRIND_VERSION}}
-            mkdir -p ~/valgrind
-            sudo dpkg -L valgrind | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/valgrind/
-          fi
-      working-directory: ${{env.working-directory}}
+    # - name: Install Valgrind
+    #   env:
+    #     CACHE_HIT: ${{steps.cache-valgrind.outputs.cache-hit}}
+    #     VALGRIND_VERSION: ${{secrets.VALGRIND_VERSION}}
+    #   run: |
+    #       if [[ "$CACHE_HIT" == 'true' ]]; then
+    #         sudo cp --verbose --force --recursive ~/valgrind/* /
+    #       else
+    #         sudo apt-get install --yes valgrind=${{env.VALGRIND_VERSION}}
+    #         mkdir -p ~/valgrind
+    #         sudo dpkg -L valgrind | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/valgrind/
+    #       fi
+    #   working-directory: ${{env.working-directory}}
 
-    - name: Test Everything
-      run: make github_testeverything
+    - name: Sanitize Test
+      run: make test
       shell: bash
       working-directory: ${{env.working-directory}}
