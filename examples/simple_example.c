@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
     free(mystr);
 
     // Concatenate existing strings with ColrC objects.
-    // Remember that the colr macro free ColrC objects, not strings.
+    // Remember that the colr macros will free ColrC objects, not strings.
     // So I'm going to use the Colr* macros inside of this call (not colr*).
     char* catted = colr_cat(
         "Exhibit: ",

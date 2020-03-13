@@ -105,9 +105,23 @@ gcc -std=c11 -c myprogram.c -o myexecutable -lm -lcolr
 \anchor example-usage
 ## Example Usage
 
-You use colr_cat(), colr_join(), and Colr(), along with fore(), back(), and style()
-to build colorized strings. There are some print-related functions, for quick
-building/printing of colorized strings (colr_puts() and colr_print()).
+For a full listing see [the docs](globals_defs.html), but here are
+the main features in ColrC:
+
+Name          | Purpose
+:------------ | :------------------------------------------------------
+colr          | Generates a colorized string.
+Colr          | Generates a colorized ColorText.
+colr_cat      | Concatenates strings and ColrC objects into a string.
+Colr_cat      | Concatenates strings and ColrC objects into a ColorResult.
+colr_join     | Generates a string by joining strings/ColrC-objects by another string/ColrC-object.
+Colr_join     | Generates a ColorResult by joining strings/ColrC-objects by another string/ColrC-object.
+
+When an allocated ColorArg/ColorText/ColorResult is used inside of a Colr/colr
+call it is automatically released.
+Strings produced by a Colr/colr call are managed by the user (you must `free()` them).
+
+I've included an example that showcases some of these:
 
 \includesrc{examples/simple_example.c}
 
@@ -128,33 +142,9 @@ Name                  | Example
 \ref back             | \ref back_example.c
 \ref style            | \ref style_example.c
 
-All of the examples can be built with the `examples` target:
-```bash
-make examples
-```
-
-You can then run the executables in `./examples` manually, with the make
-target (`make runexamples`), or with the example runner:
-```bash
-./examples/run_example.sh [NAME_PATTERN...]
-```
-
-There is also a "snippet runner" that can build and run
-arbitrary C code snippets, mainly used for building and running all example
-code snippets found in the ColrC source code itself:
-```bash
-./tools/snippet.py --examples
-```
-
-To see a list of source-based examples in the terminal you can run:
-```bash
-./tools/snippet.py --listnames [NAME_PATTERN]
-```
-
-To view the source code for those examples, you can run:
-```bash
-./tools/snippet.py --listexamples [NAME_PATTERN]
-```
+There are [examples](examples.html) for all of the main features in ColrC,
+and [tools](tools.html) (like the snippet runner) you can play with if you clone
+the repo.
 
 \anchor why
 ## Why
