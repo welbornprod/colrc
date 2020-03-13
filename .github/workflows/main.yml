@@ -103,9 +103,9 @@ jobs:
           if [[ "$CACHE_HIT" == 'true' ]]; then
             sudo cp --verbose --force --recursive ~/libc-dbg/* /
           else
-            sudo apt-get install --yes libc6-dbg=${{env.LIBCDEBUG_VERSION}}
+            sudo apt-get install --yes libc-dbg=${{env.LIBCDEBUG_VERSION}}
             mkdir -p ~/libc-dbg
-            sudo dpkg -L libc6-dbg | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/libc-dbg/
+            sudo dpkg -L libc-dbg | while IFS= read -r f; do if test -f $f; then echo $f; fi; done | xargs cp --parents --target-directory ~/libc-dbg/
           fi
       working-directory: ${{env.working-directory}}
 
