@@ -75,5 +75,5 @@ jobs:
           fi
     - name: Test Everything
       run: |
-          apt-get install --yes valgrind=${{secrets.VALGRIND_VERSION}}.
+          sudo apt-get install --yes valgrind=${{secrets.VALGRIND_VERSION}}.
           make testeverything
