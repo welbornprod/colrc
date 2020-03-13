@@ -111,6 +111,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Build
       run: make debug
+      shell: bash
       working-directory: ${{env.working-directory}}
 
   test:
@@ -124,6 +125,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: Fast Test
       run: make testfast
+      shell: bash
       working-directory: ${{env.working-directory}}
 
   fulltest:
@@ -136,4 +138,5 @@ jobs:
     - uses: actions/checkout@v2
     - name: Test Everything
       run: make github_testeverything
+      shell: bash
       working-directory: ${{env.working-directory}}
