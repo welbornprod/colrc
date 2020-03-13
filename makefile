@@ -225,8 +225,12 @@ $(docs_cj_main_file): $(docs_main_file)
 	fi;
 
 tags: $(source) $(headers)
-	@printf "Building ctags...\n    "
-	ctags $(source) $(headers)
+	@if hash ctags &>/dev/null; then \
+		printf "Building ctags...\n    "; \
+		ctags $(source) $(headers); \
+	else \
+		printf "No \`ctags\` available!" 1>&2; \
+	fi;
 
 .PHONY: clangdebug
 clangdebug: CC=clang
