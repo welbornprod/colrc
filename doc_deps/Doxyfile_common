@@ -58,6 +58,7 @@ ALIASES += "statementexpr=<a href='https://gcc.gnu.org/onlinedocs/gcc/Statement-
 ALIASES += "strtype=`char*`"
 ALIASES += "string=string (\strtype)"
 ALIASES += "strings=strings (\strtype)"
+ALIASES += "toollink{2}=[`\1`](https://github.com/welbornprod/colrc/blob/dev/\2)"
 ALIASES += "vla=<a href='https://gcc.gnu.org/onlinedocs/gcc/Variable-Length.html'>Variable Length Array</a>"
 ALIASES += "warn_alloca_statementexpr=\warning This uses \alloca to reserve space on the stack inside of a \statementexpr. A \vla will not work inside of a statement expression. If the call causes a stack overflow, program behavior is undefined. See previous links, and <a href='https://stackoverflow.com/questions/1018853/why-is-the-use-of-alloca-not-considered-good-practice' title='Why is alloca considered bad practice?'>here</a>."
 ALIASES += "warninternal=\warning This is for internal use only."

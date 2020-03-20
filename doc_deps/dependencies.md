@@ -2,8 +2,9 @@
 
 # System
 
-To compile the `colrc` tool, or use the helper tools, you will need a few
-system dependencies:
+To compile the [`colrc` tool](https://welbornprod.com/colrc/tool.html),
+or use the [helper tools](https://welbornprod.com/colrc/tools.html),
+you will need a few system dependencies:
 
 - `gcc` or `clang`
     - You can use `gcc` or `clang` to compile ColrC.
@@ -45,9 +46,9 @@ system dependencies:
 
 # Python
 
-There are several helper tools in the ColrC repo. They are responsible for
-running tests, generating documentation, running `valgrind`, and other
-conveniences.
+There are several [helper tools](https://welbornprod.com/colrc/tools.html)
+in the ColrC repo. They are responsible for running tests, generating
+documentation, running `valgrind`, and other conveniences.
 The python-based tools have their own dependencies:
 
 - [colr](https://pypi.org/project/colr)
