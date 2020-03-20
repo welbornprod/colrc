@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# ...
+# ColrC Example Runner, with options for running them through `valgrind` or
+# some other program.
 # -Christopher Welborn 07-02-2019
-appname="run_examples"
-appversion="0.0.1"
+appname="ColrC Example Runner"
+appversion="0.0.2"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 appdir="${apppath%/*}"
