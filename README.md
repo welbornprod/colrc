@@ -93,10 +93,15 @@ Name   | Description
 [colr.h](https://welbornprod.com/colrc/colr_8h.html) | The interface to ColrC.
 [colr.c](https://welbornprod.com/colrc/colr_8c.html) | Where ColrC is implemented. This must be compiled/linked with your program.
 
+## Library
+
 You can also create a shared library (`libcolr.so`) for your system. Clone the
 repo and run the make target:
 ```bash
-make lib
+make libdebug
+
+# Or, build it with no debug info and optimizations turned on:
+make librelease
 ```
 
 If you link the library (and `libm`), you will only need to include the header (`colr.h`):
@@ -104,6 +109,22 @@ If you link the library (and `libm`), you will only need to include the header (
 gcc -std=c11 -c myprogram.c -o myexecutable -lm -lcolr
 ```
 
+There are several `make` targets to help you build and install the library.
+The installer is interactive, and will let you choose where to install the library based on GCC's
+library search path. It will not overwrite existing files without confirmation:
+```bash
+# Build libcolr with optimizations and copy it to GCC's lib path (you select):
+make libinstall
+
+# Build libcolr with optimizations and symlink it to GCC's lib path:
+make liblink
+
+# Build libcolr with debug info, and install it:
+make libinstalldebug
+
+# Build libcolr with debug info, and symlink/install it:
+make liblinkdebug
+```
 ## Example Usage
 
 For a full listing see [the docs](https://welbornprod.com/colrc/globals_defs.html), but here are

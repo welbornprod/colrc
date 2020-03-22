@@ -33,6 +33,7 @@ colr_source=colr.c colr.controls.c
 source=colr_tool.c $(colr_source)
 objects:=$(source:.c=.o)
 lib_objects=$(colr_source:.c=.o)
+lib_install_cmd=bash ./tools/install.sh --lib
 colr_headers=colr.h colr.controls.h
 headers=colr_tool.h $(colr_headers)
 optional_headers=dbug.h
@@ -135,9 +136,33 @@ lib:
 libdebug: CFLAGS+=-g3 -DDEBUG -DCOLR_DEBUG
 libdebug: lib
 
+.PHONY: libinstall
+libinstall: librelease
+libinstall:
+	@$(lib_install_cmd)
+
+.PHONY: libinstalldebug
+libinstalldebug: libdebug
+libinstalldebug:
+	@$(lib_install_cmd)
+
+.PHONY: liblink
+liblink: librelease
+liblink:
+	@$(lib_install_cmd) --link
+
+.PHONY: liblinkdebug
+liblinkdebug: libdebug
+liblinkdebug:
+	@$(lib_install_cmd) --link
+
 .PHONY: librelease
 librelease: CFLAGS+=-O3 -DNDEBUG
 librelease: lib
+
+.PHONY: libuninstall
+libuninstall:
+	@$(lib_install_cmd) --uninstall
 
 .PHONY: release
 release: CFLAGS+=-O3 -DNDEBUG
@@ -494,6 +519,14 @@ help targets:
     examples          : Build example executables in $(examples_dir).\n\
     install           : Install the \`colrc\` executable.\n\
     installlink       : Install the \`colrc\` executable as a symlink.\n\
+    lib               : Build libcolr with no optimizations or debug info.\n\
+    libdebug          : Build libcolor with debug info.\n\
+    libinstall        : Build and install libcolr with optimizations.\n\
+    libinstalldebug   : Build and install libcolr with debug info.\n\
+    liblink           : Build and install libcolr with optimizations as a symlink.\n\
+    liblinkdebug      : Build and install libcolr with debug info as a symlink.\n\
+    librelease        : Build libcolr with optimizations.\n\
+    libuninstall      : Uninstall a previously installed libcolr.\n\
     memcheck          : Run \`valgrind --tool=memcheck\` on the executable.\n\
     release           : Build the executable with optimization, and strip it.\n\
     release2          : Same as \`release\` target, but with -O2 instead of -O3.\n\

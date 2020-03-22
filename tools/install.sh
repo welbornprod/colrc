@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Installer for the ColrC tool.
+# Installer for the ColrC tool and libcolr.
 # It will let you choose an installation path, either explicitly or by
 # choosing from a directory in your $PATH. It will not overwrite existing files
 # unless you tell it to.
@@ -9,13 +9,14 @@
 # fairly unique name.
 # -Christopher Welborn 02-23-2020
 appname="ColrC Installer"
-appversion="0.0.1"
+appversion="0.1.0"
 apppath="$(readlink -f "${BASH_SOURCE[0]}")"
 appscript="${apppath##*/}"
 appdir="${apppath%/*}"
 
 colrc_dir="$(readlink -f "$appdir/..")"
 installable="$colrc_dir/colrc"
+installable_lib="$colrc_dir/libcolr.so"
 # This is set later, by arguments or path selection (by menu).
 install_path=""
 
@@ -75,12 +76,56 @@ function find_colrc_exe {
     return 1
 }
 
+function find_libcolr {
+    # Find an installed colrc already in $PATH.
+    local IFS=$'\n' usepath
+    declare -a paths
+    local path
+    while read -r path; do
+        paths+=("$path")
+    done < <(get_gcc_lib_dirs)
+    local path trylibcolr
+    for path in "${paths[@]}"; do
+        trylibcolr="$path/libcolr.so"
+        [[ -e "$trylibcolr" ]] && {
+            printf "%s" "$trylibcolr"
+            return 0
+        }
+    done
+    return 1
+}
+
+function get_gcc_lib_dirs {
+    local use_std="c"
+    local reportedpath dirpath
+    while read -r reportedpath; do
+        dirpath="$(readlink -f "$reportedpath")"
+        [[ -e "$dirpath" ]] || continue
+        printf "%s\n" "$dirpath"
+    done < <(gcc "-x$use_std" -E -v /dev/null -o /dev/null 2>&1 | \
+        grep LIBRARY_PATH | \
+            cut -d '=' -f2 | \
+                tr ':' '\n')
+}
+
 function has_installable {
     # Ensure that all required files are present.
     [[ -e "$installable" ]] || {
         echo_err "Missing installable file: $installable"
         echo_err "\nIt looks like \`colrc\` hasn't been built yet."
         echo_err "Have you tried \`make release\`?"
+        return 1
+    }
+
+    return 0
+}
+
+function has_installable_lib {
+    # Ensure that all required files are present.
+    [[ -e "$installable_lib" ]] || {
+        echo_err "Missing installable file: $installable_lib"
+        echo_err "\nIt looks like \`libcolr.so\` hasn't been built yet."
+        echo_err "Have you tried \`make lib\`?"
         return 1
     }
 
@@ -117,6 +162,12 @@ function install_colrc {
     }
     local target="$install_path/colrc"
 
+    install_file "$installable" "$target"
+}
+
+function install_file {
+    local installable=$1 target=$2
+    { [[ -n "$installable" ]] && [[ -n "$target" ]]; }  || fail "Missing arguments for install_file()!"
     # Handle existing installations.
     if [[ -e "$target" ]]; then
         ((do_overwrite)) || {
@@ -124,24 +175,62 @@ function install_colrc {
             return 1
         }
         # Need to remove the existing one, in case one is a link.
-        rm "$target" || fail "Failed to remove existing: $target"
+        remove_file "$target" || fail "Failed to remove existing: $target"
     fi
     # Symlink or copy?
+    local cmdtype="Copy" cmdtypeplural="Copied" targetdir="${target%/*}"
+    declare -a cmd
+    [[ -w "$targetdir" ]] || cmd=("sudo")
     if ((do_symlink)); then
-        if ln -s "$installable" "$target"; then
-            printf "\nSymlinked: %s\n       To: %s\n" "$target" "$installable"
-        else
-            echo_err "Symlink command failed!"
-            return 1
-        fi
+        cmdtype="Symlink"
+        cmdtypeplural="Symlinked"
+        cmd+=("ln" "-s")
     else
-        if cp "$installable" "$target"; then
-            printf "\nCopied: %s\n    To: %s\n" "$installable" "$target"
-        else
-            echo_err "Copy command failed!"
-            return 1
-        fi
+        cmd+=("cp")
     fi
+    [[ -w "$targetdir" ]] || {
+        printf "No write access for: %s\n" "$targetdir"
+        printf "Using: %s %s %s\n" "${cmd[*]}" "$installable" "$target"
+    }
+    if "${cmd[@]}" "$installable" "$target"; then
+        printf "\n%9s: %s\n%9s: %s\n" "$cmdtypeplural" "$installable" "To" "$target"
+    else
+        echo_err "$cmdtype command failed!"
+        return 1
+    fi
+    return 0
+}
+
+function install_libcolr {
+    local other_libcolr
+    other_libcolr="$(find_libcolr)" && {
+        printf "\nAnother \`libcolr\` was found: %s\n" "$other_libcolr"
+        local maybe_install_path="${other_libcolr%/*}"
+        confirm "Install to $maybe_install_path?" && {
+            install_path="$maybe_install_path"
+            printf "Installing: %s\n        To: %s\n" "$installable_lib" "$install_path"
+            ((do_overwrite)) || {
+                printf "\nThis will overwrite the previous installation: %s\n" "$other_libcolr"
+                confirm "Overwrite previous installation" || fail "User cancelled."
+                do_overwrite=1
+            }
+        }
+    }
+
+    if [[ -z "$install_path" ]]; then
+        # Choose an installation path.
+        install_path="$(select_path_lib)" || fail "No path chosen!"
+    fi
+    # Could've landed here from command-line arguments. Check for existence.
+    [[ -d "$install_path" ]] || fail "Installation path does not exist: $install_path"
+
+    ((do_overwrite)) || {
+        printf "Installing: %s\n        To: %s\n" "$installable_lib" "$install_path"
+        confirm "Is this okay?" || fail "User cancelled."
+    }
+    local target="$install_path/libcolr.so"
+
+    install_file "$installable_lib" "$target"
 }
 
 function print_usage {
@@ -165,10 +254,46 @@ function print_usage {
     "
 }
 
+function remove_file {
+    local filepath=$1
+    { [[ -n "$filepath" ]] && [[ -e "$filepath" ]]; } || fail "Invalid file path for remove_file()!"
+    declare -a rm_cmd=("rm")
+    [[ -w "${filepath%/*}" ]] || {
+        rm_cmd=("sudo" "rm")
+        printf "No write access for: %s\n" "${filepath%/*}"
+        printf "Using: %s %s\n" "${rm_cmd[*]}" "$filepath"
+    }
+    "${rm_cmd[@]}" "$filepath"
+}
+
 function select_path {
     local IFS=$'\n' usepath
     declare -a paths
-    paths=($(echo "$PATH" | tr ':' '\n'))
+    paths=($(echo "$PATH" | tr ':' '\n' | sort -u))
+    PS3="Choose the installation path: "
+    select usepath in "${paths[@]}"; do
+        case "${#usepath}" in
+            0 )
+                [[ "$REPLY" =~ ^[Qq]([Uu][Ii][Tt])? ]] && return 1
+                echo_err "Invalid choice, press q to quit."
+                ;;
+            * )
+                printf "%s" "$usepath"
+                return 0
+                ;;
+        esac
+    done
+    return 1
+}
+
+function select_path_lib {
+    local IFS=$'\n' usepath
+    declare -a paths
+    local path
+    while read -r path; do
+        paths+=("$path")
+    done < <(get_gcc_lib_dirs | sort -u)
+    ((${#paths[@]})) || fail "Cannot find GCC lib paths!"
     PS3="Choose the installation path: "
     select usepath in "${paths[@]}"; do
         case "${#usepath}" in
@@ -189,22 +314,36 @@ function uninstall_colrc {
     # Uninstall the colrc executable from a path in $PATH.
     local foundcolrc
     foundcolrc="$(find_colrc_exe)" || fail "Cannot find \`colrc\` in \$PATH!\nIt's probably not installed."
-    confirm "Remove $foundcolrc?" || fail "User cancelled."
-    rm "$foundcolrc"
+    uninstall_file "$foundcolrc"
 }
 
-has_installable || fail "\nCannot continue."
+function uninstall_file {
+    local filepath=$1
+    confirm "Remove $filepath?" || fail "User cancelled."
+    remove_file "$filepath"
+}
+
+function uninstall_libcolr {
+    # Uninstall libcolor from a path in gcc search paths.
+    local foundlibcolr
+    foundlibcolr="$(find_libcolr)" || fail "Cannot find \`libcolr\` in GCC's search path!\nIt's probably not installed."
+    uninstall_file "$foundlibcolr"
+}
 
 declare -a nonflags
 do_overwrite=0
 do_symlink=0
 do_uninstall=0
+do_lib=0
 
 for arg; do
     case "$arg" in
         "-h" | "--help")
             print_usage ""
             exit 0
+            ;;
+        "-L" | "--lib")
+            do_lib=1
             ;;
         "-l" | "--link")
             do_symlink=1
@@ -227,8 +366,21 @@ for arg; do
             [[ -z "$install_path" ]] && install_path="$arg"
     esac
 done
-if ((do_uninstall)); then
-    uninstall_colrc
+
+if ((do_lib)); then
+    # libcolr
+    if ((do_uninstall)); then
+        uninstall_libcolr
+    else
+        has_installable_lib || fail "\nCannot continue."
+        install_libcolr
+    fi
 else
-    install_colrc
+    # colrc
+    if ((do_uninstall)); then
+        uninstall_colrc
+    else
+        has_installable || fail "\nCannot continue."
+        install_colrc
+    fi
 fi
