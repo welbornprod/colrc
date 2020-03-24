@@ -7,6 +7,7 @@
 """
 
 import os
+import re
 import sys
 
 from colr import (
@@ -15,6 +16,7 @@ from colr import (
     Preset as ColrPreset,
     auto_disable as colr_auto_disable,
     docopt,
+    enable as colr_enable,
 )
 from printdebug import DebugColrPrinter
 
@@ -26,29 +28,40 @@ debug_err = debugprinter.debug_err
 colr_auto_disable()
 
 NAME = 'Make Help Formatter'
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 VERSIONSTR = f'{NAME} v. {VERSION}'
 SCRIPT = os.path.split(os.path.abspath(sys.argv[0]))[1]
 SCRIPTDIR = os.path.abspath(sys.path[0])
 
 USAGESTR = f"""{VERSIONSTR}
     Usage:
-        {SCRIPT} [-h | -v]
+        {SCRIPT} [-c] [-h | -v]
 
     Options:
+        -c,--color    : Force color output, even when stdout is not a terminal.
         -h,--help     : Show this help message.
         -v,--version  : Show version.
 """
 
 # Some colr presets.
 CTarget = ColrPreset(fore='blue')
+# Color for the suffix of targets with a common prefix.
+CTargetSuffix = ColrPreset(fore='dodgerblue3')
 CDesc = ColrPreset(fore='reset')
 CCmd = ColrPreset(fore='cyan')
+CParens = ColrPreset(fore='dimgrey')
+
+desc_pats = {
+    # Parens.
+    re.compile(r'\([^\)]+\)'): CParens,
+}
 
 
 def main(argd):
     """ Main entry point, expects docopt arg dict as argd. """
-    if not sys.stdout.isatty():
+    if argd['--color']:
+        colr_enable()
+    if not (sys.stdout.isatty() or argd['--color']):
         for line in sys.stdin:
             print(line, end='')
         return 0
@@ -56,10 +69,22 @@ def main(argd):
     return 0
 
 
+def format_desc(desc):
+    for pat in desc_pats:
+        matches = pat.findall(desc)
+        for match in matches:
+            if isinstance(match, tuple):
+                match = match[0]
+            repl = C('').join(desc_pats[pat](match), '')
+            desc = pat.sub(str(repl), desc)
+    return CDesc(desc)
+
+
 def format_stdin():
     in_continue = False
-
-    for line in sys.stdin:
+    lines = [s for s in sys.stdin]
+    prefixes = get_prefixes(lines)
+    for line in lines:
         try:
             line.index(':')
             in_continue = False
@@ -67,34 +92,65 @@ def format_stdin():
             in_continue = True
 
         if in_continue:
-            line = str(CDesc(line))
+            line = str(format_desc(line))
         elif not line.startswith((' ', '\t')):
             # Header line.
             print(line, end='')
             continue
         else:
-            target, _, desc = line.partition(':')
-            line = str(C(':').join(CTarget(target), CDesc(desc)))
+            target, desc = parse_line(line)
+            line = str(C(':').join(
+                format_target(target, prefixes=prefixes), format_desc(desc)
+            ))
         line = replace_cmd(line)
 
         print(line, end='')
 
 
-def get_preset_codes(preset):
-    # This needs to be in Colr. I just now needed it.
-    # It could be Preset.codes().
-    # Update: It is in Colr 0.9.3, just haven't updated the package yet.
-    #         When it is updated, this whole function becomes: `preset.codes()`
-    #         and it comes with color/style validating and calculated colors
-    #         (like RGB/hex values that would crash this function).
-    pcs = []
-    if preset.fore:
-        pcs.append(codes['fore'][preset.fore])
-    if preset.back:
-        pcs.append(codes['back'][preset.back])
-    if preset.style:
-        pcs.append(codes['style'][preset.style])
-    return ''.join(pcs)
+def format_target(target, prefixes=None):
+    targetname = target.strip()
+    prefixes = prefixes or []
+    for s in prefixes:
+        if not targetname.startswith(s):
+            continue
+        targetindent, _, targetpad = target.partition(targetname)
+        targetsuf = targetname.replace(s, '').strip()
+        targetpre = targetname.replace(targetsuf, '')
+        return C('').join(
+            targetindent,
+            CTarget(targetpre),
+            CTargetSuffix(targetsuf),
+            targetpad,
+        )
+    return CTarget(target)
+
+
+def get_prefixes(lines):
+    """ Get common prefixes from a list of lines. """
+    prefixes = set()
+    for line in lines:
+        target, _ = parse_line(line)
+        if not target:
+            continue
+        target = target.strip()
+        for line2 in lines[:]:
+            target2, _ = parse_line(line2)
+            if not target2:
+                continue
+            target2 = target2.strip()
+            if target == target2:
+                continue
+            if target2.startswith(target):
+                # Don't do the smallest prefixes
+                prefixes.add(target)
+    return sorted(prefixes)
+
+
+def parse_line(line):
+    if ':' not in line:
+        return None, None
+    target, _, desc = line.partition(':')
+    return target, desc
 
 
 def print_err(*args, **kwargs):
@@ -130,10 +186,10 @@ def replace_cmd(line):
             chars.extend(codes['style'][CDesc.style or 'reset_all'])
             chars.append(ch)
             if opened:
-                chars.extend(get_preset_codes(CDesc))
+                chars.extend(CDesc.codes())
                 opened = False
             else:
-                chars.extend(get_preset_codes(CCmd))
+                chars.extend(CCmd.codes())
                 opened = True
         else:
             chars.append(ch)

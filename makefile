@@ -513,7 +513,7 @@ help targets:
     distsrc           : Create a package with colr.h and colr.c in ./dist.\n\
     docs              : Build the Doxygen docs.\n\
     docsreadme        : Build the GitHub README.\n\
-    docsrebuild       : Like running \`make cleandocs docs\`\n\
+    docsrebuild       : Like running \`make cleandocs docs\`.\n\
     docsview          : View previously generated HTML docs in your browser.\n\
     docsviewpdf       : View previously generated PDF docs in your viewer.\n\
     examples          : Build example executables in $(examples_dir).\n\
