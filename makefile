@@ -360,9 +360,13 @@ cppcheckviewall:
 distcj: dist
 	@if [[ -n "$(dist_cj_dir)" ]] && [[ -d "$(dist_cj_dir)" ]]; then \
 		printf "\nCleaning existing public dist files...\n"; \
-		rm "$(dist_cj_dir)"/*.tar.gz || { \
-			printf "\nFailed to remove public dist files!" 1>&2; \
-		}; \
+		for dist_ext in .tar.gz .deb; do \
+			if ls "$(dist_cj_dir)"/*"$$dist_ext"; then \
+				rm "$(dist_cj_dir)"/*"$$dist_ext" || { \
+					printf "\nFailed to remove public '%s' dist files!" "$$dist_ext" 1>&2; \
+				}; \
+			fi; \
+		done; \
 		if cp "$(dist_dir)"/* "$(dist_cj_dir)"; then \
 			printf "\nCopied dist files to public dir: %s\n" "$(dist_cj_dir)"; \
 		else \
@@ -378,16 +382,22 @@ distcj: dist
 		printf "\nMissing public dist dir: %s\n" "$(dist_cj_dir)" 1>&2; \
 	fi;
 
+.PHONY: distdeb
+distdeb: $(dist_files)
+	@$(make_dist_cmd) -D; \
+	$(make_dist_cmd) -L;
+
 .PHONY: distdocs
 distdocs: $(docs_cj_main_file)
 
 .PHONY: distsrc
 distsrc: $(dist_files)
-	@$(make_dist_cmd) -d $(dist_dir) $(dist_files)
+	@$(make_dist_cmd) -S -d $(dist_dir) $(dist_files)
 
 .PHONY: distall
 distall: distdocs
 distall: distsrc
+distall: distdeb
 distall: distcj
 
 .PHONY: docshtml
