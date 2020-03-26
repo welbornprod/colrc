@@ -16,6 +16,6 @@ clone the github repo:
 ## Debian Packages
 There is a basic debian package for the standalone [colrc](https://welbornprod.com/colrc/tool.html)
 executable, and a shared library (`libcolor`). You can build these yourself
-by cloning the repo and running `./tools/make_dist.sh`:
+by cloning the repo and running `make distdeb`:
 - [colrc](https://welbornprod.com/colrc/dist/colr_latest_amd64.deb) - Installs the `colrc` tool.
 - [libcolr](https://welbornprod.com/colrc/dist/libcolr-dev_latest_amd64.deb) - Installs `libcolr.so` and `colr.h`.

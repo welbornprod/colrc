@@ -34,6 +34,9 @@ colrc_lib="${src_dir}/${colrc_lib_name}.so"
 colrc_header="$src_dir/colr.h"
 colrc_desc="ColrC is a C library and a command-line tool for terminal colors on Linux."
 
+# Man pages for the libcolr package.
+libcolr_man_dir="${src_dir}/docs/man/man3"
+
 # Defaults (shouldn't really be used. Be explicit.)
 default_dir="$(readlink -f "$appdir/../dist")"
 declare -a default_files=(
@@ -105,11 +108,12 @@ Version: %s
 Description: %s" "$deb_name" "$deb_arch" "$colrc_version" "$colrc_desc"
 }
 
+
 function gen_debian_files {
     [[ -n "$debian_dir" ]] || fail "debian_dir not set before generating files!"
     [[ -d "$debian_dir" ]] || fail "Missing debian dir: $debian_dir"
 
-    local bin_dir="$debian_dir/usr/local/bin"
+    local bin_dir="$debian_dir/usr/share/colr/bin"
     local bin_link_dir="$debian_dir/usr/bin"
     printf "    Creating bin dir: %s\n" "$bin_dir"
     mkdir_or_fail -p "$bin_dir"
@@ -117,7 +121,7 @@ function gen_debian_files {
     local colrc_name="${colrc_exe##*/}"
     cp "$colrc_exe" "$bin_dir/$colrc_name"
     pushd "$bin_link_dir" &>/dev/null
-    ln -s ../local/bin/"$colrc_name" "$colrc_name"
+    ln -s ../share/colr/bin/"$colrc_name" "$colrc_name"
     popd &>/dev/null
     printf "    Executable copied: %s\n" "$bin_dir/$colrc_name"
 
@@ -130,9 +134,9 @@ function gen_debian_files_lib {
     [[ -n "$control_dir" ]] || fail "control_dir not set in deb_debian_files_lib()!"
     [[ -d "$control_dir" ]] || fail "Missing control dir: $control_dir"
 
-    local header_dir="$debian_dir/usr/local/include"
+    local header_dir="$debian_dir/usr/share/colr/include"
     local header_link_dir="$debian_dir/usr/include"
-    local lib_dir="$debian_dir/usr/local/lib"
+    local lib_dir="$debian_dir/usr/share/colr/lib"
     local lib_link_dir="$debian_dir/usr/lib"
     mkdir_or_fail -p "$header_dir"
     mkdir_or_fail -p "$lib_dir"
@@ -141,14 +145,14 @@ function gen_debian_files_lib {
     local libcolr_name="${colrc_lib##*/}"
     cp "$colrc_lib" "$lib_dir/$libcolr_name"
     pushd "$lib_link_dir" &>/dev/null
-    ln -s ../local/lib/"$libcolr_name" "$libcolr_name"
+    ln -s ../share/colr/lib/"$libcolr_name" "$libcolr_name"
     popd &>/dev/null
     printf "    Library copied: %s\n" "$header_dir/$libcolr_name"
 
     local header_name="${colrc_header##*/}"
     cp "$colrc_header" "$header_dir/$header_name"
     pushd "$header_link_dir" &>/dev/null
-    ln -s ../local/include/"$header_name" "$header_name"
+    ln -s ../share/colr/include/"$header_name" "$header_name"
     popd &>/dev/null
     printf "    Header copied: %s\n" "$header_dir/$header_name"
 }
@@ -184,6 +188,16 @@ function gen_debian_struct {
     fi
 
     sudo chown -R root:root "$debian_dir"
+}
+
+
+function gzip_man_pages {
+    ls "$libcolr_man_dir"/*.3 &>/dev/null || {
+        # Already compressed.
+        return 0
+    }
+    printf "Compressing man pages...\n"
+    gzip "$libcolr_man_dir"/*.3
 }
 
 
