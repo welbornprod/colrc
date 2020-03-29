@@ -1,5 +1,7 @@
 # Documentation {#index}
 
+![ColrC](https://welbornprod.com/colrc/colrc-pixels.png)
+
 # Getting Started
 
 **ColrC** <small>(<i><b>kuh</b>·lr·see</i>, feels like heresy)</small>

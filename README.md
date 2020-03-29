@@ -1,10 +1,13 @@
-# ColrC
+![ColrC](https://welbornprod.com/colrc/colrc-pixels.png)
+
+# ColrC Documentation
 
 ![CI](https://github.com/welbornprod/colrc/workflows/CI/badge.svg?event=push)
 
 For full documentation see [welbornprod.com/colrc](https://welbornprod.com/colrc/index.html)
 
 ## Getting Started
+
 **ColrC** <small>(<i><b>kuh</b>·lr·see</i>, feels like heresy)</small>
 is a C library for terminal colors/escape-codes on linux.
 
