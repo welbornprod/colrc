@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 from collections import UserList
+from functools import partial
 
 from colr import (
     Colr as C,
@@ -101,7 +102,7 @@ def main(argd):
     return 0
 
 
-def compress_file(filepath, dest_dir=None, in_place=False):
+def compress_file(filepath, dest_dir=None, in_place=False, prefix=None):
     """ GZips a file and returns f'{filepath}.gz' on success.
         If `in_place` is "truthy", the original file is removed on success.
     """
@@ -114,9 +115,15 @@ def compress_file(filepath, dest_dir=None, in_place=False):
         ) from None
 
     newpath = f'{filepath}.gz'
+    origdir, filename = os.path.split(newpath)
+    if callable(prefix):
+        filename = prefix(filename)
+    elif prefix:
+        filename = f'{prefix}{filename}'
     if dest_dir:
-        newpath = os.path.join(dest_dir, os.path.split(newpath)[-1])
-
+        newpath = os.path.join(dest_dir, filename)
+    else:
+        newpath = os.path.join(origdir, filename)
     try:
         with open(newpath, 'wb') as g:
             g.write(compressed)
@@ -132,6 +139,12 @@ def compress_file(filepath, dest_dir=None, in_place=False):
                 f'Unable to remove original file: {filepath}\nError: {ex}'
             )
     return newpath
+
+
+def ensure_colr_prefix(filename):
+    if filename.lower().startswith('colr'):
+        return filename
+    return f'colr-{filename}'
 
 
 def noop(*args, **kwargs):
@@ -615,7 +628,7 @@ deb_pkgs = {
                 destdir='/usr/share/colr/man3',
                 linkdir='/usr/share/man/man3',
                 exts=('.3', ),
-                transform=compress_file,
+                transform=partial(compress_file, prefix=ensure_colr_prefix),
             ),
         ],
     ),

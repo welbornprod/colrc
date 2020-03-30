@@ -140,4 +140,4 @@ PDF_HYPERLINKS         = YES
 USE_PDFLATEX           = YES
 # Man page settings ----------------------------------------------------------
 MAN_OUTPUT             = man
-MAN_LINKS              = YES
+MAN_LINKS              = NO
