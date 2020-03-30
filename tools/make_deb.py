@@ -453,11 +453,12 @@ class DebFile(object):
 
 
 class DebPackage(UserList):
-    def __init__(self, pkgname, debfiles=None, dest_dir=None):
+    def __init__(self, pkgname, debfiles=None, dest_dir=None, triggers=None):
         super().__init__(debfiles or [])
         self.pkgname = pkgname
         self.debdir = f'{pkgname}_{COLRC_VERSION}'
         self.debname = f'{self.debdir}_{COLRC_ARCH}.deb'
+        self.control_dir = os.path.join(self.debdir, 'DEBIAN')
         self.build_cmd = [
             'dpkg-deb',
             '--build',
@@ -465,6 +466,7 @@ class DebPackage(UserList):
             self.debdir,
         ]
         self.dest_dir = dest_dir
+        self.triggers = triggers or []
 
     def __colr__(self):
         return self.as_colr(list_files=False)
@@ -513,6 +515,7 @@ class DebPackage(UserList):
         self.clean()
         self.create_files()
         self.create_control()
+        self.create_triggers()
         self.create_perms()
         debfile = self.build()
         self.clean()
@@ -522,10 +525,8 @@ class DebPackage(UserList):
             status(f'Created package: {debfile}')
 
     def create_control(self):
-        control_dir = os.path.join(self.debdir, 'DEBIAN')
-        if not os.path.exists(control_dir):
-            try_makedirs(control_dir)
-        control_file = os.path.join(control_dir, 'control')
+        self.ensure_control_dir()
+        control_file = os.path.join(self.control_dir, 'control')
         try:
             with open(control_file, 'w') as f:
                 f.write(CONTROL.format(pkgname=self.pkgname))
@@ -541,6 +542,24 @@ class DebPackage(UserList):
 
     def create_perms(self):
         os.system(f'sudo chown -R root:root {self.debdir}')
+
+    def create_triggers(self):
+        """ This is not used right now. """
+        if not self.triggers:
+            return None
+        self.ensure_control_dir()
+        triggers_file = os.path.join(self.control_dir, 'triggers')
+        try:
+            with open(triggers_file, 'w') as f:
+                f.write('\n'.join(self.triggers))
+        except EnvironmentError as ex:
+            raise FatalError(
+                f'Unable to write triggers file: {triggers_file}\nError: {ex}'
+            ) from None
+
+    def ensure_control_dir(self):
+        if not os.path.exists(self.control_dir):
+            try_makedirs(self.control_dir)
 
 
 class FatalError(ValueError):
