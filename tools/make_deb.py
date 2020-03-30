@@ -58,24 +58,33 @@ Description: ColrC is a C library and a command-line tool for terminal colors
 """.lstrip()
 
 USAGESTR = f"""{VERSIONSTR} for ColrC {COLRC_VERSION} ({COLRC_ARCH})
+
+    Creates debian packages for ColrC
+
     Usage:
         {SCRIPT} -h | -v
-        {SCRIPT} [-D] [-a | -l] [-L | -F]
+        {SCRIPT} [-D] [-a | -l] [-L | -F] [-q] [-d dir]
 
     Options:
-        -a,--all         : Make all packages (colr and libcolr).
-        -D,--debug       : Show more info while running.
-        -F,--listfiles   : Like -L, but also lists files that come from
-        -h,--help        : Show this help message.
-        -L,--list        : List package files, don't create anything.
-                           whole-directory copies.
-        -l,--lib         : Create the libcolr package, instead of colr.
-        -v,--version     : Show version.
+        -a,--all          : Make all packages (colr and libcolr).
+        -D,--debug        : Show more info while running.
+        -d dir,--dir dir  : Destination directory for packages.
+        -F,--listfiles    : Like -L, but also lists files that come from
+        -h,--help         : Show this help message.
+        -L,--list         : List package files, don't create anything.
+                            whole-directory copies.
+        -l,--lib          : Create the libcolr package, instead of colr.
+        -q,--quiet        : Don't print status messages.
+                            Only print the resulting package names.
+        -v,--version      : Show version.
 """
 
 
 def main(argd):
     """ Main entry point, expects docopt arg dict as argd. """
+    global status
+    if argd['--quiet']:
+        status = noop
 
     if argd['--all']:
         pkgs = list(deb_pkgs)
@@ -83,10 +92,11 @@ def main(argd):
         pkgs = ['libcolr' if argd['--lib'] else 'colr']
     for pkgname in pkgs:
         debpkg = deb_pkgs[pkgname]
+        debpkg.dest_dir = argd['--dir']
         if argd['--list'] or argd['--listfiles']:
             print(f'\n{debpkg.as_colr(list_files=argd["--listfiles"])}')
         else:
-            debpkg.create()
+            debpkg.create(name_only=argd['--quiet'])
 
     return 0
 
@@ -124,6 +134,11 @@ def compress_file(filepath, dest_dir=None, in_place=False):
     return newpath
 
 
+def noop(*args, **kwargs):
+    """ This function cab replace any other function to disable things. """
+    return None
+
+
 def print_err(*args, **kwargs):
     """ A wrapper for print() that uses stderr by default.
         Colorizes messages, unless a Colr itself is passed in.
@@ -146,6 +161,10 @@ def print_err(*args, **kwargs):
         )
 
     print(msg, **kwargs)
+
+
+def status(*args, **kwargs):
+    print(*args, **kwargs)
 
 
 def try_cd(dirpath):
@@ -306,7 +325,7 @@ class DebDirFiles(UserList):
         return C('\n').join(pcs)
 
     def create(self):
-        print(f'Creating structure for: {self.srcdir_str}')
+        status(f'Creating structure for: {self.srcdir_str}')
         for df in self:
             df.create(quiet=True)
 
@@ -324,7 +343,8 @@ class DebFile(object):
         self.destdir = destdir.lstrip('/')
         self.linkdir = linkdir.lstrip('/')
         # Should be a function that accepts the srcfile, and returns another
-        # (changed) file path.
+        # (changed) file path. The changed file path will be will be the new
+        # destination file (the original will not be included in the package).
         # It should accept a `dest_dir` kwarg (`self.destdir_deb`).
         self.transform = transform or None
         # Calculated attributes.
@@ -406,7 +426,7 @@ class DebFile(object):
 
     def create(self, quiet=False):
         if not quiet:
-            print(f'Creating structure for: {self.filename}')
+            status(f'Creating structure for: {self.filename}')
         self.create_dirs()
         self.create_file()
         self.create_link()
@@ -433,7 +453,7 @@ class DebFile(object):
 
 
 class DebPackage(UserList):
-    def __init__(self, pkgname, debfiles=None):
+    def __init__(self, pkgname, debfiles=None, dest_dir=None):
         super().__init__(debfiles or [])
         self.pkgname = pkgname
         self.debdir = f'{pkgname}_{COLRC_VERSION}'
@@ -443,8 +463,8 @@ class DebPackage(UserList):
             '--build',
             '--root-owner-group',
             self.debdir,
-            self.debname,
         ]
+        self.dest_dir = dest_dir
 
     def __colr__(self):
         return self.as_colr(list_files=False)
@@ -466,26 +486,40 @@ class DebPackage(UserList):
         return C(f'{pkgname}:\n    {files or nofiles}')
 
     def build(self):
+        cmd = self.build_cmd[:]
+        if self.dest_dir:
+            debfile = os.path.join(self.dest_dir, self.debname)
+        else:
+            debfile = self.debname
+        cmd.append(debfile)
         try:
-            subprocess.check_call(self.build_cmd)
+            output = subprocess.check_output(cmd)
         except subprocess.CalledProcessError as ex:
+            if ex.output:
+                print_err(ex.output.decode())
             raise FatalError(
                 f'Failed to build package, dpkg-deb returned: {ex.returncode}'
             )
+        else:
+            status(output.decode())
+        return debfile
 
     def clean(self):
         if os.path.exists(self.debdir):
-            print(f'Cleaning dir: {self.debdir}')
+            status(f'Cleaning dir: {self.debdir}')
             os.system(f'sudo rm -r {self.debdir}')
 
-    def create(self):
+    def create(self, name_only=False):
         self.clean()
         self.create_files()
         self.create_control()
         self.create_perms()
-        self.build()
+        debfile = self.build()
         self.clean()
-        print(f'Created package: {self.debname}')
+        if name_only:
+            print(debfile)
+        else:
+            status(f'Created package: {debfile}')
 
     def create_control(self):
         control_dir = os.path.join(self.debdir, 'DEBIAN')
@@ -542,22 +576,22 @@ deb_pkgs = {
         ],
     ),
     'libcolr': DebPackage(
-        'libcolr',
+        'libcolr-dev',
         [
             DebFile(
-                pkgname='libcolr',
+                pkgname='libcolr-dev',
                 srcpath=os.path.join(COLRC_SRC, 'libcolr.so'),
                 destdir='/usr/share/colr/lib',
                 linkdir='/usr/lib',
             ),
             DebFile(
-                pkgname='libcolr',
+                pkgname='libcolr-dev',
                 srcpath=os.path.join(COLRC_SRC, 'colr.h'),
                 destdir='/usr/share/colr/include',
                 linkdir='/usr/include',
             ),
             DebDirFiles(
-                pkgname='libcolr',
+                pkgname='libcolr-dev',
                 srcdir=os.path.join(COLRC_SRC, 'docs/man/man3'),
                 destdir='/usr/share/colr/man3',
                 linkdir='/usr/share/man/man3',

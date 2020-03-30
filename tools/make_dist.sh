@@ -21,21 +21,10 @@ fi
 colrc_src_pkg_name="colrc-$colrc_version.tar.gz"
 colrc_src_pkg_name_latest="colrc-latest.tar.gz"
 
-# Set in `gen_debian_structure`, used for cleanup later.
-debian_dir=""
 colrc_deb_pkg_name="colr"
-colrc_deb_name="${colrc_deb_pkg_name}_${colrc_version}"
 colrc_deb_name_latest="${colrc_deb_pkg_name}_latest"
-libcolr_deb_name="libcolr-dev_$colrc_version"
 libcolr_deb_name_latest="libcolr-dev_latest"
-colrc_exe="$src_dir/colrc"
 colrc_lib_name="libcolr"
-colrc_lib="${src_dir}/${colrc_lib_name}.so"
-colrc_header="$src_dir/colr.h"
-colrc_desc="ColrC is a C library and a command-line tool for terminal colors on Linux."
-
-# Man pages for the libcolr package.
-libcolr_man_dir="${src_dir}/docs/man/man3"
 
 # Defaults (shouldn't really be used. Be explicit.)
 default_dir="$(readlink -f "$appdir/../dist")"
@@ -56,6 +45,10 @@ declare -a tar_cmd=(
     "--file"
 )
 
+python_exe="$(bash "$appdir/find_python.sh")" || {
+    printf "\nUnable to determine python executable!\n" 1>&2
+    exit 1
+}
 
 function echo_err {
     # Echo to stderr.
@@ -91,116 +84,6 @@ function fail_usage {
 }
 
 
-function gen_debian_control {
-    # Print content needed for a debian `control` file.
-    local deb_name=$1 deb_arch=$2
-    [[ -n "$deb_name" ]] || fail "No package name provided to gen_debian_control()!"
-    [[ -n "$deb_arch" ]] || {
-        deb_arch="$(dpkg --print-architecture)" || fail "Unable to determine architecture."
-    }
-
-    printf "Package: %s
-Architecture: %s
-Maintainer: Christopher Welborn (cjwelborn@live.com)
-Priority: optional
-License: MIT
-Version: %s
-Description: %s" "$deb_name" "$deb_arch" "$colrc_version" "$colrc_desc"
-}
-
-
-function gen_debian_files {
-    [[ -n "$debian_dir" ]] || fail "debian_dir not set before generating files!"
-    [[ -d "$debian_dir" ]] || fail "Missing debian dir: $debian_dir"
-
-    local bin_dir="$debian_dir/usr/share/colr/bin"
-    local bin_link_dir="$debian_dir/usr/bin"
-    printf "    Creating bin dir: %s\n" "$bin_dir"
-    mkdir_or_fail -p "$bin_dir"
-    mkdir_or_fail -p "$bin_link_dir"
-    local colrc_name="${colrc_exe##*/}"
-    cp "$colrc_exe" "$bin_dir/$colrc_name"
-    pushd "$bin_link_dir" &>/dev/null
-    ln -s ../share/colr/bin/"$colrc_name" "$colrc_name"
-    popd &>/dev/null
-    printf "    Executable copied: %s\n" "$bin_dir/$colrc_name"
-
-}
-
-function gen_debian_files_lib {
-    [[ -n "$debian_dir" ]] || fail "debian_dir not set before generating files!"
-    [[ -d "$debian_dir" ]] || fail "Missing debian dir: $debian_dir"
-    local control_dir=$1
-    [[ -n "$control_dir" ]] || fail "control_dir not set in deb_debian_files_lib()!"
-    [[ -d "$control_dir" ]] || fail "Missing control dir: $control_dir"
-
-    local header_dir="$debian_dir/usr/share/colr/include"
-    local header_link_dir="$debian_dir/usr/include"
-    local lib_dir="$debian_dir/usr/share/colr/lib"
-    local lib_link_dir="$debian_dir/usr/lib"
-    mkdir_or_fail -p "$header_dir"
-    mkdir_or_fail -p "$lib_dir"
-    mkdir_or_fail -p "$header_link_dir"
-    mkdir_or_fail -p "$lib_link_dir"
-    local libcolr_name="${colrc_lib##*/}"
-    cp "$colrc_lib" "$lib_dir/$libcolr_name"
-    pushd "$lib_link_dir" &>/dev/null
-    ln -s ../share/colr/lib/"$libcolr_name" "$libcolr_name"
-    popd &>/dev/null
-    printf "    Library copied: %s\n" "$header_dir/$libcolr_name"
-
-    local header_name="${colrc_header##*/}"
-    cp "$colrc_header" "$header_dir/$header_name"
-    pushd "$header_link_dir" &>/dev/null
-    ln -s ../share/colr/include/"$header_name" "$header_name"
-    popd &>/dev/null
-    printf "    Header copied: %s\n" "$header_dir/$header_name"
-}
-
-
-function gen_debian_struct {
-    # Generate a debian package directory.
-    local deb_name=$1 deb_arch=$2
-    if [[ "$deb_name" != "${colrc_deb_pkg_name}" ]] && [[ "$deb_name" != "$colrc_lib_name" ]]; then
-        fail "Unknown deb name: $deb_name"
-    fi
-    [[ -n "$deb_name" ]] || fail "No package name provided to gen_debian_struct()!"
-    [[ -n "$deb_arch" ]] || {
-        deb_arch="$(dpkg --print-architecture)" || fail "Unable to determine architecture."
-    }
-    debian_dir="${deb_name}_${colrc_version}"
-
-    printf "  Creating debian structure: %s\n" "$debian_dir"
-    mkdir_or_fail "$debian_dir"
-    local control_dir="$debian_dir/DEBIAN"
-    mkdir_or_fail "$control_dir"
-    local control_file="$control_dir/control"
-
-    printf "  Creating debian control: %s\n" "$control_file"
-    printf "%s\n" "$(gen_debian_control "$deb_name" "$deb_arch")" > "$control_file"
-
-    if [[ "$deb_name" == "$colrc_deb_pkg_name" ]]; then
-        gen_debian_files
-    elif [[ "$deb_name" == "$colrc_lib_name" ]]; then
-        gen_debian_files_lib "$control_dir"
-    else
-        fail "Unkown deb name, '$deb_name'. Structure generation is incomplete: $debian_dir"
-    fi
-
-    sudo chown -R root:root "$debian_dir"
-}
-
-
-function gzip_man_pages {
-    ls "$libcolr_man_dir"/*.3 &>/dev/null || {
-        # Already compressed.
-        return 0
-    }
-    printf "Compressing man pages...\n"
-    gzip "$libcolr_man_dir"/*.3
-}
-
-
 function make_deb_pkg {
     local deb_name=$1
     if [[ "$deb_name" != "$colrc_deb_pkg_name" ]] && [[ "$deb_name" != "$colrc_lib_name" ]]; then
@@ -213,27 +96,14 @@ function make_deb_pkg {
     printf "\nCreating deb package for: %s\n" "${deb_name}_${deb_arch}"
     local deb_pkg deb_latest
     if [[ "$deb_name" == "$colrc_deb_pkg_name" ]]; then
-        ensure_files "$colrc_exe"
-        deb_pkg="${user_dir}/${colrc_deb_name}_${deb_arch}.deb"
         deb_latest="${user_dir}/${colrc_deb_name_latest}_${deb_arch}.deb"
+        deb_pkg="$("$python_exe" "$appdir/make_deb.py" -q -d "$user_dir")" || fail "Failed to create colr package!"
     elif [[ "$deb_name" == "$colrc_lib_name" ]]; then
-        ensure_files "$colrc_lib"
-        deb_pkg="${user_dir}/${libcolr_deb_name}_${deb_arch}.deb"
         deb_latest="${user_dir}/${libcolr_deb_name_latest}_${deb_arch}.deb"
+        deb_pkg="$("$python_exe" "$appdir/make_deb.py" -q --lib -d "$user_dir")" || fail "Failed to create libcolr package!"
     else
         fail "Unknown deb name, '$deb_name'. Cancelling."
     fi
-
-    gen_debian_struct "$deb_name" "$deb_arch"
-
-    [[ -n "$debian_dir" ]] || fail "Missing debian_dir variable!"
-    [[ -d "$debian_dir" ]] || fail "Failed to create debian structure: $debian_dir"
-
-    printf "Building debian package...\n"
-    dpkg-deb --build "$debian_dir" "$deb_pkg"
-
-    printf "Cleaning up...\n"
-    sudo rm -r "$debian_dir"
 
     [[ -e "$deb_pkg" ]] || fail "No debian package built!"
     printf "\nDebian package built: %s\n" "$deb_pkg"
