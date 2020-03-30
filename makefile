@@ -45,7 +45,7 @@ install_cmd=bash ./tools/install.sh
 is_build_cmd=bash tools/is_build.sh
 make_help_fmt_cmd=python3 tools/make_help_fmter.py
 undoxy_md_cmd=python3 tools/undoxy_markdown.py
-readme_title="ColrC"
+readme_title="ColrC Documentation"
 readme_header="![CI](https://github.com/welbornprod/colrc/workflows/CI/badge.svg?event=push)\n\nFor full documentation see [welbornprod.com/colrc](https://welbornprod.com/colrc/index.html)"
 version_cmd=bash tools/get_version.sh
 dist_dir=./dist
@@ -414,7 +414,7 @@ docsreadme: $(docs_github_readme)
 
 .PHONY: docsreadmepreview
 docsreadmepreview: $(docs_index_md)
-	@printf "\nPreviewing the GitHub README: $(docs_github_readme)\n"
+	@printf "\nPreviewing the GitHub README: $(docs_github_readme)\n" 1>&2
 	@$(undoxy_md_cmd) \
 		-t $(readme_title) \
 		-H $(readme_header) \
