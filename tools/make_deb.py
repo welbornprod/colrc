@@ -48,12 +48,14 @@ COLRC_ARCH = subprocess.check_output(
 
 CONTROL = f"""
 Package: {{pkgname}}
+Version: {COLRC_VERSION}
 Architecture: {COLRC_ARCH}
 Maintainer: Christopher Welborn (cjwelborn@live.com)
 Homepage: https://welbornprod.com/colrc
+Vcs-Browser: https://github.com/welbornprod/colrc
+Vcs-Git: git://github.com/welbornprod/colrc.git
 Priority: optional
 License: MIT
-Version: {COLRC_VERSION}
 Description: ColrC is a C library and a command-line tool for terminal colors
              on Linux.
 """.lstrip()
@@ -104,7 +106,14 @@ def main(argd):
 
 def compress_file(filepath, dest_dir=None, in_place=False, prefix=None):
     """ GZips a file and returns f'{filepath}.gz' on success.
-        If `in_place` is "truthy", the original file is removed on success.
+        Arguments:
+            dest_dir  : Directory to place the gzipped file in.
+            in_place  : Whether the original file is removed on success.
+            prefix    : Either a string prefix to prepend, or a callable
+                        that takes the file name as an argument and returns
+                        a file name to use.
+                        def my_prefix(filename):
+                            return f'my-{filename}'
     """
     try:
         with open(filepath, 'rb') as f:
