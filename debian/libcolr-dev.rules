@@ -1,0 +1,24 @@
+#!/usr/bin/make -f
+SHELL=bash
+CC=gcc
+
+clean:
+	@$(MAKE) clean
+
+build:
+	@$(MAKE) libdebug
+
+binary:
+	@mkdir -p debian/libcolr-dev; \
+	mkdir -p debian/libcolr-dev/usr/share/colr/lib; \
+	mkdir -p debian/libcolr-dev/usr/share/colr/include; \
+	mkdir -p debian/libcolr-dev/usr/lib; \
+	mkdir -p debian/libcolr-dev/usr/include; \
+	cp colr.h debian/libcolr-dev/usr/share/colr/include; \
+	pushd debian/libcolr-dev/usr/include; \
+	[[ -e colr.h ]] || ln -s ../share/colr/include/colr.h colr.h; \
+	popd; \
+	cp libcolr.so debian/libcolr-dev/usr/share/colr/lib; \
+	pushd debian/libcolr-dev/usr/lib; \
+	[[ -e libcolr.so ]] || ln -s ../share/colr/lib/libcolr.so libcolr.so; \
+	popd;

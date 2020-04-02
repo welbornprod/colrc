@@ -1,0 +1,18 @@
+#!/usr/bin/make -f
+SHELL=bash
+CC=gcc
+
+clean:
+	@$(MAKE) clean
+
+build:
+	@$(MAKE) release
+
+binary:
+	@mkdir -p debian/colr; \
+	mkdir -p debian/colr/usr/share/colr/bin; \
+	mkdir -p debian/colr/usr/bin; \
+	cp colrc debian/colr/usr/share/colr/bin; \
+	pushd debian/colr/usr/bin; \
+	[[ -e colrc ]] || ln -s ../share/colr/bin/colrc colrc; \
+	popd;

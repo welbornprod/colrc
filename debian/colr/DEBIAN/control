@@ -1,0 +1,10 @@
+Package: colr
+Version: 0.3.7
+Architecture: all
+Maintainer: Christopher Welborn (cjwelborn@live.com)
+Installed-Size: 2
+Section: devel
+Priority: optional
+Homepage: https://welbornprod.com/colrc
+Description: ColrC is a C library and a command-line tool for terminal colors
+             on Linux.
