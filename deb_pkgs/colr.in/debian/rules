@@ -2,13 +2,16 @@
 SHELL=bash
 CC=gcc
 
-clean:
+%:
+	dh $@
+
+override_dh_auto_clean:
 	@$(MAKE) clean
 
-build:
+override_dh_auto_build:
 	@$(MAKE) release
 
-binary:
+override_dh_auto_install:
 	@mkdir -p debian/colr; \
 	mkdir -p debian/colr/usr/share/colr/bin; \
 	mkdir -p debian/colr/usr/bin; \

@@ -1,11 +1,12 @@
 Source: libcolr-dev
 Section: devel
 Priority: optional
+Standards-Version: 3.0.0
 Maintainer: Christopher Welborn (cjwelborn@live.com)
 Homepage: https://welbornprod.com/colrc
 Vcs-Browser: https://github.com/welbornprod/colrc
 Vcs-Git: git://github.com/welbornprod/colrc.git
-
+Build-Depends: libc6
 
 Package: libcolr-dev
 Architecture: all

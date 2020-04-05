@@ -56,8 +56,25 @@ function build_pkgs {
     ((failures)) && {
         printf "Cleaning up for failures...\n"
         clean_dirs
+        return $failures
     }
-    return $failures
+    local distdir="$appdir/../dist"
+    [[ -d "$distdir" ]] || {
+        printf "Creating dist dir: %s\n" "$distdir"
+        mkdir -p "$distdir" || fail "Unable to create dist directory!"
+    }
+    distdir="$(readlink -f "$distdir")"
+    printf "Copying deb packages to: %s\n" "$distdir"
+    local debpath debfile destpath
+    while read -r debpath; do
+        debfile="${debpath##*/}"
+        destpath="$distdir/$debfile"
+        if cp "$debpath" "$destpath"; then
+            printf "Created package: %s\n" "$destpath"
+        else
+            printf "Unable to copy package file: %s\n" "$debpath"
+        fi
+    done < <(find "$appdir" -type f -name "*.deb")
 }
 
 function clean_dirs {

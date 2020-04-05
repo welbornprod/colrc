@@ -2,13 +2,16 @@
 SHELL=bash
 CC=gcc
 
-clean:
+%:
+	dh $@
+
+override_dh_auto_clean:
 	@$(MAKE) clean
 
-build:
+override_dh_auto_build:
 	@$(MAKE) libdebug
 
-binary:
+override_dh_auto_install:
 	@mkdir -p debian/libcolr-dev; \
 	mkdir -p debian/libcolr-dev/usr/share/colr/lib; \
 	mkdir -p debian/libcolr-dev/usr/share/colr/include; \
