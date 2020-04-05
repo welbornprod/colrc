@@ -1,5 +1,5 @@
 Source: libcolr-dev
-Section: devel
+Section: libs
 Priority: optional
 Standards-Version: 3.0.0
 Maintainer: Christopher Welborn (cjwelborn@live.com)

@@ -20,8 +20,10 @@ override_dh_auto_install:
 	@mkdir -p debian/libcolr-dev; \
 	mkdir -p debian/libcolr-dev/usr/share/colr/lib; \
 	mkdir -p debian/libcolr-dev/usr/share/colr/include; \
+	mkdir -p debian/libcolr-dev/usr/share/colr/man; \
 	mkdir -p debian/libcolr-dev/usr/lib; \
 	mkdir -p debian/libcolr-dev/usr/include; \
+	mkdir -p debian/libcolr-dev/usr/share/man/man3; \
 	cp colr.h debian/libcolr-dev/usr/share/colr/include; \
 	pushd debian/libcolr-dev/usr/include 1>/dev/null; \
 	[[ -e colr.h ]] || ln -s ../share/colr/include/colr.h colr.h; \
@@ -29,4 +31,13 @@ override_dh_auto_install:
 	cp libcolr.so debian/libcolr-dev/usr/share/colr/lib; \
 	pushd debian/libcolr-dev/usr/lib 1>/dev/null; \
 	[[ -e libcolr.so ]] || ln -s ../share/colr/lib/libcolr.so libcolr.so; \
+	popd 1>/dev/null; \
+	cp docs/man/man3/*.gz debian/libcolr-dev/usr/share/colr/man; \
+	pushd debian/libcolr-dev/usr/share/man/man3 1>/dev/null; \
+	while read -r gzfile; do \
+		filename="$${gzfile##*/}"; \
+		linkname="$$filename"; \
+		[[ "$$linkname" == colr* ]] || linkname="colr-$$linkname"; \
+		ln -s ../../colr/man/"$$filename" "$$linkname"; \
+	done < <(find ../../colr/man -type f -name "*.gz"); \
 	popd 1>/dev/null;

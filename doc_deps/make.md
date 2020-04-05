@@ -88,3 +88,17 @@ the main targets here.
     you would like to make sure it compiles.
 - `make cleanexamples`
     - Remove all example objects/binaries, to start fresh.
+
+# Debian Packages
+
+- `make distdeb`
+    - Build debian binary packages for the colr tool and libcolr.
+    The packages will be placed in `./dist`, and can be installed using
+    `sudo dpkg -i <file>`. Packages can be uninstalled like any other package
+    (`sudo apt remove colr` or `libcolr-dev`).
+- `make distdebfull`
+    - Build debian source & binary packages for the colr tool and libcolr.
+    The packages will be placed in `./dist`, and can be used with `debmake`
+    to create debian packages.
+    They include only the minimum build dependencies to compile ColrC
+    (colrc or libcolr) and generate a debian package.

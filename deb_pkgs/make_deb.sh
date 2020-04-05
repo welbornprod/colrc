@@ -53,16 +53,28 @@ function build_pkgs {
     # Clean existing package dirs, rebuild them, and run dpkg-buildpackage.
     local failures=0
     clean_dirs
-
+    # Only binary packages are built by default.
+    declare -a build_args=("-b")
+    local build_type="binary"
+    declare -a find_cp_args=("-name" "*.deb")
+    ((do_source)) && {
+        # If the user wants to, we can build a source package also.
+        # The source isn't exactly the same as cloning the repo.
+        # Only the minimum build dependencies are included, like the
+        # source files and the makefile.
+        build_args=("-F")
+        build_type="source/binary"
+        find_cp_args+=("-or" "-name" "*.tar.gz")
+    }
     ((do_pkg_colr)) && {
-        printf "Building colr\n"
+        printf "\nBuilding colr %s package...\n" "$build_type"
         create_dir_colr
-        build_deb "$appdir/$colr_dir" -b || let failures+=1
+        build_deb "$appdir/$colr_dir" "${build_args[@]}" || let failures+=1
     }
     ((do_pkg_libcolr)) && {
         create_dir_libcolr
-        printf "Building libcolr...\n"
-        build_deb "$appdir/$libcolr_dir" -b || let failures+=1
+        printf "\nBuilding libcolr %s package...\n" "$build_type"
+        build_deb "$appdir/$libcolr_dir" "${build_args[@]}" || let failures+=1
     }
 
     ((failures)) && {
@@ -70,32 +82,57 @@ function build_pkgs {
         clean_dirs
         return $failures
     }
+    local debpath
+    ((no_dist)) && {
+        # Skip package copying.
+        ((keep_dirs)) || clean_dirs
+        printf "\nGenerated files:\n"
+        while read -r debpath; do
+            printf "    %s\n" "$debpath"
+        done < <(find "$colrc_dir/deb_pkgs" -type f "${find_cp_args[@]}")
+        return
+    }
+    # Default dist directory when not specified.
     local distdir="$appdir/../dist"
+    # Use the user's dist dir if requested.
+    [[ -n "$use_dist_dir" ]] && distdir="$use_dist_dir"
+    # Create the directory, if needed.
     [[ -d "$distdir" ]] || {
         printf "Creating dist dir: %s\n" "$distdir"
         mkdir -p "$distdir" || fail "Unable to create dist directory!"
     }
     distdir="$(readlink -f "$distdir")"
     printf "Copying deb packages to: %s\n" "$distdir"
-    local debpath debfile destpath pkgname pkgarch latestname
+    local debfile destpath pkgname pkgarch latestname fileext
     while read -r debpath; do
         debfile="${debpath##*/}"
         destpath="$distdir/$debfile"
         if cp "$debpath" "$destpath"; then
             printf "Copied package: %s\n" "$destpath"
-            pkgname="${debfile%%_*}"
-            pkgarch="${debfile##*_}"
-            latestname="${pkgname}_latest_${pkgarch}"
-            cp "$destpath" "$distdir/$latestname" && {
-                printf "Updated latest package: %s\n" "$latestname"
+            ((no_latest)) || {
+                # Update latest package file.
+                pkgname="${debfile%%_*}"
+                if [[ "$debpath" == *.tar.gz ]] || [[ "$debpath" == *.dsc ]]; then
+                    fileext="${debfile##*$colrc_version}"
+                    latestname="${pkgname}_latest${fileext}"
+                else
+                    pkgarch="${debfile##*_}"
+                    latestname="${pkgname}_latest_${pkgarch}"
+                fi
+                cp "$destpath" "$distdir/$latestname" && {
+                    printf "Updated latest package: %s\n" "$latestname"
+                }
             }
-            rm "$debpath" || printf "Unable to remove original package: %s\n" "$debpath"
+            ((keep_files)) || {
+                # Remove original (in ./deb_pkgs).
+                rm "$debpath" || printf "Unable to remove original package: %s\n" "$debpath"
+            }
         else
             printf "Unable to copy package file: %s\n" "$debpath"
         fi
-    done < <(find "$colrc_dir/deb_pkgs" -type f -name "*.deb")
-    clean_dirs
-    clean_pkg_files
+    done < <(find "$colrc_dir/deb_pkgs" -type f "${find_cp_args[@]}")
+    ((keep_dirs)) || clean_dirs
+    ((keep_files)) || clean_pkg_files
 }
 
 
@@ -135,22 +172,16 @@ function clean_pkg_files {
 
 function create_dir_colr {
     # Create the colr_<version> package directory.
-    printf "Creating package directory: %s\n" "$colr_dir"
+    printf "\nCreating package directory: %s\n" "$colr_dir"
     cp -r "$appdir/colr.in" "$appdir/$colr_dir"
     refresh_colr
-    # Build dependencies
-    mkdir -p "$appdir/$colr_dir/tools"
-    cp "$appdir/../tools/clean.sh" "$appdir/$colr_dir/tools"
 }
 
 function create_dir_libcolr {
     # Create the libcolr-dev_<version> package directory.
-    printf "Creating package directory: %s\n" "$libcolr_dir"
+    printf "\nCreating package directory: %s\n" "$libcolr_dir"
     cp -r "$appdir/libcolr-dev.in" "$appdir/$libcolr_dir"
     refresh_libcolr
-    # Build dependencies
-    mkdir -p "$appdir/$libcolr_dir/tools"
-    cp "$appdir/../tools/clean.sh" "$appdir/$libcolr_dir/tools"
 }
 
 function echo_err {
@@ -178,18 +209,34 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
-        $appscript [-C | -L]
+        $appscript [-d dir] [-C | -L] [-F] [-K] [-N | -k] [-n]
         $appscript [-c] [-p]
-        $appscript -d
+        $appscript -D
 
     Options:
-        -C,--colr       : Create the colr package.
-        -c,--clean      : Remove leftover package directories (if they exist).
-        -d,--dirs       : Create the directories, but don't build any packages.
-        -h,--help       : Show this message.
-        -L,--libcolr    : Create the libcolr package.
-        -p,--cleanpkgs  : Clean leftover package files (if they exist).
-        -v,--version    : Show $appname version and exit.
+        -C,--colr         : Create the colr package.
+        -c,--clean        : Remove leftover package directories (if they exist).
+        -D,--dirs         : Create the directories, but don't build any packages.
+        -d dir,--dir dir  : Destination directory for package files.
+        -F,--full         : Include source packages.
+        -h,--help         : Show this message.
+        -K,--keepdirs     : Don't delete package directories that are created.
+                            They can be deleted later with \`-c\`.
+        -k,--keepfiles    : Don't delete original source/package files that are
+                            created. They can be deleted later with \`-p\`.
+        -L,--libcolr      : Create the libcolr package.
+        -N,--nodist       : Don't update the packages in the dist dir (or -d dir).
+                            This enables -k.
+        -n,--nolatest     : Don't update the 'latest' packages in the
+                            destination directory.
+        -p,--cleanpkgs    : Clean leftover package files (if they exist).
+        -v,--version      : Show $appname version and exit.
+
+    Normal Operation:
+        Create both the colr and libcolr package:
+            ./$appscript
+        Create both source & binary packages.
+            ./$appscript -F
     "
 }
 
@@ -202,8 +249,11 @@ function refresh_colr {
         # No need to link if we already did this.
         [[ -h "$destpath" ]] && continue
         [[ -e "$destpath" ]] && fail "Please remove existing file: $destpath"
-        ln -s "$filepath" "$destpath"
+        cp "$filepath" "$destpath"
     done
+    # Build dependencies
+    mkdir -p "$appdir/$colr_dir/tools"
+    cp "$appdir/../tools/clean.sh" "$appdir/$colr_dir/tools"
 }
 
 function refresh_libcolr {
@@ -215,8 +265,19 @@ function refresh_libcolr {
         # No need to link if we already did this.
         [[ -h "$destpath" ]] && continue
         [[ -e "$destpath" ]] && fail "Please remove existing file: $destpath"
-        ln -s "$filepath" "$destpath"
+        cp "$filepath" "$destpath"
     done
+
+    # Build dependencies
+    mkdir -p "$appdir/$libcolr_dir/tools"
+    cp "$appdir/../tools/clean.sh" "$appdir/$libcolr_dir/tools"
+
+    # Copy man pages.
+    mkdir -p "$appdir/$libcolr_dir/docs/man"
+    cp -r "$colrc_dir/docs/man/man3" "$appdir/$libcolr_dir/docs/man/man3"
+
+    # GZip the man pages.
+    gzip "$appdir/$libcolr_dir/docs/man/man3/"*.3
 }
 
 
@@ -226,7 +287,14 @@ do_clean_pkgs=0
 do_dirs_only=0
 do_pkg_colr=0
 do_pkg_libcolr=0
-
+do_source=0
+keep_dirs=0
+keep_files=0
+no_dist=0
+no_latest=0
+in_dir_arg=0
+# If set when parsing args, final packages are placed here.
+use_dist_dir=""
 
 for arg; do
     case "$arg" in
@@ -236,15 +304,33 @@ for arg; do
         "-c" | "--clean")
             do_clean=1
             ;;
-        "-d" | "--dirs")
+        "-D" | "--dirs")
             do_dirs_only=1
+            ;;
+        "-d" | "--dir")
+            in_dir_arg=1
+            ;;
+        "-F" | "--full")
+            do_source=1
             ;;
         "-h" | "--help")
             print_usage ""
             exit 0
             ;;
+        "-K" | "--keepdirs")
+            keep_dirs=1
+            ;;
+        "-k" | "--keepfiles")
+            keep_files=1
+            ;;
         "-L" | "--libcolr")
             do_pkg_libcolr=1
+            ;;
+        "-N" | "--nodist")
+            no_dist=1
+            ;;
+        "-n" | "--nolatest")
+            no_latest=1
             ;;
         "-p" | "--cleanpkgs")
             do_clean_pkgs=1
@@ -257,6 +343,10 @@ for arg; do
             fail_usage "Unknown flag argument: $arg"
             ;;
         *)
+            ((in_dir_arg)) && {
+                use_dist_dir="$arg"
+                continue
+            }
             nonflags+=("$arg")
     esac
 done
