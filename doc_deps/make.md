@@ -102,3 +102,5 @@ the main targets here.
     to create debian packages.
     They include only the minimum build dependencies to compile ColrC
     (colrc or libcolr) and generate a debian package.
+    When running `debmake` on the `libcolr` tarball, you will need to specify
+    the binary spec: `debmake -b 'libcolr:lib' libcolr-dev_<version>.tar.gz`
