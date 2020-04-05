@@ -37,6 +37,7 @@ didn't break anything.
 All make targets can be listed with `make help` or `make targets`. I've listed
 the main targets here.
 
+\anchor build
 # Build
 
 - `make clean`
@@ -47,6 +48,7 @@ the main targets here.
 - `make release`
     - Build a non-debug build for the `colrc` tool.
 
+\anchor test
 # Test
 
 - `make test`
@@ -70,6 +72,7 @@ the main targets here.
 - `make cppcheckview`
     - Open the cppcheck report in a browser.
 
+\anchor document
 # Document
 
 - `make docshtml`
@@ -80,6 +83,8 @@ the main targets here.
 - `make cleandocs`
     - Remove all generated doc files, to start fresh.
 
+
+\anchor examples
 # Examples
 
 - `make examples`
@@ -89,6 +94,8 @@ the main targets here.
 - `make cleanexamples`
     - Remove all example objects/binaries, to start fresh.
 
+
+\anchor make-debian-packages
 # Debian Packages
 
 - `make distdeb`

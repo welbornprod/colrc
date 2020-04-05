@@ -112,22 +112,25 @@ If you link the library (and `libm`), you will only need to include the header (
 gcc -std=c11 -c myprogram.c -o myexecutable -lm -lcolr
 ```
 
-There are several `make` targets to help you build and install the library.
+There are several `make` targets to help you build and install the library:
+```bash
+# Build a debian package for libcolr and install it:
+make distdeb
+sudo dpkg -i dist/libcolr-dev_latest_amd64.deb
+```
+
+If you don't want to use a debian package, you can run the included installer.
 The installer is interactive, and will let you choose where to install the library based on GCC's
 library search path. It will not overwrite existing files without confirmation:
 ```bash
-# Build libcolr with optimizations and copy it to GCC's lib path (you select):
-make libinstall
-
-# Build libcolr with optimizations and symlink it to GCC's lib path:
-make liblink
-
 # Build libcolr with debug info, and install it:
 make libinstalldebug
 
 # Build libcolr with debug info, and symlink/install it:
 make liblinkdebug
 ```
+
+
 ## Example Usage
 
 For a full listing see [the docs](https://welbornprod.com/colrc/globals_defs.html), but here are
