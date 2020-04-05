@@ -395,9 +395,13 @@ distsrc: $(dist_files)
 	@$(make_dist_cmd) -S -d $(dist_dir) $(dist_files)
 
 .PHONY: distall
+# Build docs, copy to cjwelborn.github.io.
 distall: distdocs
+# Build a basic source package (only source files, not the whole project)
 distall: distsrc
+# Build binary debian packages for this machine (colr and libcolr).
 distall: distdeb
+# Copy source/binary packages to cjwelborn.github.io.
 distall: distcj
 
 .PHONY: docshtml
