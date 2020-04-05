@@ -138,9 +138,6 @@ function create_dir_colr {
     printf "Creating package directory: %s\n" "$colr_dir"
     cp -r "$appdir/colr.in" "$appdir/$colr_dir"
     refresh_colr
-    # Build dependencies
-    mkdir -p "$appdir/$colr_dir/tools"
-    cp "$appdir/../tools/clean.sh" "$appdir/$colr_dir/tools"
 }
 
 function create_dir_libcolr {
@@ -148,9 +145,6 @@ function create_dir_libcolr {
     printf "Creating package directory: %s\n" "$libcolr_dir"
     cp -r "$appdir/libcolr-dev.in" "$appdir/$libcolr_dir"
     refresh_libcolr
-    # Build dependencies
-    mkdir -p "$appdir/$libcolr_dir/tools"
-    cp "$appdir/../tools/clean.sh" "$appdir/$libcolr_dir/tools"
 }
 
 function echo_err {
@@ -204,6 +198,9 @@ function refresh_colr {
         [[ -e "$destpath" ]] && fail "Please remove existing file: $destpath"
         ln -s "$filepath" "$destpath"
     done
+    # Build dependencies
+    mkdir -p "$appdir/$colr_dir/tools"
+    cp "$appdir/../tools/clean.sh" "$appdir/$colr_dir/tools"
 }
 
 function refresh_libcolr {
@@ -217,6 +214,17 @@ function refresh_libcolr {
         [[ -e "$destpath" ]] && fail "Please remove existing file: $destpath"
         ln -s "$filepath" "$destpath"
     done
+
+    # Build dependencies
+    mkdir -p "$appdir/$libcolr_dir/tools"
+    cp "$appdir/../tools/clean.sh" "$appdir/$libcolr_dir/tools"
+
+    # Copy man pages.
+    mkdir -p "$appdir/$libcolr_dir/docs/man"
+    cp -r "$colrc_dir/docs/man/man3" "$appdir/$libcolr_dir/docs/man/man3"
+
+    # GZip the man pages.
+    gzip "$appdir/$libcolr_dir/docs/man/man3/"*.3
 }
 
 
