@@ -63,10 +63,12 @@ function build_pkgs {
 function clean_dirs {
     # Delete any leftover package directories.
     local dirpath
+    local colrname="colr-[0-9].[0-9].[0-9]"
+    local libcolrname="libcolr-dev-[0-9].[0-9].[0-9]"
     while read -r dirpath; do
         printf "Removing package directory: %s\n" "$dirpath"
         rm -r "$dirpath"
-    done < <(find "$colrc_dir/deb_pkgs" -type d ! -name "*.in")
+    done < <(find "$colrc_dir/deb_pkgs" -type d -name "$colrname" -or -name "$libcolrname" ! -name "*.in")
 }
 
 function clean_pkg_files {
