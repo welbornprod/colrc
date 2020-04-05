@@ -1,0 +1,212 @@
+#!/bin/bash
+
+# Creates debian package structures from the ColrC source.
+# -Christopher Welborn 04-04-2020
+appname="ColrC Deb Maker"
+appversion="0.0.1"
+apppath="$(readlink -f "${BASH_SOURCE[0]}")"
+appscript="${apppath##*/}"
+appdir="${apppath%/*}"
+colrc_dir="$(readlink -f "$appdir/..")"
+get_ver_script="$colrc_dir/tools/get_version.sh"
+
+colrc_version="$(bash "$get_ver_script")"
+
+colr_dir="colr-$colrc_version"
+libcolr_dir="libcolr-dev-$colrc_version"
+
+declare -a colr_files=(
+    "makefile"
+    "colr.h"
+    "colr.c"
+    "colr.controls.h"
+    "colr.controls.c"
+    "dbug.h"
+)
+declare -a colr_tool_files=("${colr_files[@]}")
+colr_tool_files+=(
+    "colr_tool.h"
+    "colr_tool.c"
+)
+
+function build_deb {
+    local srcdir=$1 build_status=0
+    [[ -n "$srcdir" ]] || fail "No source directory given to build_deb()!"
+    [[ -e "$srcdir" ]] || fail "Missing source directory: $srcdir"
+    pushd "$srcdir" 1>/dev/null
+    dpkg-buildpackage
+    build_status=$?
+    popd 1>/dev/null
+    return $build_status
+}
+
+function build_pkgs {
+    # Clean existing package dirs, rebuild them, and run dpkg-buildpackage.
+    local failures=0
+    clean_dirs
+
+    printf "Building colr\n"
+    create_dir_colr
+    build_deb "$appdir/$colr_dir" || let failures+=1
+
+    create_dir_libcolr
+    printf "Building libcolr...\n"
+    build_deb "$appdir/$libcolr_dir" || let failures+=1
+
+    ((failures)) && {
+        printf "Cleaning up for failures...\n"
+        clean_dirs
+    }
+    return $failures
+}
+
+function clean_dirs {
+    # Delete any leftover package directories.
+    local dirpath
+    while read -r dirpath; do
+        printf "Removing package directory: %s\n" "$dirpath"
+        rm -r "$dirpath"
+    done < <(find "$colrc_dir/deb_pkgs" -type d ! -name "*.in")
+}
+
+function clean_pkg_files {
+    local filepath
+    while read -r filepath; do
+        printf "Removing package file: %s\n" "$filepath"
+        rm "$filepath"
+    done < <(find "$colrc_dir/deb_pkgs" -type f -name "*.dsc" -or -name "*.tar.gz")
+}
+
+function create_dir_colr {
+    # Create the colr_<version> package directory.
+    printf "Creating package directory: %s\n" "$colr_dir"
+    cp -r "$appdir/colr.in" "$appdir/$colr_dir"
+    refresh_colr
+    # Build dependencies
+    mkdir -p "$appdir/$colr_dir/tools"
+    cp "$appdir/../tools/clean.sh" "$appdir/$colr_dir/tools"
+}
+
+function create_dir_libcolr {
+    # Create the libcolr-dev_<version> package directory.
+    printf "Creating package directory: %s\n" "$libcolr_dir"
+    cp -r "$appdir/libcolr-dev.in" "$appdir/$libcolr_dir"
+    refresh_libcolr
+    # Build dependencies
+    mkdir -p "$appdir/$libcolr_dir/tools"
+    cp "$appdir/../tools/clean.sh" "$appdir/$libcolr_dir/tools"
+}
+
+function echo_err {
+    # Echo to stderr.
+    echo -e "$@" 1>&2
+}
+
+function fail {
+    # Print a message to stderr and exit with an error status code.
+    echo_err "$@"
+    exit 1
+}
+
+function fail_usage {
+    # Print a usage failure message, and exit with an error status code.
+    print_usage "$@"
+    exit 1
+}
+
+function print_usage {
+    # Show usage reason if first arg is available.
+    [[ -n "$1" ]] && echo_err "\n$1\n"
+
+    echo "$appname v. $appversion
+
+    Usage:
+        $appscript -h | -v
+        $appscript [-c] [-C]
+        $appscript -d
+
+    Options:
+        -C,--cleanpkgs  : Clean leftover package files (if they exist).
+        -c,--clean      : Remove leftover package directories (if they exist).
+        -d,--dirs       : Create the directories, but don't build any packages.
+        -h,--help       : Show this message.
+        -v,--version    : Show $appname version and exit.
+    "
+}
+
+function refresh_colr {
+    # Copy files needed to compile the latest colr tool.
+    local filename filepath destpath
+    for filename in "${colr_tool_files[@]}"; do
+        filepath="$colrc_dir/$filename"
+        destpath="$appdir/$colr_dir/$filename"
+        # No need to link if we already did this.
+        [[ -h "$destpath" ]] && continue
+        [[ -e "$destpath" ]] && fail "Please remove existing file: $destpath"
+        ln -s "$filepath" "$destpath"
+    done
+}
+
+function refresh_libcolr {
+    # Copy files needed to compile the latest libcolr.
+    local filename filepath
+    for filename in "${colr_files[@]}"; do
+        filepath="$colrc_dir/$filename"
+        destpath="$appdir/$libcolr_dir/$filename"
+        # No need to link if we already did this.
+        [[ -h "$destpath" ]] && continue
+        [[ -e "$destpath" ]] && fail "Please remove existing file: $destpath"
+        ln -s "$filepath" "$destpath"
+    done
+}
+
+
+declare -a nonflags
+do_clean=0
+do_clean_pkgs=0
+do_dirs_only=0
+
+
+for arg; do
+    case "$arg" in
+        "-C" | "--cleanpkgs")
+            do_clean_pkgs=1
+            ;;
+        "-c" | "--clean")
+            do_clean=1
+            ;;
+        "-d" | "--dirs")
+            do_dirs_only=1
+            ;;
+        "-h" | "--help")
+            print_usage ""
+            exit 0
+            ;;
+        "-v" | "--version")
+            echo -e "$appname v. $appversion\n"
+            exit 0
+            ;;
+        -*)
+            fail_usage "Unknown flag argument: $arg"
+            ;;
+        *)
+            nonflags+=("$arg")
+    esac
+done
+
+# Clean only?
+((do_clean || do_clean_pkgs)) && {
+    ((do_clean)) && clean_dirs
+    ((do_clean_pkgs)) && clean_pkg_files
+    exit
+}
+
+# Create dirs only?
+((do_dirs_only)) && {
+    create_dir_colr
+    create_dir_libcolr
+    exit
+}
+
+# Build debian packages.
+build_pkgs

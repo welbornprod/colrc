@@ -13,6 +13,6 @@ binary:
 	mkdir -p debian/colr/usr/share/colr/bin; \
 	mkdir -p debian/colr/usr/bin; \
 	cp colrc debian/colr/usr/share/colr/bin; \
-	pushd debian/colr/usr/bin; \
+	pushd debian/colr/usr/bin 1>/dev/null; \
 	[[ -e colrc ]] || ln -s ../share/colr/bin/colrc colrc; \
-	popd;
+	popd 1>/dev/null;

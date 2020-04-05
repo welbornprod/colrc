@@ -15,10 +15,10 @@ binary:
 	mkdir -p debian/libcolr-dev/usr/lib; \
 	mkdir -p debian/libcolr-dev/usr/include; \
 	cp colr.h debian/libcolr-dev/usr/share/colr/include; \
-	pushd debian/libcolr-dev/usr/include; \
+	pushd debian/libcolr-dev/usr/include 1>/dev/null; \
 	[[ -e colr.h ]] || ln -s ../share/colr/include/colr.h colr.h; \
-	popd; \
+	popd 1>/dev/null; \
 	cp libcolr.so debian/libcolr-dev/usr/share/colr/lib; \
-	pushd debian/libcolr-dev/usr/lib; \
+	pushd debian/libcolr-dev/usr/lib 1>/dev/null; \
 	[[ -e libcolr.so ]] || ln -s ../share/colr/lib/libcolr.so libcolr.so; \
-	popd;
+	popd 1>/dev/null;

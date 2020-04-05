@@ -1,4 +1,4 @@
-Source: colr
+Source: libcolr-dev
 Section: devel
 Priority: optional
 Maintainer: Christopher Welborn (cjwelborn@live.com)
@@ -8,11 +8,6 @@ Vcs-Git: git://github.com/welbornprod/colrc.git
 
 
 Package: libcolr-dev
-Architecture: all
-Description: ColrC is a C library and a command-line tool for terminal colors
-             on Linux.
-
-Package: colr
 Architecture: all
 Description: ColrC is a C library and a command-line tool for terminal colors
              on Linux.

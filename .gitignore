@@ -21,3 +21,5 @@ snippet.colr.*.c
 unused.json
 cppcheck.cached*.json
 *.srctrl*
+deb_pkgs/colr.in/*.*
+deb_pkgs/libcolr-dev.in/*.*
