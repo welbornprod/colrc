@@ -1,0 +1,32 @@
+#!/usr/bin/make -f
+SHELL=bash
+CC=gcc
+
+%:
+	dh $@
+
+override_dh_auto_clean:
+	@$(MAKE) clean
+
+override_dh_auto_build-arch:
+	@$(MAKE) libdebug
+
+override_dh_auto_build: override_dh_auto_build-arch
+
+override_dh_auto_test:
+	@printf "No tests, we are building a package."
+
+override_dh_auto_install:
+	@mkdir -p debian/libcolr-dev; \
+	mkdir -p debian/libcolr-dev/usr/share/colr/lib; \
+	mkdir -p debian/libcolr-dev/usr/share/colr/include; \
+	mkdir -p debian/libcolr-dev/usr/lib; \
+	mkdir -p debian/libcolr-dev/usr/include; \
+	cp colr.h debian/libcolr-dev/usr/share/colr/include; \
+	pushd debian/libcolr-dev/usr/include 1>/dev/null; \
+	[[ -e colr.h ]] || ln -s ../share/colr/include/colr.h colr.h; \
+	popd 1>/dev/null; \
+	cp libcolr.so debian/libcolr-dev/usr/share/colr/lib; \
+	pushd debian/libcolr-dev/usr/lib 1>/dev/null; \
+	[[ -e libcolr.so ]] || ln -s ../share/colr/lib/libcolr.so libcolr.so; \
+	popd 1>/dev/null;

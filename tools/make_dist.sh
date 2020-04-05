@@ -14,17 +14,19 @@ get_ver_script="$appdir/get_version.sh"
     printf "Missing dependency script: %s\n" "$get_ver_script" 1>&2
     exit 1
 }
+make_deb_script="$appdir/../deb_pkgs/make_deb.sh"
+[[ -e "$get_ver_script" ]] || {
+    printf "Missing dependency script: %s\n" "$make_deb_script" 1>&2
+    exit 1
+}
+declare -a make_deb_cmd=("bash" "$make_deb_script")
+
 if ! colrc_version="$(bash "$get_ver_script")"; then
     printf "Unable to get ColrC version!\n" 1>&2
     exit 1
 fi
 colrc_src_pkg_name="colrc-$colrc_version.tar.gz"
 colrc_src_pkg_name_latest="colrc-latest.tar.gz"
-
-colrc_deb_pkg_name="colr"
-colrc_deb_name_latest="${colrc_deb_pkg_name}_latest"
-libcolr_deb_name_latest="libcolr-dev_latest"
-colrc_lib_name="libcolr"
 
 # Defaults (shouldn't really be used. Be explicit.)
 default_dir="$(readlink -f "$appdir/../dist")"
@@ -45,10 +47,6 @@ declare -a tar_cmd=(
     "--file"
 )
 
-python_exe="$(bash "$appdir/find_python.sh")" || {
-    printf "\nUnable to determine python executable!\n" 1>&2
-    exit 1
-}
 
 function echo_err {
     # Echo to stderr.
@@ -81,34 +79,6 @@ function fail_usage {
     # Print a usage failure message, and exit with an error status code.
     print_usage "$@"
     exit 1
-}
-
-
-function make_deb_pkg {
-    local deb_name=$1
-    if [[ "$deb_name" != "$colrc_deb_pkg_name" ]] && [[ "$deb_name" != "$colrc_lib_name" ]]; then
-        fail "Unknown deb name: $deb_name"
-    fi
-    local deb_arch
-    deb_arch="$(dpkg --print-architecture)" || fail "Unable to determine architecture."
-    [[ -n "$deb_name" ]] || fail "No package name provided to gen_debian_struct()!"
-
-    printf "\nCreating deb package for: %s\n" "${deb_name}_${deb_arch}"
-    local deb_pkg deb_latest
-    if [[ "$deb_name" == "$colrc_deb_pkg_name" ]]; then
-        deb_latest="${user_dir}/${colrc_deb_name_latest}_${deb_arch}.deb"
-        deb_pkg="$("$python_exe" "$appdir/make_deb.py" -q -d "$user_dir")" || fail "Failed to create colr package!"
-    elif [[ "$deb_name" == "$colrc_lib_name" ]]; then
-        deb_latest="${user_dir}/${libcolr_deb_name_latest}_${deb_arch}.deb"
-        deb_pkg="$("$python_exe" "$appdir/make_deb.py" -q --lib -d "$user_dir")" || fail "Failed to create libcolr package!"
-    else
-        fail "Unknown deb name, '$deb_name'. Cancelling."
-    fi
-
-    [[ -e "$deb_pkg" ]] || fail "No debian package built!"
-    printf "\nDebian package built: %s\n" "$deb_pkg"
-    cp "$deb_pkg" "$deb_latest" || fail "Failed to copy latest package: $deb_latest"
-    printf "Latest Debian package updated: %s\n\n" "$deb_latest"
 }
 
 
@@ -245,12 +215,12 @@ if ((do_control)); then
 fi
 
 set_user_dir
-if ((do_deb)); then
-    make_deb_pkg colr
-fi
-if ((do_deb_lib)); then
-    make_deb_pkg libcolr
-fi
+((do_deb)) && {
+    "${make_deb_cmd[@]}" --colr || fail "Unable to build colr package!"
+}
+((do_deb_lib)) && {
+    "${make_deb_cmd[@]}" --libcolr || fail "Unable to build libcolr package!"
+}
 if ((do_src)); then
     make_src_pkg
 fi

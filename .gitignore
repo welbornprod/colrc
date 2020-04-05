@@ -21,3 +21,14 @@ snippet.colr.*.c
 unused.json
 cppcheck.cached*.json
 *.srctrl*
+deb_pkgs/colr.in/*.*
+deb_pkgs/libcolr-dev.in/*.*
+deb_pkgs/colr-[0-9].[0-9].[0-9]
+deb_pkgs/libcolr-dev-[0-9].[0-9].[0-9]
+deb_pkgs/*.dsc
+deb_pkgs/*.tar.gz
+deb_pkgs/*.build
+deb_pkgs/*.buildinfo
+deb_pkgs/*.changes
+deb_pkgs/*.deb
+deb_pkgs/*.ddeb

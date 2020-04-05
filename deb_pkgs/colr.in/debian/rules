@@ -1,0 +1,27 @@
+#!/usr/bin/make -f
+SHELL=bash
+CC=gcc
+
+%:
+	dh $@
+
+override_dh_auto_clean:
+	@$(MAKE) clean
+
+
+override_dh_auto_build-arch:
+	@$(MAKE) debug
+
+override_dh_auto_build: override_dh_auto_build-arch
+
+override_dh_auto_test:
+	@printf "No tests, we are building a package."
+
+override_dh_auto_install:
+	@mkdir -p debian/colr; \
+	mkdir -p debian/colr/usr/share/colr/bin; \
+	mkdir -p debian/colr/usr/bin; \
+	cp colrc debian/colr/usr/share/colr/bin; \
+	pushd debian/colr/usr/bin 1>/dev/null; \
+	[[ -e colrc ]] || ln -s ../share/colr/bin/colrc colrc; \
+	popd 1>/dev/null;
