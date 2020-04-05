@@ -2,8 +2,10 @@
 
 # Downloadable Files
 
-Here are a couple downloadable packages from **ColrC**. Version-specific files
-are available for download at the [ColrC repo](https://github.com/welbornprod/colrc/tree/dev/dist).
+Here are a couple downloadable packages from **ColrC**.
+
+Version-specific files are available for download at the
+[ColrC repo](https://github.com/welbornprod/colrc/tree/dev/dist).
 
 \anchor pdf
 ## PDF
