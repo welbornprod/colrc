@@ -34,7 +34,7 @@ function build_deb {
     [[ -n "$srcdir" ]] || fail "No source directory given to build_deb()!"
     [[ -e "$srcdir" ]] || fail "Missing source directory: $srcdir"
     pushd "$srcdir" 1>/dev/null
-    dpkg-buildpackage
+    dpkg-buildpackage -b
     build_status=$?
     popd 1>/dev/null
     return $build_status
@@ -45,13 +45,16 @@ function build_pkgs {
     local failures=0
     clean_dirs
 
-    printf "Building colr\n"
-    create_dir_colr
-    build_deb "$appdir/$colr_dir" || let failures+=1
-
-    create_dir_libcolr
-    printf "Building libcolr...\n"
-    build_deb "$appdir/$libcolr_dir" || let failures+=1
+    ((do_pkg_colr)) && {
+        printf "Building colr\n"
+        create_dir_colr
+        build_deb "$appdir/$colr_dir" || let failures+=1
+    }
+    ((do_pkg_libcolr)) && {
+        create_dir_libcolr
+        printf "Building libcolr...\n"
+        build_deb "$appdir/$libcolr_dir" || let failures+=1
+    }
 
     ((failures)) && {
         printf "Cleaning up for failures...\n"
@@ -65,17 +68,26 @@ function build_pkgs {
     }
     distdir="$(readlink -f "$distdir")"
     printf "Copying deb packages to: %s\n" "$distdir"
-    local debpath debfile destpath
+    local debpath debfile destpath pkgname pkgarch latestname
     while read -r debpath; do
         debfile="${debpath##*/}"
         destpath="$distdir/$debfile"
         if cp "$debpath" "$destpath"; then
-            printf "Created package: %s\n" "$destpath"
+            printf "Copied package: %s\n" "$destpath"
+            pkgname="${debfile#*_}"
+            pkgarch="${debfile##*_}"
+            latestname="${pkgname}_latest_${pkgarch}"
+            cp "$destpath" "$distdir/$latestname" && {
+                printf "Updated latest package: %s\n" "$latestname"
+            }
+            rm "$debpath" || printf "Unable to remove original package: %s\n" "$debpath"
         else
             printf "Unable to copy package file: %s\n" "$debpath"
         fi
-    done < <(find "$appdir" -type f -name "*.deb")
+    done < <(find "$colrc_dir/deb_pkgs" -type f -name "*.deb")
+    clean_pkg_files
 }
+
 
 function clean_dirs {
     # Delete any leftover package directories.
@@ -90,10 +102,23 @@ function clean_dirs {
 
 function clean_pkg_files {
     local filepath
+    declare -a findargs=(
+        "-name" "*.deb"
+        "-or"
+        "-name" "*.dsc"
+        "-or"
+        "-name" "*.tar.gz"
+        "-or"
+        "-name" "*.build"
+        "-or"
+        "-name" "*.buildinfo"
+        "-or"
+        "-name" "*.changes"
+    )
     while read -r filepath; do
         printf "Removing package file: %s\n" "$filepath"
         rm "$filepath"
-    done < <(find "$colrc_dir/deb_pkgs" -type f -name "*.dsc" -or -name "*.tar.gz")
+    done < <(find "$colrc_dir/deb_pkgs" -type f "${findargs[@]}")
 }
 
 function create_dir_colr {
@@ -141,14 +166,17 @@ function print_usage {
 
     Usage:
         $appscript -h | -v
-        $appscript [-c] [-C]
+        $appscript [-C | -L]
+        $appscript [-c] [-p]
         $appscript -d
 
     Options:
-        -C,--cleanpkgs  : Clean leftover package files (if they exist).
+        -C,--colr       : Create the colr package.
         -c,--clean      : Remove leftover package directories (if they exist).
         -d,--dirs       : Create the directories, but don't build any packages.
         -h,--help       : Show this message.
+        -L,--libcolr    : Create the libcolr package.
+        -p,--cleanpkgs  : Clean leftover package files (if they exist).
         -v,--version    : Show $appname version and exit.
     "
 }
@@ -184,12 +212,14 @@ declare -a nonflags
 do_clean=0
 do_clean_pkgs=0
 do_dirs_only=0
+do_pkg_colr=0
+do_pkg_libcolr=0
 
 
 for arg; do
     case "$arg" in
-        "-C" | "--cleanpkgs")
-            do_clean_pkgs=1
+        "-C" | "--colr")
+            do_pkg_colr=1
             ;;
         "-c" | "--clean")
             do_clean=1
@@ -200,6 +230,12 @@ for arg; do
         "-h" | "--help")
             print_usage ""
             exit 0
+            ;;
+        "-L" | "--libcolr")
+            do_pkg_libcolr=1
+            ;;
+        "-p" | "--cleanpkgs")
+            do_clean_pkgs=1
             ;;
         "-v" | "--version")
             echo -e "$appname v. $appversion\n"
@@ -228,4 +264,9 @@ done
 }
 
 # Build debian packages.
+((do_pkg_colr || do_pkg_libcolr)) || {
+    # Package wasn't specified, do both.
+    do_pkg_colr=1
+    do_pkg_libcolr=1
+}
 build_pkgs
