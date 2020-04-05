@@ -9,6 +9,7 @@ Vcs-Git: git://github.com/welbornprod/colrc.git
 Build-Depends: libc6
 
 Package: libcolr-dev
-Architecture: all
+Architecture: any
+Depends: ${shlibs:Depends}
 Description: ColrC is a C library and a command-line tool for terminal colors
              on Linux.

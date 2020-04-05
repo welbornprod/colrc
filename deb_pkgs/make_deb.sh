@@ -1,6 +1,8 @@
 #!/bin/bash
 
-# Creates debian package structures from the ColrC source.
+# Creates debian package structures from the ColrC source,
+# builds the packages, and copies them into <colrc root>/dist.
+# This will also make a copy of the package with 'latest' in it's name.
 # -Christopher Welborn 04-04-2020
 appname="ColrC Deb Maker"
 appversion="0.0.1"
@@ -30,11 +32,18 @@ colr_tool_files+=(
 )
 
 function build_deb {
+    # cd into a package directory and build it.
+    # Arguments:
+    #   $1   : The package directory (./colr-x.x.x, or ./libcolr-dev-x.x.x).
+    #   $2.. : Extra arguments for `dpkg-buildpackage`.
     local srcdir=$1 build_status=0
     [[ -n "$srcdir" ]] || fail "No source directory given to build_deb()!"
     [[ -e "$srcdir" ]] || fail "Missing source directory: $srcdir"
+    shift
+    declare -a build_args=("$@")
     pushd "$srcdir" 1>/dev/null
-    dpkg-buildpackage -b
+    printf "Running: dpkg-buildpackage %s\n" "${build_args[*]}"
+    dpkg-buildpackage "${build_args[@]}"
     build_status=$?
     popd 1>/dev/null
     return $build_status
@@ -48,12 +57,12 @@ function build_pkgs {
     ((do_pkg_colr)) && {
         printf "Building colr\n"
         create_dir_colr
-        build_deb "$appdir/$colr_dir" || let failures+=1
+        build_deb "$appdir/$colr_dir" -b || let failures+=1
     }
     ((do_pkg_libcolr)) && {
         create_dir_libcolr
         printf "Building libcolr...\n"
-        build_deb "$appdir/$libcolr_dir" || let failures+=1
+        build_deb "$appdir/$libcolr_dir" -b || let failures+=1
     }
 
     ((failures)) && {
@@ -85,6 +94,7 @@ function build_pkgs {
             printf "Unable to copy package file: %s\n" "$debpath"
         fi
     done < <(find "$colrc_dir/deb_pkgs" -type f -name "*.deb")
+    clean_dirs
     clean_pkg_files
 }
 
@@ -104,6 +114,8 @@ function clean_pkg_files {
     local filepath
     declare -a findargs=(
         "-name" "*.deb"
+        "-or"
+        "-name" "*.ddeb"
         "-or"
         "-name" "*.dsc"
         "-or"

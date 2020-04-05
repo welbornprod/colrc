@@ -31,3 +31,4 @@ deb_pkgs/*.build
 deb_pkgs/*.buildinfo
 deb_pkgs/*.changes
 deb_pkgs/*.deb
+deb_pkgs/*.ddeb
