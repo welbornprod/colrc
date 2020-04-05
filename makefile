@@ -27,35 +27,61 @@ LIBS=-lm
 # Sanitizers/protectors to optionally enable.
 FFLAGS=-fno-omit-frame-pointer -fstack-protector-strong \
     -fsanitize=address -fsanitize=leak -fsanitize=undefined
-
+# Colr tool executable.
 binary=colrc
+# Source for libcolr only.
 colr_source=colr.c colr.controls.c
+# Source for the colr tool.
 source=colr_tool.c $(colr_source)
+# Objects that make up the colr tool.
 objects:=$(source:.c=.o)
+# Output name for libcolr.
+lib_binary=libcolr.so
+# Objects that make up libcolr.so.
 lib_objects=$(colr_source:.c=.o)
-lib_install_cmd=bash ./tools/install.sh --lib
+# Header files for libcolr only.
 colr_headers=colr.h colr.controls.h
+# Header files that should trigger rebuilds.
 headers=colr_tool.h $(colr_headers)
-optional_headers=dbug.h
-optional_flags=$(foreach header, $(optional_headers), -include $(header))
+# Output for coverage info.
 cov_dir=coverage
+# Command to run cppcheck (this script has some sane defaults set).
 cppcheck_cmd=bash ./tools/cppcheck_run.sh
+# Main output file for cppcheck (for target dependencies).
 cppcheck_html=./cppcheck_report/index.html
+# Command to install the ColrC tool, if not building/using a debian package.
 install_cmd=bash ./tools/install.sh
+# Command to install libcolr.so, if not building/using a debian package.
+lib_install_cmd=bash ./tools/install.sh --lib
+# Command to determine what type of build `colrc` or `libcolr.so` is.
 is_build_cmd=bash tools/is_build.sh
+# Command to format `make help` output.
 make_help_fmt_cmd=python3 tools/make_help_fmter.py
+# Command to turn a basic doxygen index.md into a GitHub README.md.
 undoxy_md_cmd=python3 tools/undoxy_markdown.py
+# Arguments for $undoxy_md_cmd to generate the GitHub README.
 readme_title="ColrC Documentation"
 readme_header="![CI](https://github.com/welbornprod/colrc/workflows/CI/badge.svg?event=push)\n\nFor full documentation see [welbornprod.com/colrc](https://welbornprod.com/colrc/index.html)"
+# Command to get current ColrC version.
 version_cmd=bash tools/get_version.sh
+# Directory for source/debian-binary packages.
 dist_dir=./dist
+# Files to include in a source package. This is not the same as debian-source
+# package (see the `distdebfull` target).
 dist_files=colr.h colr.c colr.controls.h colr.controls.c
+# Command to make source/debian packages.
 make_dist_cmd=bash tools/make_dist.sh
+# Directory for doc input/config files.
 doc_dep_dir=doc_deps
+# Doxygen config for all output formats.
 docs_config=$(doc_dep_dir)/Doxyfile_common
+# Doxygen config for HTML/MAN output.
 docs_html_config=$(doc_dep_dir)/Doxyfile_html
+# Doxygen config for LaTeX/PDF output.
 docs_latex_config=$(doc_dep_dir)/Doxyfile_latex
+# Output directory for generated docs.
 docs_dir=docs
+# GitHub-friendly README file (generated with $undoxy_md_cmd).
 docs_github_readme=README.md
 docs_index_md=$(doc_dep_dir)/index.md
 docs_md=$(wildcard $(doc_dep_dir)/*.md)
@@ -130,7 +156,7 @@ lib: cleancolrobjects
 lib: CFLAGS+=-fpic
 lib: $(lib_objects)
 lib:
-	$(CC) -shared -o libcolr.so $(lib_objects)
+	$(CC) -shared -o $(lib_binary) $(lib_objects)
 
 .PHONY: libdebug
 libdebug: CFLAGS+=-g3 -DDEBUG -DCOLR_DEBUG
@@ -384,8 +410,11 @@ distcj: dist
 
 .PHONY: distdeb
 distdeb: $(dist_files)
-	@$(make_dist_cmd) -D; \
-	$(make_dist_cmd) -L;
+	@$(make_dist_cmd) -D -d "$(dist_dir)";
+
+.PHONY: distdebfull
+distdebfull: $(dist_files)
+	@$(make_dist_cmd) -D -F -d "$(dist_dir)";
 
 .PHONY: distdocs
 distdocs: $(docs_cj_main_file)

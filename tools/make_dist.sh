@@ -121,19 +121,22 @@ function print_usage {
     Usage:
         $appscript -h | -v
         $appscript [-d dir] [FILES...]
-        $appscript [-d dir] -c | -D | -L
+        $appscript [-d dir] [-F] -C | -D | -L
         $appscript [-d dir] -S [FILES...]
 
     Options:
         FILES             : Files to include in the source package.
                             Default: ${default_file_names[*]}
-        -c,--control      : Show debian control content.
-        -D,--deb          : Only make the colrc debian package.
+        -C,--colrdeb      : Only make the colrc debian package.
+        -D,--alldeb       : Make both debian packages.
         -d dir,--dir dir  : Destination directory.
                             Default: $default_dir
+        -F,--full         : Build source and binary packages.
         -h,--help         : Show this message.
-        -L,--libdeb       : Only make the libcolr debian package.
+        -L,--libcolrdeb   : Only make the libcolr debian package.
         -S,--source       : Only make the source package.
+                            This is a basic source package, not a debian
+                            source package.
         -v,--version      : Show $appname version and exit.
     "
 }
@@ -154,25 +157,26 @@ in_dir_arg=0
 user_dir=""
 do_deb=1
 do_deb_lib=1
-do_control=0
+do_deb_full=0
 do_src=1
 
 for arg; do
     case "$arg" in
-        "-c" | "--control")
-            do_control=1
-            do_deb=0
-            do_src=0
-            do_deb_lib=0
-            ;;
-        "-D" | "--deb")
+        "-C" | "--colrdeb")
             do_deb=1
             do_src=0
             do_deb_lib=0
-            do_control=0
+            ;;
+        "-D" | "--alldeb")
+            do_deb=1
+            do_deb_lib=1
+            do_src=0
             ;;
         "-d" | "--dir")
             in_dir_arg=1
+            ;;
+        "-F" | "--full")
+            do_deb_full=1
             ;;
         "-h" | "--help")
             print_usage ""
@@ -182,13 +186,11 @@ for arg; do
             do_deb_lib=1
             do_src=0
             do_deb=0
-            do_control=0
             ;;
         "-S" | "--source")
             do_src=1
             do_deb=0
             do_deb_lib=0
-            do_control=0
             ;;
         "-v" | "--version")
             echo -e "$appname v. $appversion\n"
@@ -208,19 +210,21 @@ for arg; do
     esac
 done
 
-if ((do_control)); then
-    printf "%s\n" "$(gen_debian_control colrc)"
-    # Nothing else to do.
-    exit
-fi
-
 set_user_dir
+# Arguments to forward to make_deb.sh.
+declare -a deb_args
+((do_deb_full)) && deb_args+=("-F")
+[[ -n "$user_dir" ]] && deb_args+=("-d" "$user_dir")
+
 ((do_deb)) && {
-    "${make_deb_cmd[@]}" --colr || fail "Unable to build colr package!"
+    # These don't honor $user_dir.
+    "${make_deb_cmd[@]}" --colr "${deb_args[@]}" || fail "Unable to build colr package!"
 }
 ((do_deb_lib)) && {
-    "${make_deb_cmd[@]}" --libcolr || fail "Unable to build libcolr package!"
+    # These don't honor $user_dir.
+    "${make_deb_cmd[@]}" --libcolr "${deb_args[@]}" || fail "Unable to build libcolr package!"
 }
+# This is the default action when no arguments are provided.
 if ((do_src)); then
     make_src_pkg
 fi
