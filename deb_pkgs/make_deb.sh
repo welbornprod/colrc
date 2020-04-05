@@ -74,7 +74,7 @@ function build_pkgs {
         destpath="$distdir/$debfile"
         if cp "$debpath" "$destpath"; then
             printf "Copied package: %s\n" "$destpath"
-            pkgname="${debfile#*_}"
+            pkgname="${debfile%%_*}"
             pkgarch="${debfile##*_}"
             latestname="${pkgname}_latest_${pkgarch}"
             cp "$destpath" "$distdir/$latestname" && {
