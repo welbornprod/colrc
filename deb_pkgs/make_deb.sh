@@ -172,14 +172,14 @@ function clean_pkg_files {
 
 function create_dir_colr {
     # Create the colr_<version> package directory.
-    printf "Creating package directory: %s\n" "$colr_dir"
+    printf "\nCreating package directory: %s\n" "$colr_dir"
     cp -r "$appdir/colr.in" "$appdir/$colr_dir"
     refresh_colr
 }
 
 function create_dir_libcolr {
     # Create the libcolr-dev_<version> package directory.
-    printf "Creating package directory: %s\n" "$libcolr_dir"
+    printf "\nCreating package directory: %s\n" "$libcolr_dir"
     cp -r "$appdir/libcolr-dev.in" "$appdir/$libcolr_dir"
     refresh_libcolr
 }
